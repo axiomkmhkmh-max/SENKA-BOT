@@ -11,6 +11,7 @@ from data_weapons import ELEMENTS, RARITIES
 from data_crafting import DIFFS
 import engine as E
 from database import col, game_settings
+from service_log import log_event
 from service_economy import gacha_doc, inv_remove, party_bonus, roll_drop, inv_add
 from service_player import add_coins, add_xp, bump_quest, get_char, max_hp, max_reiatsu
 from service_worldcore import mods_for
@@ -382,6 +383,8 @@ async def pvp_settle(doc: dict):
         await col("characters").update_one({"user_id": w_uid}, {"$inc": {"rating": gain, "pvp_w": 1}})
         await col("characters").update_one({"user_id": l_uid}, {"$set": {"rating": new_l}, "$inc": {"pvp_l": 1}})
         res["rating"] = {w_uid: (cw["rating"] + gain, gain), l_uid: (new_l, -(cl["rating"] - new_l))}
+    log_event("pvp", w_uid, f"دوئل {'رنکد' if doc['ranked'] else 'دوستانه'}: برد مقابل {cl['name']} ({l_uid})" + (f" | رتبه {res['rating'][w_uid][1]:+d}" if rated else (f" | بدون امتیاز ({note})" if note else "")),
+              loser=l_uid, ranked=bool(doc["ranked"]))
     wins_today = await col("battle_logs").count_documents({"user_id": w_uid, "mode": "pvp", "win": True, "at": {"$gte": now - 86400}})
     frac = 1.0 if wins_today < int(gs["pvp_full_xp_wins"]) else 0.3
     if note != "pair_cap":

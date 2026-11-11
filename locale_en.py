@@ -49,7 +49,7 @@ TEXT = {
  "gld_e_cooldown": "You changed squads recently. Wait a few days.", "gld_e_full": "That guild is full.", "gld_e_none": "You are not in a guild.", "gld_e_funds": "Not enough coins.",
  "gld_e_leader": "A leader does not leave the field while comrades remain.", "gld_c_in_guild": "You are already in a guild.", "gld_c_level": "Needs level {n}.", "gld_c_funds": "Needs {n} 🪙.", "gld_c_taken": "That name is taken.",
  "set_body": "Choose your language. Progress is kept.", "help_body": "Play with plain words: <i>home, profile, explore, battle, bag, market, quests, summon, squad, ranking, daily</i>.\n⚔️ <b>Path of power:</b> explore → hunt → forge your blade → Shikai at level 10, Bankai at level 30.\nIn groups: reply to a player with <i>duel</i>; when a boss appears, tap Attack.\nGroup admins: <i>group language fa/en/both</i>.",
- "group_help": "Reply to a player with «duel» to challenge them. Bosses keep tearing out of the rifts here. Stay ready!",
+ "group_help": "Reply to a player with «duel» to challenge them. Bosses keep tearing out of the rifts here. Stay ready!\n🎁 Treasures sometimes drop here; reply to the drop and write «take». Group admins: «drops off/on».",
  # items
  "cat_weapon": "Weapon", "cat_armor": "Armor", "cat_accessory": "Accessory", "cat_material": "Material", "cat_potion": "Potion", "cat_kido_card": "Kidō card", "cat_book": "Book",
  "cat_evolution": "Evolution", "cat_cosmetic": "Cosmetic", "cat_relic": "Relic", "cat_egg": "Egg", "cat_key": "Key",
@@ -283,7 +283,7 @@ TEXT.update({
   "🧭 <b>Adventure</b>\n<code>explore</code> — patrol (energy)\n<code>battle</code> — fight Hollows\n<code>dungeon</code> — enter dungeons\n<code>map</code> — travel between locations\n<code>minigame</code> — Bleach puzzle\n\n"
   "⚒️ <b>Power</b>\n<code>forge</code> — strengthen your zanpakuto\n<code>craft</code> — potions, keys, armor tempering\n<code>evolution</code> — race evolution trial\n<code>relic</code> / <code>pets</code> — relics, cosmetics, companions\n<code>party</code> — summoned characters\n<code>summon</code> — gacha\n\n"
   "🌍 <b>Shared world</b>\n<code>world</code> — Hollow Tide, Resolve, Reishi, events\n<code>boss</code> — the world boss (everyone, everywhere)\n<code>chronicle</code> — what just happened in the world\n<code>territory</code> — guild lands\n<code>bounty</code> — hunt or post a price\n<code>season</code> — season standings\n\n"
-  "💰 <b>Social &amp; trade</b>\n<code>market</code> — Urahara shop, market, auctions\n<code>squad</code> — squad / guild\n<code>ranking</code> — leaderboards\n\n"
+  "💰 <b>Social &amp; trade</b>\n<code>market</code> — Urahara shop, market, auctions\n<code>squad</code> — squad / guild\n<code>ranking</code> — leaderboards\n<code>artifact</code> — your one-of-a-kind treasure · <code>artifact market</code>\n\n"
   "⚔️ <b>Duels (in groups)</b>\nReply to a player with <code>duel</code> (ranked) or <code>friendly</code>.\n\n"
   "⚙️ <b>Other</b>\n<code>settings</code> — language · <code>help</code> — guide · <code>commands</code> — this list\n"
   "Group admins: <code>group language fa|en|both</code>"),

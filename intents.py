@@ -42,6 +42,9 @@ RAW = {
     "wheel": ("whl", "", ["چرخ", "چرخ شانس", "چرخ اوراهارا", "wheel", "spin", "lucky wheel"]),
     "seat": ("sat", "", ["درجه", "درجه گوتی", "کرسی", "seat", "my seat", "gotei seat"]),
     "inner": ("inr", "", ["دنیای درون", "درون", "inner world", "inner", "spirit talk"]),
+    "artifact": ("art", "", ["آرتیفکت", "آرتیفکت من", "گنجینه", "گنجینه من", "artifact", "my artifact", "treasure"]),
+    "artifact_reg": ("arr", "", ["ثبت نامه آرتیفکت", "ثبت‌نامه آرتیفکت‌ها", "ثبتنامه گنجینه ها", "artifact registry", "registry"]),
+    "artifact_mkt": ("axm", "0", ["بازار آرتیفکت", "artifact market", "artifact exchange", "exchange"]),
     "duel": ("*duel", "r", ["دوئل", "دوئل رنکد", "duel", "ranked duel", "challenge"]),
     "duel_friendly": ("*duel", "f", ["دوئل دوستانه", "friendly duel", "friendly"]),
 }

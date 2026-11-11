@@ -33,6 +33,8 @@ async def seed():
     from service_social import seed_squads
     await seed_squads()
     await migrate_world()
+    from service_drops import art_seed
+    await art_seed()
 
 
 async def migrate_world():
@@ -52,12 +54,12 @@ async def migrate_world():
 CMD_EN = [("home", "Open your world panel"), ("profile", "Your Soul Reaper profile"), ("explore", "Patrol the world"), ("battle", "Fight Hollows"),
           ("bag", "Inventory & equipment"), ("market", "Urahara shop, market & auctions"), ("quests", "Missions"), ("summon", "Summon characters & gear"),
           ("squad", "Squad / clan"), ("ranking", "Leaderboards"), ("daily", "Daily reward"), ("dungeon", "Enter dungeons"), ("map", "World map"),
-          ("forge", "Strengthen your zanpakuto"), ("party", "Your companions"), ("minigame", "Bleach puzzle"), ("boss", "World boss"), ("world", "Living world panel"), ("craft", "Craft, evolve, gear"), ("season", "Season standings"), ("tower", "Soul Tower"), ("dispatch", "Dispatch companions"), ("wheel", "Urahara's wheel"), ("seat", "Gotei seat rank"), ("inner", "Inner World"),
+          ("forge", "Strengthen your zanpakuto"), ("party", "Your companions"), ("minigame", "Bleach puzzle"), ("boss", "World boss"), ("world", "Living world panel"), ("craft", "Craft, evolve, gear"), ("season", "Season standings"), ("tower", "Soul Tower"), ("dispatch", "Dispatch companions"), ("wheel", "Urahara's wheel"), ("seat", "Gotei seat rank"), ("inner", "Inner World"), ("artifact", "Your Soul Artifact"),
           ("duel", "Ranked duel (reply to a player)"), ("friendly", "Friendly duel"), ("settings", "Language & settings"), ("commands", "All commands"), ("help", "Help")]
 CMD_FA = [("home", "پنل دنیای من"), ("profile", "پروفایل شینیگامی"), ("explore", "گشت در جهان"), ("battle", "نبرد با هالوها"),
           ("bag", "کوله و تجهیزات"), ("market", "فروشگاه اوراهارا، بازار و حراج"), ("quests", "ماموریت‌ها"), ("summon", "احضار کاراکتر و تجهیزات"),
           ("squad", "جوخه / کلن"), ("ranking", "رتبه‌بندی"), ("daily", "جایزه روزانه"), ("dungeon", "ورود به دانجن"), ("map", "نقشه جهان"),
-          ("forge", "تقویت زانپاکتو"), ("party", "همراهان من"), ("minigame", "معمای بلیچ"), ("boss", "باس جهانی"), ("world", "پنل دنیای زنده"), ("craft", "ساخت، تکامل و تجهیز"), ("season", "رتبه‌ی فصل"), ("tower", "برج روح"), ("dispatch", "اعزام همراهان"), ("wheel", "چرخ اوراهارا"), ("seat", "درجه‌ی گوتی"), ("inner", "دنیای درون"),
+          ("forge", "تقویت زانپاکتو"), ("party", "همراهان من"), ("minigame", "معمای بلیچ"), ("boss", "باس جهانی"), ("world", "پنل دنیای زنده"), ("craft", "ساخت، تکامل و تجهیز"), ("season", "رتبه‌ی فصل"), ("tower", "برج روح"), ("dispatch", "اعزام همراهان"), ("wheel", "چرخ اوراهارا"), ("seat", "درجه‌ی گوتی"), ("inner", "دنیای درون"), ("artifact", "آرتیفکت من"),
           ("duel", "دوئل رنکد (ریپلای)"), ("friendly", "دوئل دوستانه"), ("settings", "زبان و تنظیمات"), ("commands", "همه‌ی دستورات"), ("help", "راهنما")]
 
 
@@ -100,7 +102,9 @@ async def main():
     dp = Dispatcher()
     dp.include_router(router)
     stop = asyncio.Event()
+    import service_log
     task = asyncio.create_task(scheduler.run(bot, stop))
+    log_task = asyncio.create_task(service_log.run(bot, stop))
     try:
         await bot.delete_webhook(drop_pending_updates=settings.drop_pending)
         await setup_commands(bot)
@@ -109,7 +113,7 @@ async def main():
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"], handle_signals=True)
     finally:
         stop.set()
-        await asyncio.gather(task, return_exceptions=True)
+        await asyncio.gather(task, log_task, return_exceptions=True)
         await bot.session.close()
         await runner.cleanup()
         await close_db()

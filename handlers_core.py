@@ -9,6 +9,7 @@ from aiogram.types import CallbackQuery, Message
 
 import handlers_admin
 import handlers_combat
+import handlers_drops
 import handlers_extras  # noqa: F401  (registers the new panels)
 import handlers_items
 import handlers_panels
@@ -18,6 +19,7 @@ from config import settings
 from database import col, game_settings
 from intents import GROUP_OK, resolve, word_for
 from security import allow, normalize_text, parse_cb
+from service_log import log_action, log_text
 from service_player import get_char, reg_get, touch_user, user_lang
 from service_world import note_group, set_group_lang, spawn_boss
 from ui import INPUTS, REGISTRY, Ctx, Out, markup
@@ -79,7 +81,7 @@ COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle"
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
             "party": "party", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
-            "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner"}
+            "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact"}
 
 
 @router.message(Command(*COMMANDS))
@@ -136,6 +138,7 @@ async def handle_text(message: Message, text: str):
     if not hit:
         return await message.answer(ctx.t("unknown"), reply_markup=markup(ctx, [[(ctx.t("m_home"), "home", "")]]))
     name, code, arg = hit
+    log_text(user.id, name)
     if code.startswith("*"):
         return await message.answer(ctx.t("duel_group_only"))
     if code == "adm" and await handlers_admin.admin_level(user.id) < 20:
@@ -158,6 +161,8 @@ async def on_group_text(message: Message, text: str):
             await set_group_lang(chat.id, GL_MAP[m.group(1)])
             await message.reply("✅")
         return
+    if await handlers_drops.group_hook(message, text, n):
+        return
     if not allow(user.id, "grp", 1.5):
         return
     if n in ("spawn boss", "ظهور باس"):
@@ -172,6 +177,7 @@ async def on_group_text(message: Message, text: str):
     name, code, arg = hit
     if name not in GROUP_OK:
         return
+    log_text(user.id, name, chat.type)
     await touch_user(user)
     ctx = await make_ctx(user, chat, message.bot, message)
     if await gate(ctx):
@@ -222,6 +228,7 @@ async def on_callback(cb: CallbackQuery):
     except Exception:
         log.exception("callback failed: %s %s", code, arg)
         return await cb.answer(ctx.t("error"), show_alert=True)
+    log_action(user.id, code, arg, bool((await game_settings()).get("log_nav")))
     await _deliver(cb, ctx, out)
 
 

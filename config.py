@@ -20,6 +20,8 @@ class Settings:
         self.hmac_secret = os.getenv("HMAC_SECRET", "").strip()
         self.port = _int("PORT", 8080)
         self.drop_pending = _int("DROP_PENDING_UPDATES", 0) == 1
+        # Telegram log channel: "@username" or numeric id (-100...). The bot must be an admin there. Empty = DB-only logging.
+        self.log_channel = os.getenv("LOG_CHANNEL", "@senkalog").strip()
 
 
 settings = Settings()
@@ -79,6 +81,13 @@ GAME_DEFAULTS = {
     "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 12, "chain_bonus_every": 5,
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,
     "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,
+    # ---- group drops, Soul Artifacts, Artifact Exchange, log channel -------------------------------
+    "drop_enabled": True, "drop_min_msgs": 30, "drop_min_users": 3, "drop_chance": 0.6, "drop_cooldown_minutes": 60,
+    "drop_ttl_seconds": 180, "drop_daily_per_user": 6, "drop_min_level": 3, "drop_artifact_chance": 0.12,
+    "drop_player_enabled": True, "drop_player_min_level": 10, "drop_player_min_age_hours": 24, "drop_player_cooldown": 3600,
+    "drop_player_daily": 3, "drop_pair_daily": 2,
+    "art_k": 1.0, "art_fee": 0.10, "art_price_min": 2000, "art_price_max": 10000000, "art_list_hours": 72,
+    "log_enabled": True, "log_nav": False,
     "season_days": 30, "season_soft_reset": 0.25, "season_daily_pts_cap": 400, "season_min_pts": 30,
     "season_top_coins": 50000, "season_part_coin_per_pt": 5, "new_acct_minutes": 60,
 }

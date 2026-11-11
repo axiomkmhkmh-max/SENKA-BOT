@@ -65,7 +65,7 @@ async def menu2(ctx, arg):
             [(ctx.t("m_gld"), "gld", ""), (ctx.t("m_rnk"), "rnk", "")],
             [(ctx.t("m_twr"), "twr", ""), (ctx.t("m_dsp"), "dsp", "")],
             [(ctx.t("m_whl"), "whl", ""), (ctx.t("m_sat"), "sat", "")],
-            [(ctx.t("m_inr"), "inr", "")],
+            [(ctx.t("m_inr"), "inr", ""), (ctx.t("m_art"), "art", "")],
             [(ctx.t("m_dly"), "dly", ""), (ctx.t("m_mgm"), "mgm", "")],
             [(ctx.t("m_set"), "set", ""), (ctx.t("m_cmd"), "cmd", "")], [(ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
     return Out(head(ctx, "ttl_menu") + ctx.t("menu_body"), rows)
@@ -83,6 +83,9 @@ async def profile(ctx, arg):
              stats_block(ctx, ch["stats"]),
              "🧿 " + bonus_line(ctx, player_bonus(ch, ALL, await game_settings())),
              f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"]
+    if ch.get("artifact"):
+        from data_artifacts import art_name
+        lines.append("🔱 " + art_name(ch["artifact"], L))
     if ch.get("guild_id"):
         g = await col("guilds").find_one({"_id": ch["guild_id"]})
         if g:

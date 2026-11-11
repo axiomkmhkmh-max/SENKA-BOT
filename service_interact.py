@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from data_world import day_id
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
+from service_log import log_event
 from service_player import add_coins, add_xp, energy_now, get_char
 from service_worldcore import chronicle, is_new_account, season_add
 
@@ -173,6 +174,7 @@ async def bounty_place(uid: int, target: int, amount: int):
     await col("bounties").insert_one({"_id": uuid.uuid4().hex[:10], "target": target, "placer": uid, "amount": int(amount), "status": "active",
                                       "at": int(time.time()), "end_at": int(time.time()) + int(st["bounty_hours"]) * 3600})
     await chronicle("bounty_new", name=tg["name"], n=amount)
+    log_event("bounty", uid, f"روی «{tg['name']}» ({target}) باونتی {int(amount):,} 🪙 گذاشت", target=target, amount=int(amount))
     return "ok", tg["name"]
 
 

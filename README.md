@@ -46,3 +46,12 @@ Six small, live-tunable loops (keys in `config.GAME_DEFAULTS`, all `set <key> <v
 | `seat` / درجه | Gotei seat ranks (Unseated → Captain) from season points; icon shown beside the name; one-time promotion rewards. |
 | `inner` / دنیای درون | Weekly (`inner_weekly`) two-choice talks with the zanpakutō spirit: blade bond, XP or a short buff. |
 New collection `dispatches` (TTL on claimed docs); new character fields `tower, chain, seat, seat_claimed` (created on first use, no migration needed).
+
+
+## Group drops, Soul Artifacts, Artifact Exchange, log channel (v4)
+* **Group drops** (`service_drops.py`, `handlers_drops.py`): while a group chats (`drop_min_msgs` messages from `drop_min_users` different people) a treasure drops now and then. Reply to the drop message with `بردار` / `take` — the first valid reply wins. Admin of the bot: write `دراپ` or `دراپ آرتیفکت` in a group to drop by hand. Group admins: `دراپ خاموش` / `دراپ روشن` (`drops off|on`).
+* **Player drops**: in a group a player writes `دراپ <نام آیتم>` / `drop <item name>` to throw one tradeable item from their bag; first reply `بردار` wins, unclaimed items return to the owner. Limits (all `set`-able, `drop_player_*`, `drop_pair_daily`): level 10, account age 24h, 1 per hour, 3 per day, the dropper cannot grab their own drop, and the same pair can exchange at most 2 per day (anti alt-farming). Artifacts cannot be player-dropped.
+* **Soul Artifacts** (`data_artifacts.py`): 12 one-of-a-kind treasures, **one copy each in the whole world**, one per player. Passive bonuses plug into `player_bonus`. Words: `آرتیفکت` / `artifact`; world registry shows who owns what.
+* **Artifact Exchange** (`axm`, inside the market menu): fixed-price player listings; the artifact is escrowed (its bonus is off while listed); seller fee `art_fee` is burned.
+* **Log channel** (`service_log.py`): every action is queued, stored in `action_logs` (14-day TTL) and posted in batches to `LOG_CHANNEL` (default `@senkalog`). **Add the bot as an admin of the channel** with "post messages". Pure navigation clicks are skipped unless `set log_nav on`. `set log_enabled off` stops it.
+* New live keys (see `config.GAME_DEFAULTS`): `drop_*`, `art_*`, `log_*`. New collections: `drops`, `artifacts`, `art_listings`, `action_logs`; new character field `artifact` (no migration needed).

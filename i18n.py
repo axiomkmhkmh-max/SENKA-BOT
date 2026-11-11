@@ -1,11 +1,12 @@
 """Translations with English fallback, number formatting and HTML escaping."""
 import html
 
+import locale_drops
 import locale_en
 import locale_extras
 import locale_fa
 
-LOCALES = {"fa": {**locale_fa.TEXT, **locale_extras.FA}, "en": {**locale_en.TEXT, **locale_extras.EN}}
+LOCALES = {"fa": {**locale_fa.TEXT, **locale_extras.FA, **locale_drops.FA}, "en": {**locale_en.TEXT, **locale_extras.EN, **locale_drops.EN}}
 _FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 _RLM = "\u200f"
 

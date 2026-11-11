@@ -155,7 +155,7 @@ async def market_list_do(ctx, arg):
 async def market(ctx, arg):
     await settle_listings()
     rows = [[(ctx.t("mk_shop"), "shp", "0"), (ctx.t("mk_fixed"), "mkb", "0")],
-            [(ctx.t("mk_auction"), "mka", "0"), (ctx.t("mk_mine"), "mkm", "")], nav(ctx)]
+            [(ctx.t("mk_auction"), "mka", "0"), (ctx.t("mk_mine"), "mkm", "")], [(ctx.t("b_art_mkt"), "axm", "0")], nav(ctx)]
     return Out(head(ctx, "ttl_mkt") + ctx.t("mkt_body"), rows)
 
 

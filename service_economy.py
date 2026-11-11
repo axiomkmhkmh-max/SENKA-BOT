@@ -8,9 +8,10 @@ from pymongo import ReturnDocument
 
 from data_crafting import forge_value, player_bonus
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus
-from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY
+from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY, iname
 from data_weapons import RARITIES
 from database import col, game_settings, try_cooldown
+from service_log import log_event
 from service_player import add_coins, add_xp, bump_quest, get_char
 from service_worldcore import mods_for
 
@@ -224,6 +225,7 @@ async def shop_buy(uid: int, item_id: str, day: str) -> str:
     if not await inv_add(uid, item_id, 1):
         await add_coins(uid, price, "shop_refund")
         return "full"
+    log_event("shop", uid, f"از اوراهارا خرید: {iname(item_id, 'fa')} به قیمت {price:,} 🪙", item=item_id, price=price)
     return "ok"
 
 
@@ -236,6 +238,7 @@ async def npc_sell(uid: int, item_id: str, qty: int = 1):
     st = await game_settings()
     pay = int(it["sell_price"] * qty * float(st["coin_rate"]))
     await add_coins(uid, max(1, pay), "npc_sell")
+    log_event("shop", uid, f"فروش به NPC: {iname(item_id, 'fa')} ×{qty} → {max(1, pay):,} 🪙", item=item_id)
     return max(1, pay)
 
 
@@ -268,6 +271,7 @@ async def market_create(uid: int, item_id: str, price: int, kind: str = "fixed",
                                               "kind": kind, "status": "active", "created_at": int(time.time()),
                                               "end_at": int(time.time()) + hrs * 3600, "bid": 0, "bidder": None})
     await bump_quest(uid, "market_sell", 1)
+    log_event("market", uid, f"{'حراج' if kind == 'auction' else 'آگهی'} گذاشت: {iname(item_id, 'fa')} ({it['rarity']}) به قیمت {int(price):,} 🪙", item=item_id, price=int(price), kind=kind)
     return "ok"
 
 
@@ -277,6 +281,7 @@ async def market_cancel(uid: int, lid: str) -> str:
     if not d:
         return "cant"
     await inv_add(uid, d["item_id"], 1, force=True)
+    log_event("market", uid, f"آگهی «{iname(d['item_id'], 'fa')}» را لغو کرد", item=d["item_id"])
     return "ok"
 
 
@@ -301,6 +306,7 @@ async def market_buy(uid: int, lid: str) -> str:
     await add_coins(d["seller"], d["price"] - int(d["price"] * float(st["market_seller_fee"])), "market_sale")
     await col("market_demand").update_one({"_id": d["item_id"]}, {"$set": {"idx": min(3.0, (await demand_index(d["item_id"])) + 0.05), "at": time.time()}}, upsert=True)
     await bump_quest(uid, "market_buy", 1)
+    log_event("market", uid, f"خرید از بازار: {iname(d['item_id'], 'fa')} به قیمت {d['price']:,} 🪙 (فروشنده: {d['seller']})", item=d["item_id"], price=d["price"], seller=d["seller"])
     return "ok"
 
 
@@ -325,6 +331,7 @@ async def auction_bid(uid: int, lid: str, amount: int) -> str:
         return "race"
     if d.get("bidder"):
         await add_coins(d["bidder"], d["bid"], "auction_outbid")
+    log_event("market", uid, f"پیشنهاد در حراج: {iname(d['item_id'], 'fa')} — {int(amount):,} 🪙", item=d["item_id"], price=int(amount))
     return "ok"
 
 
@@ -340,6 +347,7 @@ async def settle_listings():
             await inv_add(d["bidder"], d["item_id"], 1, force=True)
             await add_coins(d["seller"], d["bid"] - int(d["bid"] * float(st["market_seller_fee"])), "auction_sale")
             await col("market_listings").update_one({"_id": d["_id"]}, {"$set": {"status": "sold", "buyer": d["bidder"]}})
+            log_event("market", d["bidder"], f"برنده‌ی حراج شد: {iname(d['item_id'], 'fa')} با {d['bid']:,} 🪙 (فروشنده: {d['seller']})", item=d["item_id"], price=d["bid"], seller=d["seller"])
         else:
             await inv_add(d["seller"], d["item_id"], 1, force=True)
             await col("market_listings").update_one({"_id": d["_id"]}, {"$set": {"status": "expired"}})
@@ -384,6 +392,9 @@ async def gacha_pull(uid: int, n: int = 1):
     g.pop("_id", None)
     await col("gacha").update_one({"user_id": uid}, {"$set": g}, upsert=True)
     await bump_quest(uid, "gacha_pull", n)
+    top = [r for r in results if r["rar"] in ("Epic", "Legendary", "Mythic")]
+    names = "، ".join((CHAR_BY_ID[r["id"]]["name_fa"] if r["t"] == "char" else iname(r["id"], "fa")) + f" ({r['rar']})" for r in top[:6])
+    log_event("gacha", uid, f"{n} احضار ({cost:,} 🪙)" + (f" — نایاب‌ها: {names}" if names else ""), n=n)
     return results, "ok"
 
 

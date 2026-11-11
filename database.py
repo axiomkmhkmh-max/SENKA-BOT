@@ -87,6 +87,12 @@ async def ensure_indexes():
         "dispatches": [([("user_id", ASCENDING), ("cid", ASCENDING), ("active", ASCENDING)], {"unique": True, "partialFilterExpression": {"active": True}}),
                        ([("user_id", ASCENDING), ("active", ASCENDING), ("end", ASCENDING)], {}),
                        ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
+        "drops": [([("chat_id", ASCENDING), ("msg_id", ASCENDING)], {}), ([("status", ASCENDING), ("end_at", ASCENDING)], {}),
+                  ([("created_at", ASCENDING)], {"expireAfterSeconds": 60 * 60 * 24 * 30})],
+        "artifacts": [([("owner", ASCENDING)], {}), ([("state", ASCENDING)], {})],
+        "art_listings": [([("status", ASCENDING), ("price", ASCENDING)], {}), ([("seller", ASCENDING), ("status", ASCENDING)], {}),
+                         ([("end_at", ASCENDING)], {})],
+        "action_logs": [([("uid", ASCENDING), ("at", DESCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
         "territory_scores": [([("week", ASCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
     }
     for name, items in specs.items():

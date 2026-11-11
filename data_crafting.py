@@ -4,6 +4,7 @@ evolution requirements and the single `player_bonus` aggregator used by combat, 
 Every number that matters is either read from the item's own `effect` field or from GAME_DEFAULTS."""
 import time
 
+from data_artifacts import ART_BY_ID as _ART_BY_ID
 from data_races import LEVEL_GATES, LOCATIONS, RACES
 from data_weapons import RARITIES
 
@@ -210,6 +211,10 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
                 b["xp"] += v
         else:
             b[kind] += v
+    art = (_ART_BY_ID.get(ch.get("artifact") or "") or {}).get("bonus") or {}
+    for kind, v in art.items():
+        if kind in b:
+            b[kind] += v * float(st.get("art_k", 1.0))
     b["xp"] += min(float(st["cosmetic_fame_cap"]), fame(ch, catalog) * float(st["cosmetic_fame_xp"]))
     for key, buf in active_buffs(ch, now).items():
         if key in b:

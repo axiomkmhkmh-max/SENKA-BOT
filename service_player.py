@@ -14,6 +14,7 @@ from data_misc import DAILY_POOL, QUEST_BY_ID, QUESTS, RACE_START_KIDO, START_KI
 from data_races import RACES, STATS, soft_stat
 from data_weapons import WEAPONS
 from database import col, game_settings
+from service_log import log_event
 from service_worldcore import mods_for
 
 _lang_cache: dict = {}
@@ -116,6 +117,7 @@ async def finish_registration(uid: int, reg: dict):
     await col("inventories").update_one({"user_id": uid}, {"$setOnInsert": {"user_id": uid, "items": {}, "capacity": 50}}, upsert=True)
     await col("player_quests").update_one({"user_id": uid}, {"$setOnInsert": {"user_id": uid, "total": {}, "daily": {"day": today(), "c": {}}, "weekly": {"week": week(), "c": {}}, "claimed": []}}, upsert=True)
     await reg_clear(uid)
+    log_event("reg", uid, f"ثبت‌نام کرد: {name} — نژاد {race['name_fa']}", race=reg["race"])
     return doc
 
 
@@ -176,6 +178,7 @@ async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = Tru
             ch.update(upd)
             if gained:
                 await bump_quest(uid, "level", 0, absolute=level)
+                log_event("lvl", uid, f"به سطح {level} رسید (+{gained})", level=level)
             return ch, gained, gain
     return await get_char(uid), 0, 0
 

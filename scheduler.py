@@ -11,9 +11,11 @@ from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
 from aiogram.types import InlineKeyboardMarkup
 
 import handlers_combat
+import handlers_drops
 import handlers_world
-from database import acquire_lease, col, game_settings
+from database import acquire_lease, col, game_settings, try_cooldown
 from service_combat import pvp_timeouts
+from service_drops import art_reconcile, art_settle, expire_drops
 from service_economy import settle_listings
 from service_interact import expire_bounties
 from service_world import active_boss, boss_due, expire_bosses, group_doc, spawn_boss
@@ -27,6 +29,11 @@ INSTANCE = uuid.uuid4().hex
 async def tick(bot):
     await settle_listings()
     await expire_bounties()
+    await art_settle()
+    for d in await expire_drops():
+        await handlers_drops.announce_expired(bot, d)
+    if not await try_cooldown("art_reconcile", 600):
+        await art_reconcile()
     # ---- the living world: drift, events, territories, season ----
     res = await world_tick()
     if res["event_started"]:

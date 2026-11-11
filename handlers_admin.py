@@ -9,6 +9,7 @@ from data_items import ALL
 from database import col, game_settings, set_game_setting
 from i18n import esc, fnum
 from service_economy import inv_add
+from service_log import log_event
 from service_player import add_coins, add_xp, get_char, today
 from ui import Out, action, head, nav
 
@@ -33,6 +34,7 @@ async def admin_level(uid: int) -> int:
 async def alog(admin: int, act: str, target=None, before=None, after=None, reason: str = ""):
     await col("admin_logs").insert_one({"admin": admin, "action": act, "target": target, "before": before, "after": after,
                                         "reason": reason[:200], "at": int(time.time())})
+    log_event("admin", admin, f"{act} → {target}" + (f" | {before} ⇒ {after}" if before is not None or after is not None else "") + (f" | {reason[:80]}" if reason else ""))
 
 
 async def dashboard(ctx):
