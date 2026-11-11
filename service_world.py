@@ -11,7 +11,7 @@ import engine as E
 from database import col, game_settings, try_cooldown
 from service_combat import build_player
 from service_economy import inv_add, roll_drop
-from service_player import add_coins, add_xp, bump_quest, get_char
+from service_player import add_coins, add_xp, bump_quest, coin_bonus, get_char
 
 
 # ---- groups -------------------------------------------------------------------------
@@ -146,7 +146,7 @@ async def _pay(doc: dict, killed: bool):
             coins += coin_pool * 0.10
         await add_xp(uid, int(xp), "boss", apply_rate=True)
         if coins:
-            await add_coins(uid, int(coins), "boss")
+            await add_coins(uid, await coin_bonus(uid, int(coins)), "boss")
         if killed and (last or (main and share >= 0.10)):
             iid = await roll_drop(uid, source_mult=2.0, weapon_chance=0.2)
             if await inv_add(uid, iid, 1):

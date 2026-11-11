@@ -16,7 +16,7 @@ from service_player import get_char, today
 from ui import Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory"), "u": ("potion", "kido_card", "book", "egg", "key")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "book", "egg", "key", "evolution")}
 
 
 def _rk(i):
@@ -60,10 +60,15 @@ async def item_view(ctx, arg):
         return await bag(ctx, "0")
     it = ALL[arg]
     rows = []
-    if it.get("slot") or it["category"] == "weapon":
+    if it.get("slot") or it["category"] in ("weapon", "relic", "cosmetic"):
         rows.append([(ctx.t("b_equip"), "eq", arg)])
-    if it.get("effect") and it["effect"]["type"] in ("kido", "xp", "pet"):
+    etype = (it.get("effect") or {}).get("type")
+    if etype in ("kido", "xp", "pet", "tome"):
         rows.append([(ctx.t("b_use"), "us", arg)])
+    elif etype == "evo":
+        rows.append([(ctx.t("b_evolve"), "evo", arg, False, "success")])
+    elif etype == "mat":
+        rows.append([(ctx.t("b_craft"), "crf", "")])
     row2 = [(ctx.t("b_sell_npc"), "sl", arg)]
     if it.get("tradeable"):
         row2.append((ctx.t("b_list"), "ml", arg))
@@ -93,9 +98,9 @@ async def ueq(ctx, arg):
 @action("us")
 async def use(ctx, arg):
     r, extra = await use_item(ctx.uid, arg)
-    if r == "ok":
+    if r in ("ok", "incubate"):
         out = await bag(ctx, "0")
-        out.alert = ctx.t("us_ok", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))
+        out.alert = ctx.t("us_ok" if r == "ok" else "us_incubate", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))
         return out
     return Out(alert=ctx.t("us_" + r, n=extra or 0))
 

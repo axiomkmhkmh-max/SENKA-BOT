@@ -9,6 +9,7 @@ from aiogram.types import CallbackQuery, Message
 
 import handlers_admin
 import handlers_combat
+import handlers_effects
 import handlers_items
 import handlers_panels
 import handlers_registration as reg

@@ -82,6 +82,11 @@ async def ensure_indexes():
 
 
 # ---- live settings ---------------------------------------------------------
+def settings_snapshot() -> dict:
+    """Last cached settings, synchronous (for pure formatting code)."""
+    return _cache["data"]
+
+
 async def game_settings(force: bool = False) -> dict:
     now = time.monotonic()
     if force or now - _cache["at"] > 20:

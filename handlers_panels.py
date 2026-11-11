@@ -6,14 +6,16 @@ import time
 from data_items import ALL
 from data_races import LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
 from database import col, game_settings, try_cooldown
-from fmt import nm, race_name, stats_block, title_of
+from effects import passive_mods
+from fmt import nm, race_name, shown_name, stats_block, title_of
 from i18n import bar, esc, fnum
 from security import clean_name
 from data_lore import streak_line
 from data_misc import LOC_DESC, LORE
 from service_combat import active_pve, rank_label, rank_letter
-from service_economy import inv_add, roll_drop
-from service_player import (add_coins, add_xp, claim_daily, claim_quest, energy_now, get_char, max_hp, max_reiatsu,
+from service_economy import PETS, inv_add, roll_drop
+from service_effects import tick_incubator
+from service_player import (add_coins, add_xp, claim_daily, claim_quest, coin_bonus, energy_now, get_char, max_hp, max_reiatsu,
                             power, quest_list, set_lang, spend_energy, xp_to_next)
 from service_social import (guild_create, guild_deposit, guild_join, guild_leave, guild_list, mg_answer, mg_new)
 from ui import Out, action, chunk, head, input_handler, nav, pager
@@ -40,7 +42,7 @@ async def home(ctx, arg):
     re = max_reiatsu(ch["level"], soft_stat(ch["stats"]["reiatsu"]))
     need = xp_to_next(ch["level"])
     text = (head(ctx, "ttl_home") +
-            ctx.t("home_body", name=esc(ch["name"]), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
+            ctx.t("home_body", name=shown_name(ch), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
                   xpbar=bar(ch["xp"], need), xp=fnum(ch["xp"], L), need=fnum(need, L), power=fnum(power(ch), L), hp=fnum(hp, L),
                   re=fnum(re, L), loc=loc_name(ch["location"], L), en=fnum(en, L), enmax=fnum(st["energy_max"], L),
                   coins=fnum(ch["coins"], L), pts=fnum(ch.get("points", 0), L)))
@@ -66,16 +68,20 @@ async def profile(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
     lines = [head(ctx, "ttl_prof"),
-             ctx.t("prof_body", name=esc(ch["name"]), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
+             ctx.t("prof_body", name=shown_name(ch), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
                    rank=rank_label(ch["rating"], L), rating=fnum(ch["rating"], L), bond=fnum(min(30, (ch.get("bond") or {}).get(ch.get("weapon_id"), 0) // 5), L), plus=fnum((ch.get("weapon_plus") or {}).get(ch.get("weapon_id"), 0), L), w=fnum(ch["wins"], L), l=fnum(ch["losses"], L),
                    pw=fnum(ch["pvp_w"], L), pl=fnum(ch["pvp_l"], L), power=fnum(power(ch), L)),
              stats_block(ctx, ch["stats"]),
              f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"]
+    fame = passive_mods(ch, ALL, await game_settings())["fame"]
+    if fame:
+        lines.append(ctx.t("prof_fame", n=fnum(fame, L)))
     if ch.get("guild_id"):
         g = await col("guilds").find_one({"_id": ch["guild_id"]})
         if g:
             lines.append("🛡️ " + esc(g["name_fa" if L == "fa" else "name_en"]))
-    rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")], [(ctx.t("b_forge"), "frg", "")], nav(ctx)]
+    rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")],
+            [(ctx.t("b_forge"), "frg", ""), (ctx.t("b_craft"), "crf", "")], [(ctx.t("b_pets"), "pet", "0"), (ctx.t("b_relics"), "rel", "")], nav(ctx)]
     return Out("\n".join(lines), rows)
 
 
@@ -160,7 +166,7 @@ async def explore(ctx, arg):
         text = ctx.t("exp_item", item=nm(iid, L), xp=fnum(xp, L)) + ("" if got else "\n" + ctx.t("bag_full"))
     elif ev == "npc":
         _, _, xp = await add_xp(ctx.uid, int(base_xp * 1.2), "explore")
-        coins = int((10 + lvl * 3) * float(st["coin_rate"]))
+        coins = await coin_bonus(ctx.uid, int((10 + lvl * 3) * float(st["coin_rate"])))
         await add_coins(ctx.uid, coins, "explore")
         text = ctx.t("exp_npc", xp=fnum(xp, L), coins=fnum(coins, L), lore=random.choice(LORE[ch["location"]])[0 if L == "fa" else 1])
     elif ev == "secret":
@@ -179,6 +185,9 @@ async def explore(ctx, arg):
         text = ctx.t("exp_empty", xp=fnum(xp, L), lore=random.choice(LORE[ch["location"]])[0 if L == "fa" else 1])
     from service_player import bump_quest
     await bump_quest(ctx.uid, "explore", 1)
+    hatched = await tick_incubator(ctx.uid)
+    if hatched:
+        text += "\n\n" + ctx.t("exp_hatch", pet=PETS[hatched["sp"]][0 if L == "en" else 1], role=ctx.t("role_" + hatched["role"]))
     return Out(head(ctx, "ttl_exp") + text, [[(ctx.t("b_again"), "exp", "go")], nav(ctx)])
 
 
@@ -188,9 +197,9 @@ async def ranking(ctx, arg):
     L = ctx.lang
     mode = arg or "lvl"
     key = [("rating", -1)] if mode == "pvp" else [("level", -1), ("xp", -1)]
-    top = await col("characters").find({}, {"name": 1, "level": 1, "rating": 1, "race": 1}).sort(key).limit(10).to_list(10)
+    top = await col("characters").find({}, {"name": 1, "level": 1, "rating": 1, "race": 1, "cosmetic": 1}).sort(key).limit(10).to_list(10)
     medals = ["🥇", "🥈", "🥉"] + [f"{i}." for i in range(4, 11)]
-    lines = [f"{medals[i]} {esc(x['name'])} — " + (f"{rank_letter(x['rating'])} {fnum(x['rating'], L)}" if mode == "pvp" else f"{ctx.t('lbl_level')} {fnum(x['level'], L)}") for i, x in enumerate(top)]
+    lines = [f"{medals[i]} {shown_name(x)} — " + (f"{rank_letter(x['rating'])} {fnum(x['rating'], L)}" if mode == "pvp" else f"{ctx.t('lbl_level')} {fnum(x['level'], L)}") for i, x in enumerate(top)]
     rows = [[(ctx.t("rk_lvl"), "rnk", "lvl"), (ctx.t("rk_pvp"), "rnk", "pvp")], nav(ctx)]
     return Out(head(ctx, "ttl_rnk") + ("\n".join(lines) or ctx.t("empty")), rows)
 

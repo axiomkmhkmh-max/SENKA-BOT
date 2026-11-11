@@ -42,6 +42,11 @@ GAME_DEFAULTS = {
     "guild_create_cost": 5000, "guild_min_level": 20, "squad_change_days": 7,
     "minigame_daily_xp_cap": 500, "hollow_daily_xp_cap": 50,
     "referral_reward": 200,
+    # item effects (phase 2)
+    "relic_slot1_level": 20, "relic_slot2_level": 50, "relic_effect_mult": 1.0,
+    "pet_fang_pct": 1.0, "pet_heal_pct": 0.5, "pet_luck_pct": 1.0, "egg_hatch_explores": 5,
+    "book_buff_minutes": 30, "evo_item_required": 1, "evo_coin_cost": 5000,
+    "craft_cost_mult": 1.0, "craft_daily_cap": 30, "craft_cooldown": 2, "misc_drop_chance": 0.03,
 }
 
 

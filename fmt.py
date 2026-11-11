@@ -1,7 +1,9 @@
 """Shared text formatting for items, weapons and characters."""
 from data_items import ALL
 from data_lore import spirit_line
-from data_races import RACES, STAT_ICON, STATS, race_title, soft_stat
+from data_races import LEVEL_GATES, LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
+from database import settings_snapshot
+from effects import describe, display_name, evo_title_index
 from data_weapons import ELEMENT_FA, RARITY_ICON, TYPE_FA, skill_text
 from i18n import esc, fnum
 
@@ -33,6 +35,14 @@ def item_card(ctx, item_id: str, qty: int = None) -> str:
             lines.append("✦ " + skill_text(s, lang))
     else:
         lines.append(esc(it.get("desc_fa" if lang == "fa" else "desc_en", "")))
+        eff = it.get("effect") or {}
+        if eff.get("type") in ("mat", "relic", "evo", "cosm", "pet", "tome"):
+            names = {}
+            if eff.get("loc") in LOCATIONS:
+                names["loc"] = LOCATIONS[eff["loc"]]["fa" if lang == "fa" else "en"]
+            if eff.get("race") in RACES:
+                names["race"] = RACES[eff["race"]]["name_fa" if lang == "fa" else "name_en"]
+            lines.append("✦ " + esc(describe(eff, lang, names)))
     if it.get("slot") and it.get("level_req", 1) > 1:
         lines.append(f"🔒 {ctx.t('lbl_level')} {fnum(it['level_req'], lang)}")
     lines.append(f"🪙 {fnum(it['base_price'], lang)} | 💱 {fnum(it.get('sell_price', 0), lang)}")
@@ -44,4 +54,11 @@ def stats_block(ctx, stats: dict) -> str:
 
 
 def title_of(ch: dict, lang: str) -> str:
-    return race_title(ch["race"], ch["level"], lang)
+    evo = RACES[ch["race"]]["evo"]
+    idx = min(evo_title_index(ch, LEVEL_GATES, settings_snapshot()), len(evo) - 1)
+    return evo[idx][0 if lang == "fa" else 1]
+
+
+def shown_name(ch: dict) -> str:
+    """Player name with equipped cosmetic glyphs, HTML-escaped."""
+    return esc(display_name(ch, ALL))

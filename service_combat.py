@@ -10,7 +10,9 @@ from data_weapons import ELEMENTS
 import engine as E
 from database import col, game_settings
 from service_economy import gacha_doc, inv_remove, party_bonus, roll_drop, inv_add
-from service_player import add_coins, add_xp, bump_quest, get_char, max_hp, max_reiatsu
+from data_races import LEVEL_GATES
+from effects import display_name, evo_title_index, gear_bonus, pet_combat_mods
+from service_player import add_coins, add_xp, bump_quest, coin_bonus, get_char, max_hp, max_reiatsu
 
 ENEMY_K = {"s": 1.6, "d": 1.2, "h0": 60, "h1": 30, "a": 2.6, "ar": 0.9}
 RANKS = [(0, "E"), (1100, "D"), (1250, "C"), (1400, "B"), (1600, "A"), (1850, "S"), (2150, "SS"), (2500, "SSS")]
@@ -37,19 +39,18 @@ def _exp():
 async def build_player(ch: dict, name: str = None):
     race = RACES[ch["race"]]
     stats = dict(ch["stats"])
-    armor = 0
-    for f in ("armor_id", "acc_id", "charm_id"):
-        it = ALL.get(ch.get(f) or "")
-        if not it:
-            continue
-        armor += it["stats"].get("def", 0)
-        if "stat" in it["stats"]:
-            stats[it["stats"]["stat"]] += it["stats"]["bonus"]
+    armor, bonus, _ = gear_bonus(ch, ALL)
+    for k, v in bonus.items():
+        stats[k] += v
     g = await gacha_doc(ch["user_id"])
     pb = party_bonus(ch.get("party", []), g.get("chars", {}))
     mods = dict(race["mods"])
-    pet = (ch.get("pets") or [None])[0]
-    mods["dmg"] = mods.get("dmg", 1.0) * (1 + pb.get("dmg", 0) + (0.01 * (pet["tier"] + 1) if pet else 0))
+    gs = await game_settings()
+    pm = pet_combat_mods(ch, gs)
+    mods["dmg"] = mods.get("dmg", 1.0) * (1 + pb.get("dmg", 0) + pm["dmg"])
+    if pm["regen"]:
+        mods["regen"] = pm["regen"]
+    evo = evo_title_index(ch, LEVEL_GATES, gs) if int(gs["evo_item_required"]) and ch.get("evo_stage") is not None else None
     mods["def"] = mods.get("def", 1.0) * (1 + pb.get("def", 0))
     mods["kido"] = 1 + pb.get("kido", 0)
     mods["crit"] = mods.get("crit", 0)
@@ -61,8 +62,8 @@ async def build_player(ch: dict, name: str = None):
         plus = (ch.get("weapon_plus") or {}).get(wid, 0)
         w = dict(w, attack=w["attack"] * (1 + 0.06 * plus))
     zmult = 1 + min(0.30, (ch.get("bond") or {}).get(wid, 0) / 500)
-    return E.new_fighter(name or ch["name"], ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=ch.get("kido"),
-                         race=ch["race"], zmult=zmult)
+    return E.new_fighter(name or display_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=ch.get("kido"),
+                         race=ch["race"], zmult=zmult, evo=evo)
 
 
 def make_enemy(level: int, scale: float, name: str, rng=random):
@@ -160,6 +161,7 @@ async def pve_settle(doc: dict):
         if d and d["stage"] == d["total"]:
             xp, coins = xp * 3, coins * 3
         ch, lv, got = await add_xp(uid, xp, "pve")
+        coins = await coin_bonus(uid, coins)
         await add_coins(uid, coins, "pve")
         out.update(xp=got, coins=coins, levels=lv)
         chance = 1.0 if (doc["elite"] or (d and d["stage"] == d["total"])) else 0.35

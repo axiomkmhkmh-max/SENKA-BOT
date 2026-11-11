@@ -7,7 +7,8 @@ import uuid
 from pymongo import ReturnDocument
 
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus
-from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY
+from data_items import ALL, BY_RARITY, BY_RARITY_EXTRA, WEAPON_BY_RARITY
+from effects import gear_bonus, passive_mods
 from data_weapons import RARITIES
 from database import col, game_settings, try_cooldown
 from service_player import add_coins, add_xp, bump_quest, get_char
@@ -62,6 +63,9 @@ def slot_of(item: dict):
 
 async def equip(uid: int, item_id: str) -> str:
     it, ch = ALL.get(item_id), await get_char(uid)
+    if it and it.get("subtype") in ("relic", "cosmetic"):
+        from service_effects import equip_special
+        return await equip_special(uid, item_id)
     field = slot_of(it) if it else None
     if not field:
         return "noequip"
@@ -101,6 +105,9 @@ async def use_item(uid: int, item_id: str):
     if not eff:
         return "nouse", None
     t = eff["type"]
+    if t in ("tome", "pet"):
+        from service_effects import use_special
+        return await use_special(uid, item_id)
     if t == "kido":
         import math as _m
         if ch["level"] < _m.ceil(eff["num"] * 0.8):
@@ -116,14 +123,6 @@ async def use_item(uid: int, item_id: str):
             return "missing", None
         _, _, got = await add_xp(uid, eff["amount"], "book", apply_rate=False)
         return "ok", got
-    if t == "pet":
-        if len(ch.get("pets", [])) >= 12:
-            return "petfull", None
-        if not await inv_remove(uid, item_id, 1):
-            return "missing", None
-        sp = random.randrange(len(PETS))
-        await col("characters").update_one({"user_id": uid}, {"$push": {"pets": {"sp": sp, "tier": eff["tier"]}}})
-        return "ok", sp
     return "nouse", None
 
 
@@ -131,11 +130,9 @@ async def use_item(uid: int, item_id: str):
 async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0.1, floor_idx: int = 0, rng=random):
     st = await game_settings()
     ch = await get_char(uid)
-    luck = ch.get("level", 1) // 20
-    for k in ("acc_id", "charm_id"):
-        luck += ALL.get(ch.get(k) or "", {}).get("stats", {}).get("luck", 0)
+    luck = ch.get("level", 1) // 20 + gear_bonus(ch, ALL)[2]
     boost = 1 + min(0.5, luck * 0.005)
-    mult = float(st["drop_rate"]) * source_mult
+    mult = float(st["drop_rate"]) * source_mult * (1 + passive_mods(ch, ALL, st)["drop_pct"] / 100)
     weights = [w * (boost * mult if i >= 2 else 1.0) for i, w in enumerate(DROP_W)]
     idx = rng.choices(range(6), weights)[0]
     idx = max(idx, floor_idx)
@@ -147,6 +144,10 @@ async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0
     for name, tier_idx, thr in PITY:
         pity[name] = 0 if idx >= tier_idx else pity.get(name, 0) + 1
     await col("characters").update_one({"user_id": uid}, {"$set": {"pity": pity}})
+    if rng.random() < float(st["misc_drop_chance"]):
+        for i in range(idx, -1, -1):
+            if BY_RARITY_EXTRA[RARITIES[i]]:
+                return rng.choice(BY_RARITY_EXTRA[RARITIES[i]])
     for i in range(idx, -1, -1):
         r = RARITIES[i]
         if rng.random() < weapon_chance and WEAPON_BY_RARITY[r]:
