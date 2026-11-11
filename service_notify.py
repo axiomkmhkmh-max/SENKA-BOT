@@ -19,13 +19,10 @@ from service_log import log_event
 log = logging.getLogger("senka.notify")
 INSTANCE = os.urandom(6).hex()
 
-# Edit these two lines before a deploy to tell players what is new (kept short on purpose).
-NEWS_FA = "🎁 دراپ گروهی گنجینه‌ها و آرتیفکت‌های یکتا  •  🏛️ بازار آرتیفکت  •  دراپ آیتم توسط بازیکنان"
-NEWS_EN = "🎁 Group treasure drops & one-of-a-kind Artifacts  •  🏛️ Artifact Exchange  •  player-made drops"
-
+# Fixed message: it never says what changed. Players only need to press /start so the update applies.
 TEXT = {
-    "fa": "🔄 <b>ربات آپدیت شد!</b>\n\n{news}\n\nبرای اینکه تغییرات درست روی حسابت اعمال شود، همین حالا یک بار <b>/start</b> بزن (یا دکمه‌ی زیر را بزن). پیشرفتت کاملاً حفظ می‌شود.",
-    "en": "🔄 <b>The bot has been updated!</b>\n\n{news}\n\nTo apply the changes to your account, send <b>/start</b> once right now (or tap the button below). Your progress is fully kept.",
+    "fa": "🔄 <b>ربات آپدیت شد!</b>\n\nبرای اعمال آپدیت، همین حالا یک بار <b>/start</b> بزن (یا دکمه‌ی زیر را بزن). پیشرفتت کاملاً حفظ می‌شود.",
+    "en": "🔄 <b>The bot has been updated!</b>\n\nTo apply the update, send <b>/start</b> once right now (or tap the button below). Your progress is fully kept.",
 }
 BTN = {"fa": "▶️ استارت", "en": "▶️ Start"}
 
@@ -44,7 +41,7 @@ def code_version() -> str:
 async def _send(bot, u: dict, ver: str) -> bool:
     lang = u.get("lang") or "fa"
     lang = lang if lang in TEXT else "en"
-    text = TEXT[lang].format(news=NEWS_FA if lang == "fa" else NEWS_EN)
+    text = TEXT[lang]
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=BTN[lang], callback_data=make_cb("home", "", u["telegram_id"]))]])
     for _ in range(3):
         try:
