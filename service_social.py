@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from pymongo.errors import DuplicateKeyError
 
-from data_misc import KIDO_Q, TRIVIA, ZANP
+from data_misc import KIDO_NUM_POOL, KIDO_Q, TRIVIA, ZANP
 from database import col, game_settings, try_cooldown
 from security import normalize_text
 from service_player import add_coins, add_xp, bump_quest, get_char, today
@@ -108,17 +108,17 @@ async def mg_new(uid: int, lang: str, kind: str = None):
         others = random.sample([z for z in ZANP if z != pick], 3)
         opts = [pick] + others
         random.shuffle(opts)
-        q = ("🗡️ صاحب زانپاکتوی «{}» کیست؟" if lang == "fa" else "🗡️ Who wields «{}»?").format(pick[i * 2 if False else (1 if lang == "fa" else 0)])
+        q = ("🗡️ تیغه‌ای نامش را زمزمه می‌کند: «{}». صاحبش کیست؟" if lang == "fa" else "🗡️ A blade whispers its name: «{}». Who wields it?").format(pick[i * 2 if False else (1 if lang == "fa" else 0)])
         options = [o[3] if lang == "fa" else o[2] for o in opts]
         ans = opts.index(pick)
     elif kind == "kido":
         pick = random.choice(KIDO_Q)
         nums = {pick[3]}
         while len(nums) < 4:
-            nums.add(random.choice([1, 4, 30, 31, 33, 61, 63, 73, 90, 99]))
+            nums.add(random.choice(KIDO_NUM_POOL))
         nums = sorted(nums)
         branch = {"had": ("هادو", "Hadō"), "bak": ("باکودو", "Bakudō")}[pick[2]][0 if lang == "fa" else 1]
-        q = (f"🔮 شماره‌ی {branch} «{pick[1]}» چند است؟" if lang == "fa" else f"🔮 Which number is {branch} «{pick[0]}»?")
+        q = (f"🔮 وردِ «{pick[1]}» چندمین {branch} است؟" if lang == "fa" else f"🔮 «{pick[0]}» is which number of {branch}?")
         options = [str(n) for n in nums]
         ans = nums.index(pick[3])
     else:

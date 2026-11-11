@@ -1,5 +1,6 @@
 """Shared text formatting for items, weapons and characters."""
 from data_items import ALL
+from data_lore import spirit_line
 from data_races import RACES, STAT_ICON, STATS, race_title, soft_stat
 from data_weapons import ELEMENT_FA, RARITY_ICON, TYPE_FA, skill_text
 from i18n import esc, fnum
@@ -27,6 +28,7 @@ def item_card(ctx, item_id: str, qty: int = None) -> str:
         if it.get("meaning_en"):
             lines.append("「" + esc(it["meaning_fa" if lang == "fa" else "meaning_en"]) + "」")
         lines.append(f"⚔️ {fnum(it['attack'], lang)} | 🎯 {it['crit'] * 100:.1f}% | {el} | {ty}")
+        lines.append("<i>" + esc(spirit_line(it, lang)) + "</i>")
         for s in it["skills"]:
             lines.append("✦ " + skill_text(s, lang))
     else:

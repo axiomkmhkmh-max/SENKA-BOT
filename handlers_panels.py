@@ -9,7 +9,8 @@ from database import col, game_settings, try_cooldown
 from fmt import nm, race_name, stats_block, title_of
 from i18n import bar, esc, fnum
 from security import clean_name
-from data_misc import LORE
+from data_lore import streak_line
+from data_misc import LOC_DESC, LORE
 from service_combat import active_pve, rank_label, rank_letter
 from service_economy import inv_add, roll_drop
 from service_player import (add_coins, add_xp, claim_daily, claim_quest, energy_now, get_char, max_hp, max_reiatsu,
@@ -96,7 +97,7 @@ async def upgrade(ctx, arg):
 async def world_map(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
-    rows, body = [], [ctx.t("map_body", loc=loc_name(ch["location"], L)), ""]
+    rows, body = [], [ctx.t("map_body", loc=loc_name(ch["location"], L)), f"<i>{esc(LOC_DESC[ch['location']][0 if L == 'fa' else 1])}</i>", ""]
     for lid, loc in LOCATIONS.items():
         ok = ch["level"] >= loc["level"] and (not loc["race"] or loc["race"] == ch["race"] or loc["level"] <= 60)
         mark = "📍" if lid == ch["location"] else "✅" if ok else "🔒"
@@ -135,7 +136,8 @@ async def explore(ctx, arg):
     if arg != "go":
         cur, nxt, _ = energy_now(ch, st)
         rows = [[(ctx.t("b_go"), "exp", "go")], [(ctx.t("m_map"), "map", "")], nav(ctx)]
-        return Out(head(ctx, "ttl_exp") + ctx.t("exp_body", loc=loc_name(ch["location"], L), en=fnum(cur, L), cost=fnum(st["explore_cost"], L)), rows)
+        atmosphere = f"<i>{esc(LOC_DESC[ch['location']][0 if L == 'fa' else 1])}</i>\n\n"
+        return Out(head(ctx, "ttl_exp") + atmosphere + ctx.t("exp_body", loc=loc_name(ch["location"], L), en=fnum(cur, L), cost=fnum(st["explore_cost"], L)), rows)
     ok, left, nxt = await spend_energy(ctx.uid, int(st["explore_cost"]))
     if not ok:
         return Out(alert=ctx.t("exp_no_energy", n=fnum(left, L), s=fnum(nxt // 60 + 1, L)))
@@ -198,7 +200,7 @@ async def ranking(ctx, arg):
 async def daily(ctx, arg):
     r = await claim_daily(ctx.uid)
     L = ctx.lang
-    text = ctx.t("dly_done") if r is None else ctx.t("dly_ok", coins=fnum(r["coins"], L), streak=fnum(r["streak"], L))
+    text = ctx.t("dly_done") if r is None else ctx.t("dly_ok", coins=fnum(r["coins"], L), streak=fnum(r["streak"], L)) + (("\n" + streak_line(r["streak"], L)) if streak_line(r["streak"], L) else "")
     return Out(head(ctx, "ttl_dly") + text, [nav(ctx)])
 
 
@@ -208,14 +210,23 @@ async def quests(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
     states = await quest_list(ctx.uid, ch["level"])
-    lines, rows = [], []
+    lines, rows, shown = [], [], 0
     for s in states:
         q = s["q"]
         mark = "✅" if s["claimed"] else "🎁" if s["done"] else "▫️"
         lines.append(f"{mark} <b>{esc(q['name_fa' if L == 'fa' else 'name_en'])}</b> [{ctx.t('qc_' + q['cat'])}] {fnum(s['prog'], L)}/{fnum(q['count'], L)}")
+        if not s["claimed"] and shown < 6 and q.get("desc_fa"):
+            lines.append("   <i>" + esc(q["desc_fa" if L == "fa" else "desc_en"]) + "</i>")
+            shown += 1
         if s["done"] and not s["claimed"] and len(rows) < 6:
             rows.append([(f"🎁 {esc(q['name_fa' if L == 'fa' else 'name_en'])}", "qc", q["_id"])])
-    return Out(head(ctx, "ttl_qst") + "\n".join(lines[:24]), rows + [nav(ctx)])
+    body, size = [], 0
+    for ln in lines:  # cut on whole lines so HTML tags never break
+        size += len(ln) + 1
+        if size > 3500:
+            break
+        body.append(ln)
+    return Out(head(ctx, "ttl_qst") + "\n".join(body), rows + [nav(ctx)])
 
 
 @action("qc")

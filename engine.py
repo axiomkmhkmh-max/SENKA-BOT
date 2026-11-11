@@ -293,13 +293,13 @@ def do_action(state, action, rng, max_turns=30):
         f["re"] -= int(f["max_re"] * FORM1[3])
         f["form"].update(on=1, mult=FORM1[0], left=FORM1[1], fx=None, fat_turns=FORM1[2])
         f["form"]["used"][0] = 1
-        ev.append({"k": "form", "a": f["name"], "n": 1})
+        ev.append({"k": "form", "a": f["name"], "n": 1, "r": f["race"]})
     elif action == "f2":
         c = FORM2.get(f["race"], FORM2["default"])
         f["re"] -= int(f["max_re"] * c[3])
         f["form"].update(on=2, mult=c[0], left=c[1], fat_turns=c[2], fx=list(FORM2_EFFECT.get(f["weapon"]["type"], ("pierce", 0.15))))
         f["form"]["used"][1] = 1
-        ev.append({"k": "form", "a": f["name"], "n": 2})
+        ev.append({"k": "form", "a": f["name"], "n": 2, "r": f["race"]})
     _check_end(state)
     if not state["done"]:
         advance(state, max_turns)

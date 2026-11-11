@@ -1,7 +1,10 @@
 """Text rendering for battles and bosses (language-parametrised, no I/O)."""
 import time
 
-from i18n import bar, esc, fnum, t
+import random
+
+from data_bosses import BOSS_BY_ID
+from i18n import LOCALES, bar, esc, fnum, t
 
 FX_ICON = {"burn": "🔥", "poison": "☠️", "bleed": "🩸", "shock": "⚡", "weaken": "🔻", "fear": "😨"}
 
@@ -12,6 +15,13 @@ def both(mode: str, fn) -> str:
     return fn(mode if mode in ("fa", "en") else "en")
 
 
+def pick(lang: str, key: str, **kw) -> str:
+    """Return one random flavour variant: key, key_2, key_3 ... (falls back to key)."""
+    table = LOCALES.get(lang) or LOCALES["en"]
+    keys = [key] + [f"{key}_{i}" for i in range(2, 9) if f"{key}_{i}" in table]
+    return t(lang, random.choice(keys), **kw)
+
+
 def events_text(lang: str, events: list) -> str:
     out = []
     for e in events:
@@ -20,9 +30,9 @@ def events_text(lang: str, events: list) -> str:
         n = fnum(e.get("n", 0), lang)
         if k == "hit":
             kind = e.get("kind", "atk")
-            line = t(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
+            line = pick(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
             if e.get("c"):
-                line += " " + t(lang, "lg_crit")
+                line += " " + pick(lang, "lg_crit")
             if e.get("em", 1) > 1.4:
                 line += " 🔺"
             elif e.get("em", 1) < 0.8:
@@ -35,11 +45,12 @@ def events_text(lang: str, events: list) -> str:
         elif k == "dot":
             out.append(t(lang, "lg_dot", d=d, n=n, fx=t(lang, "fx_" + e["fx"])))
         elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end"):
-            out.append(t(lang, "lg_" + k, a=a, d=d, n=n))
+            out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k == "shield":
             out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))
         elif k == "form":
-            out.append(t(lang, "lg_form" + str(e["n"]), a=a))
+            race_key = f"lg_form{e['n']}_{e.get('r', '')}"
+            out.append(t(lang, race_key if race_key in (LOCALES.get(lang) or LOCALES["en"]) or race_key in LOCALES["en"] else "lg_form" + str(e["n"]), a=a))
         elif k == "potion":
             out.append(t(lang, "lg_potion_" + e["kind"], a=a, n=n))
     return "\n".join(out)
@@ -67,12 +78,23 @@ def battle_text(lang: str, state: dict, events: list = None, title: str = "") ->
     return "\n\n".join(parts)
 
 
+def epithet_lines(lang: str, d: dict) -> list:
+    b = BOSS_BY_ID.get(d.get("boss_id"))
+    if not b:
+        return []
+    out = [f"<i>{esc(b['epi_fa' if lang == 'fa' else 'epi_en'])}</i>"]
+    if d.get("trait") and ("boss_trait_" + d["trait"]) in LOCALES["en"]:
+        out.append(t(lang, "boss_trait_" + d["trait"]))
+    return out
+
+
 def boss_text(lang: str, d: dict, result: dict = None) -> str:
     name = d["name_fa" if lang == "fa" else "name_en"]
     ph = 1 if d["hp"] > d["max_hp"] * .6 else 2 if d["hp"] > d["max_hp"] * .3 else 3
     hp = max(0, d["hp"])
     lines = [f"⚔️ <b>𝖲𝖤𝖭𝖪𝖠</b> | <b>{t(lang, 'boss_title')}</b>\n━━━━━━━━━━━━━━",
              f"👹 <b>{esc(name)}</b> — {t(lang, 'lbl_level')} {fnum(d['level'], lang)}",
+             *epithet_lines(lang, d),
              f"❤️ {bar(hp, d['max_hp'], 14)}\n{fnum(hp, lang)}/{fnum(d['max_hp'], lang)}",
              t(lang, "boss_phase_" + str(ph))]
     if d.get("active"):

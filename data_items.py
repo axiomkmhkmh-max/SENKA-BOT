@@ -1,4 +1,5 @@
 """1000+ catalog items generated from themed name banks (original text)."""
+from data_lore import ITEM_FLAVOR
 from data_misc import KIDO_NAMES as KN
 from data_races import DUNGEONS
 from data_weapons import PRICE, RARITIES, WEAPONS
@@ -108,6 +109,10 @@ def _build():
                 desc_en, desc_fa = "Used in evolution trials.", "برای آزمون‌های تکامل."
             else:
                 desc_en, desc_fa = "A collectible keepsake.", "یک یادگاری کلکسیونی."
+            fl = ITEM_FLAVOR.get(cat)
+            if fl:
+                f_fa, f_en = fl[i % len(fl)]
+                desc_fa, desc_en = f"{desc_fa} {f_fa}".strip(), f"{desc_en} {f_en}".strip()
             base = int(PRICE[rar] * fac / 6 * (1 + (i % 7) / 10))
             out.append({"_id": iid, "item_id": iid, "category": "accessory" if cat in ("ring", "necklace") else cat,
                         "subtype": cat, "name_en": en, "name_fa": fa, "desc_en": desc_en, "desc_fa": desc_fa,

@@ -4,6 +4,7 @@ import random
 from aiogram.exceptions import TelegramBadRequest
 
 from data_items import ALL
+from data_lore import dungeon_line
 from data_misc import FORMS, KIDO_NAMES
 from data_races import DIFFICULTY, DIFF_FA, DUNGEONS
 from database import col
@@ -61,6 +62,9 @@ async def battle_panel(ctx, doc, events=None):
     d = doc.get("dungeon")
     if d:
         title += ctx.t("dg_stage", n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang), diff=ctx.t("diff_" + d["diff"])) + "\n"
+        flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
+        if flavor:
+            title += f"<i>{flavor}</i>\n"
     text = battle_text(ctx.lang, st, events, title)
     pot = await _has_potion(ctx.uid)
     return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot)) + [[(ctx.t("b_home"), "home", "")]])
@@ -172,7 +176,7 @@ async def dungeon_diff(ctx, arg):
         return Out()
     rows = [[(ctx.t("diff_" + k) + (" 🔑" if k != "normal" else ""), "dgs", f"{arg}.{k}")] for k in DIFFICULTY]
     rows.append(nav(ctx, ("dgn", "")))
-    return Out(head(ctx, "ttl_dgn") + f"<b>{d['fa' if L == 'fa' else 'en']}</b>\n" + ctx.t("dgn_pick", n=fnum(d["stages"], L)), rows)
+    return Out(head(ctx, "ttl_dgn") + f"<b>{d['fa' if L == 'fa' else 'en']}</b>\n<i>{dungeon_line(arg, 1, d['stages'], L)}</i>\n" + ctx.t("dgn_pick", n=fnum(d["stages"], L)), rows)
 
 
 @action("dgs")

@@ -4,6 +4,7 @@ import time
 
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus, copies_to_level_star
 from data_items import ALL
+from data_lore import CHAR_EPI
 from data_weapons import RARITIES, RARITY_ICON
 from database import col, game_settings
 from fmt import item_card, nm
@@ -325,6 +326,8 @@ async def gacha_do(ctx, arg):
             c = CHAR_BY_ID[r["id"]]
             tag = ctx.t("gch_new") if r["copies"] == 1 else ctx.t("gch_dupe", n=fnum(r["copies"], L))
             lines.append(f"{icon} 🎴 <b>{esc(c['name_fa' if L == 'fa' else 'name_en'])}</b> {tag}")
+            if c["rarity"] not in ("Common", "Uncommon") and c["name_en"] in CHAR_EPI:
+                lines.append("   <i>" + esc(CHAR_EPI[c["name_en"]][0 if L == "fa" else 1]) + "</i>")
         else:
             lines.append(f"{icon} {nm(r['id'], L)}")
     rows = [[(ctx.t("b_pull1"), "gp", "1"), (ctx.t("b_pull10"), "gp", "10")], nav(ctx, ("gch", ""))]
