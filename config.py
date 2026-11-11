@@ -32,6 +32,7 @@ settings = Settings()
 GAME_DEFAULTS = {
     "maintenance": False,
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,
+    "xp_curve_k": 1.5,  # level-up difficulty: XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 120, "boss_max_minutes": 120,
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
     "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 300,

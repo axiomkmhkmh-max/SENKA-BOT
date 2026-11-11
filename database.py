@@ -23,7 +23,9 @@ def col(name):
 
 async def connect_db():
     global _client, _db
-    _client = AsyncIOMotorClient(settings.mongodb_uri, serverSelectionTimeoutMS=15000)
+    # warm pool: every click makes several queries, so reconnect handshakes must not sit on the hot path
+    _client = AsyncIOMotorClient(settings.mongodb_uri, serverSelectionTimeoutMS=15000, maxPoolSize=100, minPoolSize=10,
+                                 maxIdleTimeMS=300000, connectTimeoutMS=8000)
     await _client.admin.command("ping")
     _db = _client[settings.database_name]
     await ensure_indexes()
@@ -111,6 +113,11 @@ async def game_settings(force: bool = False) -> dict:
         data = dict(GAME_DEFAULTS)
         data.update({k: v for k, v in doc.items() if k in GAME_DEFAULTS})
         _cache.update(at=now, data=data)
+    return _cache["data"]
+
+
+def settings_cached() -> dict:
+    """Synchronous view of the last loaded live settings (defaults until the first load)."""
     return _cache["data"]
 
 

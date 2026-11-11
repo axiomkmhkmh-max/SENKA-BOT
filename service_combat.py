@@ -1,4 +1,6 @@
 """PvE, dungeons and PvP built on the pure engine. All outcomes are server-side."""
+import asyncio
+import logging
 import random
 import time
 import uuid
@@ -15,6 +17,21 @@ from service_log import log_event
 from service_economy import gacha_doc, inv_remove, party_bonus, roll_drop, inv_add
 from service_player import add_coins, add_xp, bump_quest, get_char, max_hp, max_reiatsu
 from service_worldcore import mods_for
+
+_bg_tasks: set = set()
+
+
+def _bg(coro):
+    """Fire-and-forget for bookkeeping the player does not wait for (world points, battle log)."""
+    task = asyncio.ensure_future(coro)
+    _bg_tasks.add(task)
+
+    def _done(t):
+        _bg_tasks.discard(t)
+        if not t.cancelled() and t.exception():
+            logging.getLogger("senka.combat").error("background task failed", exc_info=t.exception())
+    task.add_done_callback(_done)
+
 
 ENEMY_K = {"s": 1.6, "d": 1.2, "h0": 60, "h1": 30, "a": 2.6, "ar": 0.9}
 RANKS = [(0, "E"), (1100, "D"), (1250, "C"), (1400, "B"), (1600, "A"), (1850, "S"), (2150, "SS"), (2500, "SSS")]
@@ -199,7 +216,10 @@ async def pve_settle(doc: dict):
         ch0 = await get_char(uid)
         coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
         ch, lv, got = await add_xp(uid, xp, "pve")
-        await add_coins(uid, coins, "pve")
+        # independent writes: run together instead of one after another
+        await asyncio.gather(add_coins(uid, coins, "pve"),
+                             col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1}}),
+                             bump_quest(uid, "battle_win", 1))
         out.update(xp=got, coins=coins, levels=lv)
         from service_worldstate import on_action, territory_income
         out["terr"] = await territory_income(uid, doc["loc"], coins, xp)
@@ -208,8 +228,6 @@ async def pve_settle(doc: dict):
             iid = await roll_drop(uid, source_mult=2.0 if doc["elite"] else 1.0, floor_idx=2 if (d and d["stage"] == d["total"]) else 0)
             if await inv_add(uid, iid, 1):
                 out["drop"] = iid
-        await col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1}})
-        await bump_quest(uid, "battle_win", 1)
         if d and d["stage"] < d["total"]:
             f = st["a"]
             nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": d["stage"] + 1},
@@ -227,7 +245,7 @@ async def pve_settle(doc: dict):
         if doc.get("trial"):
             from service_crafting import evo_complete
             out["evo"] = await evo_complete(uid, doc["trial"]["stage"])
-        await on_action(uid, "dungeon_clear" if out["dungeon_done"] else "elite_win" if doc["elite"] else "pve_win", doc["loc"])
+        _bg(on_action(uid, "dungeon_clear" if out["dungeon_done"] else "elite_win" if doc["elite"] else "pve_win", doc["loc"]))
     else:
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1}})
         if not doc.get("dungeon") and not doc.get("trial"):
@@ -236,8 +254,8 @@ async def pve_settle(doc: dict):
             if lost >= 2:
                 out["chain_lost"] = lost
         from service_worldstate import on_action
-        await on_action(uid, "pve_loss", doc["loc"])
-    await col("battle_logs").insert_one({"user_id": uid, "mode": "pve", "win": win, "lvl": doc["lvl"], "at": now})
+        _bg(on_action(uid, "pve_loss", doc["loc"]))
+    _bg(col("battle_logs").insert_one({"user_id": uid, "mode": "pve", "win": win, "lvl": doc["lvl"], "at": now}))
     return out
 
 

@@ -1,6 +1,8 @@
 """Routers: /start, bilingual text intents, group handling and callback dispatch."""
+import asyncio
 import logging
 import re
+import time
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -37,9 +39,37 @@ async def make_ctx(user, chat, bot, message=None, cb=None):
     return Ctx(user.id, lang or "en", chat.id, chat.type, user, bot, message, cb)
 
 
+_ban_cache: dict = {}   # uid -> (banned, monotonic time): saves one Mongo round trip on every click
+_char_ok: dict = {}     # uid -> monotonic time we last saw a character for this user
+
+
+async def _is_banned(uid: int) -> bool:
+    hit = _ban_cache.get(uid)
+    now = time.monotonic()
+    if hit and now - hit[1] < 15:
+        return hit[0]
+    u = await col("users").find_one({"telegram_id": uid}, {"banned": 1})
+    banned = bool(u and u.get("banned"))
+    if len(_ban_cache) > 20000:
+        _ban_cache.clear()
+    _ban_cache[uid] = (banned, now)
+    return banned
+
+
+async def _has_char(uid: int) -> bool:
+    now = time.monotonic()
+    if now - _char_ok.get(uid, -1e9) < 120:
+        return True
+    ok = bool(await col("characters").find_one({"user_id": uid}, {"_id": 1}))
+    if ok:
+        if len(_char_ok) > 20000:
+            _char_ok.clear()
+        _char_ok[uid] = now
+    return ok
+
+
 async def gate(ctx):
-    u = await col("users").find_one({"telegram_id": ctx.uid}, {"banned": 1})
-    if u and u.get("banned"):
+    if await _is_banned(ctx.uid):
         return Out(ctx.t("banned"))
     st = await game_settings()
     if st["maintenance"] and await handlers_admin.admin_level(ctx.uid) < 20:
@@ -212,7 +242,7 @@ async def on_callback(cb: CallbackQuery):
               user, cb.bot, cb.message, cb)
     if not allowed:
         return await cb.answer(ctx.t("not_yours"), show_alert=True)
-    if not allow(user.id, "cb", 0.35):
+    if not allow(user.id, "cb", 0.2):
         return await cb.answer()
     fn = REGISTRY.get(code)
     if not fn:
@@ -220,7 +250,7 @@ async def on_callback(cb: CallbackQuery):
     blocked = await gate(ctx)
     if blocked:
         return await cb.answer(blocked.text, show_alert=True)
-    if code not in ("lang", "noop") and not await get_char(user.id) and code not in ("begin", "gen", "race", "st", "zp", "bh", "dua", "dud", "pa"):
+    if code not in ("lang", "noop") and code not in ("begin", "gen", "race", "st", "zp", "bh", "dua", "dud", "pa") and not await _has_char(user.id):
         r = await reg.reg_panel(ctx)
         return await _deliver(cb, ctx, r)
     try:
@@ -232,13 +262,18 @@ async def on_callback(cb: CallbackQuery):
     await _deliver(cb, ctx, out)
 
 
-async def _deliver(cb: CallbackQuery, ctx: Ctx, out: Out):
+async def _answer_quiet(cb: CallbackQuery, out: Out):
     try:
         await cb.answer(out.alert or None, show_alert=bool(out.alert and len(out.alert) > 60))
-    except TelegramBadRequest:
+    except Exception:
         pass
+
+
+async def _deliver(cb: CallbackQuery, ctx: Ctx, out: Out):
+    # the popup ack and the message edit are independent Telegram calls: run them together (saves one round trip)
     if not out.text or cb.message is None:
-        return
+        return await _answer_quiet(cb, out)
+    ack = asyncio.create_task(_answer_quiet(cb, out))
     kb = markup(ctx, out.rows)
     try:
         if out.new:
@@ -246,10 +281,11 @@ async def _deliver(cb: CallbackQuery, ctx: Ctx, out: Out):
         else:
             await cb.message.edit_text(out.text, reply_markup=kb)
     except (TelegramBadRequest, AttributeError) as e:
-        if "not modified" in str(e):
-            return
-        log.warning("edit failed (%s); sending new message", e)
-        try:
-            await cb.bot.send_message(ctx.chat_id, out.text, reply_markup=kb)
-        except Exception:
-            log.exception("send failed")
+        if "not modified" not in str(e):
+            log.warning("edit failed (%s); sending new message", e)
+            try:
+                await cb.bot.send_message(ctx.chat_id, out.text, reply_markup=kb)
+            except Exception:
+                log.exception("send failed")
+    finally:
+        await ack

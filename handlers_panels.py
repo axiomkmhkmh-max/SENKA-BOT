@@ -50,25 +50,42 @@ async def home(ctx, arg):
                   xpbar=bar(ch["xp"], need), xp=fnum(ch["xp"], L), need=fnum(need, L), power=fnum(power(ch), L), hp=fnum(hp, L),
                   re=fnum(re, L), loc=loc_name(ch["location"], L), en=fnum(en, L), enmax=fnum(st["energy_max"], L),
                   coins=fnum(ch["coins"], L), pts=fnum(ch.get("points", 0), L)))
-    text += "\n\n" + await world_line(ctx, ch)
-    rows = [[(ctx.t("m_prof"), "prof", ""), (ctx.t("m_exp"), "exp", "")],
-            [(ctx.t("m_bt"), "bt", ""), (ctx.t("m_bag"), "bag", "0")],
-            [(ctx.t("m_mkt"), "mkt", ""), (ctx.t("m_qst"), "qst", "")],
-            [(ctx.t("m_gch"), "gch", ""), (ctx.t("b_more"), "menu2", "")]]
+    if ch["level"] < 6 and ch.get("wins", 0) < 10:  # newcomers: one line that says what to do next
+        text += "\n\n" + ctx.t("home_tip")
+    else:
+        text += "\n\n" + await world_line(ctx, ch)
+    # home keeps only the 6 things people use every minute; everything else lives in "More", grouped
+    rows = [[(ctx.t("m_exp"), "exp", ""), (ctx.t("m_bt"), "bt", "")],
+            [(ctx.t("m_prof"), "prof", ""), (ctx.t("m_bag"), "bag", "0")],
+            [(ctx.t("m_qst"), "qst", ""), (ctx.t("m_mkt"), "mkt", "")],
+            [(ctx.t("b_more"), "menu2", "")]]
     return Out(text, rows)
 
 
 @action("menu2")
 async def menu2(ctx, arg):
-    rows = [[(ctx.t("m_wrd"), "wrd", ""), (ctx.t("m_crf"), "crf", "")],
-            [(ctx.t("m_dgn"), "dgn", ""), (ctx.t("m_map"), "map", "")],
-            [(ctx.t("m_gld"), "gld", ""), (ctx.t("m_rnk"), "rnk", "")],
-            [(ctx.t("m_twr"), "twr", ""), (ctx.t("m_dsp"), "dsp", "")],
-            [(ctx.t("m_whl"), "whl", ""), (ctx.t("m_sat"), "sat", "")],
-            [(ctx.t("m_inr"), "inr", ""), (ctx.t("m_art"), "art", "")],
-            [(ctx.t("m_dly"), "dly", ""), (ctx.t("m_mgm"), "mgm", "")],
-            [(ctx.t("m_set"), "set", ""), (ctx.t("m_cmd"), "cmd", "")], [(ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
+    rows = [[(ctx.t("mg_adv"), "mg", "adv"), (ctx.t("mg_grow"), "mg", "grow")],
+            [(ctx.t("mg_soc"), "mg", "soc"), (ctx.t("mg_fun"), "mg", "fun")],
+            [(ctx.t("m_set"), "set", ""), (ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
     return Out(head(ctx, "ttl_menu") + ctx.t("menu_body"), rows)
+
+
+# "More" is split into four small groups of at most 4 buttons, so no screen ever shows a wall of options.
+MENU_GROUPS = {
+    "adv": [[("m_dgn", "dgn"), ("m_twr", "twr")], [("m_map", "map"), ("m_wrd", "wrd")]],
+    "grow": [[("m_gch", "gch"), ("m_crf", "crf")], [("m_dsp", "dsp"), ("m_art", "art")], [("m_inr", "inr"), ("m_sat", "sat")]],
+    "soc": [[("m_rnk", "rnk"), ("m_gld", "gld")]],
+    "fun": [[("m_dly", "dly"), ("m_whl", "whl")], [("m_mgm", "mgm")]],
+}
+
+
+@action("mg")
+async def menu_group(ctx, arg):
+    if arg not in MENU_GROUPS:
+        return await menu2(ctx, "")
+    rows = [[(ctx.t(key), code, "") for key, code in row] for row in MENU_GROUPS[arg]]
+    rows.append(nav(ctx, ("menu2", "")))
+    return Out(head(ctx, "ttl_menu") + ctx.t("mg_" + arg + "_body"), rows)
 
 
 # ---- profile & upgrades -------------------------------------------------------------

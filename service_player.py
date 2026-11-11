@@ -13,7 +13,7 @@ from data_items import ALL
 from data_misc import DAILY_POOL, QUEST_BY_ID, QUESTS, RACE_START_KIDO, START_KIDO
 from data_races import RACES, STATS, soft_stat
 from data_weapons import WEAPONS
-from database import col, game_settings
+from database import col, game_settings, settings_cached
 from service_log import log_event
 from service_worldcore import mods_for
 
@@ -30,7 +30,8 @@ def week() -> str:
 
 
 def xp_to_next(level: int) -> int:
-    return math.floor(100 * level ** 1.7 + 50 * level + 25 * math.sqrt(level))
+    k = max(0.1, float(settings_cached().get("xp_curve_k", 1.5)))
+    return math.floor((100 * level ** 1.85 + 50 * level + 25 * math.sqrt(level)) * k)
 
 
 def max_hp(level: int, hakuda: float, mult: float = 1.0) -> int:

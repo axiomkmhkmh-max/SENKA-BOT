@@ -1,6 +1,10 @@
 """Texts for the six retention loops (merged into the main tables by i18n.py)."""
 
 FA = {
+    "mg_adv": "🗺️ ماجراجویی", "mg_grow": "⚒️ پیشرفت", "mg_soc": "🏆 رقابت", "mg_fun": "🎁 جایزه و سرگرمی",
+    "mg_adv_body": "جاهایی که می‌شود رفت و جنگید.", "mg_grow_body": "قوی‌تر شو: احضار، ساخت، همراهان و درجه.",
+    "mg_soc_body": "رتبه‌بندی و جوخه.", "mg_fun_body": "جایزه‌ی روزانه، چرخ شانس و مینی‌گیم.",
+    "home_tip": "👉 <b>شروع:</b> «گشت» را بزن تا ماجرا پیدا کنی، «نبرد» برای جنگیدن و XP. با هر پیروزی قوی‌تر می‌شوی؛ بقیه‌ی بخش‌ها زیر «➕ بیشتر» است.",
     # ---- menu / titles / buttons ----
     "m_twr": "🗼 برج روح", "m_dsp": "🧭 اعزام", "m_whl": "🎡 چرخ اوراهارا", "m_sat": "🎖️ درجه‌ی گوتی", "m_inr": "🌌 دنیای درون",
     "ttl_twr": "برج روح", "ttl_dsp": "اعزام", "ttl_whl": "چرخ شانس اوراهارا", "ttl_sat": "درجه‌ی گوتی", "ttl_inr": "دنیای درون",
@@ -46,6 +50,10 @@ FA = {
 }
 
 EN = {
+    "mg_adv": "🗺️ Adventure", "mg_grow": "⚒️ Growth", "mg_soc": "🏆 Compete", "mg_fun": "🎁 Rewards & fun",
+    "mg_adv_body": "Places to explore and fight.", "mg_grow_body": "Get stronger: summon, craft, companions and rank.",
+    "mg_soc_body": "Leaderboards and your squad.", "mg_fun_body": "Daily reward, the wheel and mini-games.",
+    "home_tip": "👉 <b>Start here:</b> tap “Explore” to find adventure and “Battle” to fight for XP. Everything else is under “➕ More”.",
     "m_twr": "🗼 Soul Tower", "m_dsp": "🧭 Dispatch", "m_whl": "🎡 Urahara's Wheel", "m_sat": "🎖️ Gotei Seat", "m_inr": "🌌 Inner World",
     "ttl_twr": "Soul Tower", "ttl_dsp": "Dispatch", "ttl_whl": "Urahara's Wheel", "ttl_sat": "Gotei Seat", "ttl_inr": "Inner World",
     "b_tgo": "🗼 Ascend", "b_tlb": "🏅 This week's ranking", "b_dclaim": "🎁 Collect rewards", "b_dsend": "➕ Send a character",
