@@ -105,6 +105,8 @@ async def main():
     import service_log
     task = asyncio.create_task(scheduler.run(bot, stop))
     log_task = asyncio.create_task(service_log.run(bot, stop))
+    import service_notify
+    notify_task = asyncio.create_task(service_notify.run(bot, stop))
     try:
         await bot.delete_webhook(drop_pending_updates=settings.drop_pending)
         await setup_commands(bot)
@@ -113,7 +115,7 @@ async def main():
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"], handle_signals=True)
     finally:
         stop.set()
-        await asyncio.gather(task, log_task, return_exceptions=True)
+        await asyncio.gather(task, log_task, notify_task, return_exceptions=True)
         await bot.session.close()
         await runner.cleanup()
         await close_db()

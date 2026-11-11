@@ -21,6 +21,7 @@ class Settings:
         self.port = _int("PORT", 8080)
         self.drop_pending = _int("DROP_PENDING_UPDATES", 0) == 1
         # Telegram log channel: "@username" or numeric id (-100...). The bot must be an admin there. Empty = DB-only logging.
+        self.notify_updates = _int("NOTIFY_UPDATES", 1) == 1  # message every player to press /start after a new deploy
         self.log_channel = os.getenv("LOG_CHANNEL", "@senkalog").strip()
 
 
