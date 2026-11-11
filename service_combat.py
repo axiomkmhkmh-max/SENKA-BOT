@@ -102,7 +102,16 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     pick = rng.choice(loc["enemies"])
     name = pick[0 if lang == "fa" else 1]
     lvl = max(1, ch["level"] + rng.randint(-1, 1))
-    if dungeon:
+    tower = bool(dungeon and dungeon.get("tower"))
+    if tower:  # Soul Tower: endless floors, a Warden every 5th
+        from data_extras import TOWER_BOSS_EVERY, TOWER_ENEMIES
+        floor = int(dungeon["stage"])
+        scale = 0.85 * (1.045 ** (floor - 1))
+        name = rng.choice(TOWER_ENEMIES)[0 if lang == "fa" else 1]
+        if floor % TOWER_BOSS_EVERY == 0:
+            scale *= 1.5
+            name = "👑 " + name
+    elif dungeon:
         stage, total = dungeon["stage"], dungeon["total"]
         mult = DIFFICULTY[dungeon["diff"]] * (1 + 0.12 * (stage - 1))
         if stage == total:
@@ -117,7 +126,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         scale, name = 1.4, "💀 " + name
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
-    else:
+    elif not tower:
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
     if carry:
@@ -168,9 +177,20 @@ async def pve_settle(doc: dict):
     win = st["winner"] == "a"
     out = {"win": win, "xp": 0, "coins": 0, "drop": None, "levels": 0, "next": None, "dungeon_done": False}
     now = int(time.time())
+    if (doc.get("dungeon") or {}).get("tower"):
+        from service_extras import tower_settle
+        out = await tower_settle(doc, win)
+        await col("battle_logs").insert_one({"user_id": uid, "mode": "tower", "win": win, "lvl": doc["lvl"], "at": now})
+        return out
     if win:
         xp, coins = _rewards(doc["lvl"], doc["scale"], gs)
         d = doc.get("dungeon")
+        plain = not d and not doc.get("trial")
+        if plain:  # win chain: consecutive plain victories raise coin/XP rewards
+            from service_extras import chain_win
+            cn, cm, cdrop = await chain_win(uid)
+            xp, coins = int(xp * cm), int(coins * cm)
+            out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop}
         if d and d["stage"] == d["total"]:
             xp, coins = xp * 3, coins * 3
         wm = await mods_for(doc["loc"])
@@ -209,6 +229,11 @@ async def pve_settle(doc: dict):
         await on_action(uid, "dungeon_clear" if out["dungeon_done"] else "elite_win" if doc["elite"] else "pve_win", doc["loc"])
     else:
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1}})
+        if not doc.get("dungeon") and not doc.get("trial"):
+            from service_extras import chain_break
+            lost = await chain_break(uid)
+            if lost >= 2:
+                out["chain_lost"] = lost
         from service_worldstate import on_action
         await on_action(uid, "pve_loss", doc["loc"])
     await col("battle_logs").insert_one({"user_id": uid, "mode": "pve", "win": win, "lvl": doc["lvl"], "at": now})

@@ -9,6 +9,7 @@ from aiogram.types import CallbackQuery, Message
 
 import handlers_admin
 import handlers_combat
+import handlers_extras  # noqa: F401  (registers the new panels)
 import handlers_items
 import handlers_panels
 import handlers_world
@@ -77,7 +78,8 @@ async def on_start(message: Message, command: CommandObject):
 COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle": "battle", "bag": "bag", "market": "market",
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
-            "party": "party", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands"}
+            "party": "party", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
+            "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner"}
 
 
 @router.message(Command(*COMMANDS))

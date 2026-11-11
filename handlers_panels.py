@@ -63,6 +63,9 @@ async def menu2(ctx, arg):
     rows = [[(ctx.t("m_wrd"), "wrd", ""), (ctx.t("m_crf"), "crf", "")],
             [(ctx.t("m_dgn"), "dgn", ""), (ctx.t("m_map"), "map", "")],
             [(ctx.t("m_gld"), "gld", ""), (ctx.t("m_rnk"), "rnk", "")],
+            [(ctx.t("m_twr"), "twr", ""), (ctx.t("m_dsp"), "dsp", "")],
+            [(ctx.t("m_whl"), "whl", ""), (ctx.t("m_sat"), "sat", "")],
+            [(ctx.t("m_inr"), "inr", "")],
             [(ctx.t("m_dly"), "dly", ""), (ctx.t("m_mgm"), "mgm", "")],
             [(ctx.t("m_set"), "set", ""), (ctx.t("m_cmd"), "cmd", "")], [(ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
     return Out(head(ctx, "ttl_menu") + ctx.t("menu_body"), rows)
@@ -209,7 +212,7 @@ async def ranking(ctx, arg):
     L = ctx.lang
     mode = arg or "lvl"
     key = [("rating", -1)] if mode == "pvp" else [("level", -1), ("xp", -1)]
-    top = await col("characters").find({}, {"name": 1, "level": 1, "rating": 1, "race": 1, "cosmetics": 1}).sort(key).limit(10).to_list(10)
+    top = await col("characters").find({}, {"name": 1, "level": 1, "rating": 1, "race": 1, "cosmetics": 1, "seat": 1}).sort(key).limit(10).to_list(10)
     medals = ["🥇", "🥈", "🥉"] + [f"{i}." for i in range(4, 11)]
     lines = [f"{medals[i]} {cosmetic_tag(x, ALL)} {esc(x['name'])} — " + (f"{rank_letter(x['rating'])} {fnum(x['rating'], L)}" if mode == "pvp" else f"{ctx.t('lbl_level')} {fnum(x['level'], L)}") for i, x in enumerate(top)]
     rows = [[(ctx.t("rk_lvl"), "rnk", "lvl"), (ctx.t("rk_pvp"), "rnk", "pvp")], [(ctx.t("m_ssn"), "ssn", "")], nav(ctx)]

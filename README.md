@@ -33,3 +33,16 @@ Items now have real roles (crafting, relics, evolution, cosmetics, pets, books, 
 Requires **MongoDB 4.2+** (atomic clamped pipeline updates). New live keys are in `config.GAME_DEFAULTS` (`set <key> <value>`).
 Admin: `world`, `world set ...`, `world event ...`, `world boss spawn|end`, `world season end`, `world territory reset <loc>`.
 Commands added: /world /craft /season.
+
+
+## Retention loops (v3)
+Six small, live-tunable loops (keys in `config.GAME_DEFAULTS`, all `set <key> <value>`); code in `data_extras.py`, `service_extras.py`, `handlers_extras.py`, texts in `locale_extras.py`.
+| Word / command | What it is |
+|---|---|
+| `tower` / برج | Soul Tower: endless floors, a Warden every 5th, HP carries over, weekly leaderboard, milestone loot. Daily rewarded-floor cap (`tower_daily_floors`) stops XP farming. |
+| (automatic) | Win chain: consecutive plain PvE wins add `chain_step` (cap `chain_cap`) to coin/XP rewards; a free drop every `chain_bonus_every` wins; a loss breaks it. |
+| `dispatch` / اعزام | Send gacha characters on 2/4/8h missions (`dispatch_slots` at once). Reward scales with rarity; role bonus: attacker = coins, caster = XP, tank = material, support = energy. |
+| `wheel` / چرخ | Urahara's wheel: 1 free spin a day, `wheel_extra_daily` paid spins at `wheel_cost`. |
+| `seat` / درجه | Gotei seat ranks (Unseated → Captain) from season points; icon shown beside the name; one-time promotion rewards. |
+| `inner` / دنیای درون | Weekly (`inner_weekly`) two-choice talks with the zanpakutō spirit: blade bond, XP or a short buff. |
+New collection `dispatches` (TTL on claimed docs); new character fields `tower, chain, seat, seat_claimed` (created on first use, no migration needed).

@@ -2,9 +2,10 @@
 import html
 
 import locale_en
+import locale_extras
 import locale_fa
 
-LOCALES = {"fa": locale_fa.TEXT, "en": locale_en.TEXT}
+LOCALES = {"fa": {**locale_fa.TEXT, **locale_extras.FA}, "en": {**locale_en.TEXT, **locale_extras.EN}}
 _FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 _RLM = "\u200f"
 

@@ -52,12 +52,12 @@ async def migrate_world():
 CMD_EN = [("home", "Open your world panel"), ("profile", "Your Soul Reaper profile"), ("explore", "Patrol the world"), ("battle", "Fight Hollows"),
           ("bag", "Inventory & equipment"), ("market", "Urahara shop, market & auctions"), ("quests", "Missions"), ("summon", "Summon characters & gear"),
           ("squad", "Squad / clan"), ("ranking", "Leaderboards"), ("daily", "Daily reward"), ("dungeon", "Enter dungeons"), ("map", "World map"),
-          ("forge", "Strengthen your zanpakuto"), ("party", "Your companions"), ("minigame", "Bleach puzzle"), ("boss", "World boss"), ("world", "Living world panel"), ("craft", "Craft, evolve, gear"), ("season", "Season standings"),
+          ("forge", "Strengthen your zanpakuto"), ("party", "Your companions"), ("minigame", "Bleach puzzle"), ("boss", "World boss"), ("world", "Living world panel"), ("craft", "Craft, evolve, gear"), ("season", "Season standings"), ("tower", "Soul Tower"), ("dispatch", "Dispatch companions"), ("wheel", "Urahara's wheel"), ("seat", "Gotei seat rank"), ("inner", "Inner World"),
           ("duel", "Ranked duel (reply to a player)"), ("friendly", "Friendly duel"), ("settings", "Language & settings"), ("commands", "All commands"), ("help", "Help")]
 CMD_FA = [("home", "پنل دنیای من"), ("profile", "پروفایل شینیگامی"), ("explore", "گشت در جهان"), ("battle", "نبرد با هالوها"),
           ("bag", "کوله و تجهیزات"), ("market", "فروشگاه اوراهارا، بازار و حراج"), ("quests", "ماموریت‌ها"), ("summon", "احضار کاراکتر و تجهیزات"),
           ("squad", "جوخه / کلن"), ("ranking", "رتبه‌بندی"), ("daily", "جایزه روزانه"), ("dungeon", "ورود به دانجن"), ("map", "نقشه جهان"),
-          ("forge", "تقویت زانپاکتو"), ("party", "همراهان من"), ("minigame", "معمای بلیچ"), ("boss", "باس جهانی"), ("world", "پنل دنیای زنده"), ("craft", "ساخت، تکامل و تجهیز"), ("season", "رتبه‌ی فصل"),
+          ("forge", "تقویت زانپاکتو"), ("party", "همراهان من"), ("minigame", "معمای بلیچ"), ("boss", "باس جهانی"), ("world", "پنل دنیای زنده"), ("craft", "ساخت، تکامل و تجهیز"), ("season", "رتبه‌ی فصل"), ("tower", "برج روح"), ("dispatch", "اعزام همراهان"), ("wheel", "چرخ اوراهارا"), ("seat", "درجه‌ی گوتی"), ("inner", "دنیای درون"),
           ("duel", "دوئل رنکد (ریپلای)"), ("friendly", "دوئل دوستانه"), ("settings", "زبان و تنظیمات"), ("commands", "همه‌ی دستورات"), ("help", "راهنما")]
 
 

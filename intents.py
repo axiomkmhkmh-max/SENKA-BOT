@@ -37,6 +37,11 @@ RAW = {
     "bounty": ("bty", "", ["باونتی", "جایزه سر", "bounty", "wanted"]),
     "gear": ("eqp", "", ["یادگار", "همراه من", "relic", "relics", "pets", "pet"]),
     "evolution": ("evo", "", ["تکامل", "evolution", "evolve"]),
+    "tower": ("twr", "", ["برج", "برج روح", "tower", "soul tower", "spire"]),
+    "dispatch": ("dsp", "", ["اعزام", "ماموریت اعزام", "dispatch", "send squad", "expedition"]),
+    "wheel": ("whl", "", ["چرخ", "چرخ شانس", "چرخ اوراهارا", "wheel", "spin", "lucky wheel"]),
+    "seat": ("sat", "", ["درجه", "درجه گوتی", "کرسی", "seat", "my seat", "gotei seat"]),
+    "inner": ("inr", "", ["دنیای درون", "درون", "inner world", "inner", "spirit talk"]),
     "duel": ("*duel", "r", ["دوئل", "دوئل رنکد", "duel", "ranked duel", "challenge"]),
     "duel_friendly": ("*duel", "f", ["دوئل دوستانه", "friendly duel", "friendly"]),
 }

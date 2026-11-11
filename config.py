@@ -74,6 +74,11 @@ GAME_DEFAULTS = {
     "bounty_min": 500, "bounty_max_total": 100000, "bounty_fee": 0.10, "bounty_hours": 72,
     "bounty_daily_claims": 3, "bounty_min_level": 15, "presence_minutes": 30,
     # ---- seasons ----------------------------------------------------------------------------
+    # ---- retention loops (tower / chain / dispatch / wheel / inner world) -------------------------
+    "tower_energy": 15, "tower_daily_floors": 30, "tower_heal": 0.20,
+    "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 12, "chain_bonus_every": 5,
+    "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,
+    "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,
     "season_days": 30, "season_soft_reset": 0.25, "season_daily_pts_cap": 400, "season_min_pts": 30,
     "season_top_coins": 50000, "season_part_coin_per_pt": 5, "new_acct_minutes": 60,
 }

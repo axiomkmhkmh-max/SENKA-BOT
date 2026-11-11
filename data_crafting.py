@@ -180,7 +180,8 @@ def fame(ch: dict, catalog: dict) -> int:
 
 def cosmetic_tag(ch: dict, catalog: dict) -> str:
     c = ch.get("cosmetics") or {}
-    return "".join((catalog.get(c.get(s) or "", {}).get("effect") or {}).get("icon", "") for s in ("aura", "trail", "banner"))
+    from data_extras import seat_icon
+    return "".join((catalog.get(c.get(s) or "", {}).get("effect") or {}).get("icon", "") for s in ("aura", "trail", "banner")) + seat_icon(ch.get("seat", 0))
 
 
 def tagged_name(ch: dict, catalog: dict) -> str:

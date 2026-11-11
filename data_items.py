@@ -63,12 +63,33 @@ def _rarity(i, n):
     return RARITIES[0 if f < .5 else 1 if f < .75 else 2 if f < .9 else 3 if f < .97 else 4 if f < .995 else 5]
 
 
+# Portals, monster ranks and the like don't brew potions or sew armour: these place/faction words are skipped for
+# those kinds of item so names stay believable. Only names change; item ids, stats and effects never do.
+_NOT_FOR = {k: {"Garganta", "Dangai", "Senkaimon", "Gillian", "Vasto Lorde"} for k in ("potion", "armor", "ring", "necklace", "book")}
+_ROMAN = ["", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+_SEEN: set = set()
+
+
 def _name(cat, i):
     nouns = NOUNS.get(cat, NOUNS["relic"])
-    a, n = i % len(ADJ), (i // len(ADJ)) % len(nouns)
-    tier = i // (len(ADJ) * len(nouns))
-    suf = "" if tier == 0 else " " + ["", "II", "III", "IV", "V", "VI"][min(tier, 5)]
-    return f"{ADJ[a][0]} {nouns[n][0]}{suf}", f"{nouns[n][1]} {ADJ[a][1]}{suf}"
+    adjs = [x for x in ADJ if x[0] not in _NOT_FOR.get(cat, ())]
+    A = len(adjs)
+    a, n = i % A, (i // A) % len(nouns)
+    tier = i // (A * len(nouns))
+    for _ in range(A):  # no "Quincy Quincy Vest": skip an adjective whose first word is already in the noun
+        if adjs[a][0].split()[0].lower() not in nouns[n][0].lower().split():
+            break
+        a = (a + 1) % A
+    if cat not in NOUNS:  # kido cards etc. rename themselves later; they must not use up names
+        return f"{adjs[a][0]} {nouns[n][0]}", f"{nouns[n][1]} {adjs[a][1]}"
+    while True:
+        suf = "" if tier == 0 else " " + _ROMAN[min(tier, len(_ROMAN) - 1)]
+        en = f"{adjs[a][0]} {nouns[n][0]}{suf}"
+        if en not in _SEEN or tier >= len(_ROMAN) - 1:
+            break
+        tier += 1
+    _SEEN.add(en)
+    return en, f"{nouns[n][1]} {adjs[a][1]}{suf}"
 
 
 def _build():

@@ -60,7 +60,9 @@ async def battle_panel(ctx, doc, events=None):
     st = doc["state"]
     title = head(ctx, "ttl_bt")
     d = doc.get("dungeon")
-    if d:
+    if d and d.get("tower"):
+        title += ctx.t("tw_floor_boss" if d["stage"] % 5 == 0 else "tw_floor", n=fnum(d["stage"], ctx.lang)) + "\n"
+    elif d:
         title += ctx.t("dg_stage", n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang), diff=ctx.t("diff_" + d["diff"])) + "\n"
         flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
         if flavor:
@@ -103,13 +105,44 @@ async def battle_start(ctx, arg):
     return await start_pve_panel(ctx)
 
 
+def _tower_result(ctx, doc, ev, o):
+    L, t = ctx.lang, o["tower"]
+    body = battle_text(L, doc["state"], ev, head(ctx, "ttl_bt"))
+    if not o["win"]:
+        text = body + "\n\n" + ctx.t("tw_fall", n=fnum(t["floor"], L), best=fnum(t["best"], L))
+        return Out(text, [[(ctx.t("b_tretry"), "twr", "")], nav(ctx)])
+    lines = [body, ""]
+    if t["paid"]:
+        lines.append(ctx.t("tw_win", n=fnum(t["floor"], L), xp=fnum(o["xp"], L), coins=fnum(o["coins"], L)))
+    else:
+        lines.append(ctx.t("tw_floor_n", n=fnum(t["floor"], L)) + " ✅\n" + ctx.t("tw_nopay"))
+    if o["levels"]:
+        lines.append(ctx.t("bt_levelup", n=fnum(o["levels"], L)))
+    if o["drop"]:
+        lines.append(ctx.t("bt_drop", item=nm(o["drop"], L)))
+    if t["record"]:
+        lines.append(ctx.t("tw_record", n=fnum(t["floor"], L)))
+    if t["milestone"]:
+        lines.append(ctx.t("tw_milestone", coins=fnum(t["milestone"], L)) + " · " + nm(t["milestone_item"], L))
+    lines.append(ctx.t("tw_next"))
+    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], nav(ctx)])
+
+
 async def _pve_result(ctx, doc, ev, o):
     L = ctx.lang
     log = events_text(L, ev)
+    if o.get("tower"):
+        return _tower_result(ctx, doc, ev, o)
     if not o["win"]:
         text = battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")) + "\n\n" + ctx.t("bt_lose")
+        if o.get("chain_lost"):
+            text += "\n" + ctx.t("ch_lost", n=fnum(o["chain_lost"], L))
         return Out(text, [[(ctx.t("b_again"), "bs", "")], nav(ctx)])
     lines = [battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")), "", ctx.t("bt_win", xp=fnum(o["xp"], L), coins=fnum(o["coins"], L))]
+    if o.get("chain") and o["chain"]["n"] >= 2:
+        lines.append(ctx.t("ch_line", n=fnum(o["chain"]["n"], L), pct=fnum(o["chain"]["pct"], L)))
+        if o["chain"].get("item"):
+            lines.append(ctx.t("ch_bonus", item=nm(o["chain"]["item"], L)))
     if o["levels"]:
         lines.append(ctx.t("bt_levelup", n=fnum(o["levels"], L)))
     if o["drop"]:

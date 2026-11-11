@@ -140,4 +140,8 @@ async def season_add(uid: int, pts: int, name: str = None):
     upd = {"$inc": {"pts": pts}, "$setOnInsert": {"season": sid, "user_id": uid}}
     if name:
         upd["$set"] = {"name": name[:30]}
-    await col("season_scores").update_one({"_id": f"{sid}:{uid}"}, upd, upsert=True)
+    from pymongo import ReturnDocument
+    from data_extras import seat_index
+    doc = await col("season_scores").find_one_and_update({"_id": f"{sid}:{uid}"}, upd, upsert=True, return_document=ReturnDocument.AFTER)
+    if doc:
+        await col("characters").update_one({"user_id": uid}, {"$set": {"seat": seat_index(int(doc.get("pts", 0)))}})
