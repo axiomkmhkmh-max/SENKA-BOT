@@ -1,0 +1,89 @@
+"""Text rendering for battles and bosses (language-parametrised, no I/O)."""
+import time
+
+from i18n import bar, esc, fnum, t
+
+FX_ICON = {"burn": "🔥", "poison": "☠️", "bleed": "🩸", "shock": "⚡", "weaken": "🔻", "fear": "😨"}
+
+
+def both(mode: str, fn) -> str:
+    if mode == "both":
+        return fn("fa") + "\n\n" + "┄" * 10 + "\n\n" + fn("en")
+    return fn(mode if mode in ("fa", "en") else "en")
+
+
+def events_text(lang: str, events: list) -> str:
+    out = []
+    for e in events:
+        k = e["k"]
+        a, d = esc(e.get("a", "")), esc(e.get("d", ""))
+        n = fnum(e.get("n", 0), lang)
+        if k == "hit":
+            kind = e.get("kind", "atk")
+            line = t(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
+            if e.get("c"):
+                line += " " + t(lang, "lg_crit")
+            if e.get("em", 1) > 1.4:
+                line += " 🔺"
+            elif e.get("em", 1) < 0.8:
+                line += " 🔻"
+            if e.get("abs"):
+                line += " " + t(lang, "lg_absorbed", n=fnum(e["abs"], lang))
+            out.append(line)
+        elif k == "fx":
+            out.append(t(lang, "lg_fx", a=a, d=d, fx=t(lang, "fx_" + e["fx"])))
+        elif k == "dot":
+            out.append(t(lang, "lg_dot", d=d, n=n, fx=t(lang, "fx_" + e["fx"])))
+        elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end"):
+            out.append(t(lang, "lg_" + k, a=a, d=d, n=n))
+        elif k == "shield":
+            out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))
+        elif k == "form":
+            out.append(t(lang, "lg_form" + str(e["n"]), a=a))
+        elif k == "potion":
+            out.append(t(lang, "lg_potion_" + e["kind"], a=a, n=n))
+    return "\n".join(out)
+
+
+def fighter_line(lang: str, f: dict, icon: str) -> str:
+    fx = "".join(FX_ICON.get(x["k"], "") for x in f["fx"] if x["t"] > 0)
+    if f["shield"] > 0:
+        fx += "🛡"
+    if f["form"]["on"]:
+        fx += "✨"
+    return (f"{icon} <b>{esc(f['name'])}</b> {fnum(f['level'], lang)} {fx}\n"
+            f"❤️ {bar(f['hp'], f['max_hp'])} {fnum(f['hp'], lang)}/{fnum(f['max_hp'], lang)}\n"
+            f"🔮 {fnum(f['re'], lang)}/{fnum(f['max_re'], lang)}")
+
+
+def battle_text(lang: str, state: dict, events: list = None, title: str = "") -> str:
+    parts = [title] if title else []
+    parts.append(fighter_line(lang, state["a"], "🧑"))
+    parts.append(fighter_line(lang, state["b"], "👹"))
+    parts.append(t(lang, "bt_turn", n=fnum(state["turn"], lang)))
+    ev = events_text(lang, events if events is not None else state.get("last", []))
+    if ev:
+        parts.append(ev)
+    return "\n\n".join(parts)
+
+
+def boss_text(lang: str, d: dict, result: dict = None) -> str:
+    name = d["name_fa" if lang == "fa" else "name_en"]
+    ph = 1 if d["hp"] > d["max_hp"] * .6 else 2 if d["hp"] > d["max_hp"] * .3 else 3
+    hp = max(0, d["hp"])
+    lines = [f"⚔️ <b>𝖲𝖤𝖭𝖪𝖠</b> | <b>{t(lang, 'boss_title')}</b>\n━━━━━━━━━━━━━━",
+             f"👹 <b>{esc(name)}</b> — {t(lang, 'lbl_level')} {fnum(d['level'], lang)}",
+             f"❤️ {bar(hp, d['max_hp'], 14)}\n{fnum(hp, lang)}/{fnum(d['max_hp'], lang)}",
+             t(lang, "boss_phase_" + str(ph))]
+    if d.get("active"):
+        lines.append(t(lang, "boss_left", m=fnum(max(0, int(d["expires_at"] - time.time())) // 60 + 1, lang)))
+        top = sorted(d.get("contrib", {}).items(), key=lambda kv: -kv[1])[:3]
+        if top:
+            lines.append(t(lang, "boss_hits", n=fnum(d.get("hits", 0), lang)))
+    if result:
+        lines.append(t(lang, "boss_dead" if result["killed"] else "boss_escaped"))
+        for i, r in enumerate(result["rows"][:5]):
+            lines.append(f"{['🥇', '🥈', '🥉', '4.', '5.'][i]} {esc(r['name'])} — {fnum(r['dmg'], lang)} ({r['share'] * 100:.0f}%) +{fnum(r['xp'], lang)} XP" + (" 🎯" if r["last"] else ""))
+        if result["enraged"]:
+            lines.append(t(lang, "boss_enrage_bonus"))
+    return "\n".join(lines)
