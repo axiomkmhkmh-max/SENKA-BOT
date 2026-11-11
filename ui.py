@@ -38,6 +38,35 @@ def head(ctx: Ctx, title_key: str) -> str:
     return f"⚔️ <b>𝖲𝖤𝖭𝖪𝖠</b> | <b>{ctx.t(title_key)}</b>\n{SEP}\n"
 
 
+# Telegram button colours (Bot API 9.4+): "success" = green, "danger" = red, "primary" = blue.
+GREEN, RED, BLUE = "success", "danger", "primary"
+STYLE_GREEN = {"begin", "st", "bs", "bn", "bh", "dua", "us", "sb", "mkby", "gp", "gdp", "glc", "qc",
+               "mgm", "abd", "mkb", "mkav", "gj", "tr", "zp", "race"}
+STYLE_RED = {"dud", "mkc", "gll", "ueq"}
+STYLE_PLAIN = {"home", "noop"}
+
+
+def btn_style(code: str, arg=None):
+    """Colour for a button by its action code. None = Telegram's default grey."""
+    if code in STYLE_PLAIN:
+        return None
+    if code in STYLE_RED:
+        return RED
+    if code in STYLE_GREEN:
+        return GREEN
+    return BLUE
+
+
+def make_button(label: str, callback_data: str, code: str, style="auto"):
+    """style: 'auto' (by code), None/'none' (plain), or 'success' | 'danger' | 'primary'."""
+    if style == "auto":
+        style = btn_style(code)
+    elif style == "none":
+        style = None
+    kw = {"style": style} if style else {}
+    return InlineKeyboardButton(text=label, callback_data=callback_data, **kw)
+
+
 def markup(ctx: Ctx, rows):
     out = []
     for row in rows or []:
@@ -46,7 +75,8 @@ def markup(ctx: Ctx, rows):
             label, code = b[0], b[1]
             arg = b[2] if len(b) > 2 else ""
             pub = b[3] if len(b) > 3 else False
-            line.append(InlineKeyboardButton(text=label, callback_data=make_cb(code, str(arg), 0 if pub else ctx.uid)))
+            style = b[4] if len(b) > 4 else "auto"
+            line.append(make_button(label, make_cb(code, str(arg), 0 if pub else ctx.uid), code, style))
         out.append(line)
     return InlineKeyboardMarkup(inline_keyboard=out) if out else None
 
@@ -55,17 +85,17 @@ def nav(ctx: Ctx, back=None):
     """Back bottom-left, Home bottom-right."""
     row = []
     if back:
-        row.append((ctx.t("b_back"), back[0], back[1] if len(back) > 1 else ""))
-    row.append((ctx.t("b_home"), "home", ""))
+        row.append((ctx.t("b_back"), back[0], back[1] if len(back) > 1 else "", False, "none"))
+    row.append((ctx.t("b_home"), "home", "", False, "none"))
     return row
 
 
 def pager(ctx: Ctx, code: str, page: int, total_pages: int, extra: str = ""):
     row = []
     if page > 0:
-        row.append(("◀️", code, f"{page - 1}{extra}"))
+        row.append(("◀️", code, f"{page - 1}{extra}", False, "none"))
     if page < total_pages - 1:
-        row.append(("▶️", code, f"{page + 1}{extra}"))
+        row.append(("▶️", code, f"{page + 1}{extra}", False, "none"))
     return row
 
 

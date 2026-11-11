@@ -5,7 +5,7 @@ import logging
 import uuid
 
 from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup
 
 import handlers_combat
 from database import acquire_lease, col
@@ -14,14 +14,14 @@ from security import make_cb
 from service_combat import pvp_timeouts
 from service_economy import settle_listings
 from service_world import due_groups, expire_bosses, group_doc, schedule_next, spawn_boss
-from ui import Ctx
+from ui import Ctx, make_button
 
 log = logging.getLogger("senka.sched")
 INSTANCE = uuid.uuid4().hex
 
 
 def boss_kb(sid: str):
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⚔️ Attack / حمله", callback_data=make_cb("bh", sid, 0))]])
+    return InlineKeyboardMarkup(inline_keyboard=[[make_button("⚔️ Attack / حمله", make_cb("bh", sid, 0), "bh")]])
 
 
 async def post_boss(bot, doc):

@@ -273,7 +273,7 @@ async def guilds(ctx, arg):
     page = int(arg) if arg.isdigit() else 0
     items = await guild_list(page)
     rows = [[(f"{'⚔️' if g['kind'] == 'squad' else '🛡️'} {g['name_fa' if L == 'fa' else 'name_en']} ({g['members']})", "gj", g["_id"])] for g in items]
-    rows.append([("◀️", "gld", str(max(0, page - 1))), ("▶️", "gld", str(page + 1))])
+    rows.append([("◀️", "gld", str(max(0, page - 1)), False, "none"), ("▶️", "gld", str(page + 1), False, "none")])
     rows.append([(ctx.t("b_create"), "glc", "")])
     rows.append(nav(ctx))
     return Out(head(ctx, "ttl_gld") + ctx.t("gld_none"), rows)

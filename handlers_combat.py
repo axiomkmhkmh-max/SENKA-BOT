@@ -203,9 +203,10 @@ async def challenge(ctx, target, ranked: bool):
     rows = [[(ctx.t("b_accept"), "dua", d["sid"], False), (ctx.t("b_decline"), "dud", d["sid"], False)]]
     # accept/decline are bound to the challenged player
     from security import make_cb
-    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✅ Accept / قبول", callback_data=make_cb("dua", d["sid"], d["b_uid"])),
-                                                InlineKeyboardButton(text="❌ Decline / رد", callback_data=make_cb("dud", d["sid"], d["b_uid"]))]])
+    from aiogram.types import InlineKeyboardMarkup
+    from ui import make_button
+    kb = InlineKeyboardMarkup(inline_keyboard=[[make_button("✅ Accept / قبول", make_cb("dua", d["sid"], d["b_uid"]), "dua"),
+                                                make_button("❌ Decline / رد", make_cb("dud", d["sid"], d["b_uid"]), "dud")]])
     return Out(text, new=True), kb
 
 
