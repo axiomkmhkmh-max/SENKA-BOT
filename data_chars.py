@@ -22,6 +22,8 @@ _C = [
     ("Genryusai Yamamoto", "گنریوسای یاماموتو", "Mythic", "attacker"), ("Sosuke Aizen", "سوسکه آیزن", "Mythic", "caster"),
     ("Yhwach", "یوهابخ", "Mythic", "caster"),
 ]
+from data_bleach import EXTRA_CHARS
+_C = _C + EXTRA_CHARS  # appended last so existing ids ch_01.. never change
 CHARS = [{"_id": f"ch_{i + 1:02d}", "name_en": e, "name_fa": f, "rarity": r, "role": role,
           "element": ["fire", "ice", "lightning", "earth", "water", "poison", "shadow", "light"][i % 8]}
          for i, (e, f, r, role) in enumerate(_C)]

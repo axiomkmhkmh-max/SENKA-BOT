@@ -55,6 +55,10 @@ QUESTS = [
     _q("w_dungeon", "weekly", "dungeon_clear", 2, 2500, 2000, "دو سقوط", "Two Descents", 5),
 ]
 QUEST_DESC = {'m_first': ('هر سفر با یک گشت شروع می\u200cشود.', 'Every journey begins with one patrol.'), 'm_battle': ('سه دشمن را بشکن؛ تیغه\u200cات باید بداند برای چه کشیده شده.', 'Defeat three foes. Your blade must learn why it was drawn.'), 'm_shop': ('از فروشگاه اوراهارا یا بازار چیزی بخر.', "Buy something from Urahara's shop or the market."), 'm_boss': ('سه ضربه به باس جهانی بزن؛ غول\u200cها هم خون دارند.', 'Land three hits on a world boss. Giants bleed too.'), 'm_lvl10': ('به سطح ۱۰ برس؛ تیغه\u200cات نامش را زمزمه می\u200cکند.', 'Reach level 10. Your blade will whisper its name.'), 'm_lvl30': ('به سطح ۳۰ برس؛ شکل نهایی بیدار می\u200cشود.', 'Reach level 30. The final form awakens.'), 's_explore': ('۲۵ بار گشت بزن و ردها را تا آخر دنبال کن.', 'Patrol 25 times and follow the traces to the end.'), 's_gacha': ('پنج بار ارواح را فرا بخوان.', 'Summon the spirits five times.'), 's_dungeon': ('یک دانجن را تا آخرین طبقه پاک کن.', 'Clear a dungeon to its last floor.'), 's_mini': ('پنج معمای درست؛ نبرد فقط با شمشیر نیست.', 'Five right answers. Battle is not only swordplay.'), 'r_pvp': ('سه دوئل را ببر؛ جنگجو بدون رقیب زنگ می\u200cزند.', 'Win three duels. A warrior without rivals rusts.'), 'w_weapon': ('با تیغه\u200cات ۲۰ نبرد را ببر؛ پیوندتان محکم می\u200cشود.', 'Win 20 battles with your blade. Your bond deepens.'), 'b_bankai': ('۲۵ ضربه به باس\u200cها؛ این قدرت با ترس نمی\u200cآید.', '25 hits on bosses. This power does not come with fear.'), 'g_guild': ('به بانک جوخه یا کلنت کمک کن.', 'Contribute to your squad or clan bank.'), 'e_loot': ('۱۰۰ گشت؛ هر گوشه\u200cی جهان را ببین.', '100 patrols. See every corner of the worlds.'), 'l_legend': ('۱۰ باس را از پا درآور و نامت را بر دیوار حک کن.', 'Bring down 10 bosses and carve your name on the wall.'), 'h_hidden': ('۷ بار هدیه\u200cی روزانه؛ بازگشتن هم نوعی قدرت است.', 'Claim the daily gift 7 times. Returning is a kind of strength.'), 'd_explore': ('سه بار گشت بزن.', 'Patrol three times.'), 'd_battle': ('سه دشمن را شکست بده.', 'Defeat three enemies.'), 'd_boss': ('دو ضربه به باس بزن.', 'Strike a boss twice.'), 'd_mini': ('دو معما را درست جواب بده.', 'Answer two riddles correctly.'), 'd_gacha': ('یک بار ارواح را فرا بخوان.', 'Call upon the spirits once.'), 'd_pvp': ('یک دوئل را ببر.', 'Win a duel.'), 'd_market': ('یک خرید از بازار.', 'Make a purchase at the market.'), 'w_explore': ('۴۰ گشت در یک هفته.', '40 patrols in a week.'), 'w_boss': ('سه باس را بکش.', 'Kill three bosses.'), 'w_battle': ('۳۰ نبرد را ببر.', 'Win 30 battles.'), 'w_dungeon': ('دو دانجن را پاک کن.', 'Clear two dungeons.')}
+from data_bleach import ARC_QUESTS
+for _a in ARC_QUESTS:
+    QUESTS.append(_q(_a[0], "main", _a[1], _a[2], _a[3], _a[4], _a[6], _a[7], _a[5]))
+    QUEST_DESC[_a[0]] = (_a[8], _a[9])
 for _x in QUESTS:
     _x["desc_fa"], _x["desc_en"] = QUEST_DESC[_x["_id"]]
 QUEST_BY_ID = {q["_id"]: q for q in QUESTS}
@@ -203,3 +207,30 @@ LOC_DESC = {  # location -> (fa, en) one-line atmosphere
     'soul_king': ('قلب جهان؛ هر ریاتسو از اینجا آغاز می\u200cشود.', 'The heart of the worlds, where all reiatsu begins.'),
     'valley_screams': ('دره\u200cای که جنگ\u200cهای فراموش\u200cشده در آن هنوز زنده\u200cاند.', 'A valley where forgotten wars are still alive.'),
 }
+
+
+# ---- extra Bleach locations: atmosphere + lore ----
+LOC_DESC.update({
+    "zaraki_district": ("جایی که حتی هالوها از ترس راه کنار می‌روند؛ فقط قوی‌ترین زنده می‌ماند.", "Where even Hollows step aside; only the strongest survive."),
+    "sokyoku_hill": ("تپه‌ای بلند زیر آسمان سرد؛ هوا بوی سرنوشت می‌دهد.", "A high hill under a cold sky; the air smells of fate."),
+    "forest_menos": ("درخت‌هایی از استخوان و شن زیر ماه؛ هر سایه می‌تواند منوس باشد.", "Trees of bone and sand beneath the moon; every shadow may be a Menos."),
+    "fake_karakura": ("شهری که روی نقشه است ولی واقعی نیست؛ جنگی بزرگ پیش رو دارد.", "A town on the map but not real; a great war lies ahead."),
+    "silbern_palace": ("کاخ سفید و بی‌صدا؛ هر پله‌اش به‌اندازه‌ی یک عمر ریاتسو سنگین است.", "A white, silent palace; every step weighs a lifetime of reiatsu."),
+})
+LORE.update({
+    "zaraki_district": [("مردی بی‌نام می‌گوید: «اینجا اول می‌جنگی، بعد اسم می‌پرسی.»", "A nameless man says: “Here you fight first and ask names later.”"),
+                        ("روی دیوار نشانه‌ی دست‌های خونی؛ کسی نمی‌داند کدام جنگ بود.", "Bloody handprints on the wall; no one knows which fight left them."),
+                        ("کودکی با چوب‌دستی می‌گوید روزی از همه قوی‌تر می‌شود.", "A kid with a stick swears he will one day be stronger than everyone.")],
+    "sokyoku_hill": [("بادی سرد از بالای تپه می‌آید و چیزی را زمزمه می‌کند.", "A cold wind from the hilltop whispers something."),
+                     ("طناب‌های آویخته هنوز تکان می‌خورند، گویی کسی هنوز آنجاست.", "Hanging ropes still sway as if someone were still there."),
+                     ("نگهبانی می‌گوید: «عدالت گاهی از جایی که انتظارش را نداری می‌آید.»", "A guard says: “Justice sometimes comes from where you least expect.”")],
+    "forest_menos": [("شنی نرم زیر پایت صدای استخوان می‌دهد.", "Soft sand under your boots crunches like bone."),
+                     ("سایه‌ای بزرگ از کنارت می‌گذرد؛ نفست را حبس می‌کنی.", "A vast shadow passes by; you hold your breath."),
+                     ("ماه بالای جنگل نیمه‌شب را نشان می‌دهد؛ اینجا هیچ‌وقت صبح نمی‌شود.", "The moon above shows midnight; morning never comes here.")],
+    "fake_karakura": [("خیابان‌ها مثل خانه‌اند، اما هیچ‌کس نیست که صدایت بزند.", "The streets look like home, but no one is here to call your name."),
+                      ("آسمان ترک خورده و از میان آن، جهانی دیگر دیده می‌شود.", "The sky is cracked, and another world shows through."),
+                      ("هر ساختمان دروغی است، اما نبرد در آن واقعی است.", "Every building is a lie, but the fighting here is real.")],
+    "silbern_palace": [("دیوارهای سفید ریاتسو را می‌بلعند؛ سکوت نفس‌گیر است.", "White walls swallow reiatsu; the silence is suffocating."),
+                       ("پله‌ها بی‌پایان‌اند و هر کدام نامی را زمزمه می‌کنند.", "The stairs are endless and each whispers a name."),
+                       ("ستاره‌ای بر دیوار حک شده؛ می‌گویند پیش از تو هزاران نفر آن را دیده‌اند.", "A star is carved on the wall; they say thousands saw it before you.")],
+})

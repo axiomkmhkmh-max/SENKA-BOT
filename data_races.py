@@ -73,6 +73,21 @@ LOCATIONS = {
     "valley_screams": _l("valley_screams", "دره فریادها", "Valley of Screams", 100, [("فریاد بی‌صدا", "Silent Scream"), ("روح خسته", "Wearied Shade"), ("جنگجوی فراموش‌شده", "Forgotten Warrior")]),
 }
 
+# ---- extra Bleach locations (levels fill the gaps between the first eleven) ---------------------------------
+LOCATIONS.update({
+    "zaraki_district": _l("zaraki_district", "ناحیه‌ی زاراکی (روکونگای ۸۰)", "Zaraki District (Rukongai 80)", 14,
+                          [("راهزن خونین", "Blood Bandit"), ("جنگجوی بی‌نام", "Nameless Brawler"), ("سگ وحشی ناحیه", "District Wild Dog")]),
+    "sokyoku_hill": _l("sokyoku_hill", "تپه‌ی سوکیوکو", "Sōkyoku Hill", 22,
+                       [("جلاد نقاب‌دار", "Masked Executioner"), ("نگهبان دار", "Gallows Guard"), ("شبح محکوم", "Condemned Wraith")]),
+    "forest_menos": _l("forest_menos", "جنگل منوس", "Forest of Menos", 28,
+                       [("منوس کوچک", "Lesser Menos"), ("ماسک‌دار خزنده", "Creeping Masked"), ("سایه‌ی تنه‌ی استخوانی", "Bone-Trunk Shade")]),
+    "fake_karakura": _l("fake_karakura", "کاراکورای ساختگی", "Fake Karakura Town", 40,
+                        [("نگهبان شهر دروغین", "False Town Sentinel"), ("پژواک جنگ", "Echo of War"), ("سایه‌ی ریاتسو", "Reiatsu Phantom")]),
+    "silbern_palace": _l("silbern_palace", "سیلبرن، کاخ وندن‌رایش", "Silbern, Wandenreich Palace", 65,
+                         [("نگهبان سیلبرن", "Silbern Guard"), ("کوئینسی تاریک", "Dark Quincy"), ("پژواک امپراتور", "Echo of the Emperor")], "quincy"),
+})
+LOCATIONS = dict(sorted(LOCATIONS.items(), key=lambda kv: kv[1]["level"]))
+
 DUNGEONS = {
     "trial": {"fa": "آزمون سول‌سوسایتی", "en": "Soul Society Trial", "level": 5, "stages": 3},
     "hollow_den": {"fa": "لانه‌ی هالو", "en": "Hollow Den", "level": 15, "stages": 4},

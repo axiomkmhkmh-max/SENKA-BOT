@@ -32,6 +32,8 @@ settings = Settings()
 GAME_DEFAULTS = {
     "maintenance": False,
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,
+    "div_min_level": 10, "div_change_cost": 3000, "div_k": 1.0,  # allegiance: min level, change price, bonus strength
+    "hlf_min_level": 40, "hlf_cost": 15000, "hlf_chance": 0.65,  # Hollowfication ritual (Shinigami -> Visored)
     "xp_curve_k": 1.5,  # level-up difficulty: XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 120, "boss_max_minutes": 120,
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,

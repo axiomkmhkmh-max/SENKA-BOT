@@ -101,12 +101,12 @@ async def boss_hit(uid: int, sid: str):
     sess = await col("boss_sessions").find_one({"_id": sid, "active": True})
     if not sess or sess["expires_at"] <= time.time() or sess["hp"] <= 0:
         return "gone", None
-    wait = await try_cooldown(f"bosshit:{uid}", int(st["boss_hit_cooldown"]))
+    trait = sess.get("trait")
+    wait = await try_cooldown(f"bosshit:{uid}", int(int(st["boss_hit_cooldown"]) * (1.5 if trait == "burn" else 1)))
     if wait:
         return "cool", wait
     b = BOSS_BY_ID[sess["boss_id"]]
     rng = random.Random()
-    trait = sess.get("trait")
     if trait == "dodge" and sess["hits"] % 5 in (1, 3):
         return "evade", 0
     if trait == "illusion" and rng.random() < 0.30:
@@ -121,9 +121,23 @@ async def boss_hit(uid: int, sid: str):
     crit = any(e.get("c") for e in ev if e["k"] == "hit")
     if dmg <= 0:
         return "miss", 0
+    # signature mechanics (the trait is chosen per boss in data_bosses)
+    mult = 1.0
+    if trait == "armor":
+        mult = 0.80        # hierro-like hide
+    elif trait == "decay":
+        mult = 0.90        # withering aura
+    elif trait == "poison":
+        mult = 0.88
+    elif trait == "enrage" and sess["hp"] <= sess["max_hp"] * 0.30:
+        mult = 0.80        # cornered: hardens in the last phase
+    elif trait == "bleed" and crit:
+        mult = 1.50        # open wounds: crits hurt more
+    dmg = max(1, int(dmg * mult))
+    heal = int(sess["max_hp"] * 0.004) if trait == "regen" and sess["hp"] < sess["max_hp"] * 0.99 else 0
     doc = await col("boss_sessions").find_one_and_update(
         {"_id": sid, "active": True, "hp": {"$gt": 0}},
-        {"$inc": {"hp": -dmg, f"contrib.{uid}": dmg, "hits": 1}, "$set": {"last_hitter": uid, f"nm.{uid}": tagged_name(ch, ALL)}},
+        {"$inc": {"hp": -dmg + heal, f"contrib.{uid}": dmg, "hits": 1}, "$set": {"last_hitter": uid, f"nm.{uid}": tagged_name(ch, ALL)}},
         return_document=ReturnDocument.AFTER)
     if not doc:
         return "gone", None

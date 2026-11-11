@@ -5,10 +5,13 @@ Every number that matters is either read from the item's own `effect` field or f
 import time
 
 from data_artifacts import ART_BY_ID as _ART_BY_ID
+from data_bleach import division_bonus
 from data_races import LEVEL_GATES, LOCATIONS, RACES
 from data_weapons import RARITIES
 
-LOC_IDS = list(LOCATIONS)
+# frozen on purpose: relic ids are generated from this order, so new locations must never shift it
+LOC_IDS = ["soul_society", "seireitei", "rukongai", "karakura", "hueco_mundo", "las_noches", "dangai", "wandenreich",
+           "royal_palace", "soul_king", "valley_screams"]
 
 # ---- materials -----------------------------------------------------------------------------
 MAT_KINDS = ["reishi", "sekkiseki", "bone", "thread", "fang", "cloth", "mask", "ribbon", "ore", "dust"]
@@ -215,6 +218,9 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     for kind, v in art.items():
         if kind in b:
             b[kind] += v * float(st.get("art_k", 1.0))
+    for kind, v in division_bonus(ch).items():  # Gotei division / Espada number / Wandenreich order
+        if kind in b:
+            b[kind] += v * float(st.get("div_k", 1.0))
     b["xp"] += min(float(st["cosmetic_fame_cap"]), fame(ch, catalog) * float(st["cosmetic_fame_xp"]))
     for key, buf in active_buffs(ch, now).items():
         if key in b:

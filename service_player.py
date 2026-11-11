@@ -268,7 +268,7 @@ async def quest_list(uid: int, level: int):
     out = []
     daily = set(_daily_ids(today()))
     for d in QUESTS:
-        if d["min_level"] > level and d["cat"] not in ("main",):
+        if d["min_level"] > level and (d["cat"] != "main" or d["_id"].startswith("arc")):
             continue
         if d["cat"] == "daily" and d["_id"] not in daily:
             continue

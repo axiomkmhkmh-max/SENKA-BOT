@@ -13,6 +13,7 @@ import handlers_admin
 import handlers_combat
 import handlers_drops
 import handlers_extras  # noqa: F401  (registers the new panels)
+import handlers_bleach  # noqa: F401  (allegiance panel)
 import handlers_items
 import handlers_panels
 import handlers_world
