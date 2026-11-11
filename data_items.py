@@ -1,7 +1,8 @@
 """1000+ catalog items generated from themed name banks (original text)."""
+from data_crafting import EVO_KINDS, MAT_GROUP, MAT_KINDS, book_effect, cosmetic_effect, relic_effect
 from data_lore import ITEM_FLAVOR
 from data_misc import KIDO_NAMES as KN
-from data_races import DUNGEONS, LOCATIONS
+from data_races import DUNGEONS
 from data_weapons import PRICE, RARITIES, WEAPONS
 
 ADJ = [("Seireitei", "سیرایتی"), ("Rukongai", "روکونگای"), ("Hueco Mundo", "هوئکو موندو"), ("Garganta", "گارگانتا"),
@@ -34,28 +35,27 @@ PLAN = [("material", 160, None, 99, 1.0), ("potion", 100, None, 99, 1.2), ("armo
         ("ring", 75, "accessory", 1, 3.0), ("necklace", 75, "accessory", 1, 3.0), ("kido_card", 198, None, 99, 2.0),
         ("book", 40, None, 99, 2.0), ("evolution", 30, None, 99, 3.0), ("cosmetic", 80, None, 1, 1.5),
         ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 35, None, 99, 2.0)]
-# material noun -> crafting tag (see data_crafting)
-MAT_TAGS = ["reishi", "sekki", "bone", "thread", "fang", "cloth", "mask", "ribbon", "ore", "dust"]
-RELIC_PCT = [1, 1.5, 2, 3, 4, 5]          # global relic bonus by rarity tier (%)
-RELIC_LOC_PCT = [3, 4, 6, 8, 10, 12]      # location-bound XP bonus by rarity tier (%)
-RELIC_KINDS = ["xp_loc", "xp_pct", "coin_pct", "drop_pct"]
-COSM_NOUNS = [("trail", "🌙"), ("aura", "✨"), ("banner", "🚩"), ("aura", "🎭"), ("trail", "🌸")]
-EVO_RACES = ["shinigami", "quincy", "hollow", "arrancar", "fullbringer", "human", "visored"]
-EVO_MAX_STAGE = {"shinigami": 4, "quincy": 3, "hollow": 4, "arrancar": 3, "fullbringer": 2, "human": 2, "visored": 2}
-PET_ROLES = ["fang", "heal", "luck"]
 KIDO_NAMES = {"had": ("Hadō", "هادو"), "bak": ("Bakudō", "باکودو")}
 DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift"]
 DIFFS = ["normal", "hard", "nightmare", "abyss", "legendary"]
 STATS = ["zanjutsu", "kido", "hakuda", "hoho", "reiatsu"]
 
 
-def nouns_of(cat):
-    return NOUNS.get(cat, NOUNS["relic"])
+_STAT_EN = {"dmg": "damage", "def": "defense", "crit": "crit chance", "xp": "XP", "drop": "drop rate"}
+_STAT_FA = {"dmg": "آسیب", "def": "دفاع", "crit": "شانس کریتیکال", "xp": "XP", "drop": "نرخ دراپ"}
 
 
-# evolution items: 20 race-specific (every stage of every race) + 10 universal
-_EVO_SLOTS = [(r, st) for r in EVO_RACES for st in range(1, EVO_MAX_STAGE[r] + 1)]
-_LOC_IDS = list(LOCATIONS)
+def _book_desc(e):
+    t = e["type"]
+    if t == "xp":
+        return f"Grants {e['amount']} XP.", f"{e['amount']} XP می‌دهد."
+    if t == "buff":
+        p = f"{e['pct'] * 100:g}"
+        return (f"+{p}% {_STAT_EN[e['stat']]} for {e['minutes']} min.", f"+{p}٪ {_STAT_FA[e['stat']]} تا {e['minutes']} دقیقه.")
+    if t == "kido_book":
+        b_en, b_fa = KIDO_NAMES[e["branch"]]
+        return f"Teaches an unknown {b_en} (up to No. {e['cap']}).", f"یک {b_fa} ناشناخته می‌آموزد (تا شماره {e['cap']})."
+    return f"+{e['amount']} bond with your blade.", f"+{e['amount']} پیوند با تیغه‌ات."
 
 
 def _rarity(i, n):
@@ -66,8 +66,6 @@ def _rarity(i, n):
 def _name(cat, i):
     nouns = NOUNS.get(cat, NOUNS["relic"])
     a, n = i % len(ADJ), (i // len(ADJ)) % len(nouns)
-    if cat == "material":   # noun cycles fastest so every material type exists at every rarity
-        a, n = (i // len(nouns)) % len(ADJ), i % len(nouns)
     tier = i // (len(ADJ) * len(nouns))
     suf = "" if tier == 0 else " " + ["", "II", "III", "IV", "V", "VI"][min(tier, 5)]
     return f"{ADJ[a][0]} {nouns[n][0]}{suf}", f"{nouns[n][1]} {ADJ[a][1]}{suf}"
@@ -102,22 +100,11 @@ def _build():
                     eff = {"type": "reiatsu", "pct": 15 + tier * 10}
                     desc_en, desc_fa = f"Restores {eff['pct']}% reiatsu.", f"{eff['pct']}٪ ریاتسو را بازمی‌گرداند."
             elif cat == "book":
-                kind = i % 3
-                if kind == 0:
-                    eff = {"type": "xp", "amount": 150 * (tier + 1) ** 2}
-                    desc_en, desc_fa = f"Grants {eff['amount']} XP.", f"{eff['amount']} XP می‌دهد."
-                elif kind == 1:
-                    br = "had" if (i // 3) % 2 == 0 else "bak"
-                    num = min(99, 4 + tier * 15 + (i // 6) % 9)
-                    eff = {"type": "tome", "kind": "kido", "branch": br, "num": num}
-                    desc_en, desc_fa = f"Teaches {KIDO_NAMES[br][0]} {num}.", f"{KIDO_NAMES[br][1]} شماره {num} را می‌آموزد."
-                else:
-                    key = ["xp_pct", "coin_pct", "drop_pct"][(i // 3) % 3]
-                    eff = {"type": "tome", "kind": "buff", "key": key, "pct": [5, 8, 12, 16, 20, 25][tier]}
-                    desc_en, desc_fa = "Temporary blessing.", "برکتی موقت."
+                eff = book_effect(i, tier)
+                desc_en, desc_fa = _book_desc(eff)
             elif cat == "egg":
-                eff = {"type": "pet", "tier": tier, "role": PET_ROLES[i % 3]}
-                desc_en, desc_fa = "Incubates a companion.", "یک همراه از آن بیرون می‌آید."
+                eff = {"type": "pet", "tier": tier}
+                desc_en, desc_fa = "Hatches a companion.", "یک همراه از آن بیرون می‌آید."
             elif cat == "key":
                 d, df = DUNGEON_IDS[i // 5], DIFFS[i % 5]
                 en, fa = f"{DUNGEONS[d]['en']} Key ({df})", f"کلید {DUNGEONS[d]['fa']} ({df})"
@@ -135,31 +122,18 @@ def _build():
                     stats["luck"] = 1 + tier
                 desc_en, desc_fa = f"+{stats['bonus']} {st}.", f"+{stats['bonus']} {st}."
             elif cat == "material":
-                n_idx = i % len(nouns_of("material"))
-                eff = {"type": "mat", "tag": MAT_TAGS[n_idx], "pw": tier + 1}
+                kind = MAT_KINDS[(i // 16) % len(MAT_KINDS)]
+                eff = {"type": "mat", "kind": kind, "group": MAT_GROUP[kind]}
                 desc_en, desc_fa = "Crafting material.", "ماده‌ی ساخت."
             elif cat == "evolution":
-                if i < 20:
-                    race, stage = _EVO_SLOTS[i]
-                else:
-                    race, stage = "*", 1 + (i - 20) % 4
-                eff = {"type": "evo", "race": race, "stage": stage}
-                rar = RARITIES[min(5, stage + 1)]
-                tier = RARITIES.index(rar)
-                desc_en, desc_fa = "Used in evolution trials.", "برای آزمون‌های تکامل."
+                eff = {"type": "evo", "kind": EVO_KINDS[(i // 16) % len(EVO_KINDS)]}
+                desc_en, desc_fa = "Fuel for evolution trials.", "سوخت آزمون‌های تکامل."
             elif cat == "relic":
-                kind = RELIC_KINDS[i % 4]
-                if kind == "xp_loc":
-                    eff = {"type": "relic", "kind": kind, "loc": _LOC_IDS[(i // 4) % len(_LOC_IDS)], "pct": RELIC_LOC_PCT[tier]}
-                else:
-                    eff = {"type": "relic", "kind": kind, "pct": RELIC_PCT[tier]}
-                desc_en, desc_fa = "An ancient relic.", "یک یادگار باستانی."
+                eff = relic_effect(i, tier)
+                desc_en, desc_fa = "An old power that answers when attuned.", "قدرتی کهن که با هم‌سازی بیدار می‌شود."
             elif cat == "cosmetic":
-                slot, glyph = COSM_NOUNS[(i // len(ADJ)) % len(nouns_of("cosmetic"))]
-                eff = {"type": "cosm", "slot": slot, "glyph": glyph, "fame": tier + 1}
-                if tier >= 3:
-                    eff["buff"] = {"xp_pct": 1} if i % 2 == 0 else {"drop_pct": 1}
-                desc_en, desc_fa = "A mark of renown.", "نشان شهرت."
+                eff = cosmetic_effect(i, tier)
+                desc_en, desc_fa = "Worn beside your name for the world to see.", "کنار نامت می‌درخشد تا جهان ببیند."
             else:
                 desc_en, desc_fa = "A collectible keepsake.", "یک یادگاری کلکسیونی."
             fl = ITEM_FLAVOR.get(cat)
@@ -180,8 +154,9 @@ ALL = {x["_id"]: x for x in ITEMS}
 for _w in WEAPONS:
     _w.setdefault("sell_price", max(2, int(_w["base_price"] * 0.4)))
     ALL[_w["_id"]] = _w
+EVO_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "evolution"] for r in RARITIES}
+COSMETIC_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "cosmetic"] for r in RARITIES}
 BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "armor", "accessory", "book", "egg", "relic")] for r in RARITIES}
-BY_RARITY_EXTRA = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["subtype"] in ("cosmetic", "evolution")] for r in RARITIES}
 WEAPON_BY_RARITY = {r: [w["_id"] for w in WEAPONS if w["rarity"] == r] for r in RARITIES}
 
 

@@ -14,14 +14,14 @@ DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 
 
 def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, kido=None,
-                race="human", ai=False, zmult=1.0, element=None, luck=0, evo=None):
+                race="human", ai=False, zmult=1.0, element=None, luck=0):
     w = weapon or {"attack": 3, "crit": 0.0, "element": element or "light", "skills": [], "weapon_type": "melee"}
     return {"name": name, "level": level, "stats": dict(stats), "hp": int(max_hp), "max_hp": int(max_hp),
             "re": int(max_re), "max_re": int(max_re), "weapon": {"attack": w.get("attack", 3), "crit": w.get("crit", 0.0),
             "element": element or w.get("element", "light"), "skills": list(w.get("skills", [])),
             "type": w.get("weapon_type", "melee")}, "armor": armor, "mods": dict(mods or {}),
             "kido": {"had": list((kido or {}).get("had", [1])), "bak": list((kido or {}).get("bak", [1]))},
-            "race": race, "ai": ai, "zmult": zmult, "evo": evo, "fx": [], "guard": False, "shield": 0, "luck": luck,
+            "race": race, "ai": ai, "zmult": zmult, "fx": [], "guard": False, "shield": 0, "luck": luck,
             "form": {"on": 0, "mult": 1.0, "left": 0, "fat": 0, "used": [0, 0], "fx": None}}
 
 
@@ -194,10 +194,10 @@ def can(f, action):
     if action == "bk":
         return best_kido(f, "bak") is not None
     if action == "f1":
-        return f["level"] >= FORM1_LEVEL and (f.get("evo") is None or f["evo"] >= 1) and not f["form"]["on"] and not f["form"]["used"][0] and f["re"] >= f["max_re"] * FORM1[3]
+        return f["level"] >= FORM1_LEVEL and not f["form"]["on"] and not f["form"]["used"][0] and f["re"] >= f["max_re"] * FORM1[3]
     if action == "f2":
         c = FORM2.get(f["race"], FORM2["default"])
-        return f["level"] >= FORM2_LEVEL and (f.get("evo") is None or f["evo"] >= 2) and not f["form"]["on"] and not f["form"]["used"][1] and f["re"] >= f["max_re"] * c[3]
+        return f["level"] >= FORM2_LEVEL and not f["form"]["on"] and not f["form"]["used"][1] and f["re"] >= f["max_re"] * c[3]
     return False
 
 
@@ -209,7 +209,7 @@ def start_turn(state, rng):
     f["guard"] = False
     f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * 0.05)))
     rg = f["mods"].get("regen", 0)
-    if rg and f["hp"] > 0:
+    if rg and 0 < f["hp"] < f["max_hp"]:  # companion healing (pet role)
         h = max(1, int(f["max_hp"] * rg))
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})

@@ -28,10 +28,19 @@ RAW = {
     "admin": ("adm", "", ["مدیریت", "ادمین", "admin", "panel admin", "dashboard"]),
     "forge": ("frg", "", ["آهنگری", "فورج", "تقویت سلاح", "forge", "smith", "blacksmith", "upgrade weapon"]),
     "party": ("pty", "0", ["تیم", "پارتی", "همراهان", "party", "team", "companions"]),
+    "commands": ("cmd", "", ["دستورات", "لیست دستورات", "فرمان ها", "فرمان‌ها", "commands", "command list", "cmds", "words"]),
+    "world": ("wrd", "", ["دنیا", "جهان زنده", "وضعیت دنیا", "world", "world state", "realm"]),
+    "craft": ("crf", "", ["ساخت", "کرافت", "craft", "crafting", "workshop"]),
+    "season": ("ssn", "", ["فصل", "season", "seasons"]),
+    "chronicle": ("chr", "", ["تاریخچه", "وقایع", "chronicle", "news"]),
+    "territory": ("ter", "", ["قلمرو", "territory", "land"]),
+    "bounty": ("bty", "", ["باونتی", "جایزه سر", "bounty", "wanted"]),
+    "gear": ("eqp", "", ["یادگار", "همراه من", "relic", "relics", "pets", "pet"]),
+    "evolution": ("evo", "", ["تکامل", "evolution", "evolve"]),
     "duel": ("*duel", "r", ["دوئل", "دوئل رنکد", "duel", "ranked duel", "challenge"]),
     "duel_friendly": ("*duel", "f", ["دوئل دوستانه", "friendly duel", "friendly"]),
 }
-GROUP_OK = {"duel", "duel_friendly", "boss", "help", "home"}
+GROUP_OK = {"duel", "duel_friendly", "boss", "help", "home", "chronicle", "commands"}
 _map: dict = {}
 _extra_at = 0.0
 

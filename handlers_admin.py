@@ -17,10 +17,10 @@ CMD = {"stats": "stats", "آمار": "stats", "ban": "ban", "بن": "ban", "unba
        "give": "give", "بده": "give", "take": "take", "بگیر": "take", "broadcast": "broadcast", "پیام همگانی": "broadcast",
        "set": "set", "تنظیم": "set", "addadmin": "addadmin", "rmadmin": "rmadmin", "user": "user", "کاربر": "user",
        "reset": "reset", "ریست": "reset", "confirm": "confirm", "تایید": "confirm", "item": "item", "آیتم": "item",
-       "spawn": "spawn", "ظهور": "spawn", "maintenance": "maintenance", "تعمیرات": "maintenance", "mute": "mute", "warn": "warn"}
+       "spawn": "spawn", "ظهور": "spawn", "maintenance": "maintenance", "تعمیرات": "maintenance", "mute": "mute", "warn": "warn", "world": "world", "دنیا": "world"}
 ROLES = {"owner": 100, "super": 80, "admin": 60, "moderator": 40, "support": 20}
 NEED = {"stats": 20, "user": 20, "warn": 40, "mute": 40, "ban": 40, "unban": 40, "give": 60, "take": 60, "item": 60, "set": 80,
-        "broadcast": 60, "reset": 80, "confirm": 80, "spawn": 60, "maintenance": 60, "addadmin": 100, "rmadmin": 100}
+        "broadcast": 60, "reset": 80, "confirm": 80, "spawn": 60, "world": 20, "maintenance": 60, "addadmin": 100, "rmadmin": 100}
 
 
 async def admin_level(uid: int) -> int:
@@ -210,6 +210,8 @@ async def handle_admin_text(ctx, text: str):
         return Out(ctx.t("adm_broadcast_started"))
     if cmd == "spawn":
         return Out(ctx.t("adm_spawn_group"))
+    if cmd == "world":
+        return Out(await admin_world(ctx, args, lvl))
     return None
 
 
@@ -226,3 +228,73 @@ async def _broadcast(bot, flt, msg, admin):
         await bot.send_message(admin, f"📣 ✅ {ok} | ❌ {fail}")
     except Exception:
         pass
+
+
+async def admin_world(ctx, args, lvl: int) -> str:
+    """world | world set threat|stability|reishi <loc> <0-100> | world reset | world event <kind>|end |
+    world boss spawn|end | world season end | world territory reset <loc>"""
+    from data_races import LOCATIONS
+    from data_world import EVENTS, VAR_START
+    from service_worldcore import get_world, invalidate, world_set
+    from service_worldstate import event_end, event_start, season_force_end
+    L = ctx.lang
+    ws, ev = await get_world(force=True)
+    sub = args[0].lower() if args else ""
+    if not sub:
+        b = await col("boss_sessions").find_one({"scope": "global", "active": True})
+        rei = ", ".join(f"{k}:{v:.0f}" for k, v in sorted((ws.get("reishi") or {}).items()))
+        return ctx.t("adm_world", threat=f"{ws.get('threat', 0):.1f}", stab=f"{ws.get('stability', 0):.1f}", rei=rei or "—",
+                     ev=(f"{ev['kind']} {ev['progress']}/{ev['goal']}" if ev else "—"), boss=(f"{b['name_en']} {max(0, b['hp'])}/{b['max_hp']}" if b else "—"),
+                     season=ws["season"]["id"])
+    if lvl < 60:
+        return ctx.t("adm_noperm")
+    if sub == "set" and len(args) >= 3:
+        key = args[1].lower()
+        try:
+            val = float(args[-1])
+        except ValueError:
+            return ctx.t("adm_fail")
+        if key in ("threat", "stability"):
+            await world_set(**{key: val})
+        elif key == "reishi" and len(args) == 4 and args[2] in LOCATIONS:
+            await world_set(**{f"reishi.{args[2]}": val})
+        else:
+            return ctx.t("adm_usage_world")
+        await alog(ctx.uid, "world_set", key, None, val)
+        return ctx.t("adm_done")
+    if sub == "reset":
+        await col("world_state").update_one({"_id": "main"}, {"$set": {"threat": VAR_START["threat"], "stability": VAR_START["stability"], "reishi": {}}})
+        invalidate()
+        await alog(ctx.uid, "world_reset")
+        return ctx.t("adm_done")
+    if sub == "event" and len(args) >= 2:
+        if args[1].lower() == "end":
+            res = await event_end(force_success=False)
+            await alog(ctx.uid, "world_event_end")
+            return ctx.t("adm_done" if res else "adm_fail")
+        if args[1] in EVENTS:
+            res = await event_start(args[1])
+            await alog(ctx.uid, "world_event_start", args[1])
+            return ctx.t("adm_done" if res else "adm_fail")
+    if sub == "boss" and len(args) >= 2:
+        if args[1].lower() == "spawn":
+            from service_world import spawn_boss
+            import handlers_world
+            doc = await spawn_boss()
+            if doc:
+                await handlers_world.post_global_boss(ctx.bot, doc)
+            await alog(ctx.uid, "world_boss_spawn")
+            return ctx.t("adm_done" if doc else "adm_fail")
+        if args[1].lower() == "end":
+            await col("boss_sessions").update_many({"scope": "global", "active": True}, {"$set": {"expires_at": 0}})
+            await alog(ctx.uid, "world_boss_end")
+            return ctx.t("adm_done")
+    if sub == "season" and len(args) >= 2 and args[1].lower() == "end":
+        await season_force_end()
+        await alog(ctx.uid, "world_season_end")
+        return ctx.t("adm_done")
+    if sub == "territory" and len(args) >= 3 and args[1].lower() == "reset" and args[2] in LOCATIONS:
+        await col("territories").delete_one({"_id": args[2]})
+        await alog(ctx.uid, "territory_reset", args[2])
+        return ctx.t("adm_done")
+    return ctx.t("adm_usage_world")

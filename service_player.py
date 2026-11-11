@@ -8,12 +8,13 @@ from datetime import datetime, timezone
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
+from data_crafting import player_bonus
 from data_items import ALL
 from data_misc import DAILY_POOL, QUEST_BY_ID, QUESTS, RACE_START_KIDO, START_KIDO
 from data_races import RACES, STATS, soft_stat
 from data_weapons import WEAPONS
 from database import col, game_settings
-from effects import passive_mods
+from service_worldcore import mods_for
 
 _lang_cache: dict = {}
 
@@ -106,7 +107,8 @@ async def finish_registration(uid: int, reg: dict):
            "location": race["home"], "weapon_id": reg["weapon"], "armor_id": None, "acc_id": None, "charm_id": None,
            "energy": int(st["energy_max"]), "energy_ts": int(time.time()), "kido": kido, "rating": 1000,
            "wins": 0, "losses": 0, "pvp_w": 0, "pvp_l": 0, "pity": {"rare": 0, "epic": 0, "legendary": 0},
-           "pets": [], "party": [], "relics": [], "cosmetic": {}, "buffs": {}, "evo_stage": 0, "guild_id": None, "created_at": int(time.time()), "daily_streak": 0, "last_daily": None}
+           "pets": [], "party": [], "guild_id": None, "created_at": int(time.time()), "daily_streak": 0, "last_daily": None,
+           "evo": 0, "relics": [], "cosmetics": {}, "armor_plus": {}, "buffs": {}, "seen_at": int(time.time())}
     try:
         await col("characters").insert_one(doc)
     except DuplicateKeyError:
@@ -133,15 +135,6 @@ def power(ch: dict) -> int:
     return int(s * 3 + w * 2 + a + ch["level"] * 10)
 
 
-async def coin_bonus(uid: int, coins: int) -> int:
-    """Coins after relic/cosmetic/buff bonuses (use for earned coins only)."""
-    ch = await get_char(uid)
-    if not ch or coins <= 0:
-        return coins
-    pct = passive_mods(ch, ALL, await game_settings())["coin_pct"]
-    return int(coins * (1 + pct / 100))
-
-
 async def add_coins(uid: int, n: int, reason: str = "") -> bool:
     n = int(n)
     if n == 0:
@@ -165,7 +158,11 @@ async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = Tru
         gain = float(amount)
         if apply_rate:
             gain *= float(st["xp_rate"]) * RACES[ch["race"]]["mods"].get("xp", 1.0)
-            gain *= 1 + passive_mods(ch, ALL, st)["xp_pct"] / 100
+            gain *= 1 + player_bonus(ch, ALL, st)["xp"]
+            try:
+                gain *= (await mods_for(ch["location"]))["xp"]
+            except Exception:
+                pass
         gain = max(0, int(gain))
         level, xp, pts, gained = ch["level"], ch["xp"] + gain, ch.get("points", 0), 0
         while xp >= xp_to_next(level) and gained < 200:

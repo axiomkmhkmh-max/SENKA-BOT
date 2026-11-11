@@ -1,4 +1,4 @@
-"""World bosses (shared HP per group), group settings and scheduler helpers."""
+"""The single global world boss (one shared HP bar for every group and private chat), group registry."""
 import random
 import time
 import uuid
@@ -6,12 +6,17 @@ import uuid
 from pymongo import ReturnDocument
 
 from data_bosses import BOSSES, BOSS_BY_ID
-from data_weapons import ELEMENTS
+from data_crafting import tagged_name
+from data_items import ALL, EVO_BY_RARITY
+from data_weapons import ELEMENTS, RARITIES
+from data_world import boss_gap_seconds, boss_hp_scale, day_id, season_pts_boss
 import engine as E
-from database import col, game_settings, try_cooldown
+from database import bump_counter, col, game_settings, try_cooldown
 from service_combat import build_player
 from service_economy import inv_add, roll_drop
-from service_player import add_coins, add_xp, bump_quest, coin_bonus, get_char
+from service_player import add_coins, add_xp, bump_quest, get_char
+from service_worldcore import (WS_ID, active_levels, active_players, chronicle, get_world, invalidate, is_new_account,
+                               season_add, world_adjust)
 
 
 # ---- groups -------------------------------------------------------------------------
@@ -37,24 +42,48 @@ def pick_boss(levels: list) -> dict:
     return min(BOSSES, key=lambda b: abs(b["level"] - target))
 
 
-# ---- boss lifecycle -----------------------------------------------------------------
-async def active_boss(chat_id: int):
-    return await col("boss_sessions").find_one({"chat_id": chat_id, "active": True})
+# ---- boss lifecycle (one global boss) ---------------------------------------------------------------------------
+async def active_boss(chat_id: int = None):
+    """The one living global boss (chat_id is ignored; kept for old call sites)."""
+    return await col("boss_sessions").find_one({"scope": "global", "active": True})
 
 
-async def spawn_boss(chat_id: int, boss_id: str = None):
-    if await active_boss(chat_id):
-        return None
+async def spawn_boss(chat_id: int = None, boss_id: str = None):
+    """Spawn the global boss. Atomic: only one can exist (claimed through world_state.boss_id)."""
     st = await game_settings()
-    g = await group_doc(chat_id)
-    b = BOSS_BY_ID.get(boss_id) if boss_id else pick_boss(g.get("levels", []))
-    now = int(time.time())
-    doc = {"_id": uuid.uuid4().hex[:10], "chat_id": chat_id, "boss_id": b["_id"], "name_fa": b["name_fa"], "name_en": b["name_en"],
-           "level": b["level"], "hp": b["hp"], "max_hp": b["hp"], "trait": b["trait"], "active": True, "spawn_at": now,
-           "expires_at": now + int(st["boss_duration_minutes"]) * 60, "contrib": {}, "hits": 0, "last_hitter": None,
-           "edit_at": 0, "msg_id": None}
-    await col("boss_sessions").insert_one(doc)
+    ws, _ = await get_world(force=True)
+    sid = uuid.uuid4().hex[:10]
+    claim = await col("world_state").update_one(
+        {"_id": WS_ID, "$or": [{"boss_id": None}, {"boss_id": {"$exists": False}}]}, {"$set": {"boss_id": sid}})
+    if not claim.modified_count:
+        return None
+    try:
+        levels = await active_levels()
+        b = BOSS_BY_ID.get(boss_id) if boss_id else pick_boss(levels)
+        scale = boss_hp_scale(await active_players(), ws.get("threat", 20), st)
+        hp = max(1, int(b["hp"] * scale))
+        now = int(time.time())
+        doc = {"_id": sid, "scope": "global", "boss_id": b["_id"], "name_fa": b["name_fa"], "name_en": b["name_en"], "level": b["level"],
+               "hp": hp, "max_hp": hp, "trait": b["trait"], "active": True, "spawn_at": now, "scale": round(scale, 2),
+               "expires_at": now + int(st["boss_duration_minutes"]) * 60, "contrib": {}, "nm": {}, "hits": 0, "last_hitter": None,
+               "edit_at": 0, "msgs": {}, "refresh_at": now}
+        await col("boss_sessions").insert_one(doc)
+    except Exception:
+        await col("world_state").update_one({"_id": WS_ID, "boss_id": sid}, {"$set": {"boss_id": None}})
+        raise
+    invalidate()
     return doc
+
+
+async def _end_global(doc: dict):
+    """Free the boss slot and schedule the next spawn (threat shortens the gap)."""
+    if doc.get("scope") != "global":
+        return
+    st = await game_settings()
+    ws, _ = await get_world(force=True)
+    gap = boss_gap_seconds(st, ws.get("threat", 20), random)
+    await col("world_state").update_one({"_id": WS_ID, "boss_id": doc["_id"]}, {"$set": {"boss_id": None, "next_boss_at": int(time.time()) + gap}})
+    invalidate()
 
 
 def phase(doc: dict) -> int:
@@ -94,10 +123,13 @@ async def boss_hit(uid: int, sid: str):
         return "miss", 0
     doc = await col("boss_sessions").find_one_and_update(
         {"_id": sid, "active": True, "hp": {"$gt": 0}},
-        {"$inc": {"hp": -dmg, f"contrib.{uid}": dmg, "hits": 1}, "$set": {"last_hitter": uid}}, return_document=ReturnDocument.AFTER)
+        {"$inc": {"hp": -dmg, f"contrib.{uid}": dmg, "hits": 1}, "$set": {"last_hitter": uid, f"nm.{uid}": tagged_name(ch, ALL)}},
+        return_document=ReturnDocument.AFTER)
     if not doc:
         return "gone", None
     await bump_quest(uid, "boss_hit", 1)
+    from service_worldstate import on_action
+    await on_action(uid, "boss_hit", ch["location"])
     return "hit", {"dmg": dmg, "crit": crit, "doc": doc}
 
 
@@ -108,7 +140,9 @@ async def settle_boss(sid: str):
         return_document=ReturnDocument.AFTER)
     if not doc:
         return None
-    return await _pay(doc, killed=True)
+    summary = await _pay(doc, killed=True)
+    await _end_global(doc)
+    return summary
 
 
 async def expire_bosses():
@@ -120,61 +154,75 @@ async def expire_bosses():
             return_document=ReturnDocument.AFTER)
         if not doc:
             break
-        out.append((doc, await _pay(doc, killed=False)))
+        summary = await _pay(doc, killed=False)
+        await _end_global(doc)
+        out.append((doc, summary))
     return out
 
 
 async def _pay(doc: dict, killed: bool):
     st = await game_settings()
     lvl = doc["level"]
-    xp_pool = int(300 * lvl ** 1.3 + 500) * (1.0 if killed else 0.3)
-    coin_pool = int((120 * lvl ** 1.2 + 300) * float(st["coin_rate"])) * (1.0 if killed else 0.3)
+    contrib = {int(k): v for k, v in doc.get("contrib", {}).items()}
+    total = sum(contrib.values()) or 1
+    n = len(contrib)
+    pool_mult = (min(n, int(st["boss_pool_cap"])) ** 0.7) if n > 1 else 1.0  # more fighters, bigger prize pool
+    xp_pool = int(300 * lvl ** 1.3 + 500) * (1.0 if killed else 0.3) * pool_mult
+    coin_pool = int((120 * lvl ** 1.2 + 300) * float(st["coin_rate"])) * (1.0 if killed else 0.3) * pool_mult
     enraged = doc["hp"] <= 0 and doc["max_hp"] > 0 and killed
     if enraged:
         xp_pool *= 1.3
-    contrib = {int(k): v for k, v in doc.get("contrib", {}).items()}
-    total = sum(contrib.values()) or 1
-    rows, drops = [], {}
-    for uid, dmg in sorted(contrib.items(), key=lambda x: -x[1]):
+    rows, drops, evo_drops = [], {}, {}
+    ranked = sorted(contrib.items(), key=lambda x: -x[1])
+    day = day_id()
+    for rank, (uid, dmg) in enumerate(ranked):
+        ch = await get_char(uid)
+        if not ch:
+            continue
         share = dmg / total
-        main = dmg >= 0.01 * doc["max_hp"]
-        xp = xp_pool * share if main else xp_pool * 0.01
-        coins = coin_pool * share if main else 0
+        paid = (not is_new_account(ch, st)) and await bump_counter(f"bosspaid:{uid}:{day}", 1, int(st["boss_daily_paid"]))
+        main = dmg >= float(st["boss_main_share"]) * doc["max_hp"]
+        xp = (xp_pool * share if main else xp_pool * 0.01) if paid else 0
+        coins = (coin_pool * share if main else 0) if paid else 0
         last = killed and uid == doc.get("last_hitter")
-        if last:
+        if last and paid:
             xp += xp_pool * 0.10
             coins += coin_pool * 0.10
-        await add_xp(uid, int(xp), "boss", apply_rate=True)
+        if xp:
+            await add_xp(uid, int(xp), "boss", apply_rate=True)
         if coins:
-            await add_coins(uid, await coin_bonus(uid, int(coins)), "boss")
-        if killed and (last or (main and share >= 0.10)):
+            await add_coins(uid, int(coins), "boss")
+        if killed and paid and (last or rank < 3):
             iid = await roll_drop(uid, source_mult=2.0, weapon_chance=0.2)
             if await inv_add(uid, iid, 1):
                 drops[uid] = iid
+        if killed and paid and rank < 5 and random.random() < 0.30:
+            pool = EVO_BY_RARITY[RARITIES[min(3, lvl // 25)]] or EVO_BY_RARITY["Common"]
+            eid = random.choice(pool)
+            if await inv_add(uid, eid, 1):
+                evo_drops[uid] = eid
         if killed:
             await bump_quest(uid, "boss_kill", 1)
-        names = await col("characters").find_one({"user_id": uid}, {"name": 1})
-        rows.append({"uid": uid, "name": (names or {}).get("name", "?"), "dmg": dmg, "share": share, "xp": int(xp), "last": last})
-    return {"rows": rows, "drops": drops, "killed": killed, "enraged": enraged}
+        await season_add(uid, season_pts_boss(share, killed) + (3 if paid else 0), ch["name"])
+        rows.append({"uid": uid, "name": (doc.get("nm") or {}).get(str(uid)) or ch["name"], "dmg": dmg, "share": share,
+                     "xp": int(xp), "last": last, "paid": bool(paid)})
+    if doc.get("scope") == "global":
+        if killed:
+            await world_adjust(threat=-float(st["world_threat_boss_kill"]), stability=1.5)
+            last_name = next((r["name"] for r in rows if r["last"]), rows[0]["name"] if rows else "?")
+            await chronicle("boss_kill", name=last_name, boss_fa=doc["name_fa"], boss_en=doc["name_en"], n=n)
+        else:
+            await world_adjust(threat=float(st["world_threat_boss_flee"]), stability=-2.0)
+            await chronicle("boss_flee", boss_fa=doc["name_fa"], boss_en=doc["name_en"])
+    return {"rows": rows, "drops": drops, "evo_drops": evo_drops, "killed": killed, "enraged": enraged, "n": n}
 
 
-# ---- scheduler helpers ----------------------------------------------------------------
-async def due_groups():
-    st = await game_settings()
+async def boss_due() -> bool:
+    ws, _ = await get_world(force=True)
+    return not ws.get("boss_id") and ws.get("next_boss_at", 0) <= int(time.time())
+
+
+async def broadcast_groups(limit: int = 300) -> list:
+    """Groups that get world announcements (recently active, not blocked)."""
     now = int(time.time())
-    out = []
-    async for g in col("groups").find({"blocked": {"$ne": True}, "last_active": {"$gte": now - 86400}}).limit(500):
-        nxt = g.get("next_boss_at")
-        if nxt is None:
-            gap = random.randint(int(st["boss_min_minutes"]), int(st["boss_max_minutes"])) * 60
-            await col("groups").update_one({"chat_id": g["chat_id"], "next_boss_at": {"$exists": False}}, {"$set": {"next_boss_at": now + gap}})
-            continue
-        if nxt <= now:
-            out.append(g)
-    return out
-
-
-async def schedule_next(chat_id: int):
-    st = await game_settings()
-    gap = random.randint(int(st["boss_min_minutes"]), int(st["boss_max_minutes"])) * 60
-    await col("groups").update_one({"chat_id": chat_id}, {"$set": {"next_boss_at": int(time.time()) + gap}})
+    return await col("groups").find({"blocked": {"$ne": True}, "last_active": {"$gte": now - 7 * 86400}}).sort("last_active", -1).limit(limit).to_list(limit)

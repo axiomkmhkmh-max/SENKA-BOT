@@ -9,9 +9,9 @@ from aiogram.types import CallbackQuery, Message
 
 import handlers_admin
 import handlers_combat
-import handlers_effects
 import handlers_items
 import handlers_panels
+import handlers_world
 import handlers_registration as reg
 from config import settings
 from database import col, game_settings
@@ -77,7 +77,7 @@ async def on_start(message: Message, command: CommandObject):
 COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle": "battle", "bag": "bag", "market": "market",
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
-            "party": "party", "settings": "settings", "help": "help"}
+            "party": "party", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands"}
 
 
 @router.message(Command(*COMMANDS))
@@ -160,10 +160,9 @@ async def on_group_text(message: Message, text: str):
         return
     if n in ("spawn boss", "ظهور باس"):
         if await handlers_admin.admin_level(user.id) >= 60:
-            import scheduler
-            doc = await spawn_boss(chat.id)
+            doc = await spawn_boss()
             if doc:
-                await scheduler.post_boss(message.bot, doc)
+                await handlers_world.post_global_boss(message.bot, doc)
         return
     hit = await resolve(text)
     if not hit:

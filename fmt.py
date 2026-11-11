@@ -1,9 +1,8 @@
 """Shared text formatting for items, weapons and characters."""
+from data_crafting import PET_ROLES, race_title_ev
 from data_items import ALL
 from data_lore import spirit_line
-from data_races import LEVEL_GATES, LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
-from database import settings_snapshot
-from effects import describe, display_name, evo_title_index
+from data_races import LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
 from data_weapons import ELEMENT_FA, RARITY_ICON, TYPE_FA, skill_text
 from i18n import esc, fnum
 
@@ -35,14 +34,9 @@ def item_card(ctx, item_id: str, qty: int = None) -> str:
             lines.append("✦ " + skill_text(s, lang))
     else:
         lines.append(esc(it.get("desc_fa" if lang == "fa" else "desc_en", "")))
-        eff = it.get("effect") or {}
-        if eff.get("type") in ("mat", "relic", "evo", "cosm", "pet", "tome"):
-            names = {}
-            if eff.get("loc") in LOCATIONS:
-                names["loc"] = LOCATIONS[eff["loc"]]["fa" if lang == "fa" else "en"]
-            if eff.get("race") in RACES:
-                names["race"] = RACES[eff["race"]]["name_fa" if lang == "fa" else "name_en"]
-            lines.append("✦ " + esc(describe(eff, lang, names)))
+        eff_line = effect_text(ctx, it)
+        if eff_line:
+            lines.append("✦ " + eff_line)
     if it.get("slot") and it.get("level_req", 1) > 1:
         lines.append(f"🔒 {ctx.t('lbl_level')} {fnum(it['level_req'], lang)}")
     lines.append(f"🪙 {fnum(it['base_price'], lang)} | 💱 {fnum(it.get('sell_price', 0), lang)}")
@@ -54,11 +48,38 @@ def stats_block(ctx, stats: dict) -> str:
 
 
 def title_of(ch: dict, lang: str) -> str:
-    evo = RACES[ch["race"]]["evo"]
-    idx = min(evo_title_index(ch, LEVEL_GATES, settings_snapshot()), len(evo) - 1)
-    return evo[idx][0 if lang == "fa" else 1]
+    return race_title_ev(ch["race"], ch["level"], ch.get("evo"), lang)
 
 
-def shown_name(ch: dict) -> str:
-    """Player name with equipped cosmetic glyphs, HTML-escaped."""
-    return esc(display_name(ch, ALL))
+def effect_text(ctx, it: dict) -> str:
+    """One plain Bleach-flavoured line describing what an item really does (read from its data fields)."""
+    L = ctx.lang
+    e = it.get("effect") or {}
+    ty = e.get("type")
+    if ty == "mat":
+        from data_crafting import forge_value
+        return ctx.t("ef_mat", grp=ctx.t("grp_" + e["group"]), v=forge_value(it["rarity"]))
+    if ty == "relic":
+        loc = LOCATIONS[e["loc"]]["fa" if L == "fa" else "en"] if e.get("loc") else ""
+        return ctx.t("ef_relic_" + e["kind"], v=f"{e['v'] * 100:g}", loc=esc(loc))
+    if ty == "cosmetic":
+        return ctx.t("ef_cosmetic", icon=e["icon"], slot=ctx.t("cos_slot_" + e["slot"]), fame=e["fame"])
+    if ty == "evo":
+        return ctx.t("ef_evo")
+    if ty == "pet":
+        return ctx.t("ef_egg")
+    if ty == "key":
+        from data_world import KEY_PTS
+        return ctx.t("ef_key", pts=KEY_PTS.get(e["diff"], 1))
+    if it.get("category") == "armor":
+        return ctx.t("ef_armor")
+    if it.get("category") == "accessory" and it.get("stats", {}).get("luck"):
+        return ctx.t("ef_luck", n=it["stats"]["luck"])
+    return ""
+
+
+def pet_line(ctx, pet: dict) -> str:
+    from service_economy import PETS
+    role, per = PET_ROLES.get(pet["sp"] % len(PET_ROLES), ("dmg", 0.01))
+    name = PETS[pet["sp"] % len(PETS)][0 if ctx.lang != "fa" else 1]
+    return f"{esc(name)} ★{pet['tier'] + 1} — " + ctx.t("pet_role_" + role, v=f"{per * (pet['tier'] + 1) * 100:.1f}")

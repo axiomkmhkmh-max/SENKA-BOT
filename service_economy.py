@@ -6,12 +6,13 @@ import uuid
 
 from pymongo import ReturnDocument
 
+from data_crafting import forge_value, player_bonus
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus
-from data_items import ALL, BY_RARITY, BY_RARITY_EXTRA, WEAPON_BY_RARITY
-from effects import gear_bonus, passive_mods
+from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY
 from data_weapons import RARITIES
 from database import col, game_settings, try_cooldown
 from service_player import add_coins, add_xp, bump_quest, get_char
+from service_worldcore import mods_for
 
 SLOT_FIELD = {"weapon": "weapon_id", "armor": "armor_id", "ring": "acc_id", "necklace": "charm_id"}
 PETS = [("Spirit Fox", "روباه روحی"), ("Moon Cat", "گربه‌ی ماه"), ("Ember Wisp", "شراره‌ی زنده"),
@@ -63,9 +64,6 @@ def slot_of(item: dict):
 
 async def equip(uid: int, item_id: str) -> str:
     it, ch = ALL.get(item_id), await get_char(uid)
-    if it and it.get("subtype") in ("relic", "cosmetic"):
-        from service_effects import equip_special
-        return await equip_special(uid, item_id)
     field = slot_of(it) if it else None
     if not field:
         return "noequip"
@@ -105,9 +103,6 @@ async def use_item(uid: int, item_id: str):
     if not eff:
         return "nouse", None
     t = eff["type"]
-    if t in ("tome", "pet"):
-        from service_effects import use_special
-        return await use_special(uid, item_id)
     if t == "kido":
         import math as _m
         if ch["level"] < _m.ceil(eff["num"] * 0.8):
@@ -123,6 +118,43 @@ async def use_item(uid: int, item_id: str):
             return "missing", None
         _, _, got = await add_xp(uid, eff["amount"], "book", apply_rate=False)
         return "ok", got
+    if t == "buff":
+        if not await inv_remove(uid, item_id, 1):
+            return "missing", None
+        st = await game_settings()
+        now = time.time()
+        old = (ch.get("buffs") or {}).get(eff["stat"]) or {}
+        base = max(now, old.get("until", 0))
+        until = min(now + int(st["buff_max_minutes"]) * 60, base + eff["minutes"] * 60)
+        await col("characters").update_one({"user_id": uid}, {"$set": {f"buffs.{eff['stat']}": {"pct": max(eff["pct"], old.get("pct", 0) if old.get("until", 0) > now else 0), "until": until}}})
+        return "ok", eff["minutes"]
+    if t == "kido_book":
+        known = set(ch["kido"][eff["branch"]])
+        pick = next((n for n in range(1, min(99, eff["cap"]) + 1) if n not in known), None)
+        if pick is None:
+            return "known", None
+        if ch["level"] < math.ceil(pick * 0.8):
+            return "level", math.ceil(pick * 0.8)
+        if not await inv_remove(uid, item_id, 1):
+            return "missing", None
+        await col("characters").update_one({"user_id": uid}, {"$addToSet": {f"kido.{eff['branch']}": pick}})
+        return "ok", pick
+    if t == "bond":
+        wid = ch.get("weapon_id")
+        if not wid:
+            return "nouse", None
+        if not await inv_remove(uid, item_id, 1):
+            return "missing", None
+        await col("characters").update_one({"user_id": uid}, {"$inc": {f"bond.{wid}": eff["amount"]}})
+        return "ok", eff["amount"]
+    if t == "pet":
+        if len(ch.get("pets", [])) >= 12:
+            return "petfull", None
+        if not await inv_remove(uid, item_id, 1):
+            return "missing", None
+        sp = random.randrange(len(PETS))
+        await col("characters").update_one({"user_id": uid}, {"$push": {"pets": {"sp": sp, "tier": eff["tier"]}}})
+        return "ok", sp
     return "nouse", None
 
 
@@ -130,9 +162,16 @@ async def use_item(uid: int, item_id: str):
 async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0.1, floor_idx: int = 0, rng=random):
     st = await game_settings()
     ch = await get_char(uid)
-    luck = ch.get("level", 1) // 20 + gear_bonus(ch, ALL)[2]
+    luck = ch.get("level", 1) // 20
+    for k in ("acc_id", "charm_id"):
+        luck += ALL.get(ch.get(k) or "", {}).get("stats", {}).get("luck", 0)
     boost = 1 + min(0.5, luck * 0.005)
-    mult = float(st["drop_rate"]) * source_mult * (1 + passive_mods(ch, ALL, st)["drop_pct"] / 100)
+    mult = float(st["drop_rate"]) * source_mult
+    mult *= 1 + player_bonus(ch, ALL, st)["drop"]
+    try:
+        mult *= (await mods_for(ch["location"]))["drop"]
+    except Exception:
+        pass
     weights = [w * (boost * mult if i >= 2 else 1.0) for i, w in enumerate(DROP_W)]
     idx = rng.choices(range(6), weights)[0]
     idx = max(idx, floor_idx)
@@ -144,10 +183,6 @@ async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0
     for name, tier_idx, thr in PITY:
         pity[name] = 0 if idx >= tier_idx else pity.get(name, 0) + 1
     await col("characters").update_one({"user_id": uid}, {"$set": {"pity": pity}})
-    if rng.random() < float(st["misc_drop_chance"]):
-        for i in range(idx, -1, -1):
-            if BY_RARITY_EXTRA[RARITIES[i]]:
-                return rng.choice(BY_RARITY_EXTRA[RARITIES[i]])
     for i in range(idx, -1, -1):
         r = RARITIES[i]
         if rng.random() < weapon_chance and WEAPON_BY_RARITY[r]:
@@ -168,10 +203,22 @@ def shop_stock(day: str):
     return sorted(r.sample(pool, 64))
 
 
+async def price_mult() -> float:
+    try:
+        return (await mods_for("seireitei"))["price"]
+    except Exception:
+        return 1.0
+
+
+async def shop_price(item_id: str) -> int:
+    """Urahara's price: the base price moved by the world's Hollow Threat (scarcity)."""
+    return max(1, int(ALL[item_id]["base_price"] * await price_mult()))
+
+
 async def shop_buy(uid: int, item_id: str, day: str) -> str:
     if item_id not in shop_stock(day):
         return "gone"
-    price = ALL[item_id]["base_price"]
+    price = await shop_price(item_id)
     if not await add_coins(uid, -price, "shop_buy"):
         return "funds"
     if not await inv_add(uid, item_id, 1):
@@ -200,7 +247,7 @@ async def demand_index(item_id: str) -> float:
 
 
 async def suggested_price(item_id: str) -> int:
-    return max(1, int(ALL[item_id]["base_price"] * (1 + (await demand_index(item_id)) * 0.3)))
+    return max(1, int(ALL[item_id]["base_price"] * (1 + (await demand_index(item_id)) * 0.3) * await price_mult()))
 
 
 async def market_create(uid: int, item_id: str, price: int, kind: str = "fixed", hours: int = None) -> str:
@@ -391,15 +438,16 @@ async def forge(uid: int):
     coins, need = forge_cost(wid, plus)
     inv = await inv_get(uid)
     mats = sorted([i for i, q in inv["items"].items() if q > 0 and ALL.get(i, {}).get("category") == "material"], key=lambda i: ALL[i]["base_price"])
-    if sum(inv["items"][i] for i in mats) < need:
+    val = {i: forge_value(ALL[i]["rarity"]) for i in mats}
+    if sum(inv["items"][i] * val[i] for i in mats) < need:
         return "mats", need
     if not await add_coins(uid, -coins, "forge"):
         return "funds", coins
     left = need
     for i in mats:
-        take = min(inv["items"][i], left)
+        take = min(inv["items"][i], -(-left // val[i]))
         if take and await inv_remove(uid, i, take):
-            left -= take
+            left -= take * val[i]
         if left <= 0:
             break
     if random.random() * 100 < FORGE_CHANCE[plus]:

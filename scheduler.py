@@ -2,56 +2,57 @@
 auction settlement and PvP turn timeouts."""
 import asyncio
 import logging
+import time
 import uuid
+
+from pymongo import ReturnDocument
 
 from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
 from aiogram.types import InlineKeyboardMarkup
 
 import handlers_combat
-from database import acquire_lease, col
-from render import both, boss_text
-from security import make_cb
+import handlers_world
+from database import acquire_lease, col, game_settings
 from service_combat import pvp_timeouts
 from service_economy import settle_listings
-from service_world import due_groups, expire_bosses, group_doc, schedule_next, spawn_boss
-from ui import Ctx, make_button
+from service_interact import expire_bounties
+from service_world import active_boss, boss_due, expire_bosses, group_doc, spawn_boss
+from service_worldstate import tick as world_tick
+from ui import Ctx
 
 log = logging.getLogger("senka.sched")
 INSTANCE = uuid.uuid4().hex
 
 
-def boss_kb(sid: str):
-    return InlineKeyboardMarkup(inline_keyboard=[[make_button("⚔️ Attack / حمله", make_cb("bh", sid, 0), "bh")]])
-
-
-async def post_boss(bot, doc):
-    g = await group_doc(doc["chat_id"])
-    text = both(g.get("lang", "both"), lambda L: boss_text(L, doc))
-    try:
-        msg = await bot.send_message(doc["chat_id"], text, reply_markup=boss_kb(doc["_id"]))
-        await col("boss_sessions").update_one({"_id": doc["_id"]}, {"$set": {"msg_id": msg.message_id}})
-    except TelegramForbiddenError:
-        await col("groups").update_one({"chat_id": doc["chat_id"]}, {"$set": {"blocked": True}})
-        await col("boss_sessions").update_one({"_id": doc["_id"]}, {"$set": {"active": False}})
-    except TelegramAPIError:
-        log.exception("boss post failed")
-
-
 async def tick(bot):
     await settle_listings()
+    await expire_bounties()
+    # ---- the living world: drift, events, territories, season ----
+    res = await world_tick()
+    if res["event_started"]:
+        await handlers_world.announce_event_start(bot, res["event_started"])
+    if res["event_ended"]:
+        await handlers_world.announce_event_end(bot, res["event_ended"])
+    if res["terr"]:
+        await handlers_world.announce_territories(bot, res["terr"])
+    if res["season"]:
+        await handlers_world.announce_season(bot, res["season"])
+    # ---- the single global boss ----
     for doc, summary in await expire_bosses():
-        g = await group_doc(doc["chat_id"])
-        text = both(g.get("lang", "both"), lambda L: boss_text(L, doc, summary))
-        try:
-            if doc.get("msg_id"):
-                await bot.edit_message_text(text, chat_id=doc["chat_id"], message_id=doc["msg_id"])
-        except TelegramAPIError:
-            pass
-    for g in await due_groups():
-        doc = await spawn_boss(g["chat_id"])
-        await schedule_next(g["chat_id"])
+        if doc.get("scope") == "global":
+            await handlers_world.end_global_boss(bot, doc, summary)
+    cur = await active_boss()
+    if cur is None and await boss_due():
+        doc = await spawn_boss()
         if doc:
-            await post_boss(bot, doc)
+            await handlers_world.post_global_boss(bot, doc)
+    elif cur is not None:
+        st = await game_settings()
+        now = int(time.time())
+        hit = await col("boss_sessions").find_one_and_update({"_id": cur["_id"], "active": True, "refresh_at": {"$lte": now - int(st["boss_refresh_seconds"])}},
+                                                              {"$set": {"refresh_at": now}}, return_document=ReturnDocument.AFTER)
+        if hit:
+            await handlers_world.refresh_global_boss(bot, hit)
     for doc, ev, outcome, forfeit in await pvp_timeouts():
         if not doc.get("msg_id"):
             continue

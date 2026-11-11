@@ -24,3 +24,12 @@ Every action is written to `admin_logs`.
 ## Files
 config, security, database, i18n, locale_fa/en, intents, ui, fmt, render · data_* (races, 120 blades, 1033 items, 50 bosses, 38 characters, quests) ·
 engine (pure combat) · service_* (player, economy, combat, world, social) · handlers_* · scheduler · main.
+
+
+## Living world (v2)
+One shared world: global boss (every 2h, 20 min, one HP bar for all groups and DMs), Hollow Threat / Stability / Reishi, world events
+(Garganta, Siege, Wandenreich), weekly guild territories, World Chronicle, traces/graves, spirit aid, bounties and 30-day seasons.
+Items now have real roles (crafting, relics, evolution, cosmetics, pets, books, keys) — see `DESIGN.md`.
+Requires **MongoDB 4.2+** (atomic clamped pipeline updates). New live keys are in `config.GAME_DEFAULTS` (`set <key> <value>`).
+Admin: `world`, `world set ...`, `world event ...`, `world boss spawn|end`, `world season end`, `world territory reset <loc>`.
+Commands added: /world /craft /season.

@@ -32,18 +32,33 @@ async def seed():
             item.update({k: v for k, v in o.items() if k != "_id"})
     from service_social import seed_squads
     await seed_squads()
+    await migrate_world()
+
+
+async def migrate_world():
+    """Create world_state and give old characters the new fields without touching existing data.
+    Evolution is grandfathered: every old character keeps the title their level already shows."""
+    from data_crafting import evo_gate_stage
+    from service_worldcore import get_world
+    await get_world(force=True)
+    claimed = await col("world_state").find_one_and_update({"_id": "main", "evo_migrated": {"$ne": True}}, {"$set": {"evo_migrated": True}})
+    if claimed:
+        async for c in col("characters").find({"evo": {"$exists": False}}, {"race": 1, "level": 1}):
+            await col("characters").update_one({"_id": c["_id"], "evo": {"$exists": False}}, {"$set": {"evo": evo_gate_stage(c["race"], c["level"])}})
+    await col("characters").update_many({"relics": {"$exists": False}}, {"$set": {"relics": [], "cosmetics": {}, "armor_plus": {}, "buffs": {}}})
+    await col("characters").update_many({"seen_at": {"$exists": False}}, {"$set": {"seen_at": 0}})
 
 
 CMD_EN = [("home", "Open your world panel"), ("profile", "Your Soul Reaper profile"), ("explore", "Patrol the world"), ("battle", "Fight Hollows"),
           ("bag", "Inventory & equipment"), ("market", "Urahara shop, market & auctions"), ("quests", "Missions"), ("summon", "Summon characters & gear"),
           ("squad", "Squad / clan"), ("ranking", "Leaderboards"), ("daily", "Daily reward"), ("dungeon", "Enter dungeons"), ("map", "World map"),
-          ("forge", "Strengthen your zanpakuto"), ("party", "Your companions"), ("minigame", "Bleach puzzle"), ("boss", "World boss (groups)"),
-          ("duel", "Ranked duel (reply to a player)"), ("friendly", "Friendly duel"), ("settings", "Language & settings"), ("help", "Help")]
+          ("forge", "Strengthen your zanpakuto"), ("party", "Your companions"), ("minigame", "Bleach puzzle"), ("boss", "World boss"), ("world", "Living world panel"), ("craft", "Craft, evolve, gear"), ("season", "Season standings"),
+          ("duel", "Ranked duel (reply to a player)"), ("friendly", "Friendly duel"), ("settings", "Language & settings"), ("commands", "All commands"), ("help", "Help")]
 CMD_FA = [("home", "پنل دنیای من"), ("profile", "پروفایل شینیگامی"), ("explore", "گشت در جهان"), ("battle", "نبرد با هالوها"),
           ("bag", "کوله و تجهیزات"), ("market", "فروشگاه اوراهارا، بازار و حراج"), ("quests", "ماموریت‌ها"), ("summon", "احضار کاراکتر و تجهیزات"),
           ("squad", "جوخه / کلن"), ("ranking", "رتبه‌بندی"), ("daily", "جایزه روزانه"), ("dungeon", "ورود به دانجن"), ("map", "نقشه جهان"),
-          ("forge", "تقویت زانپاکتو"), ("party", "همراهان من"), ("minigame", "معمای بلیچ"), ("boss", "باس جهانی (گروه)"),
-          ("duel", "دوئل رنکد (ریپلای)"), ("friendly", "دوئل دوستانه"), ("settings", "زبان و تنظیمات"), ("help", "راهنما")]
+          ("forge", "تقویت زانپاکتو"), ("party", "همراهان من"), ("minigame", "معمای بلیچ"), ("boss", "باس جهانی"), ("world", "پنل دنیای زنده"), ("craft", "ساخت، تکامل و تجهیز"), ("season", "رتبه‌ی فصل"),
+          ("duel", "دوئل رنکد (ریپلای)"), ("friendly", "دوئل دوستانه"), ("settings", "زبان و تنظیمات"), ("commands", "همه‌ی دستورات"), ("help", "راهنما")]
 
 
 async def setup_commands(bot):

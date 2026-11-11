@@ -10,13 +10,13 @@ from database import col, game_settings
 from fmt import item_card, nm
 from i18n import esc, fnum
 from service_economy import (FORGE_CHANCE, auction_bid, equip, forge, forge_cost, gacha_doc, gacha_pull, inv_get, market_buy, market_cancel, market_create,
-                             npc_sell, settle_listings, shop_buy, shop_stock, slots_used, suggested_price, toggle_party, unequip,
+                             npc_sell, price_mult, settle_listings, shop_buy, shop_stock, slots_used, suggested_price, toggle_party, unequip,
                              use_item)
 from service_player import get_char, today
 from ui import Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "book", "egg", "key", "evolution")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "book", "egg", "key", "material", "evolution")}
 
 
 def _rk(i):
@@ -60,15 +60,19 @@ async def item_view(ctx, arg):
         return await bag(ctx, "0")
     it = ALL[arg]
     rows = []
-    if it.get("slot") or it["category"] in ("weapon", "relic", "cosmetic"):
+    if it.get("slot") or it["category"] == "weapon":
         rows.append([(ctx.t("b_equip"), "eq", arg)])
-    etype = (it.get("effect") or {}).get("type")
-    if etype in ("kido", "xp", "pet", "tome"):
+    ety = (it.get("effect") or {}).get("type")
+    if ety in ("kido", "xp", "pet", "buff", "kido_book", "bond"):
         rows.append([(ctx.t("b_use"), "us", arg)])
-    elif etype == "evo":
-        rows.append([(ctx.t("b_evolve"), "evo", arg, False, "success")])
-    elif etype == "mat":
-        rows.append([(ctx.t("b_craft"), "crf", "")])
+    elif ety == "relic":
+        rows.append([(ctx.t("m_rlc"), "rlc", "")])
+    elif ety == "cosmetic":
+        rows.append([(ctx.t("m_cos"), "cos", "")])
+    elif ety in ("mat", "evo"):
+        rows.append([(ctx.t("m_crf"), "crf" if ety == "mat" else "evo", "")])
+    elif ety == "key":
+        rows.append([(ctx.t("m_evt"), "evt", "")])
     row2 = [(ctx.t("b_sell_npc"), "sl", arg)]
     if it.get("tradeable"):
         row2.append((ctx.t("b_list"), "ml", arg))
@@ -98,9 +102,9 @@ async def ueq(ctx, arg):
 @action("us")
 async def use(ctx, arg):
     r, extra = await use_item(ctx.uid, arg)
-    if r in ("ok", "incubate"):
+    if r == "ok":
         out = await bag(ctx, "0")
-        out.alert = ctx.t("us_ok" if r == "ok" else "us_incubate", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))
+        out.alert = ctx.t("us_ok", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))
         return out
     return Out(alert=ctx.t("us_" + r, n=extra or 0))
 
@@ -271,7 +275,9 @@ async def shop(ctx, arg):
     pages = math.ceil(len(stock) / PER)
     page = max(0, min(page, pages - 1))
     ids = stock[page * PER:(page + 1) * PER]
-    rows = [[(f"{nm(i, L).replace('<', '').replace('>', '')} — {fnum(ALL[i]['base_price'], L)}🪙", "sv", i)] for i in ids]
+    pm = await price_mult()
+    prices = {i: max(1, int(ALL[i]['base_price'] * pm)) for i in ids}
+    rows = [[(f"{nm(i, L).replace('<', '').replace('>', '')} — {fnum(prices[i], L)}🪙", "sv", i)] for i in ids]
     pg = []
     if page > 0:
         pg.append(("◀️", "shp", str(page - 1)))

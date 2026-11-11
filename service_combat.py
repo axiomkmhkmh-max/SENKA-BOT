@@ -4,15 +4,16 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from data_items import ALL
+from data_crafting import player_bonus, tagged_name, temper_def
+from data_items import ALL, EVO_BY_RARITY
 from data_races import DIFFICULTY, DUNGEONS, LOCATIONS, RACES, soft_stat
-from data_weapons import ELEMENTS
+from data_weapons import ELEMENTS, RARITIES
+from data_crafting import DIFFS
 import engine as E
 from database import col, game_settings
 from service_economy import gacha_doc, inv_remove, party_bonus, roll_drop, inv_add
-from data_races import LEVEL_GATES
-from effects import display_name, evo_title_index, gear_bonus, pet_combat_mods
-from service_player import add_coins, add_xp, bump_quest, coin_bonus, get_char, max_hp, max_reiatsu
+from service_player import add_coins, add_xp, bump_quest, get_char, max_hp, max_reiatsu
+from service_worldcore import mods_for
 
 ENEMY_K = {"s": 1.6, "d": 1.2, "h0": 60, "h1": 30, "a": 2.6, "ar": 0.9}
 RANKS = [(0, "E"), (1100, "D"), (1250, "C"), (1400, "B"), (1600, "A"), (1850, "S"), (2150, "SS"), (2500, "SSS")]
@@ -38,22 +39,28 @@ def _exp():
 
 async def build_player(ch: dict, name: str = None):
     race = RACES[ch["race"]]
+    gs = await game_settings()
     stats = dict(ch["stats"])
-    armor, bonus, _ = gear_bonus(ch, ALL)
-    for k, v in bonus.items():
-        stats[k] += v
+    armor = 0
+    for f in ("armor_id", "acc_id", "charm_id"):
+        it = ALL.get(ch.get(f) or "")
+        if not it:
+            continue
+        d = it["stats"].get("def", 0)
+        if f == "armor_id" and d:
+            d = temper_def(d, (ch.get("armor_plus") or {}).get(it["_id"], 0), gs)
+        armor += d
+        if "stat" in it["stats"]:
+            stats[it["stats"]["stat"]] += it["stats"]["bonus"]
     g = await gacha_doc(ch["user_id"])
     pb = party_bonus(ch.get("party", []), g.get("chars", {}))
+    bn = player_bonus(ch, ALL, gs)  # evolution, pet role, relics, temporary buffs
     mods = dict(race["mods"])
-    gs = await game_settings()
-    pm = pet_combat_mods(ch, gs)
-    mods["dmg"] = mods.get("dmg", 1.0) * (1 + pb.get("dmg", 0) + pm["dmg"])
-    if pm["regen"]:
-        mods["regen"] = pm["regen"]
-    evo = evo_title_index(ch, LEVEL_GATES, gs) if int(gs["evo_item_required"]) and ch.get("evo_stage") is not None else None
-    mods["def"] = mods.get("def", 1.0) * (1 + pb.get("def", 0))
+    mods["dmg"] = mods.get("dmg", 1.0) * (1 + pb.get("dmg", 0) + bn["dmg"])
+    mods["def"] = mods.get("def", 1.0) * (1 + pb.get("def", 0) + bn["def"])
     mods["kido"] = 1 + pb.get("kido", 0)
-    mods["crit"] = mods.get("crit", 0)
+    mods["crit"] = mods.get("crit", 0) + bn["crit"]
+    mods["regen"] = bn["regen"]
     hp = max_hp(ch["level"], soft_stat(stats["hakuda"]), mods.get("hp", 1.0))
     re = max_reiatsu(ch["level"], soft_stat(stats["reiatsu"]))
     wid = ch.get("weapon_id") or ""
@@ -62,8 +69,8 @@ async def build_player(ch: dict, name: str = None):
         plus = (ch.get("weapon_plus") or {}).get(wid, 0)
         w = dict(w, attack=w["attack"] * (1 + 0.06 * plus))
     zmult = 1 + min(0.30, (ch.get("bond") or {}).get(wid, 0) / 500)
-    return E.new_fighter(name or display_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=ch.get("kido"),
-                         race=ch["race"], zmult=zmult, evo=evo)
+    return E.new_fighter(name or tagged_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=ch.get("kido"),
+                         race=ch["race"], zmult=zmult)
 
 
 def make_enemy(level: int, scale: float, name: str, rng=random):
@@ -86,8 +93,10 @@ async def active_pve(uid: int):
     return await col("battles").find_one({"user_id": uid, "mode": "pve", "status": "active"})
 
 
-async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = None, carry: dict = None):
+async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = None, carry: dict = None, trial: dict = None):
     ch = await get_char(uid)
+    gs = await game_settings()
+    wm = await mods_for(ch["location"])
     rng = random.Random()
     loc = LOCATIONS[ch["location"]]
     pick = rng.choice(loc["enemies"])
@@ -103,9 +112,13 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
             mult *= 1.3
             name = "⚔️ " + name
         scale = mult
-    elite = (not dungeon) and rng.random() < 0.15
+    elite = (not dungeon) and (not trial) and rng.random() < 0.15
     if elite:
         scale, name = 1.4, "💀 " + name
+    if trial:
+        scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
+    else:
+        scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
     if carry:
         player["hp"] = max(1, int(player["max_hp"] * carry["hp"]))
@@ -114,7 +127,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
            "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "lvl": lvl,
-           "dungeon": dungeon, "loc": ch["location"], "lang": lang}
+           "dungeon": dungeon, "trial": trial, "loc": ch["location"], "lang": lang}
     await col("battles").insert_one(doc)
     return doc
 
@@ -160,10 +173,15 @@ async def pve_settle(doc: dict):
         d = doc.get("dungeon")
         if d and d["stage"] == d["total"]:
             xp, coins = xp * 3, coins * 3
+        wm = await mods_for(doc["loc"])
+        coins = int(coins * wm["coin"])
+        ch0 = await get_char(uid)
+        coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
         ch, lv, got = await add_xp(uid, xp, "pve")
-        coins = await coin_bonus(uid, coins)
         await add_coins(uid, coins, "pve")
         out.update(xp=got, coins=coins, levels=lv)
+        from service_worldstate import on_action, territory_income
+        out["terr"] = await territory_income(uid, doc["loc"], coins, xp)
         chance = 1.0 if (doc["elite"] or (d and d["stage"] == d["total"])) else 0.35
         if random.random() < chance:
             iid = await roll_drop(uid, source_mult=2.0 if doc["elite"] else 1.0, floor_idx=2 if (d and d["stage"] == d["total"]) else 0)
@@ -179,8 +197,20 @@ async def pve_settle(doc: dict):
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)
+            di = DIFFS.index(d["diff"]) if d["diff"] in DIFFS else 0
+            if random.random() < 0.20 + 0.08 * di:  # evolution fuel comes from the deep places
+                pool = EVO_BY_RARITY[RARITIES[min(3, max(0, di - (1 if random.random() < 0.5 else 0)))]] or EVO_BY_RARITY["Common"]
+                eid = random.choice(pool)
+                if await inv_add(uid, eid, 1):
+                    out["bonus_drop"] = eid
+        if doc.get("trial"):
+            from service_crafting import evo_complete
+            out["evo"] = await evo_complete(uid, doc["trial"]["stage"])
+        await on_action(uid, "dungeon_clear" if out["dungeon_done"] else "elite_win" if doc["elite"] else "pve_win", doc["loc"])
     else:
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1}})
+        from service_worldstate import on_action
+        await on_action(uid, "pve_loss", doc["loc"])
     await col("battle_logs").insert_one({"user_id": uid, "mode": "pve", "win": win, "lvl": doc["lvl"], "at": now})
     return out
 
@@ -336,6 +366,11 @@ async def pvp_settle(doc: dict):
         res["xp"][w_uid] = got
         await bump_quest(w_uid, "pvp_win", 1)
     res["note"] = note
+    from service_interact import claim_bounty
+    from service_worldstate import on_action
+    await on_action(w_uid, "pvp_win", cw["location"])
+    if doc["ranked"] and note not in ("pair_cap", "new_account", "level_gap"):
+        res["bounty"] = await claim_bounty(w_uid, l_uid)
     base = {"mode": "pvp", "pair": pair, "rated": rated, "at": now}
     await col("battle_logs").insert_many([{**base, "user_id": w_uid, "opp": l_uid, "win": True},
                                           {**base, "user_id": l_uid, "opp": w_uid, "win": False}])

@@ -101,7 +101,10 @@ def boss_text(lang: str, d: dict, result: dict = None) -> str:
         lines.append(t(lang, "boss_left", m=fnum(max(0, int(d["expires_at"] - time.time())) // 60 + 1, lang)))
         top = sorted(d.get("contrib", {}).items(), key=lambda kv: -kv[1])[:3]
         if top:
-            lines.append(t(lang, "boss_hits", n=fnum(d.get("hits", 0), lang)))
+            lines.append(t(lang, "boss_hits", n=fnum(d.get("hits", 0), lang)) + " · " + t(lang, "boss_fighters", n=fnum(len(d.get("contrib", {})), lang)))
+            names = d.get("nm") or {}
+            for i, (uid, dmg) in enumerate(top):
+                lines.append(f"{['🥇', '🥈', '🥉'][i]} {esc(names.get(str(uid), '?'))} — {fnum(dmg, lang)}")
     if result:
         lines.append(t(lang, "boss_dead" if result["killed"] else "boss_escaped"))
         for i, r in enumerate(result["rows"][:5]):

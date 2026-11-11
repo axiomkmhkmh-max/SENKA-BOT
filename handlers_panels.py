@@ -3,19 +3,23 @@ mini-games, guilds, settings and help."""
 import random
 import time
 
+from data_crafting import cosmetic_tag, player_bonus
 from data_items import ALL
 from data_races import LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
 from database import col, game_settings, try_cooldown
-from effects import passive_mods
-from fmt import nm, race_name, shown_name, stats_block, title_of
+from render import pick
+from fmt import nm, race_name, stats_block, title_of
+from handlers_world import bonus_line, world_line
+from service_interact import crowd_counts, find_trace
+from service_worldcore import mods_for
+from service_worldstate import on_action, territory_income, territory_owners
 from i18n import bar, esc, fnum
 from security import clean_name
 from data_lore import streak_line
 from data_misc import LOC_DESC, LORE
 from service_combat import active_pve, rank_label, rank_letter
-from service_economy import PETS, inv_add, roll_drop
-from service_effects import tick_incubator
-from service_player import (add_coins, add_xp, claim_daily, claim_quest, coin_bonus, energy_now, get_char, max_hp, max_reiatsu,
+from service_economy import inv_add, roll_drop
+from service_player import (add_coins, add_xp, claim_daily, claim_quest, energy_now, get_char, max_hp, max_reiatsu,
                             power, quest_list, set_lang, spend_energy, xp_to_next)
 from service_social import (guild_create, guild_deposit, guild_join, guild_leave, guild_list, mg_answer, mg_new)
 from ui import Out, action, chunk, head, input_handler, nav, pager
@@ -42,10 +46,11 @@ async def home(ctx, arg):
     re = max_reiatsu(ch["level"], soft_stat(ch["stats"]["reiatsu"]))
     need = xp_to_next(ch["level"])
     text = (head(ctx, "ttl_home") +
-            ctx.t("home_body", name=shown_name(ch), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
+            ctx.t("home_body", name=esc(ch["name"]), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
                   xpbar=bar(ch["xp"], need), xp=fnum(ch["xp"], L), need=fnum(need, L), power=fnum(power(ch), L), hp=fnum(hp, L),
                   re=fnum(re, L), loc=loc_name(ch["location"], L), en=fnum(en, L), enmax=fnum(st["energy_max"], L),
                   coins=fnum(ch["coins"], L), pts=fnum(ch.get("points", 0), L)))
+    text += "\n\n" + await world_line(ctx, ch)
     rows = [[(ctx.t("m_prof"), "prof", ""), (ctx.t("m_exp"), "exp", "")],
             [(ctx.t("m_bt"), "bt", ""), (ctx.t("m_bag"), "bag", "0")],
             [(ctx.t("m_mkt"), "mkt", ""), (ctx.t("m_qst"), "qst", "")],
@@ -55,10 +60,11 @@ async def home(ctx, arg):
 
 @action("menu2")
 async def menu2(ctx, arg):
-    rows = [[(ctx.t("m_dgn"), "dgn", ""), (ctx.t("m_map"), "map", "")],
+    rows = [[(ctx.t("m_wrd"), "wrd", ""), (ctx.t("m_crf"), "crf", "")],
+            [(ctx.t("m_dgn"), "dgn", ""), (ctx.t("m_map"), "map", "")],
             [(ctx.t("m_gld"), "gld", ""), (ctx.t("m_rnk"), "rnk", "")],
             [(ctx.t("m_dly"), "dly", ""), (ctx.t("m_mgm"), "mgm", "")],
-            [(ctx.t("m_set"), "set", ""), (ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
+            [(ctx.t("m_set"), "set", ""), (ctx.t("m_cmd"), "cmd", "")], [(ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
     return Out(head(ctx, "ttl_menu") + ctx.t("menu_body"), rows)
 
 
@@ -68,20 +74,17 @@ async def profile(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
     lines = [head(ctx, "ttl_prof"),
-             ctx.t("prof_body", name=shown_name(ch), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
+             ctx.t("prof_body", name=esc(ch["name"]), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
                    rank=rank_label(ch["rating"], L), rating=fnum(ch["rating"], L), bond=fnum(min(30, (ch.get("bond") or {}).get(ch.get("weapon_id"), 0) // 5), L), plus=fnum((ch.get("weapon_plus") or {}).get(ch.get("weapon_id"), 0), L), w=fnum(ch["wins"], L), l=fnum(ch["losses"], L),
                    pw=fnum(ch["pvp_w"], L), pl=fnum(ch["pvp_l"], L), power=fnum(power(ch), L)),
              stats_block(ctx, ch["stats"]),
+             "🧿 " + bonus_line(ctx, player_bonus(ch, ALL, await game_settings())),
              f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"]
-    fame = passive_mods(ch, ALL, await game_settings())["fame"]
-    if fame:
-        lines.append(ctx.t("prof_fame", n=fnum(fame, L)))
     if ch.get("guild_id"):
         g = await col("guilds").find_one({"_id": ch["guild_id"]})
         if g:
             lines.append("🛡️ " + esc(g["name_fa" if L == "fa" else "name_en"]))
-    rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")],
-            [(ctx.t("b_forge"), "frg", ""), (ctx.t("b_craft"), "crf", "")], [(ctx.t("b_pets"), "pet", "0"), (ctx.t("b_relics"), "rel", "")], nav(ctx)]
+    rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")], [(ctx.t("b_forge"), "frg", ""), (ctx.t("m_eqp"), "eqp", "")], nav(ctx)]
     return Out("\n".join(lines), rows)
 
 
@@ -104,10 +107,12 @@ async def world_map(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
     rows, body = [], [ctx.t("map_body", loc=loc_name(ch["location"], L)), f"<i>{esc(LOC_DESC[ch['location']][0 if L == 'fa' else 1])}</i>", ""]
+    owners, crowds = await territory_owners(), await crowd_counts()
     for lid, loc in LOCATIONS.items():
         ok = ch["level"] >= loc["level"] and (not loc["race"] or loc["race"] == ch["race"] or loc["level"] <= 60)
         mark = "📍" if lid == ch["location"] else "✅" if ok else "🔒"
-        body.append(f"{mark} {loc_name(lid, L)} — {ctx.t('lbl_level')} {fnum(loc['level'], L)}")
+        extra = (f" 🏴{esc(owners[lid]['owner_fa' if L == 'fa' else 'owner_en'])}" if lid in owners else "") + (f" 👥{fnum(crowds[lid], L)}" if crowds.get(lid) else "")
+        body.append(f"{mark} {loc_name(lid, L)} — {ctx.t('lbl_level')} {fnum(loc['level'], L)}{extra}")
         if ok and lid != ch["location"]:
             rows.append((f"🧭 {loc_name(lid, L)}", "tr", lid))
     return Out(head(ctx, "ttl_map") + "\n".join(body), chunk(rows, 2) + [nav(ctx)])
@@ -123,7 +128,7 @@ async def travel(ctx, arg):
     wait = await try_cooldown(f"travel:{ctx.uid}", int(st["travel_cooldown"]))
     if wait:
         return Out(alert=ctx.t("wait_s", n=wait))
-    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"location": arg}})
+    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"location": arg, "seen_at": int(time.time())}})
     return await world_map(ctx, "")
 
 
@@ -147,6 +152,9 @@ async def explore(ctx, arg):
     ok, left, nxt = await spend_energy(ctx.uid, int(st["explore_cost"]))
     if not ok:
         return Out(alert=ctx.t("exp_no_energy", n=fnum(left, L), s=fnum(nxt // 60 + 1, L)))
+    await on_action(ctx.uid, "explore", ch["location"])
+    bn = player_bonus(ch, ALL, st)
+    wm = await mods_for(ch["location"])
     roll, acc, ev = random.random(), 0.0, "empty"
     for name, p in EVENTS:
         acc += p
@@ -154,8 +162,9 @@ async def explore(ctx, arg):
             ev = name
             break
     lvl = ch["level"]
-    base_xp = 18 + lvl * 4
+    base_xp = int((18 + lvl * 4) * (1 + bn["patrol"]))
     text = ""
+    terr = None
     if ev == "enemy":
         from handlers_combat import start_pve_panel
         return await start_pve_panel(ctx)
@@ -166,8 +175,9 @@ async def explore(ctx, arg):
         text = ctx.t("exp_item", item=nm(iid, L), xp=fnum(xp, L)) + ("" if got else "\n" + ctx.t("bag_full"))
     elif ev == "npc":
         _, _, xp = await add_xp(ctx.uid, int(base_xp * 1.2), "explore")
-        coins = await coin_bonus(ctx.uid, int((10 + lvl * 3) * float(st["coin_rate"])))
+        coins = int((10 + lvl * 3) * float(st["coin_rate"]) * (1 + bn["coin"] + bn["patrol"]) * wm["coin"])
         await add_coins(ctx.uid, coins, "explore")
+        terr = await territory_income(ctx.uid, ch["location"], coins, xp)
         text = ctx.t("exp_npc", xp=fnum(xp, L), coins=fnum(coins, L), lore=random.choice(LORE[ch["location"]])[0 if L == "fa" else 1])
     elif ev == "secret":
         iid = await roll_drop(ctx.uid, source_mult=1.5, floor_idx=1)
@@ -185,9 +195,11 @@ async def explore(ctx, arg):
         text = ctx.t("exp_empty", xp=fnum(xp, L), lore=random.choice(LORE[ch["location"]])[0 if L == "fa" else 1])
     from service_player import bump_quest
     await bump_quest(ctx.uid, "explore", 1)
-    hatched = await tick_incubator(ctx.uid)
-    if hatched:
-        text += "\n\n" + ctx.t("exp_hatch", pet=PETS[hatched["sp"]][0 if L == "en" else 1], role=ctx.t("role_" + hatched["role"]))
+    if terr:
+        text += "\n" + (ctx.t("ter_got_mine", c=fnum(terr["coins"], L), x=fnum(terr["xp"], L)) if terr.get("mine") else ctx.t("ter_got_tax", n=fnum(terr["tax"], L)))
+    tr = await find_trace(ctx.uid)
+    if tr:
+        text += "\n\n" + pick(L, "trace_found_" + tr["kind"], icon=tr["icon"], who=esc(tr["owner"]), c=fnum(tr["coins"], L), x=fnum(tr["xp"], L))
     return Out(head(ctx, "ttl_exp") + text, [[(ctx.t("b_again"), "exp", "go")], nav(ctx)])
 
 
@@ -197,10 +209,10 @@ async def ranking(ctx, arg):
     L = ctx.lang
     mode = arg or "lvl"
     key = [("rating", -1)] if mode == "pvp" else [("level", -1), ("xp", -1)]
-    top = await col("characters").find({}, {"name": 1, "level": 1, "rating": 1, "race": 1, "cosmetic": 1}).sort(key).limit(10).to_list(10)
+    top = await col("characters").find({}, {"name": 1, "level": 1, "rating": 1, "race": 1, "cosmetics": 1}).sort(key).limit(10).to_list(10)
     medals = ["🥇", "🥈", "🥉"] + [f"{i}." for i in range(4, 11)]
-    lines = [f"{medals[i]} {shown_name(x)} — " + (f"{rank_letter(x['rating'])} {fnum(x['rating'], L)}" if mode == "pvp" else f"{ctx.t('lbl_level')} {fnum(x['level'], L)}") for i, x in enumerate(top)]
-    rows = [[(ctx.t("rk_lvl"), "rnk", "lvl"), (ctx.t("rk_pvp"), "rnk", "pvp")], nav(ctx)]
+    lines = [f"{medals[i]} {cosmetic_tag(x, ALL)} {esc(x['name'])} — " + (f"{rank_letter(x['rating'])} {fnum(x['rating'], L)}" if mode == "pvp" else f"{ctx.t('lbl_level')} {fnum(x['level'], L)}") for i, x in enumerate(top)]
+    rows = [[(ctx.t("rk_lvl"), "rnk", "lvl"), (ctx.t("rk_pvp"), "rnk", "pvp")], [(ctx.t("m_ssn"), "ssn", "")], nav(ctx)]
     return Out(head(ctx, "ttl_rnk") + ("\n".join(lines) or ctx.t("empty")), rows)
 
 
@@ -336,6 +348,12 @@ async def guild_name_input(ctx, text):
 async def settings_panel(ctx, arg):
     rows = [[("🇮🇷 فارسی", "lang", "fa"), ("🇬🇧 English", "lang", "en")], nav(ctx)]
     return Out(head(ctx, "ttl_set") + ctx.t("set_body"), rows)
+
+
+@action("cmd")
+async def commands_panel(ctx, arg):
+    rows = [[(ctx.t("m_wrd"), "wrd", ""), (ctx.t("m_crf"), "crf", "")], [(ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
+    return Out(head(ctx, "ttl_cmd") + ctx.t("cmd_body"), rows, new=not ctx.private)
 
 
 @action("hlp")

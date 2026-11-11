@@ -47,7 +47,7 @@ async def ensure_indexes():
     U = {"unique": True}
     specs = {
         "users": [([("telegram_id", ASCENDING)], U), ([("last_seen", DESCENDING)], {})],
-        "characters": [([("user_id", ASCENDING)], U), ([("name_key", ASCENDING)], U),
+        "characters": [([("user_id", ASCENDING)], U), ([("name_key", ASCENDING)], U), ([("location", ASCENDING), ("seen_at", DESCENDING)], {}),
                        ([("level", DESCENDING), ("xp", DESCENDING)], {}),
                        ([("rating", DESCENDING)], {}), ([("guild_id", ASCENDING)], {})],
         "inventories": [([("user_id", ASCENDING)], U)],
@@ -72,6 +72,18 @@ async def ensure_indexes():
         "admin_users": [([("user_id", ASCENDING)], U)],
         "locks": [],
         "intents": [([("action", ASCENDING)], U)],
+        # ---- shared world ----
+        "world_events": [([("status", ASCENDING), ("end_at", ASCENDING)], {}),
+                         ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
+        "world_log": [([("at", DESCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
+        "territories": [([("owner", ASCENDING)], {})],
+        "traces": [([("loc", ASCENDING), ("expire_at", ASCENDING)], {}), ([("uid", ASCENDING), ("active", ASCENDING)], {}),
+                   ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
+        "bounties": [([("target", ASCENDING), ("status", ASCENDING)], {}), ([("status", ASCENDING), ("end_at", ASCENDING)], {})],
+        "counters": [([("key", ASCENDING)], U), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
+        "season_scores": [([("season", ASCENDING), ("pts", DESCENDING)], {}), ([("user_id", ASCENDING), ("season", ASCENDING)], U)],
+        "seasons": [([("id", ASCENDING)], U)],
+        "territory_scores": [([("week", ASCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
     }
     for name, items in specs.items():
         for keys, opts in items:
@@ -82,11 +94,6 @@ async def ensure_indexes():
 
 
 # ---- live settings ---------------------------------------------------------
-def settings_snapshot() -> dict:
-    """Last cached settings, synchronous (for pure formatting code)."""
-    return _cache["data"]
-
-
 async def game_settings(force: bool = False) -> dict:
     now = time.monotonic()
     if force or now - _cache["at"] > 20:
@@ -135,6 +142,30 @@ async def acquire_lease(name: str, owner: str, ttl: int) -> bool:
         return True
     except DuplicateKeyError:
         return False
+
+
+async def bump_counter(key: str, amount: int, cap: int, ttl_hours: int = 48) -> bool:
+    """Atomic capped counter (daily limits, anti-abuse). True = `amount` was granted, False = cap reached."""
+    amount = int(amount)
+    if amount <= 0:
+        return True
+    if amount > cap:
+        return False
+    exp = datetime.now(timezone.utc) + timedelta(hours=ttl_hours)
+    c = col("counters")
+    hit = await c.find_one_and_update({"key": key, "n": {"$lte": cap - amount}}, {"$inc": {"n": amount}})
+    if hit:
+        return True
+    try:
+        await c.insert_one({"key": key, "n": amount, "expire_at": exp})
+        return True
+    except DuplicateKeyError:
+        return False
+
+
+async def counter_get(key: str) -> int:
+    d = await col("counters").find_one({"key": key})
+    return int((d or {}).get("n", 0))
 
 
 async def bulk_upsert(name: str, rows: list, chunk: int = 500):

@@ -29,8 +29,8 @@ settings = Settings()
 GAME_DEFAULTS = {
     "maintenance": False,
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,
-    "boss_min_minutes": 45, "boss_max_minutes": 45,
-    "boss_duration_minutes": 10, "boss_min_level": 5, "boss_hit_cooldown": 10,
+    "boss_min_minutes": 120, "boss_max_minutes": 120,
+    "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
     "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 300,
     "start_coins": 500, "travel_cooldown": 60,
     "pvp_min_level": 15, "pvp_gain_min": 25, "pvp_gain_max": 40,
@@ -42,11 +42,40 @@ GAME_DEFAULTS = {
     "guild_create_cost": 5000, "guild_min_level": 20, "squad_change_days": 7,
     "minigame_daily_xp_cap": 500, "hollow_daily_xp_cap": 50,
     "referral_reward": 200,
-    # item effects (phase 2)
-    "relic_slot1_level": 20, "relic_slot2_level": 50, "relic_effect_mult": 1.0,
-    "pet_fang_pct": 1.0, "pet_heal_pct": 0.5, "pet_luck_pct": 1.0, "egg_hatch_explores": 5,
-    "book_buff_minutes": 30, "evo_item_required": 1, "evo_coin_cost": 5000,
-    "craft_cost_mult": 1.0, "craft_daily_cap": 30, "craft_cooldown": 2, "misc_drop_chance": 0.03,
+    # ---- shared world (service_worldcore / service_worldstate) ----------------
+    "world_threat_drift_hour": 0.8, "world_threat_win": 0.12, "world_threat_boss_kill": 8.0,
+    "world_threat_boss_flee": 6.0, "world_threat_dungeon": 1.2,
+    "world_stab_patrol": 0.08, "world_stab_decay_hour": 0.5, "world_reishi_patrol": 0.25,
+    "world_reishi_craft": 0.4, "world_reishi_decay": 0.10,
+    "world_enemy_k": 0.25, "world_drop_k": 0.20, "world_price_k": 0.20, "world_stab_xp_k": 0.10,
+    "world_boss_interval_k": 0.40,
+    # ---- global boss -----------------------------------------------------------
+    "boss_hp_players_ref": 10, "boss_hp_scale_cap": 8.0, "boss_hp_threat_k": 0.5,
+    "boss_main_share": 0.003, "boss_pool_cap": 25, "boss_daily_paid": 8,
+    "boss_min_age_minutes": 60, "boss_refresh_seconds": 120, "boss_broadcast_cap": 300,
+    # ---- world events ------------------------------------------------------------
+    "event_enabled": True, "event_min_gap_minutes": 180, "event_duration_minutes": 120,
+    "event_goal_per_player": 6, "event_goal_min": 40, "event_goal_cap": 4000,
+    "event_daily_pts_cap": 150, "event_reward_xp": 400, "event_reward_coins": 600,
+    "event_threat_trigger": 70, "event_stab_trigger": 28, "event_random_chance": 0.10,
+    # ---- item roles -----------------------------------------------------------------
+    "relic_slots": 2, "relic_k": 1.0, "pet_k": 1.0, "evo_bonus_pct": 0.02, "evo_trial_scale": 1.3,
+    "cosmetic_fame_xp": 0.0025, "cosmetic_fame_cap": 0.05, "craft_cost_k": 1.0,
+    "temper_max": 5, "temper_def_pct": 0.05, "buff_max_minutes": 180,
+    # ---- territories ------------------------------------------------------------------
+    "terr_enabled": True, "terr_min_members": 3, "terr_min_level": 10, "terr_min_age_hours": 24,
+    "terr_daily_cap": 60, "terr_min_score": 40, "terr_buff_pct": 0.05, "terr_tax_pct": 0.05,
+    "terr_tax_daily_cap": 20000,
+    # ---- player to player ------------------------------------------------------------------
+    "trace_cost": 100, "trace_cooldown": 3600, "trace_max_active": 3, "trace_hours": 24,
+    "trace_reward_coins": 60, "trace_find_daily": 10, "trace_owner_xp": 15, "trace_owner_daily": 5,
+    "trace_find_chance": 0.25, "grave_cooldown_hours": 6,
+    "aid_energy": 20, "aid_xp": 10, "aid_daily_send": 5, "aid_daily_recv": 5, "aid_min_level": 5,
+    "bounty_min": 500, "bounty_max_total": 100000, "bounty_fee": 0.10, "bounty_hours": 72,
+    "bounty_daily_claims": 3, "bounty_min_level": 15, "presence_minutes": 30,
+    # ---- seasons ----------------------------------------------------------------------------
+    "season_days": 30, "season_soft_reset": 0.25, "season_daily_pts_cap": 400, "season_min_pts": 30,
+    "season_top_coins": 50000, "season_part_coin_per_pt": 5, "new_acct_minutes": 60,
 }
 
 

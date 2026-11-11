@@ -114,6 +114,13 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("bt_levelup", n=fnum(o["levels"], L)))
     if o["drop"]:
         lines.append(ctx.t("bt_drop", item=nm(o["drop"], L)))
+    if o.get("bonus_drop"):
+        lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
+    if o.get("evo"):
+        lines.append(ctx.t("evo_done", title=o["evo"]["title_fa" if L == "fa" else "title_en"]))
+    terr = o.get("terr")
+    if terr:
+        lines.append(ctx.t("ter_got_mine", c=fnum(terr["coins"], L), x=fnum(terr["xp"], L)) if terr.get("mine") else ctx.t("ter_got_tax", n=fnum(terr["tax"], L)))
     rows = []
     if o["next"]:
         lines.append(ctx.t("dg_next"))
@@ -261,6 +268,8 @@ def _final(ctx, doc, outcome):
             lines.append(f"{esc(nm_)}: {rank_letter(rt)} {fnum(rt, L)} ({'+' if delta > 0 else ''}{fnum(delta, L)})")
         if outcome.get("note"):
             lines.append(t(L, "duel_note_" + outcome["note"]))
+        if outcome.get("bounty"):
+            lines.append(t(L, "bty_claimed", n=fnum(outcome["bounty"], L)))
         return "\n".join(lines)
     return fn
 
@@ -287,7 +296,13 @@ async def _edit(ctx, text, kb):
             await ctx.bot.send_message(ctx.chat_id, text, reply_markup=kb)
 
 
-# ---- world boss ------------------------------------------------------------------------------------
+# ---- world boss (one global boss) ------------------------------------------------------------------------------------
+def _panel_text(ctx, d, result=None):
+    if ctx.private:
+        return boss_text(ctx.lang, d, result)
+    return None
+
+
 @action("bh")
 async def boss_hit_cb(ctx, arg):
     status, data = await boss_hit(ctx.uid, arg)
@@ -297,9 +312,10 @@ async def boss_hit_cb(ctx, arg):
         if d["hp"] <= 0:
             summary = await settle_boss(arg)
             if summary:
-                g = await group_doc(d["chat_id"])
-                text = both(g.get("lang", "both"), lambda L: boss_text(L, d, summary) + _drops(L, summary))
-                await _edit(ctx, text, None)
+                import handlers_world
+                await handlers_world.end_global_boss(ctx.bot, d, summary)
+                if ctx.private:
+                    await _edit(ctx, boss_text(ctx.lang, d, summary) + _drops(ctx.lang, summary), None)
         else:
             await _refresh_boss(ctx, d)
         return Out(alert=ctx.t("boss_hit_ok", n=fnum(data["dmg"], ctx.lang)) + crit)
@@ -311,8 +327,9 @@ async def boss_hit_cb(ctx, arg):
 
 
 def _drops(L, summary):
-    from i18n import t
-    return "".join(f"\n🎁 {esc(str(r['name']))}: {nm(summary['drops'][r['uid']], L)}" for r in summary["rows"] if r["uid"] in summary["drops"])
+    out = "".join(f"\n🎁 {esc(str(r['name']))}: {nm(summary['drops'][r['uid']], L)}" for r in summary["rows"] if r["uid"] in summary["drops"])
+    out += "".join(f"\n🌀 {esc(str(r['name']))}: {nm(summary['evo_drops'][r['uid']], L)}" for r in summary["rows"] if r["uid"] in summary.get("evo_drops", {}))
+    return out
 
 
 async def _refresh_boss(ctx, d):
@@ -321,18 +338,28 @@ async def _refresh_boss(ctx, d):
     hit = await col("boss_sessions").find_one_and_update({"_id": d["_id"], "edit_at": {"$lte": now - 3}}, {"$set": {"edit_at": now}})
     if not hit:
         return
-    g = await group_doc(d["chat_id"])
     from ui import markup as mk
     kb = mk(ctx, [[(ctx.t("b_attack"), "bh", d["_id"], True)]])
-    await _edit(ctx, both(g.get("lang", "both"), lambda L: boss_text(L, d)), kb)
+    if ctx.private:
+        text = boss_text(ctx.lang, d)
+    else:
+        g = await group_doc(ctx.chat_id)
+        text = both(g.get("lang", "both"), lambda L: boss_text(L, d))
+    await _edit(ctx, text, kb)
 
 
 @action("bossinfo")
 async def boss_info(ctx, arg):
-    if ctx.private:
-        return Out(ctx.t("boss_private"), [nav(ctx)])
-    d = await active_boss(ctx.chat_id)
+    from database import game_settings
+    import time
+    from service_worldcore import get_world
+    d = await active_boss()
     if not d:
-        return Out(ctx.t("boss_none"), new=True)
+        ws, _ = await get_world(force=True)
+        m = max(0, int(ws.get("next_boss_at", 0) - time.time())) // 60 + 1
+        return Out(ctx.t("boss_none_next", m=fnum(m, ctx.lang)), [nav(ctx, ("wrd", ""))] if ctx.private else None, new=not ctx.private)
+    kb = [[(ctx.t("b_attack"), "bh", d["_id"], True)]]
+    if ctx.private:
+        return Out(boss_text(ctx.lang, d), kb + [nav(ctx, ("wrd", ""))])
     g = await group_doc(ctx.chat_id)
-    return Out(both(g.get("lang", "both"), lambda L: boss_text(L, d)), [[(ctx.t("b_attack"), "bh", d["_id"], True)]], new=True)
+    return Out(both(g.get("lang", "both"), lambda L: boss_text(L, d)), kb, new=True)
