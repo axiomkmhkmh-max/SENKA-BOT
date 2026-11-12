@@ -16,7 +16,7 @@ from data_world import EVENTS, KEY_PTS, week_id
 from database import col, game_settings
 from fmt import item_card, nm, pet_line
 from i18n import bar, esc, fnum
-from render import both, boss_text, pick
+from render import both, boss_text, gl, glang, pick
 from security import make_cb
 from service_crafting import (RECIPE_BY_ID, RECIPES, craft, cosmetic_remove, cosmetic_wear, evo_start, pet_activate, recipes_for, relic_attune,
                               relic_release, scaled_coins, temper)
@@ -558,16 +558,17 @@ async def pet_activate_cb(ctx, arg):
 
 
 # ---- broadcast helpers (used by the scheduler) ---------------------------------------------------------------------------------------------------------------
-def boss_kb(sid: str):
-    return InlineKeyboardMarkup(inline_keyboard=[[make_button("⚔️ Attack / حمله", make_cb("bh", sid, 0), "bh")]])
+def boss_kb(sid: str, mode: str = "both"):
+    return InlineKeyboardMarkup(inline_keyboard=[[make_button("⚔️ " + gl(mode, "حمله", "Attack"), make_cb("bh", sid, 0), "bh")]])
 
 
 async def _send_groups(bot, text_fn, kb=None, limit: int = 300, want_ids: bool = False):
     ids = {}
     for g in await broadcast_groups(limit):
         try:
-            msg = await bot.send_message(g["chat_id"], both(g.get("lang", "both"), text_fn), reply_markup=kb)
-            ids[str(g["chat_id"])] = (msg.message_id, g.get("lang", "both"))
+            mode = glang(g)
+            msg = await bot.send_message(g["chat_id"], both(mode, text_fn), reply_markup=kb(mode) if callable(kb) else kb)
+            ids[str(g["chat_id"])] = (msg.message_id, mode)
         except TelegramForbiddenError:
             await col("groups").update_one({"chat_id": g["chat_id"]}, {"$set": {"blocked": True}})
         except TelegramAPIError:
@@ -578,15 +579,15 @@ async def _send_groups(bot, text_fn, kb=None, limit: int = 300, want_ids: bool =
 
 async def post_global_boss(bot, doc):
     st = await game_settings()
-    ids = await _send_groups(bot, lambda L: boss_text(L, doc), boss_kb(doc["_id"]), int(st["boss_broadcast_cap"]))
+    ids = await _send_groups(bot, lambda L: boss_text(L, doc), (lambda m, _s=doc["_id"]: boss_kb(_s, m)), int(st["boss_broadcast_cap"]))
     await col("boss_sessions").update_one({"_id": doc["_id"]}, {"$set": {"msgs": {k: v[0] for k, v in ids.items()}, "refresh_at": int(time.time())}})
 
 
 async def _edit_all(bot, doc, text_fn, kb):
-    langs = {str(g["chat_id"]): g.get("lang", "both") for g in await broadcast_groups(1000)}
+    langs = {str(g["chat_id"]): glang(g) for g in await broadcast_groups(1000)}
     for cid, mid in (doc.get("msgs") or {}).items():
         try:
-            await bot.edit_message_text(both(langs.get(cid, "both"), text_fn), chat_id=int(cid), message_id=int(mid), reply_markup=kb)
+            await bot.edit_message_text(both(langs.get(cid, "fa"), text_fn), chat_id=int(cid), message_id=int(mid), reply_markup=kb(langs.get(cid, "fa")) if callable(kb) else kb)
         except TelegramAPIError:
             pass
         await asyncio.sleep(0.05)
@@ -597,11 +598,11 @@ async def announce_boss_phase(bot, doc, phase_no):
     from i18n import t
     if phase_no not in (2, 3):
         return
-    await _send_groups(bot, lambda L: t(L, "boss_phase_alert_" + str(phase_no), boss=esc(doc["name_fa" if L == "fa" else "name_en"])), boss_kb(doc["_id"]))
+    await _send_groups(bot, lambda L: t(L, "boss_phase_alert_" + str(phase_no), boss=esc(doc["name_fa" if L == "fa" else "name_en"])), (lambda m, _s=doc["_id"]: boss_kb(_s, m)))
 
 
 async def refresh_global_boss(bot, doc):
-    await _edit_all(bot, doc, lambda L: boss_text(L, doc), boss_kb(doc["_id"]))
+    await _edit_all(bot, doc, lambda L: boss_text(L, doc), (lambda m, _s=doc["_id"]: boss_kb(_s, m)))
 
 
 async def end_global_boss(bot, doc, summary):

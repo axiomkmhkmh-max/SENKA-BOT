@@ -400,4 +400,4 @@ async def expire_drops() -> list:
 
 
 async def set_group_drops(chat_id: int, on: bool):
-    await col("groups").update_one({"chat_id": chat_id}, {"$set": {"drops_off": not on}, "$setOnInsert": {"chat_id": chat_id, "lang": "both"}}, upsert=True)
+    await col("groups").update_one({"chat_id": chat_id}, {"$set": {"drops_off": not on}, "$setOnInsert": {"chat_id": chat_id, "lang": "fa"}}, upsert=True)

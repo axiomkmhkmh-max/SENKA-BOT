@@ -11,7 +11,7 @@ from database import col
 import engine as E
 from fmt import nm
 from i18n import esc, fnum
-from render import battle_text, both, boss_text, events_text
+from render import battle_text, both, boss_text, events_text, gl, glang
 from service_combat import (active_pve, duel_accept, duel_challenge, duel_decline, pve_act, pve_start, pvp_act,
                             rank_letter, start_dungeon)
 from service_economy import inv_get, inv_remove
@@ -238,15 +238,15 @@ async def challenge(ctx, target, ranked: bool):
         return Out(ctx.t("duel_e_" + status, n=extra or ""))
     d = extra
     g = await group_doc(ctx.chat_id)
-    text = both(g.get("lang", "both"), lambda L: __import__("i18n").t(L, "duel_invite", a=esc(d["a_name"]), b=esc(d["b_name"]),
+    text = both(glang(g), lambda L: __import__("i18n").t(L, "duel_invite", a=esc(d["a_name"]), b=esc(d["b_name"]),
                 mode=__import__("i18n").t(L, "duel_ranked" if ranked else "duel_friendly")))
     rows = [[(ctx.t("b_accept"), "dua", d["sid"], False), (ctx.t("b_decline"), "dud", d["sid"], False)]]
     # accept/decline are bound to the challenged player
     from security import make_cb
     from aiogram.types import InlineKeyboardMarkup
     from ui import make_button
-    kb = InlineKeyboardMarkup(inline_keyboard=[[make_button("✅ Accept / قبول", make_cb("dua", d["sid"], d["b_uid"]), "dua"),
-                                                make_button("❌ Decline / رد", make_cb("dud", d["sid"], d["b_uid"]), "dud")]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[[make_button(gl(glang(g), "✅ قبول", "✅ Accept"), make_cb("dua", d["sid"], d["b_uid"]), "dua"),
+                                                make_button(gl(glang(g), "❌ رد", "❌ Decline"), make_cb("dud", d["sid"], d["b_uid"]), "dud")]])
     return Out(text, new=True), kb
 
 
@@ -275,7 +275,7 @@ async def duel_accept_cb(ctx, arg):
     if not doc:
         return Out(alert=ctx.t("duel_gone"))
     g = await group_doc(doc["chat_id"])
-    text, kb = await _pvp_panel(g.get("lang", "both"), ctx, doc, [])
+    text, kb = await _pvp_panel(glang(g), ctx, doc, [])
     await _edit(ctx, text, kb)
     return Out()
 
@@ -316,7 +316,7 @@ async def pvp_action(ctx, arg):
     ev, outcome = data
     g = await group_doc(doc["chat_id"])
     final = _final(ctx, doc, outcome) if doc["state"]["done"] else None
-    text, kb = await _pvp_panel(g.get("lang", "both"), ctx, doc, ev, final)
+    text, kb = await _pvp_panel(glang(g), ctx, doc, ev, final)
     await _edit(ctx, text, kb)
     return Out()
 
@@ -398,12 +398,13 @@ async def _refresh_boss(ctx, d):
     if not hit:
         return
     from ui import markup as mk
-    kb = mk(ctx, [[(ctx.t("b_attack"), "bh", d["_id"], True)]])
     if ctx.private:
+        kb = mk(ctx, [[(ctx.t("b_attack"), "bh", d["_id"], True)]])
         text = boss_text(ctx.lang, d)
     else:
         g = await group_doc(ctx.chat_id)
-        text = both(g.get("lang", "both"), lambda L: boss_text(L, d))
+        kb = mk(ctx, [[("⚔️ " + gl(glang(g), "حمله", "Attack"), "bh", d["_id"], True)]])
+        text = both(glang(g), lambda L: boss_text(L, d))
     await _edit(ctx, text, kb)
 
 
@@ -421,4 +422,5 @@ async def boss_info(ctx, arg):
     if ctx.private:
         return Out(boss_text(ctx.lang, d), kb + [nav(ctx, ("wrd", ""))])
     g = await group_doc(ctx.chat_id)
-    return Out(both(g.get("lang", "both"), lambda L: boss_text(L, d)), kb, new=True)
+    kb = [[("⚔️ " + gl(glang(g), "حمله", "Attack"), "bh", d["_id"], True)]]
+    return Out(both(glang(g), lambda L: boss_text(L, d)), kb, new=True)

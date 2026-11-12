@@ -227,7 +227,8 @@ def expired_text(L: str, doc: dict) -> str:
 
 
 async def _lang(chat_id: int) -> str:
-    return (await group_doc(chat_id)).get("lang", "both")
+    from render import glang
+    return glang(await group_doc(chat_id))
 
 
 async def send_drop(bot, chat_id: int, doc: dict):

@@ -20,21 +20,21 @@ from service_worldcore import (WS_ID, active_levels, active_players, chronicle, 
 
 
 # ---- groups -------------------------------------------------------------------------
-async def note_group(chat_id: int, title: str, level: int = None):
+async def note_group(chat_id: int, title: str, level: int = None, lang: str = "fa"):
     now = int(time.time())
     upd = {"$set": {"title": (title or "")[:60], "last_active": now, "blocked": False},
-           "$setOnInsert": {"chat_id": chat_id, "lang": "both"}}
+           "$setOnInsert": {"chat_id": chat_id, "lang": lang, "auto_lang": lang}}
     if level:
         upd["$push"] = {"levels": {"$each": [int(level)], "$slice": -20}}
     await col("groups").update_one({"chat_id": chat_id}, upd, upsert=True)
 
 
 async def group_doc(chat_id: int) -> dict:
-    return await col("groups").find_one({"chat_id": chat_id}) or {"chat_id": chat_id, "lang": "both"}
+    return await col("groups").find_one({"chat_id": chat_id}) or {"chat_id": chat_id, "lang": "fa"}
 
 
 async def set_group_lang(chat_id: int, lang: str):
-    await col("groups").update_one({"chat_id": chat_id}, {"$set": {"lang": lang}, "$setOnInsert": {"chat_id": chat_id}}, upsert=True)
+    await col("groups").update_one({"chat_id": chat_id}, {"$set": {"lang": lang, "lang_set": True}, "$setOnInsert": {"chat_id": chat_id}}, upsert=True)
 
 
 def pick_boss(levels: list) -> dict:

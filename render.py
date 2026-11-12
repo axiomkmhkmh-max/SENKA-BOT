@@ -15,6 +15,18 @@ def both(mode: str, fn) -> str:
     return fn(mode if mode in ("fa", "en") else "en")
 
 
+def glang(g: dict) -> str:
+    """Language mode of a group: only an explicit admin choice (incl. bilingual) is kept; otherwise one language."""
+    g = g or {}
+    if g.get("lang_set") and g.get("lang") in ("fa", "en", "both"):
+        return g["lang"]
+    return g.get("auto_lang") if g.get("auto_lang") in ("fa", "en") else "fa"
+
+
+def gl(mode: str, fa: str, en: str) -> str:
+    return fa if mode == "fa" else en if mode == "en" else f"{en} / {fa}"
+
+
 def pick(lang: str, key: str, **kw) -> str:
     """Return one random flavour variant: key, key_2, key_3 ... (falls back to key)."""
     table = LOCALES.get(lang) or LOCALES["en"]

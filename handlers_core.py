@@ -221,7 +221,7 @@ async def on_group_text(message: Message, text: str):
     n = normalize_text(text)
     if allow(chat.id, "note", 60):
         ch = await get_char(user.id)
-        await note_group(chat.id, chat.title or "", ch["level"] if ch else None)
+        await note_group(chat.id, chat.title or "", ch["level"] if ch else None, "fa" if (user.language_code or "").startswith("fa") else "en")
     m = GROUP_LANG.match(n)
     if m:
         member = await message.bot.get_chat_member(chat.id, user.id)

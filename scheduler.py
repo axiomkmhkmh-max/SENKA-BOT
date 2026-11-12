@@ -66,7 +66,7 @@ async def tick(bot):
         ctx = Ctx(0, "en", doc["chat_id"], "supergroup", None, bot)
         gd = await group_doc(doc["chat_id"])
         final = handlers_combat._final(ctx, doc, outcome) if doc["state"]["done"] else None
-        text, kb = await handlers_combat._pvp_panel(gd.get("lang", "both"), ctx, doc, ev, final)
+        text, kb = await handlers_combat._pvp_panel(__import__("render").glang(gd), ctx, doc, ev, final)
         try:
             await bot.edit_message_text(text, chat_id=doc["chat_id"], message_id=doc["msg_id"], reply_markup=kb)
         except TelegramAPIError:
