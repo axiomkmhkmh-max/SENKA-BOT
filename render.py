@@ -56,7 +56,7 @@ def events_text(lang: str, events: list) -> str:
             out.append(t(lang, "lg_fx", a=a, d=d, fx=t(lang, "fx_" + e["fx"])))
         elif k == "dot":
             out.append(t(lang, "lg_dot", d=d, n=n, fx=t(lang, "fx_" + e["fx"])))
-        elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end"):
+        elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k == "shield":
             out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))

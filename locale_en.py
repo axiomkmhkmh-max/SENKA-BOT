@@ -320,3 +320,6 @@ TEXT.update({
 
 TEXT.update({'a_kaido':'💠 Kaidō: Heal', 'race_path_body':'Current stage: <b>{stage}</b>\nLevel: {level} | hunts/victories: {wins}\nEach stage requires level and real progress.'})
 TEXT.update({'story_retired':'📜 Story mode has been retired. SENKA is now all about combat, progression and competition: hunt, climb the Soul Tower, duel, raid bosses and rank up. Your saved story progress is kept safely.','story_retired_short':'Story mode is retired. Your saved progress is kept.'})
+TEXT.update({'ttl_home':'Soul Society','m_home':'🏯 Soul Society','ttl_map':'Soul World Map','m_map':'🗺️ Realms of the Dead','m_skm':'🚪 Senkaimon',
+ 'error':'⚠️ The Garganta wavered. Try again.',
+ 'lg_mask_lost':'🎭 {a} loses control — the Hollow inside takes the wheel!','lg_mask_lost_2':'🎭 {a}\'s mask roars; the Hollow swallows the turn!'})

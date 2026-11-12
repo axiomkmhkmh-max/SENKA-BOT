@@ -11,6 +11,7 @@ FORMS = {  # race -> (form1 fa/en, form2 fa/en)
 FORM1 = (1.5, 6, 0, 0.20)
 FORM2 = {"default": (3.0, 5, 3, 0.30), "hollow": (4.0, 4, 4, 0.30), "arrancar": (4.0, 4, 4, 0.30)}
 FORM1_LEVEL, FORM2_LEVEL = 10, 30
+MASK_RAGE = 0.12  # per-turn chance a Visored loses control of an active Hollow Mask (lose that action)
 # Bankai-level special effect per weapon type: (effect, power)
 FORM2_EFFECT = {"melee": ("pierce", 0.25), "elemental": ("burn", 1), "kido": ("drain", 0.08), "illusion": ("miss", 0.30),
                 "living": ("lifesteal", 0.20), "defensive": ("guard", 0.35), "ranged": ("double", 0.40),

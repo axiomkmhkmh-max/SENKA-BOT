@@ -12,6 +12,7 @@ async def bleach_hub(ctx, arg):
         [(ctx.t("m_znp"), "znp", "")],
         [(ctx.t("m_rpath"), "rpath", "")],
         [(ctx.t("m_kido"), "kidop", "")],
+        [(ctx.t("m_skm"), "skm", "")],
         [(ctx.t("m_faction"), "fctp", "")],
         nav(ctx),
     ]

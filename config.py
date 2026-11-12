@@ -85,6 +85,8 @@ GAME_DEFAULTS = {
     # ---- seasons ----------------------------------------------------------------------------
     # ---- retention loops (tower / chain / dispatch / wheel / inner world) -------------------------
     "tower_energy": 15, "tower_daily_floors": 30, "tower_heal": 0.20,
+    "raid_min_msgs": 35, "raid_cooldown": 1800, "raid_ttl": 900, "raid_hp": 4000, "raid_menos_chance": 0.2, "raid_menos_mult": 4,
+    "raid_daily_cap": 8, "raid_min_level": 3, "raid_strike_cd": 12, "raid_dmg_k": 1.0,
     "znp_train_energy": 10, "znp_train_daily": 10, "znp_train_gain": 5, "znp_mastery_cap": 1000,
     "znp_shikai_level": 20, "znp_shikai_bond": 50, "znp_bankai_level": 60, "znp_bankai_mastery": 150,
     "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 12, "chain_bonus_every": 5,

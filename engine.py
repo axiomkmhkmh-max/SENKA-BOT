@@ -5,7 +5,7 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
 from data_races import soft_stat
 from data_weapons import BEATS
 
@@ -232,6 +232,9 @@ def start_turn(state, rng):
             ev.append({"k": "form_end", "a": f["name"]})
     if _check_end(state):
         return ev, True
+    if fm["on"] and f["race"] == "visored" and rng.random() < MASK_RAGE:  # the Hollow inside takes the wheel
+        add_fx(f, "skip", 1)
+        ev.append({"k": "mask_lost", "a": f["name"]})
     skip = [x for x in f["fx"] if x["k"] == "skip"]
     if skip:
         f["fx"] = [x for x in f["fx"] if x["k"] != "skip"]

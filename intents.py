@@ -17,6 +17,7 @@ RAW = {
     "race_path": ("rpath", "", ["مسیر نژاد", "تکامل نژاد", "race path", "race evolution"]),
     "kido": ("kidop", "", ["کیدو", "کیدوها", "آموزش کیدو", "kido", "kidō", "kido spells", "spells"]),
     "faction": ("fctp", "", ["سازمان", "عضویت سازمان", "گوتی ۱۳", "وندن‌رایش", "faction", "organization", "gotei 13", "espada", "wandenreich"]),
+    "senkaimon": ("skm", "", ["سنکایمون", "دروازه", "پورتال", "senkaimon", "gate", "portal"]),
     "bleach_hub": ("blhub", "", ["جهان بلیچ", "سیستم های بلیچ", "bleach", "bleach systems"]),
     "racepath": ("rpath", "", ["مسیر نژاد", "تکامل نژاد", "race path", "race evolution path"]),
     "market": ("mkt", "", ["بازار", "بازارچه", "market", "shop", "store", "trade"]),

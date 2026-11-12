@@ -15,6 +15,8 @@ import handlers_drops
 import handlers_extras  # noqa: F401  (registers the new panels)
 import handlers_bleach  # noqa: F401  (allegiance panel)
 import handlers_zanpakuto  # noqa: F401 (Zanpakuto progression)
+import handlers_senkaimon  # noqa: F401 (Senkaimon portal)
+import handlers_hollowraid
 import handlers_bleach_systems  # noqa: F401 (race, story, Kidō and faction progression)
 import handlers_adminpanel  # noqa: F401  (admin button panel)
 import handlers_items
@@ -116,7 +118,7 @@ COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle"
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
             "party": "party", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
-            "zanpakuto": "zanpakuto", "znp": "zanpakuto", "kido": "kido", "racepath": "racepath", "faction": "faction", "bleach": "bleach_hub", "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
+            "zanpakuto": "zanpakuto", "znp": "zanpakuto", "kido": "kido", "racepath": "racepath", "faction": "faction", "bleach": "bleach_hub", "senkaimon": "senkaimon", "portal": "senkaimon", "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
             "upgrade": "upgrade", "weapon": "sword", "division": "division", "hollow": "hollow", "event": "event",
             "chronicle": "chronicle", "territory": "territory", "bounty": "bounty", "relics": "gear", "evolve": "evolution",
             "exchange": "artifact_mkt", "registry": "artifact_reg", "admin": "admin",
@@ -231,6 +233,8 @@ async def on_group_text(message: Message, text: str):
             await message.reply("✅")
         return
     if await handlers_drops.group_hook(message, text, n):
+        return
+    if await handlers_hollowraid.raid_hook(message, n):
         return
     if not allow(user.id, "grp", 1.5):
         return

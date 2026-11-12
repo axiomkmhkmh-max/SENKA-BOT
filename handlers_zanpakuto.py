@@ -34,6 +34,33 @@ T = {  # key -> (fa, en)
 }
 
 
+CHANTS = {  # blade_id -> (fa, en)
+    "zangetsu": ("بپوس، زانگتسو!", "Cleave, Zangetsu!"), "senbonzakura": ("پراکنده شو، سنبون‌زاکورا!", "Scatter, Senbonzakura!"),
+    "hyorinmaru": ("بر آسمان یخ‌زده فرمان بران، هیورین‌مارو!", "Reign over the frozen heavens, Hyōrinmaru!"),
+    "kyoka_suigetsu": ("بشکن، کیوکا سویگتسو!", "Shatter, Kyōka Suigetsu!"), "zanka_no_tachi": ("بسوزان، زانکا نو تاچی!", "Reduce all creation to ash, Zanka no Tachi!"),
+    "sode_no_shirayuki": ("برقص، سوده نو شیرایوکی!", "Dance, Sode no Shirayuki!"), "zabimaru": ("غرش کن، زابیمارو!", "Howl, Zabimaru!"),
+    "wabisuke": ("بسنج، وابیسوکه!", "Weigh them, Wabisuke!"),
+}
+GENERIC = {"shinigami": ("بیدار شو، {b}!", "Awaken, {b}!"), "quincy": ("تیر را رها کن، {b}!", "Loose the arrow, {b}!"),
+           "hollow": ("بدر، {b}!", "Tear free, {b}!"), "arrancar": ("بدر، {b}!", "Tear free, {b}!"),
+           "visored": ("ماسک را بزن، {b}!", "Mask on, {b}!")}
+PRESSURE = [(50, "خفته", "Dormant"), (150, "بیدار", "Awakened"), (400, "غران", "Roaring"), (800, "سنگین", "Overwhelming"), (10**9, "فرمانروا", "Sovereign")]
+
+
+def _chant(ch, z, lang):
+    c = CHANTS.get(z.get("blade_id"))
+    if c:
+        return c[0 if lang == "fa" else 1]
+    g = GENERIC.get(ch.get("race"), ("آزاد شو، {b}!", "Break free, {b}!"))
+    return g[0 if lang == "fa" else 1].format(b=iname(z.get("blade_id") or "", lang) or "")
+
+
+def _pressure(mastery, lang):
+    for lim, fa, en in PRESSURE:
+        if mastery < lim:
+            return ("🌀 فشار روحی: " + fa) if lang == "fa" else ("🌀 Reiatsu pressure: " + en)
+
+
 def _t(lang, key, **kw):
     fa, en = T[key]
     s = fa if lang == "fa" else en
@@ -71,6 +98,7 @@ async def zanpakuto_panel(ctx, arg):
     body = _t(ctx.lang, "body", blade=iname(z.get("blade_id") or "", ctx.lang) or "-", bond=fnum(bond, ctx.lang),
               mastery=fnum(z["mastery"], ctx.lang), cap=fnum(int(gs["znp_mastery_cap"]), ctx.lang), f1=f1, s1=s1, f2=f2, s2=s2,
               left=left, daily=int(gs["znp_train_daily"]), gain=int(gs["znp_train_gain"]), cost=int(gs["znp_train_energy"]))
+    body += "\n" + _pressure(z["mastery"], ctx.lang)
     rows = [[(_t(ctx.lang, "b_train"), "ztrn", "")]]
     if not z.get("shikai") and lv >= n1[0] and bond >= n1[1]:
         rows.append([(_t(ctx.lang, "b_rel1", f=f1), "zrel", "1")])
@@ -133,5 +161,5 @@ async def zanpakuto_release(ctx, arg):
     if not r.modified_count:  # double tap
         return await zanpakuto_panel(ctx, "")
     out = await zanpakuto_panel(ctx, "")
-    out.text = _t(ctx.lang, key, f=name[0 if ctx.lang == "fa" else 1]) + "\n" + out.text
+    out.text = "🗡 <i>" + _chant(ch, z, ctx.lang) + "</i>\n" + _t(ctx.lang, key, f=name[0 if ctx.lang == "fa" else 1]) + "\n" + out.text
     return out
