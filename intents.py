@@ -45,10 +45,39 @@ RAW = {
     "artifact": ("art", "", ["آرتیفکت", "آرتیفکت من", "گنجینه", "گنجینه من", "artifact", "my artifact", "treasure"]),
     "artifact_reg": ("arr", "", ["ثبت نامه آرتیفکت", "ثبت‌نامه آرتیفکت‌ها", "ثبتنامه گنجینه ها", "artifact registry", "registry"]),
     "artifact_mkt": ("axm", "0", ["بازار آرتیفکت", "artifact market", "artifact exchange", "exchange"]),
+    "upgrade": ("upg", "", ["ارتقا", "ارتقای استت", "ارتقا استت", "upgrade", "upgrade stats", "stat points"]),
+    "division": ("div", "", ["وابستگی", "جوخه من", "مقام", "اسپادا", "division", "allegiance", "my division"]),
+    "hollow": ("hlf", "", ["هالوفیکیشن", "ویزورد شدن", "ماسک هالو", "hollowfication", "become visored", "hollow mask"]),
+    "event": ("evt", "", ["رویداد", "رویداد جهانی", "event", "world event"]),
+    "shop": ("shp", "0", ["فروشگاه", "اوراهارا", "فروشگاه اوراهارا", "urahara shop", "urahara", "npc shop"]),
+    "listings": ("mkb", "0", ["بازار بازیکنان", "آگهی ها", "آگهی‌ها", "player market", "listings", "marketplace"]),
+    "auction": ("mka", "0", ["حراج", "حراجی", "auction", "auctions", "bids"]),
+    "mylistings": ("mkm", "", ["آگهی من", "آگهی های من", "آگهی‌های من", "my listings", "my ads", "my sales"]),
+    "pets": ("pet", "0", ["حیوانات", "حیوان همراه", "my pets", "pets list", "companion pets"]),
+    "cosmetics": ("cos", "", ["ظاهر", "کاسمتیک", "عنوان ها", "عنوان‌ها", "cosmetics", "my cosmetics", "titles"]),
+    "potions": ("crp", "", ["معجون", "ساخت معجون", "potions", "craft potions", "brew"]),
+    "keys": ("crk", "0", ["کلید", "ساخت کلید", "کلید دانجن", "dungeon keys", "craft keys", "keys"]),
+    "towertop": ("twl", "", ["رتبه برج", "برترین برج", "برترین‌های برج", "tower top", "tower leaderboard", "tower ranks"]),
+    "here": ("hre", "", ["اینجا", "اینجا کیه", "همین جا", "here", "who is here", "around me"]),
+    "armor": ("crv", "", ["زره", "آبدیده", "تقویت زره", "armor", "armour", "temper armor"]),
+    "pvptop": ("rnk", "pvp", ["رتبه دوئل", "برترین دوئل", "pvp top", "pvp ranking", "duel ranking"]),
+    "leveltop": ("rnk", "lvl", ["رتبه سطح", "برترین سطح", "level top", "level ranking", "top levels"]),
+    "consumables": ("bag", "0:u", ["مصرفی", "مصرفی ها", "مصرفی‌ها", "consumables", "my consumables", "usables"]),
+    "mygear": ("bag", "0:e", ["تجهیزات من", "تجهیزات", "equipment", "my equipment", "equipment bag"]),
+    "admin_world": ("adw", "", ["مدیریت دنیا", "admin world", "aworld"]),
+    "admin_users": ("adu", "", ["مدیریت کاربران", "admin users", "ausers"]),
+    "admin_settings": ("ads", "0", ["مدیریت تنظیمات", "admin settings", "asettings"]),
+    "admin_announce": ("adc", "", ["اعلان همگانی", "announce", "admin broadcast"]),
+    "admin_log": ("adl", "", ["لاگ مدیریت", "admin log", "alog"]),
+    "admin_admins": ("ada", "", ["لیست ادمین ها", "لیست ادمین‌ها", "admin list", "aadmins"]),
     "duel": ("*duel", "r", ["دوئل", "دوئل رنکد", "duel", "ranked duel", "challenge"]),
     "duel_friendly": ("*duel", "f", ["دوئل دوستانه", "friendly duel", "friendly"]),
 }
-GROUP_OK = {"duel", "duel_friendly", "boss", "help", "home", "chronicle", "commands"}
+# one travel intent per location, so every place gets its own word and /go_<place> command
+from data_races import LOCATIONS as _LOCS
+for _k, _l in _LOCS.items():
+    RAW["go_" + _k] = ("tr", _k, ["برو " + _l["fa"], "سفر به " + _l["fa"], "go " + _l["en"].lower(), "travel " + _k])
+GROUP_OK = {"duel", "duel_friendly", "boss", "help", "home", "chronicle", "commands", "event"}
 _map: dict = {}
 _extra_at = 0.0
 

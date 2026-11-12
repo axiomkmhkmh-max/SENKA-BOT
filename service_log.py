@@ -41,7 +41,7 @@ LABELS = {
     "axk": "تایید رها کردن آرتیفکت", "axn": "آگهی آرتیفکت من",
 }
 # pure navigation: logged only when `log_nav` is on
-NAV = {"home", "menu2", "mg", "div", "dvi", "hlf", "noop", "cmd", "hlp", "lang", "set", "bag", "iv", "mkt", "mkb", "mka", "mkv", "mkav", "mkm", "shp", "sv", "bt", "map", "rnk",
+NAV = {"home", "menu2", "mg", "div", "dvi", "hlf", "adm", "adw", "adx", "ads", "adk", "adu", "adn", "adb", "adc", "adz", "adl", "ada", "adt", "noop", "cmd", "hlp", "lang", "set", "bag", "iv", "mkt", "mkb", "mka", "mkv", "mkav", "mkm", "shp", "sv", "bt", "map", "rnk",
        "wrd", "chr", "evt", "ter", "hre", "ssn", "crf", "crl", "crw", "crv", "eqp", "rlc", "rel", "cos", "pet", "pty", "twr", "twl", "dsp", "dsm", "whl", "sat",
        "inr", "gld", "qst", "mgm", "gch", "ml", "dgn", "dgd", "bossinfo", "prof", "arr", "axm", "axb", "axv", "axn", "art", "evo", "bty", "btn", "glc", "upg"}
 

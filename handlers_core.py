@@ -14,6 +14,7 @@ import handlers_combat
 import handlers_drops
 import handlers_extras  # noqa: F401  (registers the new panels)
 import handlers_bleach  # noqa: F401  (allegiance panel)
+import handlers_adminpanel  # noqa: F401  (admin button panel)
 import handlers_items
 import handlers_panels
 import handlers_world
@@ -112,7 +113,25 @@ COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle"
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
             "party": "party", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
-            "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact"}
+            "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
+            "story": "quests", "upgrade": "upgrade", "weapon": "sword", "division": "division", "hollow": "hollow", "event": "event",
+            "chronicle": "chronicle", "territory": "territory", "bounty": "bounty", "relics": "gear", "evolve": "evolution",
+            "exchange": "artifact_mkt", "registry": "artifact_reg", "admin": "admin",
+            "shop": "shop", "listings": "listings", "auction": "auction", "mylistings": "mylistings", "pets": "pets", "cosmetics": "cosmetics",
+            "potions": "potions", "keys": "keys", "armor": "armor", "towertop": "towertop", "here": "here",
+            # hidden aliases: not in the "/" menu, but typing them works
+            "me": "profile", "stats": "profile", "fight": "battle", "hunt": "battle", "patrol": "explore", "wander": "explore",
+            "inventory": "bag", "inv": "bag", "items": "bag", "clan": "squad", "guild": "squad", "top": "ranking", "leaderboard": "ranking",
+            "quest": "quests", "missions": "quests", "gacha": "gacha", "pull": "gacha", "lang": "settings", "language": "settings",
+            "zanpakuto": "sword", "gotei": "seat", "worldboss": "boss", "bosses": "boss", "shinigami": "profile", "reward": "daily",
+            "wiki": "help", "guide": "help", "cmds": "commands", "travel": "adventure", "locations": "adventure", "pet": "pets",
+            "pvptop": "pvptop", "leveltop": "leveltop", "consumables": "consumables", "mygear": "mygear",
+            "aworld": "admin_world", "ausers": "admin_users", "asettings": "admin_settings", "announce": "admin_announce",
+            "alog": "admin_log", "aadmins": "admin_admins",
+            "relic": "gear", "evolution": "evolution", "news": "chronicle", "land": "territory", "wanted": "bounty"}
+
+from data_races import LOCATIONS as _LOCS  # noqa: E402
+COMMANDS.update({"go_" + k: "go_" + k for k in _LOCS})  # /go_rukongai, /go_hueco_mundo ... (hidden from the menu)
 
 
 @router.message(Command(*COMMANDS))
@@ -155,7 +174,7 @@ async def handle_text(message: Message, text: str):
             return await send_out(message, ctx, await reg.handle_name_text(ctx, text))
         return await send_out(message, ctx, await reg.reg_panel(ctx, r))
     # admin text commands
-    if await handlers_admin.admin_level(user.id) >= 20:
+    if await handlers_admin.admin_level(user.id) >= 20 and not await col("inputs").find_one({"user_id": user.id, "kind": {"$regex": "^ad_"}, "at": {"$gte": time.time() - 300}}):
         out = await handlers_admin.handle_admin_text(ctx, text)
         if out is not None:
             return await send_out(message, ctx, out)
@@ -172,7 +191,7 @@ async def handle_text(message: Message, text: str):
     log_text(user.id, name)
     if code.startswith("*"):
         return await message.answer(ctx.t("duel_group_only"))
-    if code == "adm" and await handlers_admin.admin_level(user.id) < 20:
+    if code.startswith("ad") and len(code) == 3 and await handlers_admin.admin_level(user.id) < 20:
         return
     out = await REGISTRY[code](ctx, arg)
     out.new = True

@@ -51,16 +51,7 @@ async def migrate_world():
     await col("characters").update_many({"seen_at": {"$exists": False}}, {"$set": {"seen_at": 0}})
 
 
-CMD_EN = [("home", "Open your world panel"), ("profile", "Your Soul Reaper profile"), ("explore", "Patrol the world"), ("battle", "Fight Hollows"),
-          ("bag", "Inventory & equipment"), ("market", "Urahara shop, market & auctions"), ("quests", "Missions"), ("summon", "Summon characters & gear"),
-          ("squad", "Squad / clan"), ("ranking", "Leaderboards"), ("daily", "Daily reward"), ("dungeon", "Enter dungeons"), ("map", "World map"),
-          ("forge", "Strengthen your zanpakuto"), ("party", "Your companions"), ("minigame", "Bleach puzzle"), ("boss", "World boss"), ("world", "Living world panel"), ("craft", "Craft, evolve, gear"), ("season", "Season standings"), ("tower", "Soul Tower"), ("dispatch", "Dispatch companions"), ("wheel", "Urahara's wheel"), ("seat", "Gotei seat rank"), ("inner", "Inner World"), ("artifact", "Your Soul Artifact"),
-          ("duel", "Ranked duel (reply to a player)"), ("friendly", "Friendly duel"), ("settings", "Language & settings"), ("commands", "All commands"), ("help", "Help")]
-CMD_FA = [("home", "پنل دنیای من"), ("profile", "پروفایل شینیگامی"), ("explore", "گشت در جهان"), ("battle", "نبرد با هالوها"),
-          ("bag", "کوله و تجهیزات"), ("market", "فروشگاه اوراهارا، بازار و حراج"), ("quests", "ماموریت‌ها"), ("summon", "احضار کاراکتر و تجهیزات"),
-          ("squad", "جوخه / کلن"), ("ranking", "رتبه‌بندی"), ("daily", "جایزه روزانه"), ("dungeon", "ورود به دانجن"), ("map", "نقشه جهان"),
-          ("forge", "تقویت زانپاکتو"), ("party", "همراهان من"), ("minigame", "معمای بلیچ"), ("boss", "باس جهانی"), ("world", "پنل دنیای زنده"), ("craft", "ساخت، تکامل و تجهیز"), ("season", "رتبه‌ی فصل"), ("tower", "برج روح"), ("dispatch", "اعزام همراهان"), ("wheel", "چرخ اوراهارا"), ("seat", "درجه‌ی گوتی"), ("inner", "دنیای درون"), ("artifact", "آرتیفکت من"),
-          ("duel", "دوئل رنکد (ریپلای)"), ("friendly", "دوئل دوستانه"), ("settings", "زبان و تنظیمات"), ("commands", "همه‌ی دستورات"), ("help", "راهنما")]
+from cmdlist import CMD_EN, CMD_FA, GROUP_CMDS
 
 
 async def setup_commands(bot):
@@ -69,11 +60,13 @@ async def setup_commands(bot):
         mk = lambda rows: [BotCommand(command=c, description=d) for c, d in rows]
         await bot.set_my_commands(mk(CMD_EN))
         await bot.set_my_commands(mk(CMD_FA), language_code="fa")
-        grp_en = [x for x in CMD_EN if x[0] in ("duel", "friendly", "boss", "help")]
-        grp_fa = [x for x in CMD_FA if x[0] in ("duel", "friendly", "boss", "help")]
+        grp_en = [x for x in CMD_EN if x[0] in GROUP_CMDS]
+        grp_fa = [x for x in CMD_FA if x[0] in GROUP_CMDS]
         await bot.set_my_commands(mk(grp_en), scope=BotCommandScopeAllGroupChats())
         await bot.set_my_commands(mk(grp_fa), scope=BotCommandScopeAllGroupChats(), language_code="fa")
         await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+        from handlers_adminpanel import refresh_admin_commands
+        await refresh_admin_commands(bot)
     except Exception:
         log.exception("could not register the command menu")
 

@@ -62,7 +62,8 @@ async def admin_panel(ctx, arg):
     lvl = await admin_level(ctx.uid)
     if lvl < 20:
         return Out(alert=ctx.t("admin_only"))
-    return Out(head(ctx, "ttl_adm") + await dashboard(ctx) + "\n\n" + ctx.t("adm_help"), [nav(ctx)])
+    from handlers_adminpanel import main_menu
+    return await main_menu(ctx, lvl)
 
 
 def _int(x, default=None):
@@ -200,6 +201,11 @@ async def handle_admin_text(ctx, text: str):
             await col("admin_users").update_one({"user_id": tid}, {"$set": {"role": role}}, upsert=True)
         else:
             await col("admin_users").delete_one({"user_id": tid})
+        try:
+            from handlers_adminpanel import refresh_admin_commands
+            await refresh_admin_commands(ctx.bot, tid, cmd == "addadmin")
+        except Exception:
+            log.exception("admin command menu refresh failed")
         await alog(ctx.uid, cmd, tid)
         return Out(ctx.t("adm_done"))
     if cmd == "broadcast":
