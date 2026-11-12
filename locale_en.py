@@ -288,3 +288,34 @@ TEXT.update({
   "⚙️ <b>Other</b>\n<code>settings</code> — language · <code>help</code> — guide · <code>commands</code> — this list\n"
   "Group admins: <code>group language fa|en</code>"),
 })
+
+TEXT.update({
+ 'ttl_znp': 'Zanpakuto Spirit',
+ 'znp_race': 'This path is currently available to Shinigami and Visored only.',
+ 'znp_body': 'Zanpakutō: <b>{blade}</b>\nRelease command: <b>{command}</b>\nBlade status: <b>{status}</b>\nSpirit bond: <b>{bond}%</b>\nLevel: {level}\nBankai mastery: {mastery}%\n\nCommune with your blade in the Inner World. Trust grows through meaningful conversations.',
+ 'b_znp_talk': '🕯 Commune with spirit',
+ 'b_znp_shikai': '⚔️ Shikai release trial',
+ 'b_znp_bankai': '🔥 Bankai release trial',
+ 'b_znp_train': '🎯 Train Bankai mastery',
+ 'znp_wait': 'Your spirit needs time. Return in {seconds} seconds.',
+ 'znp_bond_up': "You hear your spirit's voice. Bond is now {bond}%.",
+ 'znp_need': 'This release requires level {level} and bond {bond}%.',
+ 'znp_shikai_unlocked': "⚔️ <b>SHIKAI</b>\nYou hear the blade's name. Shikai release has been recorded.",
+ 'znp_bankai_unlocked': '🔥 <b>BANKAI</b>\nYou reach a new level of harmony with your blade. Bankai has been recorded.',
+ 'znp_need_shikai': 'You must release Shikai first.',
+ 'znp_already': 'You have already unlocked this stage.',
+ 'znp_mastery': 'Bankai mastery is now {mastery}%.',
+})
+
+TEXT.update({
+ 'ttl_race_path':'Race Evolution', 'race_path_body':'Current stage: <b>{stage}</b>\nLevel: {level} | victories: {wins}\nEach evolution requires level and real battle wins.',
+ 'b_race_evolve':'🧬 Attempt evolution', 'race_path_need':'This stage requires level {level} and {wins} victories.', 'race_path_max':'You have reached the current final stage.', 'race_path_up':'✨ New stage: <b>{stage}</b>', 'race_path_release':'Release {release} through your Zanpakutō path first.',
+ 'ttl_story':'Story Chronicles', 'story_intro':'Story arcs unlock by race and level. Each checkpoint requires a new PvE victory.', 'story_active':'📖 Active arc: <b>{arc}</b>\nStep: {step}/3', 'story_completed':'Completed arcs: {count}', 'b_story_advance':'⚔️ Record story progress', 'story_locked':'This arc is not unlocked for your race or level.', 'story_started':'📜 Arc <b>{arc}</b> started. Three PvE victories are required.', 'story_none':'You have no active arc.', 'story_need_win':'Win a PvE battle before advancing.', 'story_step':'✅ Progress recorded. Step: {step}/3', 'story_complete':'🏆 Arc completed. Rewards granted.',
+ 'ttl_kido':'Kidō Arts', 'kido_body':'Reiatsu: {reiatsu}\nLearned spells become available in combat. Learn new spells when you meet their level requirement.', 'b_kido_learn':'📘 Learn {name}', 'kido_learned':'📘 New spell added to your list.', 'kido_known':'You already know this spell.', 'kido_unavailable':'This spell is not available yet.', 'kido_cast':'🔮 {name} cast. Remaining Reiatsu: {remaining}', 'kido_no_reiatsu':'Not enough Reiatsu.',
+ 'ttl_faction':'Faction Allegiance', 'faction_intro':'Choose an organization available to your race. Membership is permanent.', 'faction_member':'Member of <b>{name}</b>\nRank: {rank}', 'faction_race':'Your race cannot join this faction, or you already belong to one.', 'faction_joined':'⚔️ Membership in <b>{name}</b> recorded.',
+ 'm_znp':'⚔️ Zanpakutō', 'm_rpath':'🧬 Race Path', 'm_story':'📜 Story', 'm_kido':'🔮 Kidō', 'm_faction':'🏯 Faction',
+ 'znp_chosen':'Your blade spirit is <b>{name}</b>. You can now strengthen your bond.', 'znp_choose_first':'Choose your Zanpakutō identity first.', 'znp_already_chosen':'Your Zanpakutō identity has already been chosen.',
+ 'ttl_bleach_hub':'Bleach World Systems', 'bleach_hub_body':'Access the main progression systems of the spirit world. Each system saves your progress to your character.', 'kido_race':'Kidō training in this release is available to Shinigami and Visored characters.',
+})
+
+TEXT.update({'a_kaido':'💠 Kaidō: Heal', 'race_path_body':'Current stage: <b>{stage}</b>\nLevel: {level} | hunts/victories: {wins}\nEach stage requires level and real progress.'})

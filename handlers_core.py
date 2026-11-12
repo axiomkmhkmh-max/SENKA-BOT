@@ -14,6 +14,8 @@ import handlers_combat
 import handlers_drops
 import handlers_extras  # noqa: F401  (registers the new panels)
 import handlers_bleach  # noqa: F401  (allegiance panel)
+import handlers_zanpakuto  # noqa: F401 (Zanpakuto progression)
+import handlers_bleach_systems  # noqa: F401 (race, story, Kidō and faction progression)
 import handlers_adminpanel  # noqa: F401  (admin button panel)
 import handlers_items
 import handlers_panels
@@ -114,8 +116,8 @@ COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle"
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
             "party": "party", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
-            "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
-            "story": "quests", "upgrade": "upgrade", "weapon": "sword", "division": "division", "hollow": "hollow", "event": "event",
+            "zanpakuto": "zanpakuto", "znp": "zanpakuto", "story": "story", "kido": "kido", "racepath": "racepath", "faction": "faction", "bleach": "bleach_hub", "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
+            "story": "story", "upgrade": "upgrade", "weapon": "sword", "division": "division", "hollow": "hollow", "event": "event",
             "chronicle": "chronicle", "territory": "territory", "bounty": "bounty", "relics": "gear", "evolve": "evolution",
             "exchange": "artifact_mkt", "registry": "artifact_reg", "admin": "admin",
             "shop": "shop", "listings": "listings", "auction": "auction", "mylistings": "mylistings", "pets": "pets", "cosmetics": "cosmetics",
@@ -124,7 +126,7 @@ COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle"
             "me": "profile", "stats": "profile", "fight": "battle", "hunt": "battle", "patrol": "explore", "wander": "explore",
             "inventory": "bag", "inv": "bag", "items": "bag", "clan": "squad", "guild": "squad", "top": "ranking", "leaderboard": "ranking",
             "quest": "quests", "missions": "quests", "gacha": "gacha", "pull": "gacha", "lang": "settings", "language": "settings",
-            "zanpakuto": "sword", "gotei": "seat", "worldboss": "boss", "bosses": "boss", "shinigami": "profile", "reward": "daily",
+            "zanpakuto": "zanpakuto", "gotei": "seat", "worldboss": "boss", "bosses": "boss", "shinigami": "profile", "reward": "daily",
             "wiki": "help", "guide": "help", "cmds": "commands", "travel": "adventure", "locations": "adventure", "pet": "pets",
             "pvptop": "pvptop", "leveltop": "leveltop", "consumables": "consumables", "mygear": "mygear",
             "aworld": "admin_world", "ausers": "admin_users", "asettings": "admin_settings", "announce": "admin_announce",
@@ -199,7 +201,6 @@ async def handle_text(message: Message, text: str):
     # pending free-text prompts (e.g. guild name)
     pend = await col("inputs").find_one_and_delete({"user_id": user.id})
     if pend and pend["kind"] in INPUTS:
-        import time
         if time.time() - pend["at"] < 300 and normalize_text(text) not in ("لغو", "cancel"):
             return await send_out(message, ctx, await INPUTS[pend["kind"]](ctx, text))
     hit = await resolve(text)

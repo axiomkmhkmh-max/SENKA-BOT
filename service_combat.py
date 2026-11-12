@@ -74,9 +74,27 @@ async def build_player(ch: dict, name: str = None):
     pb = party_bonus(ch.get("party", []), g.get("chars", {}))
     bn = player_bonus(ch, ALL, gs)  # evolution, pet role, relics, temporary buffs
     mods = dict(race["mods"])
+    # Persistent race evolution modifies the existing combat model; no parallel stats engine.
+    rp = ch.get("race_progress") or {}
+    stage = max(0, min(4, int(rp.get("stage", 0))))
+    race_stage_mods = {
+        "shinigami": {"dmg": 0.025, "kido": 0.025},
+        "hollow": {"hp": 0.035, "dmg": 0.02},
+        "arrancar": {"def": 0.025, "dmg": 0.025},
+        "quincy": {"pierce": 0.025, "kido": 0.02},
+        "visored": {"dmg": 0.02, "def": 0.02},
+        "fullbringer": {"crit": 0.008, "dmg": 0.015},
+        "human": {"xp": 0.01},
+    }.get(ch.get("race"), {})
+    for key, per_stage in race_stage_mods.items():
+        if key in ("dmg", "def", "hp", "kido", "pierce"):
+            mods[key] = mods.get(key, 1.0) * (1 + per_stage * stage)
+        elif key == "crit":
+            mods[key] = mods.get(key, 0.0) + per_stage * stage
     mods["dmg"] = mods.get("dmg", 1.0) * (1 + pb.get("dmg", 0) + bn["dmg"])
     mods["def"] = mods.get("def", 1.0) * (1 + pb.get("def", 0) + bn["def"])
-    mods["kido"] = 1 + pb.get("kido", 0)
+    # Preserve race/evolution Kidō modifiers while adding companion bonuses.
+    mods["kido"] = mods.get("kido", 1.0) * (1 + pb.get("kido", 0))
     mods["crit"] = mods.get("crit", 0) + bn["crit"]
     mods["regen"] = bn["regen"]
     hp = max_hp(ch["level"], soft_stat(stats["hakuda"]), mods.get("hp", 1.0))
@@ -86,8 +104,44 @@ async def build_player(ch: dict, name: str = None):
     if w:
         plus = (ch.get("weapon_plus") or {}).get(wid, 0)
         w = dict(w, attack=w["attack"] * (1 + 0.06 * plus))
-    zmult = 1 + min(0.30, (ch.get("bond") or {}).get(wid, 0) / 500)
-    return E.new_fighter(name or tagged_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=ch.get("kido"),
+    zstate = ch.get("zanpakuto") or {}
+    bond = max(int((ch.get("bond") or {}).get(wid, 0)), int(zstate.get("bond", 0)))
+    # Release stages feed the existing weapon-skill multiplier; no parallel combat engine.
+    release_bonus = 0.10 if zstate.get("shikai") else 0.0
+    if zstate.get("bankai"):
+        release_bonus += 0.12 + min(0.08, int(zstate.get("mastery", 0)) / 500)
+    zmult = 1 + min(0.30, bond / 500) + release_bonus
+    # Distinct release identities alter battle style rather than granting identical flat power.
+    blade_style = {
+        "zangetsu": {"dmg": 1.08}, "senbonzakura": {"crit": 0.05},
+        "hyorinmaru": {"def": 1.08}, "kyoka_suigetsu": {"crit": 0.04, "dmg": 1.03},
+        "zanka_no_tachi": {"dmg": 1.12}, "sode_no_shirayuki": {"def": 1.05, "kido": 1.08},
+        "zabimaru": {"dmg": 1.07}, "wabisuke": {"def": 1.10},
+    }.get(zstate.get("blade_id"), {})
+    if zstate.get("shikai") or zstate.get("bankai"):
+        for stat, value in blade_style.items():
+            if stat in ("dmg", "def", "kido"):
+                mods[stat] = mods.get(stat, 1.0) * value
+            elif stat == "crit":
+                mods[stat] = mods.get(stat, 0.0) + value
+    # Spells available in combat = the character's stored Hadō/Bakudō lists (race starter spells + anything
+    # learned; learn_kido writes to both) merged with kido_learned. Starting from an empty set would strip
+    # every existing character of their spells, because the engine only defaults when the key is missing.
+    from service_bleach_systems import KIDO
+    legacy = ch.get("kido") or {}
+    had, bak, kaido = set(legacy.get("had") or [1]), set(legacy.get("bak") or [1]), set()
+    for spell_id in set(ch.get("kido_learned") or []):
+        spell = KIDO.get(spell_id)
+        if not spell:
+            continue
+        if spell["type"] == "Hadō":
+            had.add(int(spell_id.replace("hado", "")))
+        elif spell["type"] == "Bakudō":
+            bak.add(int(spell_id.replace("bakudo", "")))
+        elif spell["type"] == "Kaidō":
+            kaido.add(spell_id)
+    combat_kido = {"had": sorted(had), "bak": sorted(bak), "kaido": sorted(kaido)}
+    return E.new_fighter(name or tagged_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=combat_kido,
                          race=ch["race"], zmult=zmult)
 
 
@@ -218,7 +272,7 @@ async def pve_settle(doc: dict):
         ch, lv, got = await add_xp(uid, xp, "pve")
         # independent writes: run together instead of one after another
         await asyncio.gather(add_coins(uid, coins, "pve"),
-                             col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1}}),
+                             col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1, **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
                              bump_quest(uid, "battle_win", 1))
         out.update(xp=got, coins=coins, levels=lv)
         from service_worldstate import on_action, territory_income
