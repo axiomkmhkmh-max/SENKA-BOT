@@ -55,20 +55,25 @@ from cmdlist import CMD_EN, CMD_FA, GROUP_CMDS
 
 
 async def setup_commands(bot):
-    """Typing '/' in the chat shows this list; the game itself is driven by words."""
+    """Typing '/' in the chat shows this list; the game itself is driven by words. Each step is isolated so one failure can't hide the rest."""
+    mk = lambda rows: [BotCommand(command=c, description=d) for c, d in rows]
+    grp_en = [x for x in CMD_EN if x[0] in GROUP_CMDS]
+    grp_fa = [x for x in CMD_FA if x[0] in GROUP_CMDS]
+    steps = [lambda: bot.set_my_commands(mk(CMD_EN)),
+             lambda: bot.set_my_commands(mk(CMD_FA), language_code="fa"),
+             lambda: bot.set_my_commands(mk(grp_en), scope=BotCommandScopeAllGroupChats()),
+             lambda: bot.set_my_commands(mk(grp_fa), scope=BotCommandScopeAllGroupChats(), language_code="fa"),
+             lambda: bot.set_chat_menu_button(menu_button=MenuButtonCommands())]
+    for step in steps:
+        try:
+            await step()
+        except Exception:
+            log.exception("command menu step failed")
     try:
-        mk = lambda rows: [BotCommand(command=c, description=d) for c, d in rows]
-        await bot.set_my_commands(mk(CMD_EN))
-        await bot.set_my_commands(mk(CMD_FA), language_code="fa")
-        grp_en = [x for x in CMD_EN if x[0] in GROUP_CMDS]
-        grp_fa = [x for x in CMD_FA if x[0] in GROUP_CMDS]
-        await bot.set_my_commands(mk(grp_en), scope=BotCommandScopeAllGroupChats())
-        await bot.set_my_commands(mk(grp_fa), scope=BotCommandScopeAllGroupChats(), language_code="fa")
-        await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
         from handlers_adminpanel import refresh_admin_commands
         await refresh_admin_commands(bot)
     except Exception:
-        log.exception("could not register the command menu")
+        log.exception("admin command menu failed")
 
 
 async def health_server():

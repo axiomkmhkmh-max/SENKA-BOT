@@ -92,19 +92,30 @@ def boss_text(lang: str, d: dict, result: dict = None) -> str:
     name = d["name_fa" if lang == "fa" else "name_en"]
     ph = 1 if d["hp"] > d["max_hp"] * .6 else 2 if d["hp"] > d["max_hp"] * .3 else 3
     hp = max(0, d["hp"])
-    lines = [f"⚔️ <b>𝖲𝖤𝖭𝖪𝖠</b> | <b>{t(lang, 'boss_title')}</b>\n━━━━━━━━━━━━━━",
-             f"👹 <b>{esc(name)}</b> — {t(lang, 'lbl_level')} {fnum(d['level'], lang)}",
-             *epithet_lines(lang, d),
-             f"❤️ {bar(hp, d['max_hp'], 14)}\n{fnum(hp, lang)}/{fnum(d['max_hp'], lang)}",
-             t(lang, "boss_phase_" + str(ph))]
+    lines = [f"⚔️ <b>𝖲𝖤𝖭𝖪𝖠</b> | <b>{t(lang, 'boss_title')}</b>\n━━━━━━━━━━━━━━"]
+    if d.get("active") and not d.get("hits"):  # freshly torn open: a short, dramatic arrival line
+        lines.append("<i>" + t(lang, "boss_arrive_" + str(sum(map(ord, d.get("boss_id", "x"))) % 6)) + "</i>\n")
+    lines += [f"👹 <b>{esc(name)}</b> — {t(lang, 'lbl_level')} {fnum(d['level'], lang)}",
+              *epithet_lines(lang, d),
+              f"❤️ {bar(hp, d['max_hp'], 14)}\n{fnum(hp, lang)}/{fnum(d['max_hp'], lang)}  ({max(0, hp * 100 // max(1, d['max_hp']))}%)",
+              t(lang, "boss_ph_" + str(ph))]
     if d.get("active"):
         lines.append(t(lang, "boss_left", m=fnum(max(0, int(d["expires_at"] - time.time())) // 60 + 1, lang)))
+        combo = int(d.get("combo", 0))
+        if combo >= 2 and time.time() - float(d.get("last_at", 0)) <= 10:
+            lines.append(t(lang, "boss_combo", n=fnum(combo, lang), p=fnum(combo * 5, lang)))
         top = sorted(d.get("contrib", {}).items(), key=lambda kv: -kv[1])[:3]
         if top:
             lines.append(t(lang, "boss_hits", n=fnum(d.get("hits", 0), lang)) + " · " + t(lang, "boss_fighters", n=fnum(len(d.get("contrib", {})), lang)))
             names = d.get("nm") or {}
             for i, (uid, dmg) in enumerate(top):
                 lines.append(f"{['🥇', '🥈', '🥉'][i]} {esc(names.get(str(uid), '?'))} — {fnum(dmg, lang)}")
+        feed = (d.get("feed") or [])[::-1]
+        if feed:
+            lines.append("\n" + t(lang, "boss_feed"))
+            for e in feed:
+                lines.append(f"{'✨' if e.get('s') else '💥' if e.get('c') else '🗡️'} {esc(e['n'])} — {fnum(e['d'], lang)}")
+        lines.append("\n" + t(lang, "boss_hint"))
     if result:
         lines.append(t(lang, "boss_dead" if result["killed"] else "boss_escaped"))
         for i, r in enumerate(result["rows"][:5]):

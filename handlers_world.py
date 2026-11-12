@@ -592,6 +592,14 @@ async def _edit_all(bot, doc, text_fn, kb):
         await asyncio.sleep(0.05)
 
 
+async def announce_boss_phase(bot, doc, phase_no):
+    """A short extra message in every announced group when the boss enters a new phase."""
+    from i18n import t
+    if phase_no not in (2, 3):
+        return
+    await _send_groups(bot, lambda L: t(L, "boss_phase_alert_" + str(phase_no), boss=esc(doc["name_fa" if L == "fa" else "name_en"])), boss_kb(doc["_id"]))
+
+
 async def refresh_global_boss(bot, doc):
     await _edit_all(bot, doc, lambda L: boss_text(L, doc), boss_kb(doc["_id"]))
 

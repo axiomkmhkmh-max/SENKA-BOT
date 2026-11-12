@@ -102,6 +102,7 @@ async def on_start(message: Message, command: CommandObject):
         ref = int(command.args[4:])
     await touch_user(message.from_user, ref)
     ctx = await make_ctx(message.from_user, message.chat, message.bot, message)
+    asyncio.ensure_future(_ensure_admin_menu(message.bot, message.from_user.id))
     blocked = await gate(ctx)
     if blocked:
         return await send_out(message, ctx, blocked)
@@ -152,6 +153,22 @@ async def on_text(message: Message):
     await handle_text(message, message.text or "")
 
 
+_admin_menu_done: set = set()
+
+
+async def _ensure_admin_menu(bot, uid: int):
+    """First time an admin talks to the bot after a (re)start: make sure /admin & co are in their own '/' menu."""
+    if uid in _admin_menu_done:
+        return
+    _admin_menu_done.add(uid)
+    try:
+        if await handlers_admin.admin_level(uid) >= 20:
+            from handlers_adminpanel import refresh_admin_commands
+            await refresh_admin_commands(bot, uid)
+    except Exception:
+        log.exception("admin menu refresh failed")
+
+
 async def handle_text(message: Message, text: str):
     user = message.from_user
     if user is None or user.is_bot:
@@ -162,6 +179,7 @@ async def handle_text(message: Message, text: str):
         return
     await touch_user(user)
     ctx = await make_ctx(user, message.chat, message.bot, message)
+    asyncio.ensure_future(_ensure_admin_menu(message.bot, user.id))
     blocked = await gate(ctx)
     if blocked:
         return await send_out(message, ctx, blocked)

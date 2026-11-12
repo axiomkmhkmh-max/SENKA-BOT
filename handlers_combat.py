@@ -336,13 +336,32 @@ def _panel_text(ctx, d, result=None):
     return None
 
 
+# battle cries by race (Bleach flavour); a signature strike always gets one, normal hits sometimes
+CALLS = {"shinigami": (["گتسوگا تنشو!", "بانکای!", "شیکای: ببُر!"], ["Getsuga Tenshō!", "Bankai!", "Shikai: Cleave!"]),
+         "quincy": (["هایلیگ پفایل!", "ضربه‌ی خون‌ورید!"], ["Heilig Pfeil!", "Blut Vene Strike!"]),
+         "hollow": (["سرو!", "غرش هالو!"], ["Cero!", "Hollow Roar!"]),
+         "arrancar": (["سرو اسکوراس!", "رزورکسیون!"], ["Cero Oscuras!", "Resurrección!"]),
+         "human": (["مشت روح!", "ضربه‌ی قلب!"], ["Spirit Fist!", "Heart Strike!"]),
+         "fullbringer": (["فول‌برینگ!", "ضربه‌ی پیوند!"], ["Fullbring!", "Bond Strike!"]),
+         "visored": (["ماسک هالو!", "سرو ویزورد!"], ["Hollow Mask!", "Visored Cero!"])}
+
+
+def _call(lang, race, always):
+    import random
+    if not always and random.random() > 0.5:
+        return ""
+    fa, en = CALLS.get(race, CALLS["human"])
+    return " " + random.choice(fa if lang == "fa" else en)
+
+
 @action("bh")
 async def boss_hit_cb(ctx, arg):
     status, data = await boss_hit(ctx.uid, arg)
     if status == "hit":
         d = data["doc"]
         crit = " 💥" if data["crit"] else ""
-        if d["hp"] <= 0:
+        killing = d["hp"] <= 0
+        if killing:
             summary = await settle_boss(arg)
             if summary:
                 import handlers_world
@@ -351,7 +370,14 @@ async def boss_hit_cb(ctx, arg):
                     await _edit(ctx, boss_text(ctx.lang, d, summary) + _drops(ctx.lang, summary), None)
         else:
             await _refresh_boss(ctx, d)
-        return Out(alert=ctx.t("boss_hit_ok", n=fnum(data["dmg"], ctx.lang)) + crit)
+            if data.get("phase_up"):
+                import asyncio
+                import handlers_world
+                asyncio.ensure_future(handlers_world.announce_boss_phase(ctx.bot, d, data["phase_up"]))
+        head = ("✨ " + ctx.t("boss_special") + " ") if data["special"] else ""
+        tail = (" · " + ctx.t("boss_combo_s", n=fnum(data["combo"], ctx.lang))) if data["combo"] >= 2 else ""
+        fin = (" " + ctx.t("boss_final_blow")) if killing else ""
+        return Out(alert=head + ctx.t("boss_hit_ok", n=fnum(data["dmg"], ctx.lang)) + crit + _call(ctx.lang, data["race"], data["special"] or killing) + tail + fin)
     if status == "cool":
         return Out(alert=ctx.t("wait_s", n=data))
     if status == "level":

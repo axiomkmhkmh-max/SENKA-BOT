@@ -61,12 +61,12 @@ async def spawn_boss(chat_id: int = None, boss_id: str = None):
         levels = await active_levels()
         b = BOSS_BY_ID.get(boss_id) if boss_id else pick_boss(levels)
         scale = boss_hp_scale(await active_players(), ws.get("threat", 20), st)
-        hp = max(1, int(b["hp"] * scale))
+        hp = max(1, int(b["hp"] * scale * float(st["boss_hp_mult"])))
         now = int(time.time())
         doc = {"_id": sid, "scope": "global", "boss_id": b["_id"], "name_fa": b["name_fa"], "name_en": b["name_en"], "level": b["level"],
                "hp": hp, "max_hp": hp, "trait": b["trait"], "active": True, "spawn_at": now, "scale": round(scale, 2),
                "expires_at": now + int(st["boss_duration_minutes"]) * 60, "contrib": {}, "nm": {}, "hits": 0, "last_hitter": None,
-               "edit_at": 0, "msgs": {}, "refresh_at": now}
+               "edit_at": 0, "msgs": {}, "refresh_at": now, "combo": 0, "last_at": 0, "feed": []}
         await col("boss_sessions").insert_one(doc)
     except Exception:
         await col("world_state").update_one({"_id": WS_ID, "boss_id": sid}, {"$set": {"boss_id": None}})
@@ -133,18 +133,28 @@ async def boss_hit(uid: int, sid: str):
         mult = 0.80        # cornered: hardens in the last phase
     elif trait == "bleed" and crit:
         mult = 1.50        # open wounds: crits hurt more
-    dmg = max(1, int(dmg * mult))
+    # bigger, more satisfying numbers: base multiplier + team combo + occasional signature strike
+    now = time.time()
+    combo = min(int(st["boss_combo_cap"]), int(sess.get("combo", 0)) + 1) if now - float(sess.get("last_at", 0)) <= float(st["boss_combo_window"]) else 0
+    special = rng.random() < float(st["boss_special_chance"])
+    dmg = dmg * mult * float(st["boss_dmg_mult"]) * (1 + float(st["boss_combo_step"]) * combo) * (float(st["boss_special_mult"]) if special else 1.0)
+    dmg = max(1, int(dmg))
     heal = int(sess["max_hp"] * 0.004) if trait == "regen" and sess["hp"] < sess["max_hp"] * 0.99 else 0
+    pname = tagged_name(ch, ALL)
+    entry = {"n": pname, "d": dmg, "c": bool(crit), "s": bool(special), "r": ch["race"]}
     doc = await col("boss_sessions").find_one_and_update(
         {"_id": sid, "active": True, "hp": {"$gt": 0}},
-        {"$inc": {"hp": -dmg + heal, f"contrib.{uid}": dmg, "hits": 1}, "$set": {"last_hitter": uid, f"nm.{uid}": tagged_name(ch, ALL)}},
+        {"$inc": {"hp": -dmg + heal, f"contrib.{uid}": dmg, "hits": 1},
+         "$set": {"last_hitter": uid, f"nm.{uid}": pname, "combo": combo, "last_at": now},
+         "$push": {"feed": {"$each": [entry], "$slice": -4}}},
         return_document=ReturnDocument.AFTER)
     if not doc:
         return "gone", None
+    phase_up = phase(doc) if phase(doc) > phase(sess) else 0
     await bump_quest(uid, "boss_hit", 1)
     from service_worldstate import on_action
     await on_action(uid, "boss_hit", ch["location"])
-    return "hit", {"dmg": dmg, "crit": crit, "doc": doc}
+    return "hit", {"dmg": dmg, "crit": crit, "doc": doc, "combo": combo, "special": special, "phase_up": phase_up, "race": ch["race"]}
 
 
 async def settle_boss(sid: str):

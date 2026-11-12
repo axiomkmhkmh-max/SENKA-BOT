@@ -1,6 +1,15 @@
 """Texts for the six retention loops (merged into the main tables by i18n.py)."""
 
 FA = {
+    "boss_arrive_0": "آسمان با صدایی خشک پاره شد… و از شکاف، سایه‌ای عظیم پا به جهان گذاشت.", "boss_arrive_1": "ریاتسوی سنگین هوا را خفه کرد؛ همه‌ی ارواح لرزیدند.",
+    "boss_arrive_2": "غرشی از ورای ماه آمد. گارگانتا باز شد و شکارچی از تاریکی بیرون خزید.", "boss_arrive_3": "زمین زیر پایت ترک خورد؛ چیزی بزرگ بیدار شده است.",
+    "boss_arrive_4": "نسیم ایستاد. ماسکی سفید در دل سیاهی برق زد.", "boss_arrive_5": "ستاره‌ها خاموش شدند. نبردی که فراموش نمی‌شود شروع شد.",
+    "boss_ph_1": "🌑 فاز ۱ — آرامشِ پیش از طوفان", "boss_ph_2": "⚡ فاز ۲ — ریاتسو می‌لرزد؛ زمین ترک برمی‌دارد", "boss_ph_3": "🔥 فاز ۳ — خشم نهایی! (+۳۰٪ XP)",
+    "boss_combo": "🔗 کمبوی تیمی ×{n} — {p}٪ آسیب بیشتر!", "boss_combo_s": "🔗 کمبو ×{n}", "boss_feed": "📜 آخرین ضربه‌ها:",
+    "boss_hint": "🗡️ ضربه‌ها را همزمان و پشت‌سرهم بزنید تا کمبو بسازید؛ ضربه‌ی ویژه ✨ شانسی است.",
+    "boss_special": "ضربه‌ی ویژه!", "boss_final_blow": "☠️ ضربه‌ی نهایی!",
+    "boss_phase_alert_2": "⚠️ <b>{boss}</b> وارد <b>فاز ۲</b> شد! ریاتسویش می‌لرزد؛ همه با هم بزنید!",
+    "boss_phase_alert_3": "🔥 <b>{boss}</b> در <b>فاز ۳</b> است — خشم نهایی! آخرین فرصت؛ الان بزنید (+۳۰٪ XP)!",
     "boss_trait_armor": "🪨 پوست فولادین: ۲۰٪ از آسیب ضربه‌هایت کم می‌شود.",
     "boss_trait_regen": "🩸 بازسازی: با هر ضربه کمی از زخم‌هایش بسته می‌شود؛ همه با هم و سریع بزنید.",
     "boss_trait_decay": "🥀 هاله‌ی پوسیدگی: ضربه‌هایت ۱۰٪ ضعیف‌تر می‌شود.",
@@ -69,6 +78,15 @@ FA = {
 }
 
 EN = {
+    "boss_arrive_0": "The sky tore open with a dry crack… and a vast shadow stepped into the world.", "boss_arrive_1": "Heavy reiatsu choked the air; every spirit trembled.",
+    "boss_arrive_2": "A roar came from beyond the moon. The Garganta opened and a hunter crawled out of the dark.", "boss_arrive_3": "The ground cracked beneath your feet; something huge has awakened.",
+    "boss_arrive_4": "The breeze stopped. A white mask gleamed in the black.", "boss_arrive_5": "The stars went out. A battle no one will forget has begun.",
+    "boss_ph_1": "🌑 Phase 1 — the calm before the storm", "boss_ph_2": "⚡ Phase 2 — reiatsu trembles; the ground splits", "boss_ph_3": "🔥 Phase 3 — final fury! (+30% XP)",
+    "boss_combo": "🔗 Team combo ×{n} — {p}% more damage!", "boss_combo_s": "🔗 Combo ×{n}", "boss_feed": "📜 Latest strikes:",
+    "boss_hint": "🗡️ Strike together and back to back to build combos; a ✨ signature strike is pure luck.",
+    "boss_special": "Signature strike!", "boss_final_blow": "☠️ Final blow!",
+    "boss_phase_alert_2": "⚠️ <b>{boss}</b> enters <b>Phase 2</b>! Its reiatsu trembles; strike together!",
+    "boss_phase_alert_3": "🔥 <b>{boss}</b> is in <b>Phase 3</b> — final fury! Last chance; strike now (+30% XP)!",
     "boss_trait_armor": "🪨 Steel hide: your strikes lose 20% of their damage.",
     "boss_trait_regen": "🩸 Regeneration: it mends a little with every hit, so strike together and fast.",
     "boss_trait_decay": "🥀 Aura of decay: your strikes are 10% weaker.",
