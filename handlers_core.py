@@ -30,8 +30,8 @@ from ui import INPUTS, REGISTRY, Ctx, Out, markup
 
 log = logging.getLogger("senka.core")
 router = Router()
-GROUP_LANG = re.compile(r"^(?:زبان گروه|group language|group lang)\s+(فارسی|fa|persian|english|en|انگلیسی|دوزبانه|both|bilingual)$")
-GL_MAP = {"فارسی": "fa", "fa": "fa", "persian": "fa", "english": "en", "en": "en", "انگلیسی": "en", "دوزبانه": "both", "both": "both", "bilingual": "both"}
+GROUP_LANG = re.compile(r"^(?:زبان گروه|group language|group lang)\s+(فارسی|fa|persian|english|en|انگلیسی)$")
+GL_MAP = {"فارسی": "fa", "fa": "fa", "persian": "fa", "english": "en", "en": "en", "انگلیسی": "en"}
 
 
 async def make_ctx(user, chat, bot, message=None, cb=None):

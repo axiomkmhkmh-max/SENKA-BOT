@@ -22,7 +22,7 @@ _NAMES = [
     ("Royal Guard Captain", "فرمانده‌ی گارد سلطنتی", None), ("Yamamoto", "یاماموتو", "burn"),
     ("Dangai Devourer", "بلعنده‌ی دنگای", None), ("Origin Echo", "پژواک آغاز", None),
     ("Jugram", "جوگرام", "armor"), ("Yhwach", "یوهابخ", "dodge"), ("Reishi Tyrant", "ستمگر ریشی", None),
-    ("Soul King's Shade", "سایه‌ی Soul King", None), ("Calamity Apex", "اوج فاجعه", "enrage"),
+    ("Soul King's Shade", "سایه‌ی شاه ارواح", None), ("Calamity Apex", "اوج فاجعه", "enrage"),
 ]
 
 # one-line epithets shown under each boss name: name_en -> (fa, en)

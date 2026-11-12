@@ -17,7 +17,7 @@ MISSIONS = {
 }
 RARITY_MULT = {"Common": 1.0, "Uncommon": 1.15, "Rare": 1.35, "Epic": 1.7, "Legendary": 2.2, "Mythic": 3.0}
 ROLE_NOTE = {  # role -> (fa, en)
-    "attacker": ("سکه‌ی بیشتر", "bonus coins"), "caster": ("XP بیشتر", "bonus XP"),
+    "attacker": ("سکه‌ی بیشتر", "bonus coins"), "caster": ("تجربه بیشتر", "bonus XP"),
     "tank": ("یک ماده‌ی کمیاب", "a rare material"), "support": ("انرژی برمی‌گرداند", "restores energy"),
 }
 

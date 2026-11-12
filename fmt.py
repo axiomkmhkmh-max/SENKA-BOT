@@ -3,7 +3,7 @@ from data_crafting import PET_ROLES, race_title_ev
 from data_items import ALL
 from data_lore import spirit_line
 from data_races import LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
-from data_weapons import ELEMENT_FA, RARITY_ICON, TYPE_FA, skill_text
+from data_weapons import ELEMENT_FA, RARITY_FA, RARITY_ICON, TYPE_FA, skill_text
 from i18n import esc, fnum
 
 
@@ -14,6 +14,16 @@ def nm(item_id, lang: str) -> str:
     return f"{RARITY_ICON[it['rarity']]} {esc(it['name_fa' if lang == 'fa' else 'name_en'])}"
 
 
+def rarity_name(rarity: str, lang: str) -> str:
+    return RARITY_FA.get(rarity, rarity) if lang == "fa" else rarity
+
+
+def pctf(value, lang: str, spec: str = "g") -> str:
+    """A percentage in one script only: Persian digits and ٪ for fa, Latin digits and % for en."""
+    s = format(value, spec)
+    return s.translate(str.maketrans("0123456789.-", "۰۱۲۳۴۵۶۷۸۹٫-")) + "٪" if lang == "fa" else s + "%"
+
+
 def race_name(race: str, lang: str) -> str:
     return RACES[race]["name_fa" if lang == "fa" else "name_en"]
 
@@ -22,13 +32,13 @@ def item_card(ctx, item_id: str, qty: int = None) -> str:
     it = ALL[item_id]
     lang = ctx.lang
     lines = [f"<b>{nm(item_id, lang)}</b>" + (f"  ×{fnum(qty, lang)}" if qty else "")]
-    lines.append(f"{ctx.t('lbl_rarity')}: {it['rarity']} | {ctx.t('cat_' + it['category'])}")
+    lines.append(f"{ctx.t('lbl_rarity')}: {rarity_name(it['rarity'], lang)} | {ctx.t('cat_' + it['category'])}")
     if it["category"] == "weapon":
         el = ELEMENT_FA[it["element"]] if lang == "fa" else it["element"].title()
         ty = TYPE_FA[it["weapon_type"]] if lang == "fa" else it["weapon_type"].title()
         if it.get("meaning_en"):
             lines.append("「" + esc(it["meaning_fa" if lang == "fa" else "meaning_en"]) + "」")
-        lines.append(f"⚔️ {fnum(it['attack'], lang)} | 🎯 {it['crit'] * 100:.1f}% | {el} | {ty}")
+        lines.append(f"⚔️ {fnum(it['attack'], lang)} | 🎯 {pctf(it['crit'] * 100, lang, '.1f')} | {el} | {ty}")
         lines.append("<i>" + esc(spirit_line(it, lang)) + "</i>")
         for s in it["skills"]:
             lines.append("✦ " + skill_text(s, lang))

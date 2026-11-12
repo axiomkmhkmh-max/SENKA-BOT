@@ -558,7 +558,7 @@ async def pet_activate_cb(ctx, arg):
 
 
 # ---- broadcast helpers (used by the scheduler) ---------------------------------------------------------------------------------------------------------------
-def boss_kb(sid: str, mode: str = "both"):
+def boss_kb(sid: str, mode: str = "fa"):
     return InlineKeyboardMarkup(inline_keyboard=[[make_button("⚔️ " + gl(mode, "حمله", "Attack"), make_cb("bh", sid, 0), "bh")]])
 
 

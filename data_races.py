@@ -69,7 +69,7 @@ LOCATIONS = {
     "dangai": _l("dangai", "دنگای", "Dangai", 45, [("جریان بی‌قرار", "Restless Current"), ("نگهبان شکاف", "Rift Warden"), ("کوملا", "Kumo Brood")]),
     "wandenreich": _l("wandenreich", "وندن‌رایش", "Wandenreich", 55, [("سرباز مقدس", "Holy Soldier"), ("کمان‌دار", "Bow Adept"), ("ستاره‌دار", "Star Knight")], "quincy"),
     "royal_palace": _l("royal_palace", "کاخ سلطنتی", "Royal Palace", 70, [("نگهبان سلطنتی", "Royal Guard"), ("ارواح باستان", "Ancient Wraith"), ("قاضی سایه", "Shadow Judge")]),
-    "soul_king": _l("soul_king", "قلمرو Soul King", "Soul King Realm", 90, [("بازتاب بی‌پایان", "Endless Reflection"), ("نگهبان خلأ", "Void Keeper"), ("پژواک آغاز", "Echo of Origin")]),
+    "soul_king": _l("soul_king", "قلمرو شاه ارواح", "Soul King Realm", 90, [("بازتاب بی‌پایان", "Endless Reflection"), ("نگهبان خلأ", "Void Keeper"), ("پژواک آغاز", "Echo of Origin")]),
     "valley_screams": _l("valley_screams", "دره فریادها", "Valley of Screams", 100, [("فریاد بی‌صدا", "Silent Scream"), ("روح خسته", "Wearied Shade"), ("جنگجوی فراموش‌شده", "Forgotten Warrior")]),
 }
 

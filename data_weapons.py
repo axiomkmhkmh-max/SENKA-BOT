@@ -1,5 +1,6 @@
 """110+ zanpakuto/blades. Each has a distinct on-hit skill (not just stats)."""
 RARITIES = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
+RARITY_FA = {"Common": "معمولی", "Uncommon": "غیرمعمول", "Rare": "کمیاب", "Epic": "حماسی", "Legendary": "افسانه‌ای", "Mythic": "اسطوره‌ای"}
 RARITY_ICON = {"Common": "⚪", "Uncommon": "🟢", "Rare": "🔵", "Epic": "🟣", "Legendary": "🟠", "Mythic": "🔴"}
 ELEMENTS = ["fire", "ice", "lightning", "earth", "water", "poison", "shadow", "light"]
 ELEMENT_FA = {"fire": "آتش", "ice": "یخ", "lightning": "برق", "earth": "خاک", "water": "آب", "poison": "سم", "shadow": "سایه", "light": "نور"}
@@ -17,10 +18,10 @@ SKILLS = {
     "shock": ("{p}٪ شانس شوک (+۱۵٪ آسیب دریافتی)", "{p}% chance to shock (+15% damage taken)"),
     "freeze": ("{p}٪ شانس انجماد (دشمن یک اکشن را از دست می‌دهد)", "{p}% chance to freeze (target loses an action)"),
     "stun": ("{p}٪ شانس استان یک نوبتی", "{p}% chance to stun for one turn"),
-    "lifesteal": ("{p}٪ از آسیب به HP تبدیل می‌شود", "{p}% of damage returns as HP"),
+    "lifesteal": ("{p}٪ از آسیب به جان تبدیل می‌شود", "{p}% of damage returns as HP"),
     "pierce": ("{p}٪ دفاع هدف نادیده گرفته می‌شود", "ignores {p}% of target defense"),
     "double": ("{p}٪ شانس ضربه‌ی دوم با نصف قدرت", "{p}% chance of a second strike at half power"),
-    "execute": ("+{p}٪ آسیب به هدف زیر ۳۰٪ HP", "+{p}% damage to targets below 30% HP"),
+    "execute": ("+{p}٪ آسیب به هدف زیر ۳۰٪ جان", "+{p}% damage to targets below 30% HP"),
     "drain": ("{p}٪ ریاتسو حداکثر هدف را می‌دزدد", "steals {p}% of target max reiatsu"),
     "counter": ("هنگام دفاع، {p}٪ آسیب را بازمی‌گرداند", "reflects {p}% damage while guarding"),
     "surge": ("+{p}٪ ضریب کریتیکال", "+{p}% critical multiplier"),

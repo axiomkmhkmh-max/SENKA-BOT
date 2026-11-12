@@ -9,7 +9,7 @@ from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
 from data_artifacts import ART_BY_ID, art_bonus_text, art_name
 from data_items import ALL
 from database import col, game_settings
-from fmt import nm
+from fmt import nm, rarity_name
 from i18n import esc, fnum, t
 from render import both
 from security import allow, normalize_text
@@ -207,7 +207,7 @@ def _top(L: str, doc: dict) -> str:
         a = ART_BY_ID[doc["ref"]]
         parts.append(t(L, "dr_art", name=art_name(doc["ref"], L), bonus=art_bonus_text(doc["ref"]), lore=_lore(a, L)))
     else:
-        parts.append(t(L, "dr_item", name=nm(doc["ref"], L), rar=ALL[doc["ref"]]["rarity"]))
+        parts.append(t(L, "dr_item", name=nm(doc["ref"], L), rar=rarity_name(ALL[doc["ref"]]["rarity"], L)))
     who = esc(doc["dropper_name"]) if doc.get("dropper") and doc.get("dropper_name") else t(L, "dr_gate")
     parts.append(t(L, "dr_by", name=who))
     return "\n".join(parts)

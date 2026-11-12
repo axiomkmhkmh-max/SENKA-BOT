@@ -6,7 +6,7 @@ from data_items import ALL
 from data_races import LEVEL_GATES, RACES
 from database import game_settings
 from effects import active_buffs, passive_mods, relic_slots
-from fmt import item_card, nm, title_of
+from fmt import item_card, nm, pctf, title_of
 from i18n import esc, fnum
 from service_economy import PETS, inv_get
 from service_effects import (craft, craft_coins, evolve, set_active_pet, unequip_cosmetic, unequip_relic)
@@ -154,8 +154,8 @@ async def relics_panel(ctx, arg):
         if cs.get(slot):
             rows.append([("➖ " + _plain(nm(cs[slot], L)), "ucos", slot, False, "danger")])
     pm = passive_mods(ch, ALL, st)
-    bits = [f"+{pm['xp_pct']:g}% XP" if pm["xp_pct"] else "", f"+{pm['coin_pct']:g}% 🪙" if pm["coin_pct"] else "",
-            f"+{pm['drop_pct']:g}% 🎁" if pm["drop_pct"] else "", f"🏅 {pm['fame']}" if pm["fame"] else ""]
+    bits = [f"+{pctf(pm['xp_pct'], L)} {ctx.t('xp_word')}" if pm["xp_pct"] else "", f"+{pctf(pm['coin_pct'], L)} 🪙" if pm["coin_pct"] else "",
+            f"+{pctf(pm['drop_pct'], L)} 🎁" if pm["drop_pct"] else "", f"🏅 {pm['fame']}" if pm["fame"] else ""]
     bits = [b for b in bits if b]
     if bits:
         lines.append(" · ".join(bits))

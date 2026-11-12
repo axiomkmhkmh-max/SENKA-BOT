@@ -123,7 +123,7 @@ async def dispatch_pick(ctx, arg):
     for cid, copies in owned[page * PER:(page + 1) * PER]:
         c = CHAR_BY_ID[cid]
         lvl, star = copies_to_level_star(copies)
-        rows.append([(f"{RARITY_ICON[c['rarity']]}{ROLE_ICON[c['role']]} {c['name_fa' if L == 'fa' else 'name_en']} Lv{lvl}{'★' * star}", "dss", f"{mid}.{cid}")])
+        rows.append([(f"{RARITY_ICON[c['rarity']]}{ROLE_ICON[c['role']]} {c['name_fa' if L == 'fa' else 'name_en']} {ctx.t('lbl_level')} {fnum(lvl, L)}{'★' * star}", "dss", f"{mid}.{cid}")])
     pg = []
     if page > 0:
         pg.append(("◀️", "dsm", f"{mid}.{page - 1}", False, "none"))
@@ -157,7 +157,7 @@ async def dispatch_collect(ctx, arg):
         c = CHAR_BY_ID[r["cid"]]
         extra = (" · " + nm(r["item"], L)) if r["item"] else ""
         extra += (" · ⚡" + fnum(r["energy"], L)) if r["energy"] else ""
-        lines.append(f"{ROLE_ICON[r['role']]} <b>{esc(c['name_fa' if L == 'fa' else 'name_en'])}</b>: +{fnum(r['coins'], L)} 🪙 · +{fnum(r['xp'], L)} XP{extra}")
+        lines.append(f"{ROLE_ICON[r['role']]} <b>{esc(c['name_fa' if L == 'fa' else 'name_en'])}</b>: +{fnum(r['coins'], L)} 🪙 · +{fnum(r['xp'], L)} {ctx.t('xp_word')}{extra}")
     return Out(head(ctx, "ttl_dsp") + ctx.t("ds_done") + "\n\n" + "\n".join(lines), [[(ctx.t("b_dsend"), "dsm", "")], nav(ctx, ("dsp", ""))])
 
 
@@ -193,7 +193,7 @@ async def wheel_do(ctx, arg):
     if r["coins"]:
         lines.append(f"+{fnum(r['coins'], L)} 🪙")
     if r["xp"]:
-        lines.append(f"+{fnum(r['xp'], L)} XP")
+        lines.append(f"+{fnum(r['xp'], L)} {ctx.t('xp_word')}")
     if r["energy"]:
         lines.append(f"+{fnum(r['energy'], L)} ⚡")
     if r["item"]:
@@ -277,7 +277,7 @@ async def inner_pick(ctx, arg):
     if r["bond"]:
         lines.append(ctx.t("inr_bond", n=fnum(r["bond"], L)))
     if r["xp"]:
-        lines.append(f"+{fnum(r['xp'], L)} XP")
+        lines.append(f"+{fnum(r['xp'], L)} {ctx.t('xp_word')}")
     if r["buff"]:
         key, pct, minutes = r["buff"]
         lines.append(ctx.t("inr_buff", key=ctx.t("buff_" + key), pct=fnum(round(pct * 100), L), m=fnum(minutes, L)))

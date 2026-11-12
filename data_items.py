@@ -42,13 +42,21 @@ STATS = ["zanjutsu", "kido", "hakuda", "hoho", "reiatsu"]
 
 
 _STAT_EN = {"dmg": "damage", "def": "defense", "crit": "crit chance", "xp": "XP", "drop": "drop rate"}
-_STAT_FA = {"dmg": "آسیب", "def": "دفاع", "crit": "شانس کریتیکال", "xp": "XP", "drop": "نرخ دراپ"}
+_RSTAT_FA = {"zanjutsu": "زنجوتسو", "kido": "کیدو", "hakuda": "هاکودا", "hoho": "هوهو", "reiatsu": "ریاتسو"}
+DIFF_FA = {"normal": "عادی", "hard": "سخت", "nightmare": "کابوس", "abyss": "ورطه", "legendary": "افسانه‌ای"}
+# Persian spellings of the named Hadō / Bakudō spells, so Persian card names carry no Latin letters
+KN_FA = {"Sai": "سای", "Hainawa": "هاینوا", "Geki": "گکی", "Shitotsu Sansen": "شیتوتسو سانسن", "Tsuribōshi": "تسوریبوشی",
+         "Enkōsen": "انکوسن", "Rikujōkōrō": "ریکوجوکورو", "Hyapporankan": "هیاپورانکان", "Sajō Sabaku": "ساجو ساباکو",
+         "Tozanshō": "توزانشو", "Danku": "دانکو", "Kin": "کین", "Shō": "شو", "Byakurai": "بیاکورای", "Shakkahō": "شاکاهو",
+         "Sōkatsui": "سوکاتسوی", "Tenran": "تن‌ران", "Raikōhō": "رایکوهو", "Sōren Sōkatsui": "سورن سوکاتسوی",
+         "Hiryūgekizoku Shinten Raihō": "هیریوگکیزوکو شینتن رایهو", "Kurohitsugi": "کوروهیتسوگی"}
+_STAT_FA = {"dmg": "آسیب", "def": "دفاع", "crit": "شانس کریتیکال", "xp": "تجربه", "drop": "نرخ دراپ"}
 
 
 def _book_desc(e):
     t = e["type"]
     if t == "xp":
-        return f"Grants {e['amount']} XP.", f"{e['amount']} XP می‌دهد."
+        return f"Grants {e['amount']} XP.", f"{e['amount']} تجربه می‌دهد."
     if t == "buff":
         p = f"{e['pct'] * 100:g}"
         return (f"+{p}% {_STAT_EN[e['stat']]} for {e['minutes']} min.", f"+{p}٪ {_STAT_FA[e['stat']]} تا {e['minutes']} دقیقه.")
@@ -67,6 +75,7 @@ def _rarity(i, n):
 # those kinds of item so names stay believable. Only names change; item ids, stats and effects never do.
 _NOT_FOR = {k: {"Garganta", "Dangai", "Senkaimon", "Gillian", "Vasto Lorde"} for k in ("potion", "armor", "ring", "necklace", "book")}
 _ROMAN = ["", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+_ROMAN_FA = ["", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۱۰", "۱۱", "۱۲"]  # Persian names never carry Latin numerals
 _SEEN: set = set()
 
 
@@ -83,13 +92,15 @@ def _name(cat, i):
     if cat not in NOUNS:  # kido cards etc. rename themselves later; they must not use up names
         return f"{adjs[a][0]} {nouns[n][0]}", f"{nouns[n][1]} {adjs[a][1]}"
     while True:
-        suf = "" if tier == 0 else " " + _ROMAN[min(tier, len(_ROMAN) - 1)]
+        k = min(tier, len(_ROMAN) - 1)
+        suf = "" if tier == 0 else " " + _ROMAN[k]
+        suf_fa = "" if tier == 0 else " " + _ROMAN_FA[k]
         en = f"{adjs[a][0]} {nouns[n][0]}{suf}"
         if en not in _SEEN or tier >= len(_ROMAN) - 1:
             break
         tier += 1
     _SEEN.add(en)
-    return en, f"{nouns[n][1]} {adjs[a][1]}{suf}"
+    return en, f"{nouns[n][1]} {adjs[a][1]}{suf_fa}"
 
 
 def _build():
@@ -108,7 +119,7 @@ def _build():
                 num = (i % 99) + 1
                 sp = KN.get((branch, num))
                 en = f"{KIDO_NAMES[branch][0]} {num}{': ' + sp if sp else ''} Card"
-                fa = f"کارت {KIDO_NAMES[branch][1]} {num}{' (' + sp + ')' if sp else ''}"
+                fa = f"کارت {KIDO_NAMES[branch][1]} {num}{' (' + KN_FA[sp] + ')' if sp else ''}"
                 rar = RARITIES[min(5, num // 20)]
                 tier = RARITIES.index(rar)
                 eff = {"type": "kido", "branch": branch, "num": num}
@@ -116,7 +127,7 @@ def _build():
             elif cat == "potion":
                 if i % 2 == 0:
                     eff = {"type": "hp", "pct": 15 + tier * 10}
-                    desc_en, desc_fa = f"Restores {eff['pct']}% HP.", f"{eff['pct']}٪ HP را بازمی‌گرداند."
+                    desc_en, desc_fa = f"Restores {eff['pct']}% HP.", f"{eff['pct']}٪ جان را بازمی‌گرداند."
                 else:
                     eff = {"type": "reiatsu", "pct": 15 + tier * 10}
                     desc_en, desc_fa = f"Restores {eff['pct']}% reiatsu.", f"{eff['pct']}٪ ریاتسو را بازمی‌گرداند."
@@ -128,11 +139,11 @@ def _build():
                 desc_en, desc_fa = "Hatches a companion.", "یک همراه از آن بیرون می‌آید."
             elif cat == "key":
                 d, df = DUNGEON_IDS[i // 5], DIFFS[i % 5]
-                en, fa = f"{DUNGEONS[d]['en']} Key ({df})", f"کلید {DUNGEONS[d]['fa']} ({df})"
+                en, fa = f"{DUNGEONS[d]['en']} Key ({df})", f"کلید {DUNGEONS[d]['fa']} ({DIFF_FA[df]})"
                 eff = {"type": "key", "dungeon": d, "diff": df}
                 rar = RARITIES[min(5, 1 + i % 5)]
                 tier = RARITIES.index(rar)
-                desc_en, desc_fa = f"Opens {DUNGEONS[d]['en']} on {df} difficulty.", f"ورود به {DUNGEONS[d]['fa']} در سختی {df}."
+                desc_en, desc_fa = f"Opens {DUNGEONS[d]['en']} on {df} difficulty.", f"ورود به {DUNGEONS[d]['fa']} در سختی {DIFF_FA[df]}."
             elif cat == "armor":
                 stats = {"def": 4 + tier * 9 + (i % 6) * 2}
                 desc_en, desc_fa = f"+{stats['def']} defense.", f"+{stats['def']} دفاع."
@@ -141,7 +152,7 @@ def _build():
                 stats = {"stat": st, "bonus": 1 + tier * 2 + (i % 3)}
                 if i % 7 == 0:
                     stats["luck"] = 1 + tier
-                desc_en, desc_fa = f"+{stats['bonus']} {st}.", f"+{stats['bonus']} {st}."
+                desc_en, desc_fa = f"+{stats['bonus']} {st}.", f"+{stats['bonus']} {_RSTAT_FA[st]}."
             elif cat == "material":
                 kind = MAT_KINDS[(i // 16) % len(MAT_KINDS)]
                 eff = {"type": "mat", "kind": kind, "group": MAT_GROUP[kind]}

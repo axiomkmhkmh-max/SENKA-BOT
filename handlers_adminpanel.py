@@ -207,7 +207,7 @@ async def users_list(ctx, arg):
         docs = await col("characters").find({}, {"user_id": 1, "name": 1, "level": 1}).sort("coins", -1).limit(10).to_list(10)
     else:
         docs = await col("characters").find({}, {"user_id": 1, "name": 1, "level": 1}).sort("level", -1).limit(10).to_list(10)
-    rows = chunk([(f"{d.get('name', '?')[:14]} · Lv{d.get('level', 1)}", "adb", f"v.{d['user_id']}") for d in docs], 2)
+    rows = chunk([(f"{d.get('name', '?')[:14]} · {T(ctx, 'سطح ', 'Lv')}{d.get('level', 1)}", "adb", f"v.{d['user_id']}") for d in docs], 2)
     rows.append(nav(ctx, ("adu", "")))
     return Out(head(ctx, "ttl_adm") + T(ctx, "یک کاربر انتخاب کن:", "Pick a user:"), rows)
 
@@ -239,7 +239,7 @@ async def _user_card(ctx, tid):
         rows.append([(T(ctx, "✅ آنبن", "✅ Unban") if u.get("banned") else T(ctx, "🚫 بن", "🚫 Ban"), "adb", f"{'ub' if u.get('banned') else 'bn'}.{tid}"),
                      (T(ctx, "⚠️ اخطار", "⚠️ Warn"), "adb", f"wn.{tid}")])
     if lvl >= 60 and ch:
-        rows.append([("+10k 🪙", "adb", f"c1.{tid}"), ("+100k 🪙", "adb", f"c2.{tid}"), ("+1k XP", "adb", f"x1.{tid}")])
+        rows.append([(T(ctx, "+۱۰ هزار 🪙", "+10k 🪙"), "adb", f"c1.{tid}"), (T(ctx, "+۱۰۰ هزار 🪙", "+100k 🪙"), "adb", f"c2.{tid}"), (T(ctx, "+۱ هزار تجربه", "+1k XP"), "adb", f"x1.{tid}")])
     rows.append(nav(ctx, ("adu", "")))
     return Out(head(ctx, "ttl_adm") + body, rows)
 

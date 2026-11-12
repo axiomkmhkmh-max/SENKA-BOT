@@ -238,7 +238,7 @@ async def npc_sell(uid: int, item_id: str, qty: int = 1):
     st = await game_settings()
     pay = int(it["sell_price"] * qty * float(st["coin_rate"]))
     await add_coins(uid, max(1, pay), "npc_sell")
-    log_event("shop", uid, f"فروش به NPC: {iname(item_id, 'fa')} ×{qty} → {max(1, pay):,} 🪙", item=item_id)
+    log_event("shop", uid, f"فروش به فروشگاه: {iname(item_id, 'fa')} ×{qty} → {max(1, pay):,} 🪙", item=item_id)
     return max(1, pay)
 
 

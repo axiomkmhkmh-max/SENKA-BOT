@@ -7,7 +7,7 @@ from data_items import ALL
 from data_lore import CHAR_EPI
 from data_weapons import RARITIES, RARITY_ICON
 from database import col, game_settings
-from fmt import item_card, nm
+from fmt import item_card, nm, pctf
 from i18n import esc, fnum
 from service_economy import (FORGE_CHANCE, auction_bid, equip, forge, forge_cost, gacha_doc, gacha_pull, inv_get, market_buy, market_cancel, market_create,
                              npc_sell, price_mult, settle_listings, shop_buy, shop_stock, slots_used, suggested_price, toggle_party, unequip,
@@ -314,7 +314,7 @@ async def gacha(ctx, arg):
     L = ctx.lang
     st = await game_settings()
     g = await gacha_doc(ctx.uid)
-    rates = " | ".join(f"{RARITY_ICON[r]} {p:g}%" for r, p in GACHA_RATES.items())
+    rates = " | ".join(f"{RARITY_ICON[r]} {pctf(p, L)}" for r, p in GACHA_RATES.items())
     body = ctx.t("gch_body", cost=fnum(st["gacha_cost"], L), rates=rates, pr=fnum(int(st["gacha_pity_rare"]) - g["since_rare"], L),
                  pl=fnum(int(st["gacha_pity_legendary"]) - g["since_leg"], L), total=fnum(g["total"], L), owned=fnum(len(g["chars"]), L), allc=fnum(len(CHARS), L))
     rows = [[(ctx.t("b_pull1") + f" ({fnum(st['gacha_cost'], L)})", "gp", "1")],
@@ -359,8 +359,8 @@ async def party(ctx, arg):
         c = CHAR_BY_ID[cid]
         lvl, star = copies_to_level_star(copies)
         on = "✅ " if cid in ch.get("party", []) else ""
-        bonus = ", ".join(f"{k}+{v * 100:.1f}%" for k, v in char_bonus(cid, copies).items())
-        rows.append([(f"{on}{RARITY_ICON[c['rarity']]} {c['name_fa' if L == 'fa' else 'name_en']} Lv{lvl}{'★' * star} ({bonus})", "pt", f"{cid}.{page}")])
+        bonus = ", ".join(f"{ctx.t('bn_' + k)} +{pctf(v * 100, L, '.1f')}" for k, v in char_bonus(cid, copies).items())
+        rows.append([(f"{on}{RARITY_ICON[c['rarity']]} {c['name_fa' if L == 'fa' else 'name_en']} {ctx.t('lbl_level')} {fnum(lvl, L)}{'★' * star} ({bonus})", "pt", f"{cid}.{page}")])
     pg = []
     if page > 0:
         pg.append(("◀️", "pty", str(page - 1)))
