@@ -272,7 +272,7 @@ async def pve_settle(doc: dict):
         ch, lv, got = await add_xp(uid, xp, "pve")
         # independent writes: run together instead of one after another
         await asyncio.gather(add_coins(uid, coins, "pve"),
-                             col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1, **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
+                             col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1, **({"zanpakuto.mastery": 1} if (ch0.get("zanpakuto") or {}).get("shikai") and int((ch0.get("zanpakuto") or {}).get("mastery", 0)) < int(gs.get("znp_mastery_cap", 1000)) else {}), **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
                              bump_quest(uid, "battle_win", 1))
         out.update(xp=got, coins=coins, levels=lv)
         from service_worldstate import on_action, territory_income

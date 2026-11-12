@@ -56,3 +56,7 @@ New collection `dispatches` (TTL on claimed docs); new character fields `tower, 
 * **Log channel** (`service_log.py`): every action is queued, stored in `action_logs` (14-day TTL) and posted in batches to `LOG_CHANNEL` (default `@senkalog`). **Add the bot as an admin of the channel** with "post messages". Pure navigation clicks are skipped unless `set log_nav on`. `set log_enabled off` stops it.
 * **Update notice** (`service_notify.py`): after a deploy whose code differs (hash of all `.py` files), every player gets one message in their language asking for a `/start` (with a Start button). Resumable, ~16 msg/s, skips banned/blocked users. Edit `NEWS_FA/NEWS_EN` in that file before deploying; `NOTIFY_UPDATES=0` turns it off.
 * New live keys (see `config.GAME_DEFAULTS`): `drop_*`, `art_*`, `log_*`. New collections: `drops`, `artifacts`, `art_listings`, `action_logs`; new character field `artifact` (no migration needed).
+
+
+## Direction: gameplay-first (v5)
+SENKA is a combat/progression/competition MMORPG. Story mode is **retired**: the Story button, `story` word and `/story` command are gone, and the old panel only shows a short notice. Saved `story_progress` documents are untouched. NPC-style menus stay short and functional. New work is judged by: better combat, character growth, player competition, loot/collection, group play, or a reason to keep playing.

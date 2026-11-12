@@ -26,7 +26,7 @@ TEXT = {
  "reg_ask_race": "Where do you come from? Your race shapes your road (⚔️ 🔮 🛡️ 💨 ✨):",
  "reg_ask_stats": "Shape your raw reiatsu. Points left: <b>{pts}</b>", "reg_need_points": "Your reiatsu is still unshaped. Spend all {pts} remaining points first.",
  "reg_ask_zanp": "Three blades call to you. Take one; you will learn its soul on the road:",
- "reg_done": "🌸 <b>{name}</b> the {race} steps into the world of souls.\nFirst blade: {weapon}\n3 healing tonics wait in your bag.\nTap Home. Your story begins here.",
+ "reg_done": "🌸 <b>{name}</b> the {race} steps into the world of souls.\nFirst blade: {weapon}\n3 healing tonics wait in your bag.\nTap Home and start hunting.",
  "race_p_shinigami": "Guardian of souls · +5% damage, balanced fighter", "race_p_quincy": "Hollow hunter · arrows break 15% of defense", "race_p_hollow": "The hungry soul · +10% max HP, raw power",
  "race_p_arrancar": "The unmasked Hollow · +8% defense, heavy hitter", "race_p_fullbringer": "Soul of objects · +5% crit chance", "race_p_human": "Weak, but unbreakable · +10% XP", "race_p_visored": "The border between two worlds · (unlocks later)",
  "stat_zanjutsu": "Zanjutsu", "stat_kido": "Kidō", "stat_hakuda": "Hakuda", "stat_hoho": "Hohō", "stat_reiatsu": "Reiatsu",
@@ -319,3 +319,4 @@ TEXT.update({
 })
 
 TEXT.update({'a_kaido':'💠 Kaidō: Heal', 'race_path_body':'Current stage: <b>{stage}</b>\nLevel: {level} | hunts/victories: {wins}\nEach stage requires level and real progress.'})
+TEXT.update({'story_retired':'📜 Story mode has been retired. SENKA is now all about combat, progression and competition: hunt, climb the Soul Tower, duel, raid bosses and rank up. Your saved story progress is kept safely.','story_retired_short':'Story mode is retired. Your saved progress is kept.'})

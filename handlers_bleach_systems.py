@@ -1,4 +1,4 @@
-"""Player-facing race evolution, story arcs, faction enlistment and Kidō panels."""
+"""Player-facing race evolution, faction enlistment and Kidō panels (Story mode is retired; its saved data is kept)."""
 from ui import Out, action, head, nav
 from i18n import fnum
 from service_bleach_systems import (RACE_PATHS, STORY_ARCS, KIDO, FACTIONS, race_state, evolve,
@@ -11,7 +11,6 @@ async def bleach_hub(ctx, arg):
     rows = [
         [(ctx.t("m_znp"), "znp", "")],
         [(ctx.t("m_rpath"), "rpath", "")],
-        [(ctx.t("m_story"), "storyp", "")],
         [(ctx.t("m_kido"), "kidop", "")],
         [(ctx.t("m_faction"), "fctp", "")],
         nav(ctx),
@@ -41,36 +40,17 @@ async def race_evolve_action(ctx,arg):
     return Out(ctx.t("race_path_up",stage=data["current"][3]),[nav(ctx,("rpath",""))])
 
 @action("storyp")
-async def story_panel(ctx,arg):
-    s=await story_state(ctx.uid)
-    if not s:return Out(ctx.t("not_registered"))
-    rows=[]; lines=[ctx.t("story_intro"),""]
-    if s["active"]:
-        arc=s["active"]; lines.append(ctx.t("story_active",arc=arc["fa"] if ctx.lang=="fa" else arc["en"],step=s["doc"].get("step",0)+1))
-        rows.append([(ctx.t("b_story_advance"),"stadv","")])
-    for a in s["available"][:8]:
-        label=a["fa"] if ctx.lang=="fa" else a["en"]
-        rows.append([(label,"ststart",a["id"])])
-    completed=s["doc"].get("completed",[])
-    lines.append(ctx.t("story_completed",count=len(completed)))
-    rows.append(nav(ctx))
-    return Out(head(ctx,"ttl_story")+"\n".join(lines),rows)
+async def story_panel(ctx, arg):
+    # Story mode is retired: saved progress stays in `story_progress`, nothing is shown or granted any more.
+    return Out(head(ctx, "ttl_story") + ctx.t("story_retired"), [nav(ctx)])
 
 @action("ststart")
-async def story_start_action(ctx,arg):
-    status,s=await start_story(ctx.uid,arg)
-    if status!="ok":return Out(alert=ctx.t("story_locked"))
-    arc=s["active"]; label=arc["fa"] if ctx.lang=="fa" else arc["en"]
-    return Out(ctx.t("story_started",arc=label),[nav(ctx,("storyp",""))])
+async def story_start_action(ctx, arg):
+    return Out(alert=ctx.t("story_retired_short"))
 
 @action("stadv")
-async def story_advance_action(ctx,arg):
-    status,s=await advance_story(ctx.uid)
-    if status=="none":return Out(alert=ctx.t("story_none"))
-    if status=="need_win":return Out(ctx.t("story_need_win"),[nav(ctx,("storyp",""))])
-    if status=="complete":return Out(ctx.t("story_complete"),[nav(ctx,("storyp",""))])
-    if status=="step":return Out(ctx.t("story_step",step=s["doc"].get("step",0)+1),[nav(ctx,("storyp",""))])
-    return Out(alert=ctx.t("error"))
+async def story_advance_action(ctx, arg):
+    return Out(alert=ctx.t("story_retired_short"))
 
 @action("kidop")
 async def kido_panel(ctx,arg):
