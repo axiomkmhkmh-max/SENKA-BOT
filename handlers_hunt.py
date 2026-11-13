@@ -106,10 +106,11 @@ async def solo_vote(ctx, arg):
 
 # ---- group side ------------------------------------------------------------------------------
 
-def _group_text(lang, chase, names, votes, seconds_left):
+def _group_text(lang, chase, names, votes, seconds_left, extra=""):
     hint = DIR_LABEL[chase["hint"]][0 if lang == "fa" else 1]
     voters = len(votes)
-    return (f"👻 <b>هالوی سرگردان در حال فرار است</b>\n🌫 ردپا: <b>{hint}</b>\n"
+    pre = (extra + "\n\n") if extra else ""
+    return pre + (f"👻 <b>هالوی سرگردان در حال فرار است</b>\n🌫 ردپا: <b>{hint}</b>\n"
             f"🏁 پیشرفت: {chase['round']}/{E.CATCH_AT}  |  💚 جان: {chase['stamina']}\n"
             f"🗳 رأی‌ها: {voters}  |  ⏳ {max(0, seconds_left)} ثانیه\n"
             f"ریپلای کن: چپ / وسط / راست") if lang == "fa" else (
@@ -133,11 +134,13 @@ async def group_hook(message, n: str) -> bool:
                "status": "running", "round_ends": int(time.time()) + ROUND_SECONDS}
         msg = await message.bot.send_message(chat.id, _group_text("fa", chase, {}, {}, ROUND_SECONDS))
         doc["msg_id"] = msg.message_id
+        doc["msg_ids"] = [msg.message_id]
         await col("group_hunts").insert_one(doc)
         return True
     if n in WORD_TO_DIR and message.reply_to_message is not None:
-        doc = await col("group_hunts").find_one({"chat_id": chat.id, "msg_id": message.reply_to_message.message_id,
-                                                "status": "running"})
+        rid = message.reply_to_message.message_id
+        doc = await col("group_hunts").find_one({"chat_id": chat.id, "status": "running",
+                                                "$or": [{"msg_id": rid}, {"msg_ids": rid}]})
         if not doc:
             return False
         await col("group_hunts").update_one(
@@ -185,10 +188,18 @@ async def group_tick(bot) -> int:
         closed += 1
         if res["status"] == "running":
             E.make_hint(chase, random.Random())
+            if res["outcome"] == "correct":
+                extra = _t("fa", "round_ok", n=chase["round"], total=E.CATCH_AT)
+            elif res["outcome"] == "wrong":
+                extra = _t("fa", "round_bad", s=chase["stamina"])
+            else:
+                extra = _t("fa", "round_none", s=chase["stamina"])
+            msg = await bot.send_message(doc["chat_id"],
+                                         _group_text("fa", chase, doc.get("names", {}), {}, ROUND_SECONDS, extra))
             await col("group_hunts").update_one(
                 {"_id": doc["_id"]},
-                {"$set": {"chase": chase, "votes": {}, "round_ends": now + ROUND_SECONDS}})
-            await bot.send_message(doc["chat_id"], _group_text("fa", chase, doc.get("names", {}), {}, ROUND_SECONDS))
+                {"$set": {"chase": chase, "votes": {}, "round_ends": now + ROUND_SECONDS, "msg_id": msg.message_id},
+                 "$push": {"msg_ids": msg.message_id}})
         else:
             await col("group_hunts").update_one({"_id": doc["_id"]}, {"$set": {"chase": chase, "status": res["status"]}})
             await _finish_group(bot, {**doc, "chase": chase}, res["status"] == "caught")
