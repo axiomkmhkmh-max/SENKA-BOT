@@ -9,7 +9,7 @@ FA = {
     "dr_head_item": "🌌 <b>یک گنجینه‌ی روح در گروه دراپ شد!</b>",
     "dr_head_art": "🔱 <b>یک آرتیفکت یکتا از دروازه‌ی سنکای افتاد!</b>",
     "dr_item": "🎁 آیتم: {name}\n💎 نایابی: {rar}",
-    "dr_art": "🎁 آرتیفکت: {name}\n✨ قدرت: {bonus}\n<i>{lore}</i>\n⚠️ فقط یک نسخه در کل جهان وجود دارد و هر بازیکن فقط یک آرتیفکت می‌تواند داشته باشد.",
+    "dr_art": "🎁 آرتیفکت: {name}\n✨ قدرت: {bonus}\n<i>{lore}</i>\n⚠️ از این آرتیفکت چند نسخه در جهان هست؛ هر بازیکن فقط یک آرتیفکت می‌تواند داشته باشد.",
     "dr_by": "👤 دراپ‌کننده: {name}",
     "dr_how": "برای برداشتن، روی همین پیام <b>ریپلای</b> کن و فقط بنویس: <b>بردار</b>\n⏳ هرکس زودتر بردارد، صاحبش می‌شود. ({s} ثانیه فرصت)",
     "dr_gate": "دروازه‌ی سنکای",
@@ -44,7 +44,7 @@ FA = {
     "art_e_busy": "الان ممکن نیست؛ چند لحظه بعد دوباره امتحان کن.", "art_e_gone": "این آگهی دیگر وجود ندارد.",
     "art_e_has": "تو از قبل یک آرتیفکت داری یا آگهی فعال داری.", "art_e_funds": "سکه‌ات کافی نیست.", "art_e_noreg": "اول ثبت‌نام کن.",
     # ---- registry ----
-    "arr_body": "📜 هر آرتیفکت فقط یک نسخه‌ی زنده دارد. این‌ها صاحبانشان هستند:\n",
+    "arr_body": "📜 هر آرتیفکت چند نسخه دارد و بسته به رده‌اش، چند بازیکن می‌توانند هم‌زمان داشته باشندش. این‌ها صاحبانشان هستند:\n",
     "arr_free": "🌫️ آزاد در جهان", "arr_dropped": "🎁 همین حالا در حال دراپ", "arr_listed": "🛒 برای فروش در بازار", "arr_owner": "👤 {name} (سطح {lvl})",
     # ---- exchange ----
     "axm_body": ("🏛️ بازار آرتیفکت: آگهی‌های ثابت‌قیمتِ بازیکنان، ارزان‌ترین اول.\nخریدار باید آرتیفکت نداشته باشد. "
@@ -62,7 +62,7 @@ EN = {
     "dr_head_item": "🌌 <b>A Soul Treasure just dropped in this group!</b>",
     "dr_head_art": "🔱 <b>A one-of-a-kind Artifact fell out of the Senkai Gate!</b>",
     "dr_item": "🎁 Item: {name}\n💎 Rarity: {rar}",
-    "dr_art": "🎁 Artifact: {name}\n✨ Power: {bonus}\n<i>{lore}</i>\n⚠️ Only ONE copy exists in the whole world, and each player can hold only one artifact.",
+    "dr_art": "🎁 Artifact: {name}\n✨ Power: {bonus}\n<i>{lore}</i>\n⚠️ A limited number of copies exist, and each player can hold only one artifact.",
     "dr_by": "👤 Dropped by: {name}",
     "dr_how": "To grab it, <b>reply</b> to this message and just write: <b>take</b>\n⏳ Whoever is first becomes the owner. ({s}s left)",
     "dr_gate": "Senkai Gate",
@@ -95,7 +95,7 @@ EN = {
     "art_e_none": "You hold no artifact.", "art_e_price": "That price is outside the allowed range.", "art_e_dup": "You already have an active listing.",
     "art_e_busy": "Not possible right now; try again in a moment.", "art_e_gone": "That listing no longer exists.",
     "art_e_has": "You already hold an artifact or have an active listing.", "art_e_funds": "Not enough coins.", "art_e_noreg": "Register first.",
-    "arr_body": "📜 Every artifact has exactly one living copy. Here is who holds them:\n",
+    "arr_body": "📜 Each artifact has a limited number of copies, so several players can hold the same one. Here are the holders:\n",
     "arr_free": "🌫️ Free in the world", "arr_dropped": "🎁 Dropping right now", "arr_listed": "🛒 On the exchange", "arr_owner": "👤 {name} (Lv {lvl})",
     "axm_body": ("🏛️ Artifact Exchange: fixed-price player listings, cheapest first.\nBuyers must not hold an artifact. "
                  "{fee}% of the sale price (seller fee) is burned."),

@@ -33,7 +33,7 @@ router = Router()
 # (name, min level, usage, Persian description, English description) - drives /acmds
 ADMIN_COMMANDS: list = []
 
-STATE_FA = {"free": "آزاد", "owned": "دارد", "listed": "در بازار", "dropped": "در دراپ", "claiming": "در حال دریافت", "releasing": "در حال رهاسازی"}
+STATE_FA = {"free": "آزاد", "full": "نسخه‌ها پر", "dropped": "در دراپ"}
 CODE_FA = {"active": "✅ فعال", "off": "⛔ خاموش", "expired": "⌛ منقضی", "full": "🈵 پر شده"}
 CODE_EN = {"active": "✅ active", "off": "⛔ off", "expired": "⌛ expired", "full": "🈵 used up"}
 KEY_ALIAS = {"سکه": "coins", "coin": "coins", "coins": "coins", "تجربه": "xp", "xp": "xp", "توکن": "token", "token": "token", "tokens": "token",
@@ -407,8 +407,8 @@ async def c_take_item(e: Env):
 async def c_arts(e: Env):
     from service_drops import art_registry
     lines = []
-    for a, st, owner in await art_registry():
-        who = f" → {esc(owner['name'])} (<code>{owner['user_id']}</code>)" if owner else ""
+    for a, st, holders in await art_registry():
+        who = (" → " + ", ".join(f"{esc(h['name'])} (<code>{h['user_id']}</code>)" for h in holders)) if holders else ""
         lines.append(f"{a['icon']} {esc(a['name_fa' if e.lang == 'fa' else 'name_en'])} · {STATE_FA.get(st, st) if e.lang == 'fa' else st}{who}\n   <code>{a['_id']}</code>")
     await e.say("\n".join(lines))
 
@@ -462,8 +462,8 @@ async def c_free_art(e: Env):
     if st != "ok":
         return await e.say(e.t("⏳ همین لحظه در حال جابه‌جایی است؛ دوباره امتحان کن.", "⏳ Mid-transfer; try again."))
     await alog(e.uid, "free_art", aid, {"from": prev}, None, "cmd")
-    if prev:
-        await _dm(e.bot, prev, f"⚠️ آرتیفکت «{ART_BY_ID[aid]['name_fa']}» توسط ادمین به جهان بازگردانده شد.", f"⚠️ An admin returned {ART_BY_ID[aid]['name_en']} to the world.")
+    for h in prev or []:
+        await _dm(e.bot, h["user_id"], f"⚠️ آرتیفکت «{ART_BY_ID[aid]['name_fa']}» توسط ادمین به جهان بازگردانده شد.", f"⚠️ An admin returned {ART_BY_ID[aid]['name_en']} to the world.")
     await e.say(f"🌍 {esc(_aname(aid, e.lang))} " + e.t("آزاد شد.", "is free again."))
 
 
@@ -776,8 +776,8 @@ async def gifts_panel(ctx, arg):
     if op == "a":
         from service_drops import art_registry
         lines = []
-        for a, st, owner in await art_registry():
-            who = f" → {esc(owner['name'])}" if owner else ""
+        for a, st, holders in await art_registry():
+            who = (" → " + ", ".join(esc(h["name"]) for h in holders)) if holders else ""
             lines.append(f"{a['icon']} {esc(a['name_fa' if ctx.lang == 'fa' else 'name_en'])} · {STATE_FA.get(st, st) if ctx.lang == 'fa' else st}{who}")
         return Out(head(ctx, "ttl_adm") + "\n".join(lines), [back])
     if op == "h":

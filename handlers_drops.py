@@ -65,11 +65,11 @@ async def art_registry_panel(ctx, arg):
     L = ctx.lang
     st = await game_settings()
     lines = [ctx.t("arr_body")]
-    for a, state, owner in await art_registry():
-        who = ctx.t("arr_owner", name=esc(owner["name"]), lvl=fnum(owner["level"], L)) if owner else ctx.t("arr_free")
+    for a, state, holders in await art_registry():
+        who = ", ".join(ctx.t("arr_owner", name=esc(h["name"]), lvl=fnum(h["level"], L)) for h in holders) if holders else ctx.t("arr_free")
         if state == "dropped":
             who = ctx.t("arr_dropped")
-        elif state == "listed":
+        elif state == "full" and holders:
             who += " · " + ctx.t("arr_listed")
         lines.append(f"{art_name(a['_id'], L)}  {art_bonus_text(a['_id'], float(st['art_k']))}\n   {who}")
     return Out(head(ctx, "ttl_arr") + "\n".join(lines), [[(ctx.t("b_art_mkt"), "axm", "0")], nav(ctx, ("art", ""))])

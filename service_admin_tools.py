@@ -89,64 +89,53 @@ def find_items(q: str, limit: int = 10):
 
 
 # ---- artifacts -------------------------------------------------------------------------------------------------
-async def _detach_artifact(aid: str):
-    """Pull an artifact out of whatever state it is in (owner's slot, market listing, group drop). -> (status, previous_owner)."""
-    d = await col("artifacts").find_one({"_id": aid}) or {}
-    st = d.get("state", "free")
-    if st in ("claiming", "releasing"):
-        return "busy", None
-    prev = d.get("owner") if st in ("owned", "listed") else None
-    if st == "listed":
-        await col("art_listings").update_many({"art": aid, "status": "active"}, {"$set": {"status": "cancelled"}})
-    elif st == "dropped" and d.get("drop_id"):
-        await col("drops").update_one({"_id": d["drop_id"]}, {"$set": {"status": "failed"}})
-    await col("characters").update_many({"artifact": aid}, {"$unset": {"artifact": ""}})  # also repairs any drift
-    return "ok", prev
-
-
 async def artifact_give(aid: str, uid: int, replace: bool = True):
-    """-> (status, previous_owner). status: ok | noreg | noart | already | has | busy."""
+    """-> (status, None). status: ok | noreg | noart | already | has | full | busy.
+    A player keeps one copy at a time; if the artifact has no free copy left, the admin gets 'full'."""
+    from service_drops import _free_slot, _take_slot, art_release
     if aid not in ART_BY_ID:
         return "noart", None
     ch = await get_char(uid)
     if not ch:
         return "noreg", None
     cur = ch.get("artifact")
-    d = await col("artifacts").find_one({"_id": aid}) or {}
-    if cur == aid and d.get("owner") == uid and d.get("state") == "owned":
+    if cur == aid:
         return "already", None
-    if cur and cur != aid and not replace:
+    if cur and not replace:
         return "has", None
-    status, prev = await _detach_artifact(aid)
-    if status == "busy":
-        return "busy", None
-    if cur and cur != aid:  # the old one goes back to the world
-        await col("artifacts").update_one({"_id": cur, "owner": uid}, {"$set": {"state": "free", "owner": None}})
+    if cur:
+        await art_release(uid)
+    if not await _take_slot(aid):
+        return "full", None
+    r = await col("characters").update_one({"user_id": uid, "artifact": None}, {"$set": {"artifact": aid}})
+    if not r.modified_count:
+        await _free_slot(aid)
+        return "has", None
     now = int(time.time())
-    await col("characters").update_one({"user_id": uid}, {"$set": {"artifact": aid}})
-    await col("artifacts").update_one(
-        {"_id": aid},
-        {"$set": {"state": "owned", "owner": uid, "since": now}, "$unset": {"claimer": "", "drop_id": ""},
-         "$push": {"history": {"$each": [{"uid": uid, "at": now, "how": "admin", "price": 0}], "$slice": -10}}}, upsert=True)
+    await col("artifacts").update_one({"_id": aid}, {"$set": {"since": now},
+        "$push": {"history": {"$each": [{"uid": uid, "at": now, "how": "admin", "price": 0}], "$slice": -10}}})
     log_event("art", uid, f"«{ART_BY_ID[aid]['name_fa']}» را از دست یک ادمین گرفت", art=aid)
-    return "ok", prev
+    return "ok", None
 
 
 async def artifact_take(uid: int) -> str:
-    """Remove whatever artifact the player holds (it returns to the world). -> ok | none | busy."""
+    """Remove whatever artifact the player holds (one copy returns to the world). -> ok | none | busy."""
     from service_drops import art_release
     return await art_release(uid)
 
 
 async def artifact_free(aid: str):
-    """Send an artifact back to the world no matter who has it. -> (status, previous_owner)."""
+    """Send an artifact back to the world no matter who holds copies. -> (status, previous_holders)."""
     if aid not in ART_BY_ID:
         return "noart", None
-    status, prev = await _detach_artifact(aid)
-    if status == "busy":
-        return "busy", None
-    await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "free", "owner": None}, "$unset": {"claimer": "", "drop_id": ""}}, upsert=True)
-    return "ok", prev
+    holders = [c async for c in col("characters").find({"artifact": aid}, {"user_id": 1})]
+    await col("characters").update_many({"artifact": aid}, {"$unset": {"artifact": ""}})
+    await col("art_listings").update_many({"art": aid, "status": "active"}, {"$set": {"status": "cancelled"}})
+    d = await col("artifacts").find_one({"_id": aid}) or {}
+    if d.get("state") == "dropped" and d.get("drop_id"):
+        await col("drops").update_one({"_id": d["drop_id"]}, {"$set": {"status": "failed"}})
+    await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "free", "held": 0}, "$unset": {"drop_id": "", "claimer": "", "owner": ""}}, upsert=True)
+    return "ok", holders
 
 
 # ---- Hogyoku -----------------------------------------------------------------------------------------------------

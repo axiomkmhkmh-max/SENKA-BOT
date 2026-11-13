@@ -183,3 +183,34 @@ def reiatsu_mult(ch: dict, now: float = None) -> float:
     if float((ch or {}).get("reiatsu_pen_until") or 0) > now:
         m *= 0.5
     return m
+
+# --- TIERS (Bleach power ladder) ----------------------------------------------------------------------------------
+# Every Soul Artifact now has several copies: `cap` is how many players can hold the same artifact at once.
+# Stronger tiers mirror the anime's ranks: the more powerful the owner in canon, the fewer copies exist.
+TIERS = {
+    1: {"name_en": "Gotei Rank & File", "name_fa": "سرباز گوتی ۱۳", "cap": 6},
+    2: {"name_en": "Lieutenant / Captain", "name_fa": "ستوان / کاپیتان", "cap": 3},
+    3: {"name_en": "Captain-Commander / Espada", "name_fa": "فرمانده‌ی کل / اسپادا", "cap": 2},
+    4: {"name_en": "Soul King / Central 46", "name_fa": "پادشاه ارواح / سنترال ۴۶", "cap": 1},
+}
+TIER_OF = {
+    "art_gikongan": 1, "art_kon_pill": 1, "art_hat": 1, "art_straw_hat": 1, "art_hellbutterfly": 1,
+    "art_badge": 1, "art_urahara": 1, "art_mayuri": 1, "art_shirayuki": 1, "art_glasses": 1,
+    "art_haori": 1, "art_silver_tube": 1, "art_senkai": 1, "art_reishi": 1, "art_garganta": 1,
+    "art_ginto": 1,
+    "art_eyepatch": 2, "art_benihime": 2, "art_santen": 2, "art_kyoka": 2, "art_senbon": 2,
+    "art_shinso": 2, "art_mask": 2, "art_visored_mask": 2, "art_quincy": 2, "art_seele": 2,
+    "art_sekkiseki": 2, "art_brazo": 2, "art_fallen": 2,
+    "art_zangetsu_frag": 3, "art_ice": 3, "art_sokyoku": 3,
+    "art_soulking": 4,
+}
+MAX_STAT = 0.06  # low power on purpose: every single bonus is capped here (the old 0.10 values were too strong)
+for _a in ARTIFACTS:
+    _a["tier"] = TIER_OF.get(_a["_id"], 1)
+    _a["cap"] = TIERS[_a["tier"]]["cap"]
+    _a["bonus"] = {k: min(v, MAX_STAT) for k, v in _a["bonus"].items()}
+
+
+def art_cap(aid: str) -> int:
+    a = ART_BY_ID.get(aid)
+    return int(a["cap"]) if a else 1

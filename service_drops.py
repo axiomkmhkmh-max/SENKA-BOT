@@ -1,9 +1,9 @@
 """Group drops (first to reply "بردار" wins), unique Soul Artifacts and the Artifact Exchange.
 
 Atomicity rules (MongoDB):
-  * an artifact document moves free -> dropped -> claiming -> owned (or owned -> listed -> owned/sold, owned -> free),
-    every hop is a single find_one_and_update on the expected previous state, so two people can never own the same one;
-  * the character holds it in `characters.artifact` (max one per player), taken with the filter {artifact: None};
+  * an artifact has `cap` copies (tier-based); `held` counts holders + listings and changes only via a guarded $inc,
+    so the cap is never exceeded; a drop reserves it with state=dropped (one live drop per artifact at a time);
+  * a character holds at most one copy in `characters.artifact`, taken with the filter {artifact: None};
   * every multi-step move has a revert path, and `art_reconcile` repairs anything a crash left half-done.
 """
 import random
@@ -12,7 +12,7 @@ import uuid
 
 from pymongo import ReturnDocument
 
-from data_artifacts import ARTIFACTS, ART_BY_ID
+from data_artifacts import ARTIFACTS, ART_BY_ID, art_cap
 from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from service_economy import inv_add, inv_get, inv_remove
@@ -28,34 +28,37 @@ _act: dict = {}
 # ---- seeding & repair ---------------------------------------------------------------------------------
 async def art_seed():
     for a in ARTIFACTS:
-        await col("artifacts").update_one({"_id": a["_id"]}, {"$setOnInsert": {"_id": a["_id"], "state": "free", "owner": None, "since": 0, "history": []}}, upsert=True)
+        await col("artifacts").update_one({"_id": a["_id"]}, {"$setOnInsert": {"_id": a["_id"], "state": "free", "held": 0, "since": 0, "history": []}}, upsert=True)
+        await col("artifacts").update_one({"_id": a["_id"], "held": {"$exists": False}}, {"$set": {"held": 0}})
     await art_reconcile()
 
 
 async def art_reconcile():
-    """Repair after crashes or admin resets: every artifact must match what characters and listings really say."""
+    """Repair after crashes or admin resets: `held` must equal the characters holding it plus its active listings."""
     now = int(time.time())
     async for d in col("artifacts").find({}):
-        aid, st = d["_id"], d.get("state")
-        holder = await col("characters").find_one({"artifact": aid}, {"user_id": 1})
-        if holder:
-            if st != "owned" or d.get("owner") != holder["user_id"]:
-                await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "owned", "owner": holder["user_id"]}})
-            continue
-        if st in ("owned", "claiming", "releasing"):
-            await col("artifacts").update_one({"_id": aid, "state": st}, {"$set": {"state": "free", "owner": None}, "$unset": {"claimer": "", "drop_id": ""}})
-        elif st == "listed":
-            if not await col("art_listings").find_one({"art": aid, "status": "active"}):
-                await col("artifacts").update_one({"_id": aid, "state": "listed"}, {"$set": {"state": "free", "owner": None}})
-        elif st == "dropped":
+        aid = d["_id"]
+        holders = await col("characters").count_documents({"artifact": aid})
+        listed = await col("art_listings").count_documents({"art": aid, "status": "active"})
+        st = d.get("state")
+        upd = {"held": min(holders + listed, art_cap(aid))}
+        unset = {"owner": "", "claimer": ""}
+        if st == "dropped":
             live = await col("drops").find_one({"_id": d.get("drop_id"), "status": {"$in": ["active", "claiming"]}})
             if not live:
-                await col("artifacts").update_one({"_id": aid, "state": "dropped"}, {"$set": {"state": "free"}, "$unset": {"drop_id": ""}})
+                upd["state"] = "free"
+                unset["drop_id"] = ""
+        elif st != "free":
+            upd["state"] = "free"
+        await col("artifacts").update_one({"_id": aid}, {"$set": upd, "$unset": unset})
     # drops that were mid-claim when the process died
     await col("drops").update_many({"status": "claiming", "end_at": {"$lte": now - 60}}, {"$set": {"status": "expired"}})
 
 
 # ---- artifacts ----------------------------------------------------------------------------------------
+# Several players may hold the same artifact, up to its tier cap (data_artifacts.art_cap). `held` counts
+# holders plus active listings; every change goes through one atomic $inc guarded by {held: {$lt: cap}},
+# so the cap can never be exceeded even when two players act at the same moment.
 async def art_doc(aid: str) -> dict:
     return await col("artifacts").find_one({"_id": aid}) or {}
 
@@ -68,21 +71,27 @@ def _hist(uid: int, how: str, price: int = 0) -> dict:
     return {"history": {"$each": [{"uid": uid, "at": int(time.time()), "how": how, "price": price}], "$slice": -10}}
 
 
+async def _take_slot(aid: str) -> bool:
+    return bool(await col("artifacts").find_one_and_update({"_id": aid, "held": {"$lt": art_cap(aid)}}, {"$inc": {"held": 1}}))
+
+
+async def _free_slot(aid: str):
+    await col("artifacts").update_one({"_id": aid, "held": {"$gt": 0}}, {"$inc": {"held": -1}})
+
+
 async def art_claim(uid: int, aid: str, from_state: str = "dropped") -> str:
     ch = await get_char(uid)
     if not ch:
         return "noreg"
     if ch.get("artifact") or await _has_listing(uid):
         return "has"
-    d = await col("artifacts").find_one_and_update({"_id": aid, "state": from_state}, {"$set": {"state": "claiming", "claimer": uid}})
-    if not d:
+    if not await _take_slot(aid):
         return "gone"
     r = await col("characters").update_one({"user_id": uid, "artifact": None}, {"$set": {"artifact": aid}})
     if not r.modified_count:
-        await col("artifacts").update_one({"_id": aid}, {"$set": {"state": from_state}, "$unset": {"claimer": ""}})
+        await _free_slot(aid)
         return "has"
-    await col("artifacts").update_one({"_id": aid}, {"$set": {"owner": uid, "state": "owned", "since": int(time.time())},
-                                                     "$unset": {"claimer": "", "drop_id": ""}, "$push": _hist(uid, "drop")})
+    await col("artifacts").update_one({"_id": aid, "state": from_state}, {"$set": {"state": "free"}, "$unset": {"drop_id": ""}, "$push": _hist(uid, "drop")})
     return "ok"
 
 
@@ -91,14 +100,10 @@ async def art_release(uid: int) -> str:
     aid = (ch or {}).get("artifact")
     if not aid:
         return "none"
-    d = await col("artifacts").find_one_and_update({"_id": aid, "owner": uid, "state": "owned"}, {"$set": {"state": "releasing"}})
-    if not d:
-        return "busy"
     r = await col("characters").update_one({"user_id": uid, "artifact": aid}, {"$unset": {"artifact": ""}})
     if not r.modified_count:
-        await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "owned"}})
         return "busy"
-    await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "free", "owner": None}})
+    await _free_slot(aid)
     log_event("art", uid, f"آرتیفکت «{ART_BY_ID[aid]['name_fa']}» را رها کرد و به جهان بازگشت", art=aid)
     return "ok"
 
@@ -113,12 +118,9 @@ async def art_list(uid: int, price: int):
         return "price", None
     if await _has_listing(uid):
         return "dup", None
-    d = await col("artifacts").find_one_and_update({"_id": aid, "owner": uid, "state": "owned"}, {"$set": {"state": "listed"}})
-    if not d:
-        return "busy", None
-    r = await col("characters").update_one({"user_id": uid, "artifact": aid}, {"$unset": {"artifact": ""}})  # escrow: bonus stops while listed
+    # the listing keeps this player's copy reserved in `held`; only the holder slot is released (escrow: bonus stops while listed)
+    r = await col("characters").update_one({"user_id": uid, "artifact": aid}, {"$unset": {"artifact": ""}})
     if not r.modified_count:
-        await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "owned"}})
         return "busy", None
     now = int(time.time())
     doc = {"_id": uuid.uuid4().hex[:10], "art": aid, "seller": uid, "price": int(price), "status": "active",
@@ -129,12 +131,11 @@ async def art_list(uid: int, price: int):
 
 
 async def _return_to_seller(d: dict):
+    """The listing ends: the copy goes back to its seller (or back to the world if the seller already holds one)."""
     uid, aid = d["seller"], d["art"]
     r = await col("characters").update_one({"user_id": uid, "artifact": None}, {"$set": {"artifact": aid}})
-    if r.matched_count:
-        await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "owned", "owner": uid}})
-    else:  # seller deleted / already holds another: the artifact goes back to the world
-        await col("artifacts").update_one({"_id": aid}, {"$set": {"state": "free", "owner": None}})
+    if not r.modified_count:
+        await _free_slot(aid)
 
 
 async def art_cancel(uid: int, lid: str) -> str:
@@ -165,12 +166,13 @@ async def art_buy(uid: int, lid: str):
     if not await add_coins(uid, -d["price"], "art_buy"):
         await revert()
         return "funds", None
+    # the copy's slot was already reserved by the listing, so the buyer simply takes it over
     r = await col("characters").update_one({"user_id": uid, "artifact": None}, {"$set": {"artifact": d["art"]}})
     if not r.modified_count:
         await add_coins(uid, d["price"], "art_refund")
         await revert()
         return "has", None
-    await col("artifacts").update_one({"_id": d["art"]}, {"$set": {"owner": uid, "state": "owned", "since": now}, "$push": _hist(uid, "market", d["price"])})
+    await col("artifacts").update_one({"_id": d["art"]}, {"$set": {"since": now}, "$push": _hist(uid, "market", d["price"])})
     fee = int(d["price"] * float(st["art_fee"]))
     await add_coins(d["seller"], d["price"] - fee, "art_sale")
     a = ART_BY_ID[d["art"]]
@@ -191,18 +193,14 @@ async def art_settle():
 
 
 async def art_registry() -> list:
-    """[(artifact, state, owner_name|None)] for the world registry."""
+    """[(artifact, state, holders)] where holders is a list of {name, level} for every player holding a copy."""
     docs = {d["_id"]: d async for d in col("artifacts").find({})}
-    owners = {d["owner"] for d in docs.values() if d.get("owner")}
-    names = {}
-    if owners:
-        async for c in col("characters").find({"user_id": {"$in": list(owners)}}, {"user_id": 1, "name": 1, "level": 1}):
-            names[c["user_id"]] = c
     out = []
     for a in ARTIFACTS:
         d = docs.get(a["_id"], {})
-        o = names.get(d.get("owner"))
-        out.append((a, d.get("state", "free"), o))
+        holders = [c async for c in col("characters").find({"artifact": a["_id"]}, {"user_id": 1, "name": 1, "level": 1})]
+        state = "dropped" if d.get("state") == "dropped" else ("full" if d.get("held", 0) >= a["cap"] else "free")
+        out.append((a, state, holders))
     return out
 
 
@@ -224,10 +222,15 @@ def pick_item(rng=random) -> str:
 
 
 async def _reserve_art(drop_id: str, aid: str = None):
-    ids = [aid] if aid else [d["_id"] async for d in col("artifacts").find({"state": "free"}, {"_id": 1})]
+    """Pick an artifact that still has a free copy and is not already on another drop."""
+    if aid:
+        ids = [aid]
+    else:
+        ids = [d["_id"] async for d in col("artifacts").find({}, {"_id": 1, "held": 1}) if (d.get("held") or 0) < art_cap(d["_id"])]
     random.shuffle(ids)
     for i in ids:
-        hit = await col("artifacts").find_one_and_update({"_id": i, "state": "free"}, {"$set": {"state": "dropped", "drop_id": drop_id}})
+        hit = await col("artifacts").find_one_and_update({"_id": i, "state": {"$ne": "dropped"}, "held": {"$lt": art_cap(i)}},
+                                                         {"$set": {"state": "dropped", "drop_id": drop_id}})
         if hit:
             return i
     return None
