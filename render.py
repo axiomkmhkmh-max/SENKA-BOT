@@ -3,10 +3,11 @@ import time
 
 import random
 
+from data_bleachfx import move_name
 from data_bosses import BOSS_BY_ID
 from i18n import LOCALES, bar, esc, fnum, t
 
-FX_ICON = {"burn": "🔥", "poison": "☠️", "bleed": "🩸", "shock": "⚡", "weaken": "🔻", "fear": "😨"}
+FX_ICON = {"burn": "🔥", "poison": "☠️", "bleed": "🩸", "shock": "⚡", "weaken": "🔻", "fear": "😨", "hiren": "🌪️"}
 
 
 def both(mode: str, fn) -> str:
@@ -42,7 +43,12 @@ def events_text(lang: str, events: list) -> str:
         n = fnum(e.get("n", 0), lang)
         if k == "hit":
             kind = e.get("kind", "atk")
-            line = pick(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
+            if kind == "hvy" and e.get("mv") and move_name(e["mv"], lang):  # released blade: the real technique name
+                line = pick(lang, "lg_hit_move", a=a, d=d, n=n, move=esc(move_name(e["mv"], lang)))
+            else:
+                line = pick(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
+            if e.get("chant"):  # a chanted spell is announced before it lands
+                line = pick(lang, "lg_chant_line", a=a) + "\n" + line
             if e.get("c"):
                 line += " " + pick(lang, "lg_crit")
             if e.get("em", 1) > 1.4:
@@ -56,7 +62,8 @@ def events_text(lang: str, events: list) -> str:
             out.append(t(lang, "lg_fx", a=a, d=d, fx=t(lang, "fx_" + e["fx"])))
         elif k == "dot":
             out.append(t(lang, "lg_dot", d=d, n=n, fx=t(lang, "fx_" + e["fx"])))
-        elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost"):
+        elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost",
+                   "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k == "shield":
             out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))
@@ -74,6 +81,15 @@ def fighter_line(lang: str, f: dict, icon: str) -> str:
         fx += "🛡"
     if f["form"]["on"]:
         fx += "✨"
+    x = f.get("x") or {}
+    if x.get("charge"):
+        fx += "⚠️"  # Cero gathering: answer it now
+    if x.get("flash"):
+        fx += "🌀"
+    if x.get("chant"):
+        fx += "📿"
+    if x.get("buff_t", 0) > 0:
+        fx += "💢"
     return (f"{icon} <b>{esc(f['name'])}</b> {fnum(f['level'], lang)} {fx}\n"
             f"❤️ {bar(f['hp'], f['max_hp'])} {fnum(f['hp'], lang)}/{fnum(f['max_hp'], lang)}\n"
             f"🔮 {fnum(f['re'], lang)}/{fnum(f['max_re'], lang)}")
@@ -84,7 +100,10 @@ def battle_text(lang: str, state: dict, events: list = None, title: str = "") ->
     parts.append(fighter_line(lang, state["a"], "🧑"))
     parts.append(fighter_line(lang, state["b"], "👹"))
     parts.append(t(lang, "bt_turn", n=fnum(state["turn"], lang)))
-    ev = events_text(lang, events if events is not None else state.get("last", []))
+    shown = events if events is not None else state.get("last", [])
+    if not shown and state.get("turn") == 1 and state.get("intro"):  # opening of a fight: spirit pressure crushes the weaker side
+        shown = state["intro"]
+    ev = events_text(lang, shown)
     if ev:
         parts.append(ev)
     return "\n\n".join(parts)

@@ -3,6 +3,8 @@ mini-games, guilds, settings and help."""
 import random
 import time
 
+from pymongo import ReturnDocument
+
 from data_crafting import cosmetic_tag, player_bonus
 from data_items import ALL
 from data_races import LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
@@ -156,7 +158,8 @@ async def travel(ctx, arg):
 
 
 # ---- explore --------------------------------------------------------------------------
-EVENTS = [("item", .30), ("enemy", .25), ("npc", .15), ("secret", .10), ("empty", .15), ("gate", .05)]
+# konso = a lost soul to send on (ignoring it can birth a Hollow), pressure = a strong reiatsu approaches (elite fight or retreat)
+EVENTS = [("item", .26), ("enemy", .22), ("npc", .12), ("secret", .09), ("empty", .12), ("gate", .03), ("konso", .09), ("pressure", .07)]
 
 
 @action("exp")
@@ -184,13 +187,26 @@ async def explore(ctx, arg):
         if roll <= acc:
             ev = name
             break
+    # a soul that was left alone earlier has become a Hollow: it finds you on the next patrol
+    hollowed = await col("characters").find_one_and_update({"user_id": ctx.uid, "bx_hollow": {"$gt": 0}}, {"$inc": {"bx_hollow": -1}})
+    if hollowed:
+        ev = "enemy"
     lvl = ch["level"]
     base_xp = int((18 + lvl * 4) * (1 + bn["patrol"]))
     text = ""
     terr = None
     if ev == "enemy":
         from handlers_combat import start_pve_panel
+        if hollowed:
+            return await start_pve_panel(ctx, scale=1.1, intro=ctx.t("exp_hollowed"))
         return await start_pve_panel(ctx)
+    if ev in ("konso", "pressure"):  # interactive Bleach events: the answer comes from the buttons below
+        await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"bx_pending": {"kind": ev, "until": int(time.time()) + 600}}})
+        from service_player import bump_quest
+        await bump_quest(ctx.uid, "explore", 1)
+        if ev == "konso":
+            return Out(head(ctx, "ttl_exp") + ctx.t("exp_konso_ev"), [[(ctx.t("b_konso"), "kns", "go"), (ctx.t("b_konso_ignore"), "kns", "ig")], nav(ctx)])
+        return Out(head(ctx, "ttl_exp") + ctx.t("exp_press_ev"), [[(ctx.t("b_press_face"), "prs", "face"), (ctx.t("b_press_run"), "prs", "run")], nav(ctx)])
     if ev == "item":
         iid = await roll_drop(ctx.uid)
         got = await inv_add(ctx.uid, iid, 1)
@@ -224,6 +240,54 @@ async def explore(ctx, arg):
     if tr:
         text += "\n\n" + pick(L, "trace_found_" + tr["kind"], icon=tr["icon"], who=esc(tr["owner"]), c=fnum(tr["coins"], L), x=fnum(tr["xp"], L))
     return Out(head(ctx, "ttl_exp") + text, [[(ctx.t("b_again"), "exp", "go")], nav(ctx)])
+
+
+async def _claim_pending(uid: int, kind: str):
+    """Atomically take the pending patrol event (one answer per event, expires after 10 minutes)."""
+    return await col("characters").find_one_and_update(
+        {"user_id": uid, "bx_pending.kind": kind, "bx_pending.until": {"$gt": int(time.time())}}, {"$unset": {"bx_pending": ""}})
+
+
+@action("kns")
+async def konso(ctx, arg):
+    """Konso: send a wandering soul to Soul Society (reward + counter) or leave it (it may become a Hollow)."""
+    if not await _claim_pending(ctx.uid, "konso"):
+        return Out(alert=ctx.t("exp_konso_gone"))
+    L = ctx.lang
+    again = [[(ctx.t("b_again"), "exp", "go")], nav(ctx)]
+    if arg == "ig":
+        await col("characters").update_one({"user_id": ctx.uid}, {"$inc": {"bx_hollow": 1}})
+        return Out(head(ctx, "ttl_exp") + ctx.t("exp_konso_ignore"), again)
+    ch = await need_char(ctx)
+    st = await game_settings()
+    bn = player_bonus(ch, ALL, st)
+    wm = await mods_for(ch["location"])
+    lvl = ch["level"]
+    base_xp = int((18 + lvl * 4) * (1 + bn["patrol"]))
+    _, _, xp = await add_xp(ctx.uid, int(base_xp * 1.3), "explore")
+    coins = int((10 + lvl * 3) * float(st["coin_rate"]) * (1 + bn["coin"] + bn["patrol"]) * wm["coin"])
+    await add_coins(ctx.uid, coins, "explore")
+    r = await col("characters").find_one_and_update({"user_id": ctx.uid}, {"$inc": {"konso": 1}}, return_document=ReturnDocument.AFTER)
+    n = int((r or {}).get("konso", 1))
+    text = ctx.t("exp_konso_ok", xp=fnum(xp, L), coins=fnum(coins, L), n=fnum(n, L))
+    if n % 10 == 0:  # every tenth soul: a small keepsake
+        iid = await roll_drop(ctx.uid, source_mult=1.5, floor_idx=1)
+        got = await inv_add(ctx.uid, iid, 1)
+        text += "\n" + ctx.t("exp_konso_milestone", n=fnum(n, L), item=nm(iid, L)) + ("" if got else "\n" + ctx.t("bag_full"))
+    return Out(head(ctx, "ttl_exp") + text, again)
+
+
+@action("prs")
+async def pressure(ctx, arg):
+    """A strong reiatsu approaches: face it (elite fight, better rewards) or slip away."""
+    if not await _claim_pending(ctx.uid, "pressure"):
+        return Out(alert=ctx.t("exp_press_gone"))
+    if arg == "run":
+        ch = await need_char(ctx)
+        _, _, xp = await add_xp(ctx.uid, int((18 + ch["level"] * 4) * 0.5), "explore")
+        return Out(head(ctx, "ttl_exp") + ctx.t("exp_press_run", xp=fnum(xp, ctx.lang)), [[(ctx.t("b_again"), "exp", "go")], nav(ctx)])
+    from handlers_combat import start_pve_panel
+    return await start_pve_panel(ctx, force_elite=True)
 
 
 # ---- ranking ---------------------------------------------------------------------------

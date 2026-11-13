@@ -144,17 +144,21 @@ async def build_player(ch: dict, name: str = None):
         elif spell["type"] == "Kaidō":
             kaido.add(spell_id)
     combat_kido = {"had": sorted(had), "bak": sorted(bak), "kaido": sorted(kaido)}
+    # Bleach feel: the race's signature move, and the real technique name of a released blade (see data_bleachfx)
+    from data_bleachfx import sig_for
+    released = zstate.get("shikai") or zstate.get("bankai")
+    mv = wid if released and w else None  # weapon id; render turns it into "<blade>: <technique>"
     return E.new_fighter(name or tagged_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=combat_kido,
-                         race=ch["race"], zmult=zmult)
+                         race=ch["race"], zmult=zmult, sig=sig_for(ch["race"]), mv=mv)
 
 
-def make_enemy(level: int, scale: float, name: str, rng=random):
+def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
     k = ENEMY_K
     s = (4 + level * k["s"]) * scale
     stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + level * k["d"]) * scale, "hoho": 6 + level * 0.5, "reiatsu": 5 + level}
     w = {"attack": (3 + level * k["a"]) * scale, "crit": 0.03, "element": rng.choice(ELEMENTS), "skills": [], "weapon_type": "melee"}
     return E.new_fighter(name, level, stats, (k["h0"] + level * k["h1"]) * scale, 80 + level * 10, w,
-                         armor=level * k["ar"] * scale, ai=True)
+                         armor=level * k["ar"] * scale, ai=True, sig=sig)
 
 
 def _rewards(level: int, scale: float, st: dict):
@@ -168,7 +172,8 @@ async def active_pve(uid: int):
     return await col("battles").find_one({"user_id": uid, "mode": "pve", "status": "active"})
 
 
-async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = None, carry: dict = None, trial: dict = None):
+async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = None, carry: dict = None, trial: dict = None,
+                    force_elite: bool = False):
     ch = await get_char(uid)
     gs = await game_settings()
     wm = await mods_for(ch["location"])
@@ -196,9 +201,9 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
             mult *= 1.3
             name = "⚔️ " + name
         scale = mult
-    elite = (not dungeon) and (not trial) and rng.random() < 0.15
+    elite = bool(force_elite) or ((not dungeon) and (not trial) and rng.random() < 0.15)
     if elite:
-        scale, name = 1.4, "💀 " + name
+        scale, name = (1.55 if force_elite else 1.4), "💀 " + name
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
     elif not tower:
@@ -207,7 +212,8 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     if carry:
         player["hp"] = max(1, int(player["max_hp"] * carry["hp"]))
         player["re"] = max(0, int(player["max_re"] * carry["re"]))
-    state = E.new_state(player, make_enemy(lvl, scale, name, rng), rng)
+    from data_bleachfx import enemy_sig
+    state = E.new_state(player, make_enemy(lvl, scale, name, rng, sig=enemy_sig(loc.get("race"), pick)), rng)
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
            "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "lvl": lvl,

@@ -94,3 +94,22 @@ SENKA is a combat/progression/competition MMORPG. Story mode is **retired**: the
 - 32 gacha characters `ch_175`..`ch_206`: Rukongai-days / Academy-era childhood forms, Shikai / Resurrección / Bankai forms, Visored and Espada releases (Rare+ have epithets).
 - 6 organisations (Detention Unit, Academy Cadets, Gillian Legion, Silbern Court, Bount Circle, Arisawa Dojo), 6 one-of-a-kind artifacts, 6 story quests (`arcz*`), 6 dispatch missions, 12 Soul Tower enemies, 1 named spell (Hadō 57).
 - Old ids unchanged. Tests: `python -m unittest discover -s tests -v` (pure data checks; no MongoDB / Telegram needed).
+
+
+## Bleach combat feel pack (v6) — gameplay, not story
+Code: `data_bleachfx.py` (all numbers), `engine.py`, `render.py`, `handlers_combat.py`, `handlers_panels.py`, texts in `locale_bleachfx.py`, tests in `tests/test_bleachfx.py`.
+Everything is button-driven inside the existing fight panel; old saved battles keep working (new fighter fields are created lazily).
+
+| Mechanic | How it plays |
+|---|---|
+| **Signature move per race** (one extra button) | Shinigami/Visored **Shunpo** (next physical hit on you is dodged, then you counter) · Quincy **Hirenkyaku** (blitz strike + dodge/crit for 2 turns) · Hollow/Arrancar **Cero** · Fullbringer **Fullbring Strike** (hit + bleed) · Human **Fighting Spirit** (heal, cleanse, damage buff). Reiatsu cost + cooldown. Shunpo does not dodge Hadō. |
+| **Cero** (two steps) | Turn 1 *Gather Cero*: telegraphed in the log and with ⚠️ next to the name. Turn 2 *Fire Cero*: big pierce hit. Answer it: **Guard** (halves), **Bakudō** shield, **stun**, or **interrupt** with one hard hit (>= 22% of an enemy's max HP, 35% of a player's). |
+| **Wild enemies use it too** | Hollow-type enemies (Hueco Mundo or names with Hollow/Gillian/Menos/Masked/هالو…) gather Cero; Quincy-location enemies use Hirenkyaku. Their Cero is weaker than a player's so it stays answerable. |
+| **Kidō chanting** (`📿`) | Costs the turn and leaves you open (+20% damage taken) but the next Hadō hits x1.6 (Bakudō shield x1.5). The incantation line is printed before the spell (original wording). |
+| **Resolve** | Once per battle, a human-controlled fighter pushed under 25% HP gets a small heal, ailments cleansed and a short damage buff. Wild enemies never get it. |
+| **Named technique** | A released (Shikai/Bankai) fighter's Heavy strike is shown as "<blade>: <technique>!" by weapon type (Zanpa, Gōka, Shinpan, Gen'ei, Hōkō, Teppeki, Senkō, Ranbu, Kyōgeki). |
+| **Spirit pressure** | The opening of a fight prints who crushes whom (the existing fear effect now shows). |
+| **Patrol events** | *Konsō*: a lost soul asks to be sent on (XP/coins, every 10th soul a keepsake) — **ignore it and it becomes a Hollow that finds you on a later patrol**. *Pressure*: a strong reiatsu approaches — face it (elite fight, better rewards) or slip away. Event odds are in `handlers_panels.EVENTS`. |
+
+New character fields (created on first use): `konso`, `bx_hollow`, `bx_pending`. `pve_start` gained `force_elite`; `start_pve_panel` now really passes `scale` through.
+Measured with a 2-5k-fight simulation (see the tuning notes in `data_bleachfx.py`): each player signature is worth roughly +0..+6 win-rate points, Resolve about +3, an unanswered enemy Cero about -3, interrupting it about +6.

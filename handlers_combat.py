@@ -29,12 +29,17 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
     if E.can(f, "hvy"):
         rows[0].append(mk(ctx.t("a_hvy"), "hvy"))
     r2 = []
+    if E.can(f, "ch"):  # Kidō chanting: costs the turn, leaves you open, boosts the next spell
+        r2.append(mk(ctx.t("a_ch"), "ch"))
     if E.can(f, "kd"):
         r2.append(mk(ctx.t("a_kd", n=E.best_kido(f, "had"), spell=KIDO_NAMES.get(("had", E.best_kido(f, "had")), "")), "kd"))
     if E.can(f, "bk"):
         r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
     if r2:
         rows.append(r2)
+    if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
+        key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
+        rows.append([mk(ctx.t(key), "sg")])
     r3 = [mk(ctx.t("a_df"), "df")]
     if E.can(f, "f1"):
         r3.append(mk("✨ " + form1[i], "f1"))
@@ -79,9 +84,12 @@ async def resume_battle(ctx):
     return await battle_panel(ctx, doc, [])
 
 
-async def start_pve_panel(ctx, scale=1.0):
-    doc = await active_pve(ctx.uid) or await pve_start(ctx.uid, ctx.lang)
-    return await battle_panel(ctx, doc, [])
+async def start_pve_panel(ctx, scale=1.0, force_elite=False, intro=""):
+    doc = await active_pve(ctx.uid) or await pve_start(ctx.uid, ctx.lang, scale=scale, force_elite=force_elite)
+    out = await battle_panel(ctx, doc, [])
+    if intro:  # e.g. the "the soul you ignored became a Hollow" line above the fight
+        out.text = intro + out.text
+    return out
 
 
 @action("bt")
