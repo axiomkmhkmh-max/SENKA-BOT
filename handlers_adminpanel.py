@@ -64,6 +64,7 @@ async def main_menu(ctx, lvl):
             [(T(ctx, "👤 کاربر", "👤 Users"), "adu", ""), (T(ctx, "📣 پیام همگانی", "📣 Broadcast"), "adc", "")],
             [(T(ctx, "⚙️ تنظیمات بازی", "⚙️ Game settings"), "ads", "0"), (mt, "adt", "")],
             [(T(ctx, "📜 لاگ مدیریت", "📜 Admin log"), "adl", ""), (T(ctx, "👑 ادمین‌ها", "👑 Admins"), "ada", "")],
+            [(T(ctx, "🎁 هدیه، آرتیفکت و کدها", "🎁 Gifts, artifacts & codes"), "adg", "")],
             nav(ctx)]
     return Out(head(ctx, "ttl_adm") + f"<i>{role} ({lvl})</i>\n\n" + await dashboard(ctx), rows)
 
@@ -241,12 +242,22 @@ async def _user_card(ctx, tid):
             from data_bleach import DIV_BY_ID
             dv = DIV_BY_ID.get(ch['division'])
             body += f" | {(dv['fa'] if L == 'fa' else dv['en']) if dv else ch['division']}"
+        body += f"\n🎟 {fnum(ch.get('tokens', 0), L)}"
+        from data_artifacts import ART_BY_ID
+        if ch.get("artifact") in ART_BY_ID:
+            body += f" | {ART_BY_ID[ch['artifact']]['icon']} {ART_BY_ID[ch['artifact']]['name_fa' if L == 'fa' else 'name_en']}"
+        if ch.get("hogyoku"):
+            body += " | 🔮"
     rows = []
     if lvl >= 40:
         rows.append([(T(ctx, "✅ آنبن", "✅ Unban") if u.get("banned") else T(ctx, "🚫 بن", "🚫 Ban"), "adb", f"{'ub' if u.get('banned') else 'bn'}.{tid}"),
                      (T(ctx, "⚠️ اخطار", "⚠️ Warn"), "adb", f"wn.{tid}")])
     if lvl >= 60 and ch:
         rows.append([(T(ctx, "+۱۰ هزار 🪙", "+10k 🪙"), "adb", f"c1.{tid}"), (T(ctx, "+۱۰۰ هزار 🪙", "+100k 🪙"), "adb", f"c2.{tid}"), (T(ctx, "+۱ هزار تجربه", "+1k XP"), "adb", f"x1.{tid}")])
+    if lvl >= 60 and ch:
+        rows.append([(T(ctx, "🎟 +۱۰ توکن", "🎟 +10 tokens"), "adg", f"t1.{tid}"), (T(ctx, "🎟 +۱۰۰ توکن", "🎟 +100 tokens"), "adg", f"t2.{tid}")])
+    if lvl >= 80 and ch:
+        rows.append([(T(ctx, "💎 دادن آرتیفکت", "💎 Give artifact"), "adg", f"pa.{tid}"), (T(ctx, "🔮 دادن هوگیوکو", "🔮 Give Hōgyoku"), "adg", f"hq.{tid}")])
     rows.append(nav(ctx, ("adu", "")))
     return Out(head(ctx, "ttl_adm") + body, rows)
 
