@@ -1,289 +1,370 @@
-"""Panels: Soul Tower, Dispatch, Urahara's wheel, Gotei seat ranks, Inner World."""
-import math
+"""Extra player features (✨ امکانات): stats card, achievements, rank tiers, wealth/level rank,
+daily fortune and tip, Bleach trivia (paid once a day), coin flip, coin transfer, compare with
+another player, feedback to admins, shareable card, newcomer checklist.
+
+Money moves only through add_coins (grants) or an atomic conditional $inc (debits), and every
+gamble / transfer goes through bump_counter daily caps, so nothing here can mint or lose coins
+outside those rules."""
+import hashlib
+import random
 import time
 
-from service_butterfly import butterfly
-from data_chars import CHAR_BY_ID, copies_to_level_star
-from data_crafting import cosmetic_tag
-from data_extras import INNER, MISSIONS, ROLE_NOTE, SEATS, WHEEL
-from data_items import ALL
-from data_weapons import RARITIES, RARITY_ICON
-from fmt import nm
-from i18n import bar, esc, fnum
-from service_combat import active_pve
-from service_economy import gacha_doc
-from service_extras import (dispatch_active, dispatch_claim, dispatch_send, inner_choose, inner_state, seat_claim, seat_info,
-                            tower_board, tower_info, tower_start, wheel_spin, wheel_state)
-from service_player import get_char
-from ui import Out, action, head, nav
+from data_races import STAT_ICON, STATS, soft_stat
+from database import bump_counter, col, game_settings
+from i18n import esc, fnum, bar
+from service_player import add_coins, energy_now, get_char, power, xp_to_next
+from ui import Out, action, head, input_handler, nav
 
-PER = 6
-ROLE_ICON = {"attacker": "⚔️", "caster": "🔮", "tank": "🛡️", "support": "💚"}
+DAY = 86400
 
 
-def _fa(ctx) -> int:
-    return 0 if ctx.lang == "fa" else 1
+def T(ctx, fa, en):
+    return fa if ctx.lang == "fa" else en
 
 
-def _dur(sec: int, L: str) -> str:
-    sec = max(0, int(sec))
-    h, m = sec // 3600, (sec % 3600) // 60
-    if L == "fa":
-        return (f"{fnum(h, L)} ساعت " if h else "") + f"{fnum(m, L)} دقیقه"
-    return (f"{h}h " if h else "") + f"{m}m"
+def _day() -> str:
+    return time.strftime("%Y-%m-%d", time.gmtime())
 
 
-# ===================================================================================================
-# Soul Tower
-# ===================================================================================================
-@action("twr")
-async def tower(ctx, arg):
-    if await active_pve(ctx.uid):
-        from handlers_combat import resume_battle
-        return await resume_battle(ctx)
-    L = ctx.lang
-    i = await tower_info(ctx.uid)
-    body = ctx.t("tw_body", best=fnum(i["best"], L), wk=fnum(i["wk"], L), start=fnum(i["start"], L), cost=fnum(i["cost"], L),
-                 left=fnum(i["left"], L), cap=fnum(i["cap"], L))
-    rows = [[(ctx.t("b_tgo"), "twg", "")], [(ctx.t("b_tlb"), "twl", "")], nav(ctx)]
-    return Out(head(ctx, "ttl_twr") + body, rows)
+# ---- static content --------------------------------------------------------------------------------------
+FORTUNES = [
+    ("امروز سرنوشت خوبی برات نوشته شده؛ ولی با احتیاط پیش برو.", "Fate looks kind today. Still, move carefully."),
+    ("یه ناشناس توی نبرد کمکت می‌کنه؛ مراقب دوستی‌های تازه باش.", "A stranger will help in battle. Watch new alliances."),
+    ("گنج پنهان نزدیکه، اما فقط برای کسی که صبر کنه.", "Hidden treasure is near, for those who wait."),
+    ("امروز آرامش داری، از این فرصت برای ارتقا استفاده کن.", "Calm day. Use it to grow stronger."),
+    ("یه جنگ بزرگ داره شروع میشه؛ آماده باش.", "A great battle is coming. Be ready."),
+    ("سکه‌هات امروز بیشتر از همیشه دوست دارن بمونن؛ خرج نکن.", "Your coins want to stay today. Think before spending."),
+    ("یه رئیس قدیمی دوباره بیدار میشه.", "An old boss is stirring again."),
+    ("شانس با توئه؛ امروز بهترین روز برای ریسک کردن نیست، برای یادگیری هست.", "Luck is yours. Today is for learning, not gambling."),
+]
+TIPS = [
+    ("انرژی قبل از گشت‌وگذار رو پر کن تا اتلاف نشه.", "Fill energy before exploring so none gets wasted."),
+    ("وقتی انرژی پره، دانجن بهتر از گشت‌وگذاره.", "When energy is full, dungeons pay better than exploring."),
+    ("ماموریت‌های روزانه رو از دست نده؛ سکه‌ی خوبی میدن.", "Do your daily missions; they pay well."),
+    ("قبل از ارتقا، ببین کدوم استات بیشترین اثر رو داره.", "Before upgrading, check which stat gives the most power."),
+    ("تو بازار قیمت‌ها رو مقایسه کن؛ همیشه ارزون‌ترین بهترین نیست.", "Compare market prices; cheapest is not always best."),
+    ("دوستات رو به گیلد دعوت کن، پاداش گروهی داره.", "Invite friends to a guild for group rewards."),
+    ("پاداش روزانه رو هر روز بگیر، streak بیشتر، پاداش بهتر.", "Claim the daily reward every day; longer streaks pay more."),
+    ("رنکینگ رو چک کن تا ببینی کجا ایستادی.", "Check the ranking to see where you stand."),
+    ("قبل از نبرد سخت، کیدو و اکسیر رو آماده کن.", "Prepare your Kido and potions before a hard fight."),
+    ("اگه ویژگی جدیدی دیدی، توی منوی امکانات ببینش.", "New features live in the Extras menu."),
+]
+TRIVIA = [
+    ("ایچیگو کوروساکی کدوم شینیگامی رو داره؟", ["زانپاکوتو", "تنسا‌زانگتسو", "هیورینمارو"], 0),
+    ("نام شهر شینیگامی‌ها چیه؟", ["سوکائه", "هوئکو موندو", "روکونگای"], 0),
+    ("کدوم شخصیت شینیگامی است و هالو نیست؟", ["گریمجو", "یاچیرو", "ولزی"], 1),
+    ("کاپیتان دیویژن اول گوتئی ۱۳ کیست؟", ["کاپیتان یاماموتو", "بیاکویا کوچیکی", "کاپیتان کیراکا"], 0),
+    ("شمشیر شینیگامی‌ها چه نام دارد؟", ["زانپاکوتو", "کیدو", "هوگیوکو"], 0),
+    ("رنگ موی اصلی ایچیگو چیه؟", ["نارنجی", "سیاه", "سفید"], 0),
+    ("شمشیر هیتسوگایا توشیرو چه نام داره؟", ["هیورینمارو", "زانپاکوتو", "کیدو"], 0),
+]
+RANK_TIERS = [
+    (0, "شینیگامی درجه‌ی ۵", "5th-Seat Shinigami"),
+    (10, "شینیگامی درجه‌ی ۳", "3rd-Seat Shinigami"),
+    (25, "کاپیتان", "Captain"),
+    (50, "فرمانده", "Commander"),
+    (80, "کاپیتان فرمانده", "Captain-Commander"),
+]
 
 
-@action("twg")
-async def tower_go(ctx, arg):
-    status, doc = await tower_start(ctx.uid, ctx.lang)
-    if status == "wait":
-        return Out()
-    if status != "ok":
-        return Out(alert=ctx.t("tw_e_" + status))
-    from handlers_combat import battle_panel
-    return await battle_panel(ctx, doc, [])
+def _tier(level: int, L: str) -> str:
+    name = RANK_TIERS[0]
+    for lv, fa, en in RANK_TIERS:
+        if level >= lv:
+            name = (lv, fa, en)
+    return name[1] if L == "fa" else name[2]
 
 
-@action("twl")
-async def tower_lb(ctx, arg):
-    L = ctx.lang
-    top = await tower_board()
-    medals = ["🥇", "🥈", "🥉"] + [f"{i}." for i in range(4, 11)]
-    lines = [f"{medals[i]} {cosmetic_tag(x, ALL)} {esc(x['name'])} — {ctx.t('tw_floor_n', n=fnum(x['tower']['wk_best'], L))}" for i, x in enumerate(top)]
-    return Out(head(ctx, "ttl_twr") + ctx.t("tw_lb") + "\n\n" + ("\n".join(lines) or ctx.t("empty")), [nav(ctx, ("twr", ""))])
+ACHIEVEMENTS = [
+    ("level", 10, "سطح ۱۰", "Level 10"),
+    ("level", 30, "سطح ۳۰", "Level 30"),
+    ("level", 60, "سطح ۶۰", "Level 60"),
+    ("wins", 10, "۱۰ برد", "10 wins"),
+    ("wins", 100, "۱۰۰ برد", "100 wins"),
+    ("coins", 10000, "۱۰هزار سکه", "10k coins"),
+    ("coins", 1000000, "یک میلیون سکه", "1M coins"),
+    ("rating", 1200, "رتبه ۱۲۰۰", "Rating 1200"),
+    ("pvp_w", 20, "۲۰ برد PvP", "20 PvP wins"),
+    ("daily_streak", 7, "استریک ۷ روزه", "7-day streak"),
+]
 
 
-# ===================================================================================================
-# Dispatch
-# ===================================================================================================
-@action("dsp")
-async def dispatch(ctx, arg):
-    L, now = ctx.lang, int(time.time())
-    from database import game_settings
-    st = await game_settings()
-    act = await dispatch_active(ctx.uid)
-    lines, ready = [], 0
-    for d in act:
-        c, m = CHAR_BY_ID[d["cid"]], MISSIONS[d["mission"]]
-        label = f"{ROLE_ICON[c['role']]} <b>{esc(c['name_fa' if L == 'fa' else 'name_en'])}</b> — {m['fa' if L == 'fa' else 'en']}"
-        if d["end"] <= now:
-            ready += 1
-            lines.append(f"✅ {label}")
-        else:
-            lines.append(f"⏳ {label} ({_dur(d['end'] - now, L)})")
-    roles = " · ".join(f"{ROLE_ICON[r]} {n[_fa(ctx)]}" for r, n in ROLE_NOTE.items())
-    body = ctx.t("ds_body", roles=roles, used=fnum(len(act), L), slots=fnum(int(st["dispatch_slots"]), L))
-    if lines:
-        body += "\n\n" + "\n".join(lines)
-    rows = []
-    if ready:
-        rows.append([(ctx.t("b_dclaim") + f" ({fnum(ready, L)})", "dsc", "")])
-    rows.append([(ctx.t("b_dsend"), "dsm", "")])
-    rows.append(nav(ctx))
-    return Out(head(ctx, "ttl_dsp") + body, rows)
+# ---- hub ------------------------------------------------------------------------------------------------------
+@action("xf")
+async def hub(ctx, arg):
+    rows = [
+        [(T(ctx, "🧾 کارت آمار", "🧾 Stats card"), "xf_card", ""), (T(ctx, "🏅 دستاوردها", "🏅 Achievements"), "xf_ach", "")],
+        [(T(ctx, "🎖 درجه و رتبه", "🎖 Rank"), "xf_rank", ""), (T(ctx, "🔮 فال امروز", "🔮 Daily fortune"), "xf_fort", "")],
+        [(T(ctx, "🧠 مسابقه‌ی بلیچ", "🧠 Bleach quiz"), "xf_quiz", ""), (T(ctx, "🪙 شیر یا خط", "🪙 Coin flip"), "xf_cf", "")],
+        [(T(ctx, "💸 انتقال سکه", "💸 Send coins"), "xf_tr", ""), (T(ctx, "⚖️ مقایسه", "⚖️ Compare"), "xf_cmp", "")],
+        [(T(ctx, "💡 نکته‌ی امروز", "💡 Tip of the day"), "xf_tip", ""), (T(ctx, "✅ چک‌لیست", "✅ Checklist"), "xf_todo", "")],
+        [(T(ctx, "🔬 جزئیات قدرت", "🔬 Power details"), "xf_stats", ""), (T(ctx, "⚡ انرژی", "⚡ Energy"), "xf_energy", "")],
+        [(T(ctx, "📮 بازخورد به ادمین", "📮 Feedback"), "xf_fb", ""), (T(ctx, "🪪 کارت برای دوستان", "🪪 Share card"), "xf_share", "")],
+        nav(ctx),
+    ]
+    return Out(head(ctx, "ttl_menu") + T(ctx, "✨ <b>امکانات</b>\nیکی رو انتخاب کن.", "✨ <b>Extras</b>\nPick one."), rows)
 
 
-@action("dsm")
-async def dispatch_pick(ctx, arg):
-    L = ctx.lang
-    mid, _, page = arg.partition(".")
-    if mid not in MISSIONS:
-        ch = await get_char(ctx.uid)
-        rows = []
-        for k, m in MISSIONS.items():
-            ok = ch["level"] >= m["level"]
-            lbl = f"{m['fa' if L == 'fa' else 'en']} — {ctx.t('ds_hours', h=fnum(m['hours'], L))}"
-            rows.append([(lbl if ok else f"🔒 {lbl} ({fnum(m['level'], L)})", "dsm" if ok else "noop", k)])
-        rows.append(nav(ctx, ("dsp", "")))
-        return Out(head(ctx, "ttl_dsp") + ctx.t("ds_pick_m"), rows)
-    g = await gacha_doc(ctx.uid)
-    busy = {d["cid"] for d in await dispatch_active(ctx.uid)}
-    owned = sorted([(c, n) for c, n in g["chars"].items() if c in CHAR_BY_ID and c not in busy],
-                   key=lambda kv: (-RARITIES.index(CHAR_BY_ID[kv[0]]["rarity"]), kv[0]))
-    if not owned:
-        return Out(head(ctx, "ttl_dsp") + ctx.t("ds_nochars"), [nav(ctx, ("dsp", ""))])
-    pages = max(1, math.ceil(len(owned) / PER))
-    page = max(0, min(int(page or 0), pages - 1))
-    rows = []
-    for cid, copies in owned[page * PER:(page + 1) * PER]:
-        c = CHAR_BY_ID[cid]
-        lvl, star = copies_to_level_star(copies)
-        rows.append([(f"{RARITY_ICON[c['rarity']]}{ROLE_ICON[c['role']]} {c['name_fa' if L == 'fa' else 'name_en']} {ctx.t('lbl_level')} {fnum(lvl, L)}{'★' * star}", "dss", f"{mid}.{cid}")])
-    pg = []
-    if page > 0:
-        pg.append(("◀️", "dsm", f"{mid}.{page - 1}", False, "none"))
-    if page < pages - 1:
-        pg.append(("▶️", "dsm", f"{mid}.{page + 1}", False, "none"))
-    if pg:
-        rows.append(pg)
-    rows.append(nav(ctx, ("dsm", "")))
-    return Out(head(ctx, "ttl_dsp") + ctx.t("ds_pick_c"), rows)
-
-
-@action("dss")
-async def dispatch_do(ctx, arg):
-    mid, _, cid = arg.partition(".")
-    r = await dispatch_send(ctx.uid, mid, cid)
-    if r != "ok":
-        return Out(alert=ctx.t("ds_e_" + r))
-    out = await dispatch(ctx, "")
-    out.alert = ctx.t("ds_sent")
-    return out
-
-
-@action("dsc")
-async def dispatch_collect(ctx, arg):
-    L = ctx.lang
-    res = await dispatch_claim(ctx.uid)
-    if not res:
-        return Out(alert=ctx.t("ds_e_none"))
-    lines = []
-    for r in res:
-        c = CHAR_BY_ID[r["cid"]]
-        extra = (" · " + nm(r["item"], L)) if r["item"] else ""
-        extra += (" · ⚡" + fnum(r["energy"], L)) if r["energy"] else ""
-        lines.append(f"{ROLE_ICON[r['role']]} <b>{esc(c['name_fa' if L == 'fa' else 'name_en'])}</b>: +{fnum(r['coins'], L)} 🪙 · +{fnum(r['xp'], L)} {ctx.t('xp_word')}{extra}")
-    return Out(head(ctx, "ttl_dsp") + ctx.t("ds_done") + "\n\n" + "\n".join(lines), [[(ctx.t("b_dsend"), "dsm", "")], nav(ctx, ("dsp", ""))])
-
-
-# ===================================================================================================
-# Urahara's wheel
-# ===================================================================================================
-@action("whl")
-async def wheel(ctx, arg):
-    L = ctx.lang
-    s = await wheel_state(ctx.uid)
-    prizes = " ".join(w[2] for w in WHEEL)
-    body = ctx.t("wh_body", prizes=prizes, cost=fnum(s["cost"], L))
-    if s["free"]:
-        body += "\n\n" + ctx.t("wh_free")
-        label = ctx.t("b_spin_free")
-    elif s["extra"] > 0:
-        body += "\n\n" + ctx.t("wh_extra", n=fnum(s["extra"], L), cost=fnum(s["cost"], L))
-        label = ctx.t("b_spin_paid", cost=fnum(s["cost"], L))
-    else:
-        return Out(head(ctx, "ttl_whl") + body + "\n\n" + ctx.t("wh_none"), [nav(ctx)])
-    return Out(head(ctx, "ttl_whl") + body, [[(label, "whs", "")], nav(ctx)])
-
-
-@action("whs")
-async def wheel_do(ctx, arg):
-    L = ctx.lang
-    status, r = await wheel_spin(ctx.uid)
-    if status == "wait":
-        return Out()
-    if status != "ok":
-        return Out(alert=ctx.t("wh_e_" + status))
-    lines = [f"🎡 {r['icon']} <b>{r['fa'] if L == 'fa' else r['en']}</b>"]
-    if r["coins"]:
-        lines.append(f"+{fnum(r['coins'], L)} 🪙")
-    if r["xp"]:
-        lines.append(f"+{fnum(r['xp'], L)} {ctx.t('xp_word')}")
-    if r["energy"]:
-        lines.append(f"+{fnum(r['energy'], L)} ⚡")
-    if r["item"]:
-        lines.append(nm(r["item"], L))
-    s = await wheel_state(ctx.uid)
-    rows = []
-    if s["free"] or s["extra"] > 0:
-        rows.append([(ctx.t("b_spin_free") if s["free"] else ctx.t("b_spin_paid", cost=fnum(s["cost"], L)), "whs", "")])
-    rows.append(nav(ctx))
-    return Out(head(ctx, "ttl_whl") + "\n".join(lines), rows)
-
-
-# ===================================================================================================
-# Gotei seat ranks
-# ===================================================================================================
-@action("sat")
-async def seat(ctx, arg):
-    L = ctx.lang
-    i = await seat_info(ctx.uid)
-    idx = i["idx"]
-    name = SEATS[idx][2 + _fa(ctx)]
-    icon = SEATS[idx][1]
-    lines = [ctx.t("sat_now", icon=icon, name=name, pts=fnum(i["pts"], L))]
-    if i["next"]:
-        cur_need = SEATS[idx][0]
-        lines.append(bar(i["pts"] - cur_need, i["next"][0] - cur_need) + " " + ctx.t("sat_next", icon=i["next"][1], name=i["next"][2 + _fa(ctx)],
-                                                                                    n=fnum(i["next"][0] - i["pts"], L)))
-    ladder = []
-    for k, (need, ic, fa, en) in enumerate(SEATS):
-        mark = "✅" if k <= idx else "▫️"
-        ladder.append(f"{mark} {ic} {fa if L == 'fa' else en} — {fnum(need, L)}")
-    rows = []
-    if i["claimed"] < idx:
-        rows.append([(ctx.t("b_sclaim"), "sac", "")])
-    rows.append([(ctx.t("m_ssn"), "ssn", "")])
-    rows.append(nav(ctx))
-    return Out(head(ctx, "ttl_sat") + "\n".join(lines) + "\n\n" + "\n".join(ladder) + "\n\n" + ctx.t("sat_hint"), rows)
-
-
-@action("sac")
-async def seat_collect(ctx, arg):
-    L = ctx.lang
-    r = await seat_claim(ctx.uid)
-    if not r:
-        return Out(alert=ctx.t("sat_e_none"))
-    await butterfly(ctx.bot, ctx.uid, L, "seat")
-    text = ctx.t("sat_claimed", coins=fnum(r["coins"], L)) + "\n" + "\n".join(nm(i, L) for i in r["items"])
-    return Out(head(ctx, "ttl_sat") + text, [nav(ctx, ("sat", ""))])
-
-
-# ===================================================================================================
-# Inner World
-# ===================================================================================================
-@action("inr")
-async def inner(ctx, arg):
-    L = ctx.lang
-    s = await inner_state(ctx.uid)
-    if s["scene"] is None:
-        return Out(head(ctx, "ttl_inr") + ctx.t("inr_none", cap=fnum(s["cap"], L)), [nav(ctx)])
+# ---- stats & progress ------------------------------------------------------------------------------------------
+@action("xf_card")
+async def card(ctx, arg):
     ch = await get_char(ctx.uid)
-    w = ALL.get(ch.get("weapon_id") or "") or {}
-    wname = esc(w.get("name_fa" if L == "fa" else "name_en", ctx.t("inr_blade")))
-    sc = INNER[s["scene"]]
-    text = ctx.t("inr_intro", left=fnum(s["left"], L), cap=fnum(s["cap"], L)) + "\n\n<i>" + sc["t"][_fa(ctx)].format(w=wname) + "</i>"
-    rows = [[(sc["a"][_fa(ctx)], "inc", f"{s['scene']}.a")], [(sc["b"][_fa(ctx)], "inc", f"{s['scene']}.b")], nav(ctx)]
-    return Out(head(ctx, "ttl_inr") + text, rows)
-
-
-@action("inc")
-async def inner_pick(ctx, arg):
+    if not ch:
+        return Out(ctx.t("not_registered"))
     L = ctx.lang
-    sc_s, _, choice = arg.partition(".")
-    if not sc_s.isdigit() or int(sc_s) >= len(INNER):
-        return Out()
-    status, r = await inner_choose(ctx.uid, int(sc_s), choice)
-    if status == "wait":
-        return Out()
-    if status != "ok":
-        return Out(alert=ctx.t("inr_e_" + status))
-    ch = INNER[int(sc_s)][choice]
-    lines = ["<i>" + ch[2 + _fa(ctx)] + "</i>", ""]
-    if r["bond"]:
-        lines.append(ctx.t("inr_bond", n=fnum(r["bond"], L)))
-    if r["xp"]:
-        lines.append(f"+{fnum(r['xp'], L)} {ctx.t('xp_word')}")
-    if r["buff"]:
-        key, pct, minutes = r["buff"]
-        lines.append(ctx.t("inr_buff", key=ctx.t("buff_" + key), pct=fnum(round(pct * 100), L), m=fnum(minutes, L)))
-    s = await inner_state(ctx.uid)
-    rows = [[(ctx.t("b_inr_again"), "inr", "")]] if s["scene"] is not None else []
-    rows.append(nav(ctx))
-    return Out(head(ctx, "ttl_inr") + "\n".join(lines), rows)
+    w, l = int(ch.get("wins", 0) or 0), int(ch.get("losses", 0) or 0)
+    total = w + l
+    wr = round(100 * w / total) if total else 0
+    lines = [
+        f"<b>{esc(ch['name'])}</b> · {_tier(ch['level'], L)}",
+        T(ctx, f"⚔️ قدرت: {fnum(power(ch), L)} · 🎖 سطح: {fnum(ch['level'], L)}", f"⚔️ Power: {fnum(power(ch), L)} · 🎖 Lv: {fnum(ch['level'], L)}"),
+        T(ctx, f"🏆 برد: {fnum(w, L)} · 💀 باخت: {fnum(l, L)} · نرخ برد: {wr}٪", f"🏆 Wins: {w} · Losses: {l} · Win rate: {wr}%"),
+        T(ctx, f"🪙 سکه: {fnum(ch['coins'], L)}", f"🪙 Coins: {fnum(ch['coins'], L)}"),
+        f"<code>{bar(wr, 100)}</code> {wr}%",
+    ]
+    return Out(head(ctx, "ttl_menu") + "\n".join(x for x in lines if x), [nav(ctx, ("xf", ""))])
+
+
+@action("xf_ach")
+async def achievements(ctx, arg):
+    ch = await get_char(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"))
+    L = ctx.lang
+    done = 0
+    lines = []
+    for field, need, fa, en in ACHIEVEMENTS:
+        have = ch.get(field, 0) or 0
+        ok = have >= need
+        done += ok
+        label = fa if L == "fa" else en
+        lines.append(f"{'✅' if ok else '🔒'} {label} · <code>{fnum(min(have, need), L)}/{fnum(need, L)}</code>")
+    head_line = T(ctx, f"🏅 دستاوردها: {fnum(done, L)}/{fnum(len(ACHIEVEMENTS), L)}", f"🏅 Achievements: {done}/{len(ACHIEVEMENTS)}")
+    return Out(head(ctx, "ttl_menu") + head_line + "\n\n" + "\n".join(lines), [nav(ctx, ("xf", ""))])
+
+
+@action("xf_stats")
+async def stat_breakdown(ctx, arg):
+    ch = await get_char(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"))
+    L = ctx.lang
+    vals = {k: soft_stat(ch["stats"][k]) for k in STATS}
+    top = max(vals.values(), default=1) or 1
+    lines = [f"{STAT_ICON.get(k, '•')} {k}: <code>{bar(v, top)}</code> {fnum(v, L)}" for k, v in vals.items()]
+    return Out(head(ctx, "ttl_menu") + T(ctx, "🔬 <b>جزئیات قدرت</b>", "🔬 <b>Power breakdown</b>") + "\n\n" + "\n".join(lines), [nav(ctx, ("xf", ""))])
+
+
+@action("xf_energy")
+async def energy_info(ctx, arg):
+    ch = await get_char(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"))
+    L = ctx.lang
+    st = await game_settings()
+    en, _, _ = energy_now(ch, st)
+    mx = int(st["energy_max"])
+    text = T(ctx, f"⚡ انرژی: <code>{bar(en, mx)}</code> {fnum(en, L)}/{fnum(mx, L)}",
+             f"⚡ Energy: <code>{bar(en, mx)}</code> {en}/{mx}")
+    return Out(head(ctx, "ttl_menu") + text, [nav(ctx, ("xf", ""))])
+
+
+@action("xf_rank")
+async def rank(ctx, arg):
+    ch = await get_char(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"))
+    L = ctx.lang
+    wealth = await col("characters").count_documents({"coins": {"$gt": ch.get("coins", 0)}}) + 1
+    levels = await col("characters").count_documents({"level": {"$gt": ch.get("level", 1)}}) + 1
+    need = xp_to_next(ch["level"])
+    text = "\n".join([
+        T(ctx, f"🎖 درجه: <b>{_tier(ch['level'], L)}</b>", f"🎖 Rank: <b>{_tier(ch['level'], L)}</b>"),
+        T(ctx, f"🪙 رتبه‌ات در ثروت: #{fnum(wealth, L)}", f"🪙 Wealth rank: #{wealth}"),
+        T(ctx, f"📈 رتبه‌ات در سطح: #{fnum(levels, L)}", f"📈 Level rank: #{levels}"),
+        T(ctx, f"⭐ تا سطح بعد: <code>{bar(ch['xp'], need)}</code> {fnum(need - ch['xp'], L)} XP",
+          f"⭐ To next level: <code>{bar(ch['xp'], need)}</code> {need - ch['xp']} XP"),
+    ])
+    return Out(head(ctx, "ttl_menu") + text, [nav(ctx, ("xf", ""))])
+
+
+@action("xf_todo")
+async def checklist(ctx, arg):
+    ch = await get_char(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"))
+    L = ctx.lang
+    items = [
+        (T(ctx, "پاداش روزانه", "Daily reward"), int(ch.get("daily_streak", 0) or 0) > 0),
+        (T(ctx, "اولین نبرد", "First battle"), int(ch.get("wins", 0) or 0) + int(ch.get("losses", 0) or 0) > 0),
+        (T(ctx, "یک بار ارتقا", "Upgrade once"), int(ch.get("points", 0) or 0) == 0 and ch["level"] > 1),
+        (T(ctx, "یک آیتم در کوله‌پشتی", "An item in your bag"), bool(ch.get("items"))),
+        (T(ctx, "سطح ۵", "Reach level 5"), ch["level"] >= 5),
+    ]
+    done = sum(1 for _, ok in items if ok)
+    lines = [f"{'✅' if ok else '⬜'} {label}" for label, ok in items]
+    return Out(head(ctx, "ttl_menu") + T(ctx, f"✅ چک‌لیست: {fnum(done, L)}/{len(items)}", f"✅ Checklist: {done}/{len(items)}")
+               + "\n\n" + "\n".join(lines), [nav(ctx, ("xf", ""))])
+
+
+# ---- daily fun -------------------------------------------------------------------------------------------------
+@action("xf_fort")
+async def fortune(ctx, arg):
+    rnd = random.Random(hashlib.sha256(f"{ctx.uid}{_day()}".encode()).hexdigest())
+    fa, en = rnd.choice(FORTUNES)
+    return Out(head(ctx, "ttl_menu") + "🔮 " + T(ctx, fa, en), [nav(ctx, ("xf", ""))])
+
+
+@action("xf_tip")
+async def tip(ctx, arg):
+    rnd = random.Random(_day())
+    fa, en = rnd.choice(TIPS)
+    return Out(head(ctx, "ttl_menu") + "💡 " + T(ctx, fa, en), [nav(ctx, ("xf", ""))])
+
+
+# ---- trivia (once a day, paid) ------------------------------------------------------------------------------
+@action("xf_quiz")
+async def quiz(ctx, arg):
+    if not await get_char(ctx.uid):
+        return Out(ctx.t("not_registered"))
+    idx = random.Random(hashlib.sha256(f"q{ctx.uid}{_day()}".encode()).hexdigest()).randrange(len(TRIVIA))
+    q, opts, _ = TRIVIA[idx]
+    if arg == "":
+        rows = [[(opt, "xf_qa", f"{idx}.{i}")] for i, opt in enumerate(opts)] + [nav(ctx, ("xf", ""))]
+        return Out(head(ctx, "ttl_menu") + "🧠 " + q, rows)
+    return Out(head(ctx, "ttl_menu") + T(ctx, "جوابت رو زدی؛ دوباره امروز بیا.", "Answer sent; come back tomorrow."), [nav(ctx, ("xf", ""))])
+
+
+@action("xf_qa")
+async def quiz_answer(ctx, arg):
+    try:
+        idx, pick = (int(x) for x in arg.split("."))
+    except Exception:
+        return Out(alert="?")
+    _, _, correct = TRIVIA[idx % len(TRIVIA)]
+    if pick != correct:
+        return Out(head(ctx, "ttl_menu") + T(ctx, "❌ اشتباه بود. فردا دوباره امتحان کن.", "❌ Wrong. Try again tomorrow."), [nav(ctx, ("xf", ""))])
+    granted = await bump_counter(f"quiz:{ctx.uid}", 1, 1, 24)
+    if not granted:
+        return Out(head(ctx, "ttl_menu") + T(ctx, "درست بود، ولی جایزه‌ی امروزت رو گرفتی.", "Correct, but you already claimed today's reward."), [nav(ctx, ("xf", ""))])
+    await add_coins(ctx.uid, 40, "quiz")
+    return Out(head(ctx, "ttl_menu") + T(ctx, "✅ درست! +۴۰ سکه", "✅ Correct! +40 coins"), [nav(ctx, ("xf", ""))])
+
+
+# ---- coin flip (bounded) ----------------------------------------------------------------------------------------
+@action("xf_cf")
+async def coinflip(ctx, arg):
+    ch = await get_char(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"))
+    L = ctx.lang
+    if arg == "":
+        rows = [[(f"{p}٪", "xf_cf", str(p)) for p in (5, 10, 25)], nav(ctx, ("xf", ""))]
+        return Out(head(ctx, "ttl_menu") + T(ctx, "🪙 چقدر شرط می‌بندی؟ (درصدی از سکه‌هات)", "🪙 Bet how much? (percent of your coins)"), rows)
+    pct = int(arg) if arg.isdigit() and int(arg) in (5, 10, 25) else 5
+    bet = max(1, int(ch["coins"]) * pct // 100)
+    if bet > 200000:
+        bet = 200000
+    if not await bump_counter(f"cf:{ctx.uid}", 1, 20, 24):
+        return Out(head(ctx, "ttl_menu") + T(ctx, "امروز ۲۰ بار شیر یا خط زدی؛ فردا.", "You used 20 flips today; come back tomorrow."), [nav(ctx, ("xf", ""))])
+    # debit first, atomically: the bet must be covered by the balance at this moment
+    res = await col("characters").find_one_and_update({"user_id": ctx.uid, "coins": {"$gte": bet}}, {"$inc": {"coins": -bet}})
+    if not res:
+        return Out(head(ctx, "ttl_menu") + T(ctx, "سکه‌ی کافی نداری.", "Not enough coins."), [nav(ctx, ("xf", ""))])
+    if random.random() < 0.48:  # house edge, so flipping is not a money printer
+        await add_coins(ctx.uid, bet * 2, "coinflip")
+        msg = T(ctx, f"🎉 بردی! +{fnum(bet, L)} سکه", f"🎉 You won! +{bet}")
+    else:
+        msg = T(ctx, f"💀 باختی: -{fnum(bet, L)} سکه", f"💀 You lost {bet} coins")
+    return Out(head(ctx, "ttl_menu") + msg, [[(T(ctx, "🔁 دوباره", "🔁 Again"), "xf_cf", str(pct))], nav(ctx, ("xf", ""))])
+
+
+# ---- transfer and compare -------------------------------------------------------------------------------------
+@action("xf_tr")
+async def transfer_start(ctx, arg):
+    if not await get_char(ctx.uid):
+        return Out(ctx.t("not_registered"))
+    await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "xf_tr", "at": int(time.time())}}, upsert=True)
+    return Out(head(ctx, "ttl_menu") + T(ctx, "بفرست: <code>آیدی_بازیکن مقدار</code>\nمثال: <code>123456 1000</code>\nکارمزد ۵٪ و سقف روزانه‌ی ۵۰۰هزار سکه.",
+                                         "Send: <code>player_id amount</code>\nExample: <code>123456 1000</code>\n5% fee, 500k per day cap."),
+               [nav(ctx, ("xf", ""))])
+
+
+@input_handler("xf_tr")
+async def transfer_input(ctx, text):
+    L = ctx.lang
+    parts = (text or "").split()
+    if len(parts) != 2 or not parts[0].isdigit() or not parts[1].isdigit():
+        return Out(T(ctx, "فرمت اشتباهه. مثال: 123456 1000", "Bad format. Example: 123456 1000"), [nav(ctx, ("xf", ""))])
+    to, amount = int(parts[0]), int(parts[1])
+    if to == ctx.uid or amount <= 0:
+        return Out(T(ctx, "این انتقال ممکن نیست.", "Transfer not allowed."), [nav(ctx, ("xf", ""))])
+    fee = max(1, amount * 5 // 100)
+    total = amount + fee
+    if not await col("characters").find_one({"user_id": to}, {"_id": 1}):
+        return Out(T(ctx, "بازیکن پیدا نشد.", "Player not found."), [nav(ctx, ("xf", ""))])
+    if not await bump_counter(f"tr:{ctx.uid}", amount, 500000, 24):
+        return Out(T(ctx, "سقف انتقال امروزت پر شده.", "Daily transfer cap reached."), [nav(ctx, ("xf", ""))])
+    res = await col("characters").find_one_and_update({"user_id": ctx.uid, "coins": {"$gte": total}}, {"$inc": {"coins": -total}})
+    if not res:
+        return Out(T(ctx, "سکه‌ی کافی نداری (با کارمزد).", "Not enough coins (including fee)."), [nav(ctx, ("xf", ""))])
+    await add_coins(to, amount, f"transfer from {ctx.uid}")
+    return Out(T(ctx, f"✅ {fnum(amount, L)} سکه فرستاده شد (کارمزد: {fnum(fee, L)})", f"✅ Sent {amount} coins (fee: {fee})"), [nav(ctx, ("xf", ""))])
+
+
+@action("xf_cmp")
+async def compare_start(ctx, arg):
+    if not await get_char(ctx.uid):
+        return Out(ctx.t("not_registered"))
+    await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "xf_cmp", "at": int(time.time())}}, upsert=True)
+    return Out(head(ctx, "ttl_menu") + T(ctx, "آیدی بازیکنی که می‌خوای باهاش مقایسه کنی رو بفرست.", "Send the player ID you want to compare with."), [nav(ctx, ("xf", ""))])
+
+
+@input_handler("xf_cmp")
+async def compare_input(ctx, text):
+    L = ctx.lang
+    me, other = await get_char(ctx.uid), None
+    if (text or "").strip().isdigit():
+        other = await get_char(int(text.strip()))
+    if not other:
+        return Out(T(ctx, "بازیکن پیدا نشد.", "Player not found."), [nav(ctx, ("xf", ""))])
+    def row(label, a, b):
+        mark = "🟢" if a > b else ("🔴" if a < b else "⚪")
+        return f"{mark} {label}: {fnum(a, L)} | {fnum(b, L)}"
+    lines = [
+        f"<b>{esc(me['name'])}</b> vs <b>{esc(other['name'])}</b>",
+        row("Lv", me["level"], other["level"]),
+        row("⚔️", power(me), power(other)),
+        row("🏆", int(me.get("wins", 0) or 0), int(other.get("wins", 0) or 0)),
+        row("🪙", int(me["coins"]), int(other["coins"])),
+    ]
+    return Out("\n".join(lines), [nav(ctx, ("xf", ""))])
+
+
+# ---- feedback and share ------------------------------------------------------------------------------------
+@action("xf_fb")
+async def feedback_start(ctx, arg):
+    await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "xf_fb", "at": int(time.time())}}, upsert=True)
+    return Out(head(ctx, "ttl_menu") + T(ctx, "پیشنهاد، باگ یا ایده‌ات رو بنویس؛ مستقیم برای ادمین‌ها میره.",
+                                         "Write your idea or bug; it goes straight to the admins."), [nav(ctx, ("xf", ""))])
+
+
+@input_handler("xf_fb")
+async def feedback_input(ctx, text):
+    msg = (text or "").strip()[:1000]
+    if not msg:
+        return Out(T(ctx, "خالیه.", "Empty."), [nav(ctx, ("xf", ""))])
+    await col("feedback").insert_one({"user_id": ctx.uid, "text": msg, "at": int(time.time()), "read": False})
+    return Out(T(ctx, "ممنون! ثبت شد. 🙏", "Thanks! Recorded. 🙏"), [nav(ctx, ("xf", ""))])
+
+
+@action("xf_share")
+async def share(ctx, arg):
+    ch = await get_char(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"))
+    L = ctx.lang
+    text = (f"⚔️ {ch['name']} · {_tier(ch['level'], L)}\n"
+            f"🎖 Lv {ch['level']} · ⚔️ {power(ch)} · 🏆 {int(ch.get('wins', 0) or 0)}\n"
+            f"🆔 {ch['user_id']}")
+    return Out(head(ctx, "ttl_menu") + T(ctx, "کارتت رو کپی کن و برای دوستات بفرست:", "Copy your card and share it:") + f"\n\n<code>{esc(text)}</code>", [nav(ctx, ("xf", ""))])

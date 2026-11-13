@@ -73,6 +73,7 @@ async def home(ctx, arg):
 async def menu2(ctx, arg):
     rows = [[(ctx.t("mg_adv"), "mg", "adv"), (ctx.t("mg_grow"), "mg", "grow")],
             [(ctx.t("mg_soc"), "mg", "soc"), (ctx.t("mg_fun"), "mg", "fun")],
+            [(("✨ امکانات" if ctx.lang == "fa" else "✨ Extras"), "xf", "")],
             [(ctx.t("m_set"), "set", ""), (ctx.t("m_hlp"), "hlp", "")], nav(ctx)]
     return Out(head(ctx, "ttl_menu") + ctx.t("menu_body"), rows)
 
