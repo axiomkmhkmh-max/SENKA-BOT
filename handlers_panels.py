@@ -56,11 +56,15 @@ async def home(ctx, arg):
         text += "\n\n" + ctx.t("home_tip")
     else:
         text += "\n\n" + await world_line(ctx, ch)
-    # home keeps only the 6 things people use every minute; everything else lives in "More", grouped
+    banner = "🌑 ━━━━━━━━━━━━━━━━━━ 🌑\n"
+    text = banner + text + "\n🌑 ━━━━━━━━━━━━━━━━━━ 🌑"
+    # home: the things people use every minute, in a 2-column grid; everything else lives in "More", grouped
     rows = [[(ctx.t("m_exp"), "exp", ""), (ctx.t("m_bt"), "bt", "")],
+            [(ctx.t("m_dgn"), "dgn", ""), (ctx.t("m_gch"), "gch", "")],
             [(ctx.t("m_prof"), "prof", ""), (ctx.t("m_bag"), "bag", "0")],
             [(ctx.t("m_qst"), "qst", ""), (ctx.t("m_mkt"), "mkt", "")],
-            [(("📋 امروز" if ctx.lang == "fa" else "📋 Today"), "bd", "")],
+            [(ctx.t("m_dly"), "dly", ""), (ctx.t("m_rnk"), "rnk", "")],
+            [(ctx.t("m_map"), "map", ""), (ctx.t("m_crf"), "crf", "")],
             [(ctx.t("b_more"), "menu2", "")]]
     return Out(text, rows)
 

@@ -21,7 +21,6 @@ import handlers_viral  # --- NEW BLEACH VIRAL SYSTEM
 import handlers_bleach_systems  # noqa: F401 (race, story, Kidō and faction progression)
 import handlers_adminpanel  # noqa: F401  (admin button panel)
 import handlers_adminpro  # noqa: F401  (advanced admin hub: analytics, risk, health)
-import handlers_dashboard  # noqa: F401  (player Today board)
 import handlers_items
 import handlers_panels
 import handlers_world
