@@ -577,6 +577,18 @@ async def _send_groups(bot, text_fn, kb=None, limit: int = 300, want_ids: bool =
     return ids
 
 
+def _herald_text(L, minutes: int) -> str:
+    if L == "fa":
+        return (f"⏳ <b>ندای هالو</b>\nتا حدود {minutes} دقیقه‌ی دیگر یک باس جهانی از شکاف‌های سوول سوسایتی بیرون می‌زند. "
+                "گروه‌ها آماده باشند — هر کس زودتر ضربه بزند، سهم بیشتری می‌برد.")
+    return (f"⏳ <b>Hollow Herald</b>\nIn about {minutes} minute(s) a world boss tears open the rift of Soul Society. "
+            "Every group, get ready — the earlier you strike, the bigger your share.")
+
+
+async def announce_herald(bot, minutes: int):
+    await _send_groups(bot, lambda L: _herald_text(L, minutes))
+
+
 async def post_global_boss(bot, doc):
     st = await game_settings()
     ids = await _send_groups(bot, lambda L: boss_text(L, doc), (lambda m, _s=doc["_id"]: boss_kb(_s, m)), int(st["boss_broadcast_cap"]))

@@ -113,3 +113,23 @@ Everything is button-driven inside the existing fight panel; old saved battles k
 
 New character fields (created on first use): `konso`, `bx_hollow`, `bx_pending`. `pve_start` gained `force_elite`; `start_pve_panel` now really passes `scale` through.
 Measured with a 2-5k-fight simulation (see the tuning notes in `data_bleachfx.py`): each player signature is worth roughly +0..+6 win-rate points, Resolve about +3, an unanswered enemy Cero about -3, interrupting it about +6.
+
+
+## Bankai pack (v7) — spirit gauge, word release, Resurrección, Hell Butterfly, Hollow Herald
+Numbers: `data_bleachfx.py` (`GAUGE`, `RESURRECCION`). Engine: `engine.py` (`_gain`, the `gx` action, `start_turn`). UI: `render.py`, `handlers_combat.py` (`battle_word`), `handlers_core.py`, `locale_bleachfx.py`. Services: `service_butterfly.py`, `service_world.py` (`herald_due`), `handlers_world.py` (`announce_herald`), `scheduler.py`.
+
+| Mechanic | How it plays |
+|---|---|
+| **Spirit gauge** 🔥 | Fills while you fight: every blow you land, and every blow you take (more when the blow is big). Shown on the fighter card. |
+| **Bankai / Resurrección** 👑 | At 100 the gauge can be spent (10% Reiatsu) to unleash. The release is itself a strike, then the form lasts for 2 more of your actions (+6% damage, +2% crit). Hollow and Arrancar call it Resurrección. |
+| **Word release** | In a fight, typing the released blade's name (or "Bankai" / "release") unleashes it, if the gauge is full. The blade name is then printed as the technique: "<blade>: <technique>!" |
+| **Hollow takes the wheel** | While released and below 30% HP, each turn there is a 12% chance the Hollow inside takes the turn (the existing `mask_lost` line). |
+| **Resurrección** | The Hollow / Arrancar version of Resolve: once per battle, +8% HP, +15% damage for 3 turns. |
+| **Hell Butterfly** 🦋 | A rare private message when you release Shikai or Bankai, or claim a Gotei seat reward. One per player per 30 min (`butterfly_cooldown`). Off for everyone with `set butterfly_on 0`. |
+| **Hollow Herald** ⏳ | 10 minutes before a world boss a Herald is posted to every active group, once per boss slot (`herald_window`, seconds). |
+
+Balance (3,000-fight simulation, synthetic fighters, `tests/` documents the method): a player with a full gauge wins about +8 points more than the same player without it, against an AI opponent with no gauge. Tune in `GAUGE` (one file). Live knobs: `butterfly_on`, `butterfly_cooldown`, `herald_window`.
+
+Tests: `python -m unittest discover -s tests -v` (includes the engine, render, word-release, Butterfly and Herald checks; no MongoDB or Telegram needed).
+Not in this pack, on purpose: two-life Konpaku PvP (needs ranked testing first), and the Stars ranking board.
+

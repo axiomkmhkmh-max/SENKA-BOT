@@ -206,6 +206,9 @@ async def handle_text(message: Message, text: str):
     if pend and pend["kind"] in INPUTS:
         if time.time() - pend["at"] < 300 and normalize_text(text) not in ("لغو", "cancel"):
             return await send_out(message, ctx, await INPUTS[pend["kind"]](ctx, text))
+    war = await handlers_combat.battle_word(ctx, text)  # in a fight: the blade's name releases Bankai when the gauge is full
+    if war is not None:
+        return await send_out(message, ctx, war)
     hit = await resolve(text)
     if not hit:
         return await message.answer(ctx.t("unknown"), reply_markup=markup(ctx, [[(ctx.t("m_home"), "home", "")]]))

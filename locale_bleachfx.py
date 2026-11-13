@@ -2,6 +2,19 @@
 Variants use the key / key_2 / key_3 convention read by render.pick(). All incantations are original wording."""
 
 FA = {
+    # ---- spirit gauge: Bankai / Resurrección ----
+    "a_gx": "👑 بانکای!", "a_gx_hollow": "👑 رسورکسیون!",
+    "wr_locked": "🔒 تیغه‌ات هنوز آزاد نشده. اول شیکای را بیدار کن (بخش زانپاکتو).",
+    "bt_gauge_low": "🔥 روحیه‌ی جنگ هنوز پر نیست ({n}/100)، یا ریاتسوی کافی برای رهاسازی نداری.",
+    "lg_gauge_full": "🔥 روحیه‌ی <b>{a}</b> پر شد! رهاسازی آماده است…",
+    "lg_gauge_full_2": "🔥 <b>{a}</b> می‌تواند رها کند — نام تیغه‌اش را صدا بزن یا دکمه را بزن!",
+    "lg_unleash": "👑 <b>{a}</b> ریاتسوی خود را آزاد کرد — بانکای!",
+    "lg_unleash_2": "👑 فشار ریاتسوی <b>{a}</b> زمین را از جا کند!",
+    "lg_unleash_res": "👑 <b>{a}</b> رسورکسیون را آزاد کرد!",
+    "lg_unleash_move": "👑 <b>{a}</b> تیغه‌اش را آزاد کرد: <b>{move}</b>!",
+    "lg_unleash_end": "⌛ ریاتسوی آزادشده‌ی {a} فروکش کرد.",
+    "lg_resurrect": "🦴 <b>{a}</b> زانو نزد! ماسک ترک خورد و رسورکسیون زبانه کشید!",
+    "lg_resurrect_2": "🦴 از دل ویرانه‌ی ماسک {a}، ارکانار برخاست!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 شونپو", "a_sg_hiren": "🌪️ هیرنکیاکو", "a_sg_cero": "🔴 جمع‌کردن سرو", "a_sg_cero_fire": "💥 شلیک سرو!",
     "a_sg_bring": "💠 ضربه‌ی فول‌برینگ", "a_sg_guts": "🔥 اراده‌ی جنگجو", "a_ch": "📿 ورد کیدو",
@@ -50,6 +63,19 @@ FA = {
 }
 
 EN = {
+    # ---- spirit gauge: Bankai / Resurrección ----
+    "a_gx": "👑 Bankai!", "a_gx_hollow": "👑 Resurrección!",
+    "wr_locked": "🔒 Your blade isn't released yet. Awaken its Shikai first (Zanpakutō panel).",
+    "bt_gauge_low": "🔥 Your spirit isn't full yet ({n}/100), or you lack the reiatsu to release.",
+    "lg_gauge_full": "🔥 <b>{a}</b>'s spirit is full! The release is ready…",
+    "lg_gauge_full_2": "🔥 <b>{a}</b> can release now — call the blade's name, or press the button!",
+    "lg_unleash": "👑 <b>{a}</b> unleashes their reiatsu — Bankai!",
+    "lg_unleash_2": "👑 The pressure of <b>{a}</b>'s reiatsu tears the ground apart!",
+    "lg_unleash_res": "👑 <b>{a}</b> unleashes Resurrección!",
+    "lg_unleash_move": "👑 <b>{a}</b> releases the blade: <b>{move}</b>!",
+    "lg_unleash_end": "⌛ {a}'s released reiatsu fades.",
+    "lg_resurrect": "🦴 <b>{a}</b> refuses to fall! The mask cracks and Resurrección flares!",
+    "lg_resurrect_2": "🦴 From the ruins of {a}'s mask, the Arrancar rises!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 Shunpo", "a_sg_hiren": "🌪️ Hirenkyaku", "a_sg_cero": "🔴 Gather Cero", "a_sg_cero_fire": "💥 Fire Cero!",
     "a_sg_bring": "💠 Fullbring Strike", "a_sg_guts": "🔥 Fighting Spirit", "a_ch": "📿 Chant Kidō",

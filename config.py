@@ -30,6 +30,7 @@ settings = Settings()
 # Starting values. All of them can be overridden live from the admin panel
 # (stored in MongoDB `settings` collection, document _id="game").
 GAME_DEFAULTS = {
+    "butterfly_on": 1, "butterfly_cooldown": 1800, "herald_window": 600,  # Hell Butterfly, Hollow Herald countdown (seconds)
     "maintenance": False,
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,
     "div_min_level": 10, "div_change_cost": 3000, "div_k": 1.0,  # allegiance: min level, change price, bonus strength

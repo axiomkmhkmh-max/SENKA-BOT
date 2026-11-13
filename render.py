@@ -3,7 +3,7 @@ import time
 
 import random
 
-from data_bleachfx import move_name
+from data_bleachfx import RESURRECCION_RACES, move_name
 from data_bosses import BOSS_BY_ID
 from i18n import LOCALES, bar, esc, fnum, t
 
@@ -62,8 +62,14 @@ def events_text(lang: str, events: list) -> str:
             out.append(t(lang, "lg_fx", a=a, d=d, fx=t(lang, "fx_" + e["fx"])))
         elif k == "dot":
             out.append(t(lang, "lg_dot", d=d, n=n, fx=t(lang, "fx_" + e["fx"])))
+        elif k == "unleash":  # Bankai / Resurrección: the blade's name when it is released, a generic line otherwise
+            if e.get("mv") and move_name(e["mv"], lang):
+                out.append(pick(lang, "lg_unleash_move", a=a, move=esc(move_name(e["mv"], lang))))
+            else:
+                out.append(pick(lang, "lg_unleash_res" if e.get("r") in RESURRECCION_RACES else "lg_unleash", a=a))
         elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost",
-                   "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure"):
+                   "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure",
+                   "gauge_full", "unleash_end", "resurrect"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k == "shield":
             out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))
@@ -90,9 +96,12 @@ def fighter_line(lang: str, f: dict, icon: str) -> str:
         fx += "📿"
     if x.get("buff_t", 0) > 0:
         fx += "💢"
+    if x.get("awake", 0) > 0:  # released: Bankai / Resurrección is active
+        fx += "👑"
+    gauge = f" 🔥{fnum(x['gauge'], lang)}%" if x.get("gauge", 0) > 0 else ""
     return (f"{icon} <b>{esc(f['name'])}</b> {fnum(f['level'], lang)} {fx}\n"
             f"❤️ {bar(f['hp'], f['max_hp'])} {fnum(f['hp'], lang)}/{fnum(f['max_hp'], lang)}\n"
-            f"🔮 {fnum(f['re'], lang)}/{fnum(f['max_re'], lang)}")
+            f"🔮 {fnum(f['re'], lang)}/{fnum(f['max_re'], lang)}{gauge}")
 
 
 def battle_text(lang: str, state: dict, events: list = None, title: str = "") -> str:

@@ -3,6 +3,7 @@ State lives in characters.zanpakuto = {blade_id, bond, mastery, shikai, bankai};
 Mastery grows by real use: every PvE win while released (+1) and the daily Training Grounds (energy cost, daily cap)."""
 import time
 
+from service_butterfly import butterfly
 from data_items import ALL, iname
 from data_misc import FORMS
 from data_world import day_id
@@ -160,6 +161,7 @@ async def zanpakuto_release(ctx, arg):
         return Out(alert=_t(ctx.lang, "locked"))
     if not r.modified_count:  # double tap
         return await zanpakuto_panel(ctx, "")
+    await butterfly(ctx.bot, ctx.uid, ctx.lang, "shikai" if arg == "1" else "bankai", blade=iname(z.get("blade_id") or "", ctx.lang) or "—")
     out = await zanpakuto_panel(ctx, "")
     out.text = "🗡 <i>" + _chant(ch, z, ctx.lang) + "</i>\n" + _t(ctx.lang, key, f=name[0 if ctx.lang == "fa" else 1]) + "\n" + out.text
     return out

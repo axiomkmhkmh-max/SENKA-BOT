@@ -241,6 +241,17 @@ async def _pay(doc: dict, killed: bool):
     return {"rows": rows, "drops": drops, "evo_drops": evo_drops, "killed": killed, "enraged": enraged, "n": n}
 
 
+async def herald_due(window: int) -> int:
+    """Minutes until the next world boss, the first time that boss slot enters the herald window; 0 otherwise.
+    Atomic: the slot is marked with `herald_for` in the same update, so it is announced exactly once."""
+    ws, _ = await get_world(force=True)
+    nxt, now = int(ws.get("next_boss_at", 0) or 0), int(time.time())
+    if ws.get("boss_id") or nxt <= now or nxt - now > window:
+        return 0
+    res = await col("world_state").update_one({"_id": WS_ID, "herald_for": {"$ne": nxt}}, {"$set": {"herald_for": nxt}})
+    return max(1, round((nxt - now) / 60)) if res.modified_count else 0
+
+
 async def boss_due() -> bool:
     ws, _ = await get_world(force=True)
     return not ws.get("boss_id") and ws.get("next_boss_at", 0) <= int(time.time())

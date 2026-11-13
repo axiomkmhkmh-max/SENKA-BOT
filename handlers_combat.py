@@ -5,12 +5,15 @@ from aiogram.exceptions import TelegramBadRequest
 
 from data_items import ALL
 from data_lore import dungeon_line
+from data_bleachfx import RESURRECCION_RACES
+from data_items import iname
 from data_misc import FORMS, KIDO_NAMES
 from data_races import DIFFICULTY, DIFF_FA, DUNGEONS
 from database import col
 import engine as E
 from fmt import nm
 from i18n import esc, fnum
+from security import normalize_text
 from render import battle_text, both, boss_text, events_text, gl, glang
 from service_combat import (active_pve, duel_accept, duel_challenge, duel_decline, pve_act, pve_start, pvp_act,
                             rank_letter, start_dungeon)
@@ -37,6 +40,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
         r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
     if r2:
         rows.append(r2)
+    if E.can(f, "gx"):  # spirit gauge full: Bankai (Resurrección for Hollow / Arrancar)
+        rows.append([mk(ctx.t("a_gx_hollow" if f.get("race") in RESURRECCION_RACES else "a_gx"), "gx")])
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
         rows.append([mk(ctx.t(key), "sg")])
@@ -201,6 +206,39 @@ async def battle_action(ctx, arg):
     if outcome:
         return await _pve_result(ctx, doc, ev, outcome)
     return await battle_panel(ctx, doc, ev)
+
+
+WORD_RELEASE = ("بانکای", "bankai", "رهاسازی", "release", "رسورکسیون", "resurreccion", "resurrección")
+
+
+async def battle_word(ctx, text):
+    """Typing the released blade's name (or "Bankai") during a fight unleashes it, if the spirit gauge is full.
+    Returns an Out for the chat, or None when the text is not a release word (normal routing continues)."""
+    n = normalize_text(text)
+    if not n:
+        return None
+    doc = await active_pve(ctx.uid)
+    if not doc:
+        return None
+    z = ((await col("characters").find_one({"user_id": ctx.uid}, {"zanpakuto": 1})) or {}).get("zanpakuto") or {}
+    released = bool(z.get("shikai") or z.get("bankai")) and bool(z.get("blade_id"))
+    names = set(WORD_RELEASE)
+    if z.get("blade_id"):
+        names |= {normalize_text(iname(z["blade_id"], "fa")), normalize_text(iname(z["blade_id"], "en"))}
+    if n not in names:
+        return None
+    if not released:
+        return Out(ctx.t("wr_locked"), [nav(ctx)], new=True)
+    f = doc["state"]["a"]
+    if not E.can(f, "gx"):
+        return Out(ctx.t("bt_gauge_low", n=fnum((f.get("x") or {}).get("gauge", 0), ctx.lang)), [nav(ctx)], new=True)
+    status, d, data = await pve_act(ctx.uid, doc["sid"], "gx")
+    if status != "ok":
+        return Out(ctx.t("bt_" + status), [nav(ctx)], new=True)
+    ev, outcome = data
+    out = await _pve_result(ctx, d, ev, outcome) if outcome else await battle_panel(ctx, d, ev)
+    out.new = True
+    return out
 
 
 # ---- dungeons ---------------------------------------------------------------------------------

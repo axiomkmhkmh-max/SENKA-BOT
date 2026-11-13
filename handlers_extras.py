@@ -2,6 +2,7 @@
 import math
 import time
 
+from service_butterfly import butterfly
 from data_chars import CHAR_BY_ID, copies_to_level_star
 from data_crafting import cosmetic_tag
 from data_extras import INNER, MISSIONS, ROLE_NOTE, SEATS, WHEEL
@@ -239,6 +240,7 @@ async def seat_collect(ctx, arg):
     r = await seat_claim(ctx.uid)
     if not r:
         return Out(alert=ctx.t("sat_e_none"))
+    await butterfly(ctx.bot, ctx.uid, L, "seat")
     text = ctx.t("sat_claimed", coins=fnum(r["coins"], L)) + "\n" + "\n".join(nm(i, L) for i in r["items"])
     return Out(head(ctx, "ttl_sat") + text, [nav(ctx, ("sat", ""))])
 

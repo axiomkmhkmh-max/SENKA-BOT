@@ -19,7 +19,7 @@ from service_drops import art_reconcile, art_settle, expire_drops, typing_expire
 from service_hollowraid import quincy_expire, quincy_tick
 from service_economy import settle_listings
 from service_interact import expire_bounties
-from service_world import active_boss, boss_due, expire_bosses, group_doc, spawn_boss
+from service_world import active_boss, boss_due, expire_bosses, group_doc, herald_due, spawn_boss
 from service_worldstate import tick as world_tick
 from ui import Ctx
 
@@ -46,6 +46,9 @@ async def tick(bot):
     if res["season"]:
         await handlers_world.announce_season(bot, res["season"])
     # ---- the single global boss ----
+    left = await herald_due(int((await game_settings())["herald_window"]))  # Hollow Herald: countdown to the boss
+    if left:
+        await handlers_world.announce_herald(bot, left)
     for doc, summary in await expire_bosses():
         if doc.get("scope") == "global":
             await handlers_world.end_global_boss(bot, doc, summary)

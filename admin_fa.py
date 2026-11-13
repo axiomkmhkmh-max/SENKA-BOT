@@ -73,6 +73,7 @@ SETTING_FA = {
     "raid_hp": "جان هالو", "raid_menos_chance": "شانس منوس", "raid_menos_mult": "ضریب جان منوس", "raid_daily_cap": "سقف پاداش روزانه‌ی هجوم",
     "raid_min_level": "حداقل سطح هجوم", "raid_strike_cd": "کولداون ضربه‌ی هجوم (ثانیه)", "raid_dmg_k": "ضریب آسیب هجوم",
     "espada_min_level": "حداقل سطح چالش اسپادا", "espada_cd": "کولداون چالش اسپادا (ثانیه)",
+    "butterfly_on": "پروانه‌ی جهنمی روشن (1) / خاموش (0)", "butterfly_cooldown": "کولداون پروانه‌ی جهنمی (ثانیه)", "herald_window": "پنجره‌ی ندای هالو (ثانیه)",
     "hog_min_level": "حداقل سطح دزدی هوگیوکو", "hog_steal_cd_hours": "کولداون دزدی هوگیوکو (ساعت)", "hog_steal_chance": "شانس دزدی هوگیوکو",
     "hog_shield_minutes": "محافظت هوگیوکو (دقیقه)", "hog_pen_hours": "مدت جریمه‌ی شکست دزدی (ساعت)",
     "type_min_msgs": "پیام لازم برای تایپ سریع", "type_cooldown": "فاصله‌ی تایپ سریع (ثانیه)", "type_ttl": "مهلت تایپ سریع (ثانیه)",
