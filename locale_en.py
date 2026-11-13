@@ -210,7 +210,7 @@ TEXT.update({
  "ef_mat": "{grp}: used in crafting; forging counts it as {v} unit(s).", "ef_relic_xp_loc": "Attune: +{v}% XP while in {loc}.", "ef_relic_drop": "Attune: +{v}% drop rate.",
  "ef_relic_coin": "Attune: +{v}% coins.", "ef_relic_calm": "Attune: your victories calm the world {v}% more (less Hollow Threat).", "ef_relic_stab": "Attune: patrols steady Seireitei (+{v} stability each).",
  "ef_cosmetic": "{icon} {slot} beside your name · Fame +{fame}", "ef_evo": "Spent when you win a race evolution trial.", "ef_egg": "Hatches a companion with a real role in battle or patrol.",
- "ef_key": "Opens dungeons, or offered to a world event: +{pts} points.", "ef_armor": "Can be tempered at the workshop for more defense.", "ef_luck": "Luck +{n}: better rare drops.",
+ "ef_key": "Opens dungeons, or offered to a world event: +{pts} points.", "ef_armor": "Can be tempered at the workshop for more defense.", "ef_luck": "Luck +{n}: better rare drops.", "ef_konpaku": "Duel charm: one extra Konpaku life for {m} minutes.",
  # ---- admin ----
  "adm_world": "🌍 Threat {threat} | Stability {stab}\nReishi: {rei}\nEvent: {ev}\nBoss: {boss}\nSeason: {season}",
  "adm_usage_world": "world | world set threat|stability <0-100> | world set reishi <loc> <0-100> | world reset | world event garganta|siege|wandenreich|end | world boss spawn|end | world season end | world territory reset <loc>",

@@ -191,7 +191,7 @@ TEXT.update({
  "ef_mat": "{grp}: در ساخت مصرف می‌شود؛ فورج آن را {v} واحد حساب می‌کند.", "ef_relic_xp_loc": "هم‌سازی: +{v}٪ تجربه هنگام حضور در {loc}.", "ef_relic_drop": "هم‌سازی: +{v}٪ نرخ دراپ.",
  "ef_relic_coin": "هم‌سازی: +{v}٪ سکه.", "ef_relic_calm": "هم‌سازی: پیروزی‌هایت جهان را {v}٪ بیشتر آرام می‌کند (تهدید هالو کمتر).", "ef_relic_stab": "هم‌سازی: هر گشت سیرایتی را آرام‌تر می‌کند (+{v} ثبات).",
  "ef_cosmetic": "{icon} {slot} کنار نامت · شهرت +{fame}", "ef_evo": "با پیروزی در آزمون تکامل نژاد مصرف می‌شود.", "ef_egg": "همراهی با نقش واقعی در نبرد یا گشت از آن بیرون می‌آید.",
- "ef_key": "دانجن را باز می‌کند، یا به رویداد دنیا هدیه می‌شود: +{pts} امتیاز.", "ef_armor": "در کارگاه می‌توان آن را برای دفاع بیشتر آبدیده کرد.", "ef_luck": "شانس +{n}: دراپ نایاب‌تر.",
+ "ef_key": "دانجن را باز می‌کند، یا به رویداد دنیا هدیه می‌شود: +{pts} امتیاز.", "ef_armor": "در کارگاه می‌توان آن را برای دفاع بیشتر آبدیده کرد.", "ef_luck": "شانس +{n}: دراپ نایاب‌تر.", "ef_konpaku": "طلسم دوئل: یک جان کونپاکوی اضافه برای {m} دقیقه.",
  "adm_world": "🌍 تهدید {threat} | ثبات {stab}\nریشی: {rei}\nرویداد: {ev}\nباس: {boss}\nفصل: {season}",
  "adm_usage_world": "world | world set threat|stability <0-100> | world set reishi <loc> <0-100> | world reset | world event garganta|siege|wandenreich|end | world boss spawn|end | world season end | world territory reset <loc>",
 })

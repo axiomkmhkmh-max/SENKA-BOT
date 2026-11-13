@@ -114,6 +114,12 @@ async def use_item(uid: int, item_id: str):
             return "missing", None
         await col("characters").update_one({"user_id": uid}, {"$addToSet": {f"kido.{eff['branch']}": eff["num"]}})
         return "ok", eff["num"]
+    if t == "konpaku":  # SENKA+ charm: one extra Konpaku life in duels while it lasts
+        if not await inv_remove(uid, item_id, 1):
+            return "missing", None
+        until = int(time.time()) + int(eff["minutes"]) * 60
+        await col("characters").update_one({"user_id": uid}, {"$set": {"konpaku_until": until}})
+        return "ok", eff["minutes"]
     if t == "xp":
         if not await inv_remove(uid, item_id, 1):
             return "missing", None

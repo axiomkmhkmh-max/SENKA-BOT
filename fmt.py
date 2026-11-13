@@ -76,6 +76,8 @@ def effect_text(ctx, it: dict) -> str:
         return ctx.t("ef_cosmetic", icon=e["icon"], slot=ctx.t("cos_slot_" + e["slot"]), fame=e["fame"])
     if ty == "evo":
         return ctx.t("ef_evo")
+    if ty == "konpaku":  # SENKA+ charm
+        return ctx.t("ef_konpaku", m=e["minutes"])
     if ty == "pet":
         return ctx.t("ef_egg")
     if ty == "key":

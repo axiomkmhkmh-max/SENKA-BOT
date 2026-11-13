@@ -10,6 +10,9 @@ ADJ = [("Seireitei", "سیرایتی"), ("Rukongai", "روکونگای"), ("Huec
        ("Gillian", "گیلیان"), ("Soul King", "شاه ارواح"), ("Senkaimon", "سنکایمون"), ("Las Noches", "لاس‌نوچس"),
        ("Wandenreich", "وندن‌رایش"), ("Fullbring", "فول‌برینگ"), ("Visored", "ویزورد")]
 NOUNS = {
+    "charm": [("Kon Plush Charm", "طلسم عروسک کن"), ("Kuchiki Ribbon Charm", "طلسم روبان کوچیکی"),
+             ("Visored Mask Charm", "طلسم ماسک ویزورد"), ("Konpaku Tag Charm", "طلسم برچسب کونپاکو"),
+             ("Urahara Hat Charm", "طلسم کلاه اوراهارا")],
     "material": [("Reishi Shard", "تکه‌ی ریشی"), ("Sekkiseki Chip", "تراشه‌ی سکی‌سکی"), ("Hollow Bone", "استخوان هالو"),
                  ("Spirit Thread", "نخ روحی"), ("Menos Fang", "نیش منوس"), ("Gigai Cloth", "پارچه‌ی گیگای"),
                  ("Mask Fragment", "پاره‌ی ماسک"), ("Spirit Ribbon", "نوار روحی"), ("Zanpakuto Ore", "سنگ‌معدن زانپاکتو"),
@@ -34,7 +37,8 @@ NOUNS = {
 PLAN = [("material", 160, None, 99, 1.0), ("potion", 100, None, 99, 1.2), ("armor", 150, "armor", 1, 2.5),
         ("ring", 75, "accessory", 1, 3.0), ("necklace", 75, "accessory", 1, 3.0), ("kido_card", 198, None, 99, 2.0),
         ("book", 40, None, 99, 2.0), ("evolution", 30, None, 99, 3.0), ("cosmetic", 80, None, 1, 1.5),
-        ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 120, None, 99, 2.0)]
+        ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 120, None, 99, 2.0),
+        ("charm", 30, None, 99, 2.0)]  # SENKA+: appended last so every older item id stays the same
 KIDO_NAMES = {"had": ("Hadō", "هادو"), "bak": ("Bakudō", "باکودو")}
 DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift",
                "academy_exam", "urahara_pit", "senzaikyu_tower", "maggot_nest", "muken",
@@ -132,6 +136,16 @@ def _build():
                 tier = RARITIES.index(rar)
                 eff = {"type": "kido", "branch": branch, "num": num}
                 desc_en, desc_fa = f"Teaches {KIDO_NAMES[branch][0]} {num}.", f"{KIDO_NAMES[branch][1]} شماره {num} را می‌آموزد."
+            elif cat == "charm":  # SENKA+ charms: a timed battle buff, or a Konpaku life for duels
+                if i % 2 == 0:
+                    stat = ["dmg", "def", "crit"][(i // 2) % 3]
+                    eff = {"type": "buff", "stat": stat, "pct": round((0.03 if stat == "crit" else 0.05) + 0.01 * tier, 3),
+                           "minutes": 45 + 15 * tier}
+                    desc_en, desc_fa = _book_desc(eff)
+                else:
+                    eff = {"type": "konpaku", "minutes": 60 + 30 * tier}
+                    desc_en = f"Duel charm: one extra Konpaku life for {eff["minutes"]} minutes."
+                    desc_fa = f"طلسم دوئل: یک جان کونپاکوی اضافه برای {eff["minutes"]} دقیقه."
             elif cat == "potion":
                 if i % 2 == 0:
                     eff = {"type": "hp", "pct": 15 + tier * 10}
