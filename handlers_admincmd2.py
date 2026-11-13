@@ -3,6 +3,7 @@ inactive/new players, ban list, DMs, maintenance switch, CSV exports and health 
 
 Uses the same @acmd decorator, permission levels and admin log as handlers_admincmd, so nothing
 here bypasses the existing checks. /acmds lists these automatically (it reads ADMIN_COMMANDS)."""
+import asyncio
 import csv
 import io
 import re
@@ -322,3 +323,37 @@ async def c_csv(e: Env):
             w.writerow([d.get(k, "") for k in fields])
     file = BufferedInputFile(buf.getvalue().encode("utf-8-sig"), filename=f"senka_{kind}_{int(time.time())}.csv")
     await e.message.reply_document(file, caption=e.t(f"📄 {fnum(len(docs), e.lang)} ردیف · {kind}", f"📄 {len(docs)} rows · {kind}"))
+
+
+# ---- update notice ---------------------------------------------------------------------------------------------
+@acmd("updnotice", 80, "/updnotice status|resend", "پیام آپدیت به بازیکن‌ها: وضعیت / ارسال مجدد", "Update notice: status / resend to everyone")
+async def c_updnotice(e: Env):
+    from service_notify import code_version, resend
+    sub = e.args[0].lower() if e.args else "status"
+    if sub not in ("status", "resend"):
+        return await e.usage()
+    ver = code_version()
+    L = e.lang
+    if sub == "status":
+        doc = await col("settings").find_one({"_id": "update_notice"}) or {}
+        done = await col("users").count_documents({"notified_ver": ver})
+        eligible = await col("users").count_documents({"banned": {"$ne": True}, "blocked_bot": {"$ne": True}})
+        await e.say("\n".join([
+            f"🔄 {e.t('نسخه‌ی کد', 'Code version')}: <code>{ver}</code>",
+            e.t(f"📨 رسیده به: {fnum(done, L)} از {fnum(eligible, L)}", f"📨 Delivered: {fnum(done, L)} of {fnum(eligible, L)}"),
+            e.t(f"وضعیت ارسال: {'تمام' if doc.get('done') and doc.get('ver') == ver else 'در انتظار/نیمه‌کاره'}",
+                f"Sending: {'done' if doc.get('done') and doc.get('ver') == ver else 'pending or partial'}"),
+        ]))
+        return
+    await e.say(e.t("⏳ ارسال مجدد شروع شد؛ نتیجه را در پیام خصوصی می‌فرستم.", "⏳ Resending started; I will DM you the result."))
+    uid = e.uid
+
+    async def _job():
+        sent, failed = await resend(e.bot)
+        await alog(uid, "updnotice_resend", None, None, {"sent": sent, "failed": failed}, ver)
+        try:
+            await e.bot.send_message(uid, f"✅ update notice {ver}: {sent} sent, {failed} failed")
+        except Exception:
+            pass
+
+    asyncio.create_task(_job())
