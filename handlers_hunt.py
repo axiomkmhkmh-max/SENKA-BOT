@@ -1,102 +1,195 @@
-"""Hollow Hunt panels: a 3-stage chain of risk choices that replaces the passive hunt roll."""
-import random
+"""Hollow Chase, solo and in groups. A Hollow runs through three paths; the players call where to chase.
 
-import engine_hunt as H
-from database import col, game_settings
-from i18n import fnum
+Solo: explore starts a chase and each button press is a vote that resolves at once.
+Group: type 'شکار' (or 'hunt') in the chat to release a Hollow. Players reply to its message with
+چپ / وسط / راست (or left / mid / right). The round closes after ROUND_SECONDS, or on the scheduler.
+"""
+import random
+import time
+import uuid
+
+import engine_chase as E
+from database import col
+from i18n import esc, fnum
 from service_economy import inv_add, roll_drop
 from service_player import add_coins, add_xp, bump_quest, get_char
 from ui import Out, action, head, nav
 
-LABELS = {
-    "track": ("🐾 ردیابی", "🐾 Track"), "ambush": ("🗡 کمین", "🗡 Ambush"), "wait": ("🌫 صبر", "🌫 Wait"),
-    "sneak": ("🤫 دزدکی", "🤫 Sneak"), "charge": ("⚔️ حمله", "⚔️ Charge"), "bait": ("🪤 طعمه", "🪤 Bait"),
-    "seal": ("🧿 مهر", "🧿 Seal"), "push": ("🔥 فشار", "🔥 Push"), "retreat": ("🏃 عقب‌نشینی", "🏃 Retreat"),
+ROUND_SECONDS = 60
+DIR_LABEL = {"left": ("⬅️ چپ", "⬅️ Left"), "mid": ("⏺ وسط", "⏺ Mid"), "right": ("➡️ راست", "➡️ Right")}
+WORD_TO_DIR = {"چپ": "left", "left": "left", "وسط": "mid", "mid": "mid", "راست": "right", "right": "right"}
+START_WORDS = {"شکار", "hunt"}
+
+T = {
+    "hint": ("🌫 ردپا: <b>{hint}</b>\n{dirs}", "🌫 Trail hint: <b>{hint}</b>\n{dirs}"),
+    "round_ok": ("✅ درست حدس زدید! {n}/{total}", "✅ Right call! {n}/{total}"),
+    "round_bad": ("❌ اشتباه. هالو فرار کرد و ۱ جان از دست داد. جان: {s}", "❌ Wrong. The Hollow slipped away and lost 1 stamina. Stamina: {s}"),
+    "round_none": ("😴 هیچ‌کس رأی نداد. هالو ۱ جان از دست داد. جان: {s}", "😴 Nobody voted. The Hollow lost 1 stamina. Stamina: {s}"),
+    "caught": ("🏆 <b>هالو گرفته شد!</b>\n{rewards}\n{mvp}", "🏆 <b>The Hollow is caught!</b>\n{rewards}\n{mvp}"),
+    "escaped": ("💨 هالو در تاریکی ناپدید شد. فقط {xp} XP گرفتی.", "💨 The Hollow vanished into the dark. You got {xp} XP."),
+    "busy": ("یک هالو الان در حال تعقیب است. رأی بده!", "A Hollow is already being chased. Vote!"),
+    "no_hunt": ("شکاری فعال نداری.", "No active hunt."),
+    "vote_ok": ("رأیت ثبت شد.", "Vote recorded."),
+    "mvp": ("⭐ برترین شکارچی: {name}", "⭐ MVP: {name}"),
+    "reg": ("اول در ربات ثبت‌نام کن.", "Register with the bot first."),
+    "escaped_group": ("💨 هالو فرار کرد. ارواح دوباره در این گوشه پیدا می‌شوند.", "💨 The Hollow escaped. Souls will show up again here."),
 }
-STAGE_NAME = ("مرحله‌ی اول: ردپا", "Stage one: the trail")
-STAGE_NAMES = [("مرحله‌ی اول: ردپا", "Stage one: the trail"), ("مرحله‌ی دوم: تعقیب", "Stage two: the chase"),
-               ("مرحله‌ی سوم: قله", "Stage three: the summit")]
 
 
-def _L(ctx, pair):
-    return pair[0] if ctx.lang == "fa" else pair[1]
+def _t(lang, key, **kw):
+    fa, en = T[key]
+    return (fa if lang == "fa" else en).format(**kw)
 
 
-def _stage_out(ctx, hunt, intro=""):
-    stage = hunt["stage"]
-    title = _L(ctx, STAGE_NAMES[stage]) if stage < H.STAGES else ""
-    buttons = [[(_L(ctx, LABELS[o["id"]]), "hnt", o["id"])] for o in H.current_options(hunt)]
-    body = (intro + "\n" if intro else "") + f"<b>{title}</b>\n" + \
-        _L(ctx, ("هر انتخاب ریسک و پاداش خودش را دارد. بعضی کمین‌ها فریب‌اند.",
-                 "Each choice carries its own risk and reward. Some ambushes are feints."))
-    return Out(head(ctx, "ttl_exp") + body, buttons + [nav(ctx)])
+def _dirs_text(lang):
+    return "  ".join(DIR_LABEL[d][0 if lang == "fa" else 1] for d in E.DIRECTIONS)
+
+
+def _panel(ctx, chase, extra=""):
+    hint = DIR_LABEL[chase["hint"]][0 if ctx.lang == "fa" else 1]
+    body = (extra + "\n" if extra else "") + _t(ctx.lang, "hint", hint=hint, dirs="")
+    body += f"\n<i>{_dirs_text(ctx.lang)}</i>"
+    rows = [[(DIR_LABEL[d][0 if ctx.lang == "fa" else 1], "hnt", d) for d in E.DIRECTIONS], nav(ctx)]
+    return Out(head(ctx, "ttl_exp") + body, rows)
 
 
 async def start(ctx, ch):
-    """Called by the explore panel. Resumes an unfinished hunt, or starts a new one."""
+    """Called by the explore panel: resume an unfinished solo chase, or start one."""
     if ch.get("bx_hunt"):
-        return _stage_out(ctx, ch["bx_hunt"], intro=_L(ctx, ("ادامه‌ی شکار:", "Continuing the hunt:")))
-    hunt = H.new_hunt(random.Random())
-    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"bx_hunt": hunt}})
-    return _stage_out(ctx, hunt)
+        return _panel(ctx, ch["bx_hunt"]["chase"], extra=("ادامه‌ی تعقیب:" if ctx.lang == "fa" else "Continuing the chase:"))
+    chase = E.new_chase(random.Random())
+    E.make_hint(chase, random.Random())
+    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"bx_hunt": {"chase": chase}}})
+    return _panel(ctx, chase)
+
+
+async def _rewards_solo(ctx, ch, caught: bool, chase):
+    lvl = ch["level"]
+    base_xp = int(18 + lvl * 4)
+    base_coins = int((10 + lvl * 3))
+    if not caught:
+        _, _, xp = await add_xp(ctx.uid, int(base_xp * 0.5), "hunt")
+        return _t(ctx.lang, "escaped", xp=fnum(xp, ctx.lang))
+    pool = E.catch_pool(base_xp, base_coins, 1)
+    _, _, xp = await add_xp(ctx.uid, pool["xp"], "hunt")
+    await add_coins(ctx.uid, pool["coins"], "hunt")
+    iid = await roll_drop(ctx.uid)
+    got = await inv_add(ctx.uid, iid, 1)
+    rewards = f"+{fnum(xp, ctx.lang)} XP  +{fnum(pool['coins'], ctx.lang)} 🪙"
+    if not got:
+        rewards += "\n" + ("کوله پر است." if ctx.lang == "fa" else "Your bag is full.")
+    return _t(ctx.lang, "caught", rewards=rewards, mvp="")
 
 
 @action("hnt")
-async def hunt_choose(ctx, arg):
+async def solo_vote(ctx, arg):
     ch = await get_char(ctx.uid)
     if not ch or not ch.get("bx_hunt"):
-        return Out(alert=_L(ctx, ("شکاری فعال نداری.", "No active hunt.")))
-    hunt = ch["bx_hunt"]
-    try:
-        out = H.choose(hunt, arg, random.Random())
-    except ValueError:
-        return Out(alert=_L(ctx, ("این گزینه معتبر نیست.", "Invalid choice.")))
-    st = await game_settings()
-    L = ctx.lang
-    lvl = ch["level"]
-    base_xp = int(18 + lvl * 4)
-    base_coins = int((10 + lvl * 3) * float(st["coin_rate"]))
-    lines = []
-    fight_scale = None
-
-    if out["kind"] == "fight":
-        fight_scale = out["scale"]
-    if out["xp"]:
-        _, _, gained = await add_xp(ctx.uid, int(base_xp * out["xp"]), "hunt")
-        lines.append(f"+{fnum(gained, L)} XP")
-    if out["coin"]:
-        coins = int(base_coins * out["coin"])
-        await add_coins(ctx.uid, coins, "hunt")
-        lines.append(f"+{fnum(coins, L)} 🪙")
-    if out["item"]:
-        iid = await roll_drop(ctx.uid)
-        got = await inv_add(ctx.uid, iid, 1)
-        lines.append(_L(ctx, ("🎁 یک آیتم پیدا کردی.", "🎁 You found an item.")) + ("" if got else _L(ctx, (" (کوله پر است)", " (bag full)"))))
-    if out["dmg_pct"]:
-        loss = min(int(ch["coins"]), int(ch["coins"] * out["dmg_pct"] * 0.2))
-        if loss:
-            await add_coins(ctx.uid, -loss, "hunt_trap")
-        lines.append(_L(ctx, (f"🪤 تله! {fnum(loss, L)} 🪙 از دست رفت.", f"🪤 Trap! Lost {fnum(loss, L)} 🪙.")))
-    if out.get("feint"):
-        lines.append(_L(ctx, ("کمین فریب بود و به تله تبدیل شد.", "The ambush was a feint and turned into a trap.")))
-    if out["kind"] == "none":
-        lines.append(_L(ctx, ("هیچ‌چیز نبود. ادامه بده.", "Nothing there. Keep going.")))
-
-    intro = "\n".join(lines)
-    if out["finished"]:
-        summ = H.summarize(hunt)
-        if summ["clean"]:
-            _, _, bonus = await add_xp(ctx.uid, int(base_xp * H.CLEAN_BONUS_XP), "hunt_clean")
-            intro += "\n" + _L(ctx, (f"🏅 شکار بی‌تله! +{fnum(bonus, L)} XP", f"🏅 Clean hunt! +{fnum(bonus, L)} XP"))
+        return Out(alert=_t(ctx.lang, "no_hunt"))
+    chase = ch["bx_hunt"]["chase"]
+    if arg not in E.DIRECTIONS:
+        return Out(alert=_t(ctx.lang, "no_hunt"))
+    res = E.resolve_round(chase, {ctx.uid: arg}, random.Random())
+    if res["status"] != "running":
         await bump_quest(ctx.uid, "explore", 1)
-        await col("characters").update_one({"user_id": ctx.uid}, {"$unset": {"bx_hunt": ""}})
-        if fight_scale is not None:
-            from handlers_combat import start_pve_panel
-            return await start_pve_panel(ctx, scale=fight_scale, intro=intro)
-        return Out(head(ctx, "ttl_exp") + intro, [[(_L(ctx, ("🐾 شکار دوباره", "🐾 Hunt again")), "exp", "go")], nav(ctx)])
+    if res["status"] == "running":
+        E.make_hint(chase, random.Random())
+        await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"bx_hunt": {"chase": chase}}})
+        msg = _t(ctx.lang, "round_ok" if res["outcome"] == "correct" else "round_bad",
+                 n=chase["round"], total=E.CATCH_AT, s=chase["stamina"])
+        return _panel(ctx, chase, extra=msg)
+    await col("characters").update_one({"user_id": ctx.uid}, {"$unset": {"bx_hunt": ""}})
+    text = await _rewards_solo(ctx, ch, res["status"] == "caught", chase)
+    again = "🐾 شکار دوباره" if ctx.lang == "fa" else "🐾 Hunt again"
+    return Out(head(ctx, "ttl_exp") + text, [[(again, "exp", "go")], nav(ctx)])
 
-    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"bx_hunt": hunt}})
-    if fight_scale is not None:
-        from handlers_combat import start_pve_panel
-        return await start_pve_panel(ctx, scale=fight_scale, intro=intro)
-    return _stage_out(ctx, hunt, intro=intro)
+
+# ---- group side ------------------------------------------------------------------------------
+
+def _group_text(lang, chase, names, votes, seconds_left):
+    hint = DIR_LABEL[chase["hint"]][0 if lang == "fa" else 1]
+    voters = len(votes)
+    return (f"👻 <b>هالوی سرگردان در حال فرار است</b>\n🌫 ردپا: <b>{hint}</b>\n"
+            f"🏁 پیشرفت: {chase['round']}/{E.CATCH_AT}  |  💚 جان: {chase['stamina']}\n"
+            f"🗳 رأی‌ها: {voters}  |  ⏳ {max(0, seconds_left)} ثانیه\n"
+            f"ریپلای کن: چپ / وسط / راست") if lang == "fa" else (
+            f"👻 <b>A wandering Hollow is fleeing</b>\n🌫 Trail: <b>{hint}</b>\n"
+            f"🏁 Progress: {chase['round']}/{E.CATCH_AT}  |  💚 Stamina: {chase['stamina']}\n"
+            f"🗳 Votes: {voters}  |  ⏳ {max(0, seconds_left)}s\n"
+            f"Reply: left / mid / right")
+
+
+async def group_hook(message, n: str) -> bool:
+    """Called on every group text. True = handled (a start word or a vote reply)."""
+    chat, user = message.chat, message.from_user
+    if n in START_WORDS:
+        active = await col("group_hunts").find_one({"chat_id": chat.id, "status": "running"})
+        if active:
+            await message.reply(_t("fa", "busy"))
+            return True
+        chase = E.new_chase(random.Random())
+        E.make_hint(chase, random.Random())
+        doc = {"_id": uuid.uuid4().hex, "chat_id": chat.id, "chase": chase, "votes": {}, "names": {},
+               "status": "running", "round_ends": int(time.time()) + ROUND_SECONDS}
+        msg = await message.bot.send_message(chat.id, _group_text("fa", chase, {}, {}, ROUND_SECONDS))
+        doc["msg_id"] = msg.message_id
+        await col("group_hunts").insert_one(doc)
+        return True
+    if n in WORD_TO_DIR and message.reply_to_message is not None:
+        doc = await col("group_hunts").find_one({"chat_id": chat.id, "msg_id": message.reply_to_message.message_id,
+                                                "status": "running"})
+        if not doc:
+            return False
+        await col("group_hunts").update_one(
+            {"_id": doc["_id"]},
+            {"$set": {f"votes.{user.id}": WORD_TO_DIR[n], f"names.{user.id}": user.full_name or str(user.id)}})
+        return True
+    return False
+
+
+async def _finish_group(bot, doc, caught: bool):
+    chase = doc["chase"]
+    chat_id = doc["chat_id"]
+    from render import glang
+    from service_world import group_doc
+    lang = glang(await group_doc(chat_id))
+    if not caught:
+        await bot.send_message(chat_id, _t(lang, "escaped_group"))
+        return
+    players = len(chase["correct_votes"]) or 1
+    pool = E.catch_pool(60, 60, players)
+    settled = E.settle(chase, pool["coins"])
+    lines = []
+    for uid, coins in settled["payouts"].items():
+        if coins:
+            await add_coins(int(uid), coins, "hunt_group")
+            name = esc(doc.get("names", {}).get(uid, uid))
+            lines.append(f"• {name}: +{fnum(coins, lang)} 🪙")
+    mvp = ""
+    if settled["mvp"]:
+        mvp_name = esc(doc.get("names", {}).get(settled["mvp"], settled["mvp"]))
+        mvp = _t(lang, "mvp", name=mvp_name)
+        iid = await roll_drop(int(settled["mvp"]))
+        await inv_add(int(settled["mvp"]), iid, 1)
+    await bot.send_message(chat_id, _t(lang, "caught", rewards="\n".join(lines) or "—", mvp=mvp))
+
+
+async def group_tick(bot) -> int:
+    """Scheduler: close every group round whose timer has passed. Returns how many rounds closed."""
+    now = int(time.time())
+    closed = 0
+    async for doc in col("group_hunts").find({"status": "running", "round_ends": {"$lte": now}}):
+        chase = doc["chase"]
+        votes = {int(k): v for k, v in (doc.get("votes") or {}).items()}
+        res = E.resolve_round(chase, votes, random.Random())
+        closed += 1
+        if res["status"] == "running":
+            E.make_hint(chase, random.Random())
+            await col("group_hunts").update_one(
+                {"_id": doc["_id"]},
+                {"$set": {"chase": chase, "votes": {}, "round_ends": now + ROUND_SECONDS}})
+            await bot.send_message(doc["chat_id"], _group_text("fa", chase, doc.get("names", {}), {}, ROUND_SECONDS))
+        else:
+            await col("group_hunts").update_one({"_id": doc["_id"]}, {"$set": {"chase": chase, "status": res["status"]}})
+            await _finish_group(bot, {**doc, "chase": chase}, res["status"] == "caught")
+    return closed

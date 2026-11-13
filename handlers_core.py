@@ -243,6 +243,8 @@ async def on_group_text(message: Message, text: str):
         return
     if await handlers_drops.group_hook(message, text, n):
         return
+    if await handlers_hunt.group_hook(message, n):
+        return
     if await handlers_hollowraid.raid_hook(message, n):
         return
     if await handlers_viral.viral_hook(message, text, n):  # --- NEW BLEACH VIRAL SYSTEM: espada fights, hogyoku theft, quincy strikes
