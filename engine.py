@@ -12,6 +12,8 @@ from data_bleachfx import (CERO_BREAK_AI, CERO_BREAK_PLAYER, CHANT_BAK, CHANT_HA
                            RESURRECCION, RESURRECCION_RACES, SHUNPO_COUNTER, SIG)
 
 DOT = {"burn": 0.03, "poison": 0.05, "bleed": 0.02}
+from data_bleachfx import KONPAKU, RACE_KILLER  # SENKA+ race killers and Konpaku
+
 DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 
 
@@ -145,6 +147,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     crit = rng.random() < crit_p
     cm = 1.5 + eff(att, "zanjutsu") * 0.003 + skill_p(att, "surge") / 100
     dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att)
+    dmg *= RACE_KILLER.get(att.get("race"), {}).get(dfn.get("race"), 1.0)  # canon race killers (SENKA+)
     ex = skill_p(att, "execute")
     if ex and dfn["hp"] < dfn["max_hp"] * 0.3:
         dmg *= 1 + ex / 100
@@ -342,8 +345,15 @@ def start_turn(state, rng):
     return ev, False
 
 
-def _check_end(state):
+def _check_end(state, ev=None):
     a, b = state["a"], state["b"]
+    for f in (a, b):  # Konpaku (SENKA+): duels only; the soul is pulled back once
+        if f["hp"] <= 0 and state.get("pvp") and f.get("lives", 0) > 0:
+            f["lives"] -= 1
+            f["hp"] = max(1, int(f["max_hp"] * KONPAKU["hp"]))
+            f["fx"] = [e for e in f["fx"] if e["k"] not in DOT and e["k"] not in ("fear", "weaken", "shock")]
+            if ev is not None:
+                ev.append({"k": "konpaku", "a": f["name"]})
     if a["hp"] <= 0 or b["hp"] <= 0:
         state["done"] = True
         state["winner"] = "b" if a["hp"] <= 0 and b["hp"] > 0 else "a" if b["hp"] <= 0 and a["hp"] > 0 else "draw"
@@ -470,7 +480,7 @@ def do_action(state, action, rng, max_turns=30):
         f["form"].update(on=2, mult=c[0], left=c[1], fat_turns=c[2], fx=list(FORM2_EFFECT.get(f["weapon"]["type"], ("pierce", 0.15))))
         f["form"]["used"][1] = 1
         ev.append({"k": "form", "a": f["name"], "n": 2, "r": f["race"]})
-    _check_end(state)
+    _check_end(state, ev)
     if not state["done"]:
         advance(state, max_turns)
     else:
@@ -503,8 +513,10 @@ def ai_choose(state, side, rng):
     return "atk"
 
 
-def new_state(a, b, rng):
+def new_state(a, b, rng, pvp=False):
     intro = []
+    if pvp:  # duels give both fighters their Konpaku lives (SENKA+)
+        a["lives"] = b["lives"] = KONPAKU["lives"]
     for x, y in ((a, b), (b, a)):  # spiritual pressure
         if x["max_re"] >= 2 * y["max_re"]:
             add_fx(y, "fear", 3)
@@ -512,7 +524,7 @@ def new_state(a, b, rng):
     ea, eb = eff(a, "hoho"), eff(b, "hoho")
     first = "a" if ea > eb or (ea == eb and rng.random() < 0.5) else "b"
     return {"a": a, "b": b, "turn": 1, "cur": first, "first": first, "done": False, "winner": None,
-            "awaiting": False, "last": [], "intro": intro}
+            "awaiting": False, "last": [], "intro": intro, "pvp": bool(pvp)}
 
 
 def run_ai(state, rng, max_turns=30, ai_sides=("b",)):

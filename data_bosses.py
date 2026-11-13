@@ -201,8 +201,30 @@ def _build_extra5(start):
     return out
 
 
+# ---- Bleach villain pack 6: 6 more world bosses (boss_99..boss_104; canon villains not yet in the list, existing traits only) ----
+_EXTRA6 = [
+    ("Tia Halibel", "تیا هالیبل", "bleed", 60, "موجی که زیر تو پنهان شده؛ آرام است تا لحظه‌ای که دیر شده.", "A wave hidden beneath you; calm until it is too late."),
+    ("Cirucci Sanfilippo", "سیرسی سانفیلیپو", "dodge", 52, "می‌خندد، می‌رقصد، و تو نمی‌فهمی کدام حرکتش واقعی است.", "She laughs, she dances, and you cannot tell which move is real."),
+    ("Kokichi Muramasa", "کوکیچی موراماسا", "bleed", 74, "ذهنی که هر دشمنش را پیش از جنگ شکست داده؛ حتی خودش را.", "A mind that defeats every enemy before the battle, even itself."),
+    ("Jin Kariya", "جین کاریا", "decay", 66, "جوان‌ترین شکارچی ارواح است و پیرترین اشتیاق را دارد: قدرت.", "The youngest hunter of souls, with the oldest hunger: power."),
+    ("Lilynette Gingerbuck", "لیلینت جینجربک", "enrage", 49, "کوچک‌تر از آن که بترسی، و بیشتر از آن که فراموش کنی.", "Too small to fear, too vivid to forget."),
+    ("Gamuza", "گاموزا", "regen", 58, "از خوابی بیدار شد که هیچ‌کس نمی‌خواست تمام شود.", "He woke from a sleep no one wanted to end."),
+]
+
+
+def _build_extra6(start):
+    out = []
+    for j, (en, fa, trait, lvl, e_fa, e_en) in enumerate(_EXTRA6):
+        bid = f"boss_{start + j:02d}"
+        out.append({"_id": bid, "boss_id": bid, "name_en": en, "name_fa": fa, "level": lvl,
+                    "hp": int((2.2 * lvl + 15) * 120 * (1 + lvl / 60)), "attack": 20 + lvl * 7, "defense": 2 + lvl * 1.1,
+                    "trait": trait, "epi_fa": e_fa, "epi_en": e_en})
+    return out
+
+
 BOSSES = _build() + _build_extra(len(_NAMES) + 1)
 BOSSES = BOSSES + _build_extra3(len(BOSSES) + 1)
 BOSSES = BOSSES + _build_extra4(len(BOSSES) + 1)
 BOSSES = BOSSES + _build_extra5(len(BOSSES) + 1)
+BOSSES = BOSSES + _build_extra6(len(BOSSES) + 1)
 BOSS_BY_ID = {b["_id"]: b for b in BOSSES}

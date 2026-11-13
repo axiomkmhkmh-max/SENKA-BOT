@@ -375,7 +375,7 @@ async def duel_accept(sid: str, uid: int):
     ca, cb = await get_char(doc["a_uid"]), await get_char(uid)
     fa, fb = await build_player(ca), await build_player(cb)
     rng = random.Random()
-    state = E.new_state(fa, fb, rng)
+    state = E.new_state(fa, fb, rng, pvp=True)
     E.run_ai(state, rng, ai_sides=())
     r = await col("battles").update_one({"sid": sid, "status": "pending"}, {"$set": {
         "status": "active", "state": state, "rev": 1, "deadline": int(time.time()) + int(gs["pvp_turn_seconds"]),

@@ -89,3 +89,18 @@ def move_name(blade_id, lang) -> str:
         return ""
     term = TYPE_MOVES.get(w.get("weapon_type"), TYPE_MOVES["melee"])
     return f"{iname(blade_id, lang)}: {term[0 if lang == 'fa' else 1]}"
+
+
+# ---- SENKA+ : canon race killers and Konpaku (PvP only) ----
+# attacker race -> {defender race: damage multiplier}. Applied in engine._deal, so it works in every fight.
+RACE_KILLER = {
+    "quincy": {"hollow": 1.08, "arrancar": 1.08},       # Quincy were made to hunt Hollows
+    "shinigami": {"hollow": 1.05, "arrancar": 1.05},    # Soul Reapers purify Hollows
+    "visored": {"hollow": 1.06, "arrancar": 1.06},      # Visored carry Hollow power and know its weak spots
+    "fullbringer": {"hollow": 1.04},
+    "hollow": {"shinigami": 1.04, "visored": 1.04, "quincy": 1.04},   # Hollows hunger for Reapers' souls
+    "arrancar": {"shinigami": 1.04, "visored": 1.04, "quincy": 1.04},
+}
+# Konpaku: in duels (pvp) each fighter gets `lives` extra lives. Falling to 0 HP pulls the soul back once,
+# at `hp` share of max HP. PvE is untouched. Tune here (one file).
+KONPAKU = {"lives": 1, "hp": 0.35}

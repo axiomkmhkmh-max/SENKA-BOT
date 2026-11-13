@@ -69,7 +69,7 @@ def events_text(lang: str, events: list) -> str:
                 out.append(pick(lang, "lg_unleash_res" if e.get("r") in RESURRECCION_RACES else "lg_unleash", a=a))
         elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost",
                    "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure",
-                   "gauge_full", "unleash_end", "resurrect"):
+                   "gauge_full", "unleash_end", "resurrect", "konpaku"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k == "shield":
             out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))
