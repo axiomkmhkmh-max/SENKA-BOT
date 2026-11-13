@@ -135,6 +135,25 @@ LOCATIONS.update({
     "hogyoku_chamber": _l("hogyoku_chamber", "اتاق هوگیوکو", "Hōgyoku Chamber", 95,
                           [("پژواک خواسته", "Echo of a Wish"), ("نگهبان بلور", "Crystal Keeper"), ("سایه‌ی اراده", "Shade of Will")]),
 })
+# ---- Bleach content pack 5 ----
+LOCATIONS.update({
+    "riverbank": _l("riverbank", "کنار رود کاراکورا", "Karakura Riverbank", 7,
+                    [("هالوی مه‌آلود", "Mist Hollow"), ("روح کنار رود", "Riverside Spirit"), ("سایه‌ی پل", "Bridge Shade")]),
+    "kusajishi_district": _l("kusajishi_district", "کوساجیشی (روکونگای ۷۹)", "Kusajishi (Rukongai 79)", 12,
+                             [("راهزن کوچه‌ی خشک", "Dry Alley Bandit"), ("سگ گرسنه‌ی محله", "District Starving Hound"), ("روح تنها", "Lone Soul")]),
+    "bount_mansion": _l("bount_mansion", "عمارت بونت‌ها", "Bount Mansion", 21,
+                        [("عروسک جان‌گرفته", "Animated Doll"), ("خدمتکار عمارت", "Mansion Retainer"), ("شبح مکانیکی", "Clockwork Wraith")]),
+    "xcution_hideout": _l("xcution_hideout", "پناهگاه اکسکیوشن", "Xcution Hideout", 27,
+                          [("فول‌برینگر سرکش", "Rogue Fullbringer"), ("دیده‌بان پناهگاه", "Hideout Lookout"), ("پژواک قدرت ازدست‌رفته", "Echo of Lost Power")]),
+    "orihime_chamber": _l("orihime_chamber", "اتاق اسیر لاس‌نوچس", "Captive's Chamber, Las Noches", 36,
+                          [("نگهبان شب‌زنده‌دار", "Sleepless Guard"), ("سایه‌ی پنجره‌ی قفل‌شده", "Locked-Window Shade"), ("پژواک یک دعا", "Echo of a Prayer")]),
+    "precipice_world": _l("precipice_world", "جهان پرتگاه (دنگای)", "Precipice World", 47,
+                          [("جریان پرتگاه", "Precipice Current"), ("کوملای پرتگاه", "Precipice Kumo"), ("مه‌ی زمان", "Time Fog")]),
+    "seireitei_ruins": _l("seireitei_ruins", "ویرانه‌های سیرایتی", "Seireitei in Ruins", 68,
+                          [("سرباز ستاره‌دار مهاجم", "Invading Star Soldier"), ("نگهبان تسلیم‌نشده", "Unyielding Sentry"), ("سایه‌ی خاکستر", "Ash Shade")]),
+    "zero_division_hall": _l("zero_division_hall", "تالار نیروی صفر", "Zero Division Hall", 88,
+                             [("نگهبان صفر", "Zero Sentinel"), ("پژواک پادشاه", "Echo of the King"), ("سایه‌ی کلید", "Shade of the Key")]),
+})
 LOCATIONS = dict(sorted(LOCATIONS.items(), key=lambda kv: kv[1]["level"]))
 
 DUNGEONS = {
@@ -167,6 +186,13 @@ DUNGEONS.update({
     "captains_trial": {"fa": "آزمون تالار کاپیتان‌ها", "en": "Captains' Assembly Trial", "level": 32, "stages": 4},
     "jigoku_pit": {"fa": "گودال جیگوکو", "en": "Pit of Jigoku", "level": 60, "stages": 6},
     "hogyoku_vault": {"fa": "خزانه‌ی هوگیوکو", "en": "Hōgyoku Vault", "level": 95, "stages": 7},
+})
+# ---- Bleach content pack 5 (DUNGEON_IDS in data_items / data_crafting get the same four ids at the end) ----
+DUNGEONS.update({
+    "riverbank_vigil": {"fa": "شب‌زنده‌داری کنار رود", "en": "Riverbank Vigil", "level": 10, "stages": 3},
+    "bount_labyrinth": {"fa": "هزارتوی عمارت بونت‌ها", "en": "Bount Mansion Labyrinth", "level": 22, "stages": 4},
+    "precipice_run": {"fa": "عبور از جهان پرتگاه", "en": "Run of the Precipice World", "level": 50, "stages": 5},
+    "zero_trial": {"fa": "آزمون نیروی صفر", "en": "Zero Division Trial", "level": 92, "stages": 7},
 })
 DUNGEONS = dict(sorted(DUNGEONS.items(), key=lambda kv: kv[1]["level"]))
 DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 2.2, "abyss": 3.2, "legendary": 4.5}

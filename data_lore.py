@@ -251,3 +251,42 @@ CHAR_EPI.update({
     "Coyote Starrk (Resurrección)": ("هزار گرگ در یک تنهایی.", "A thousand wolves in one loneliness."),
     "Gin Ichimaru (Bankai)": ("لبخندی که پیش از تیغ می‌رسد.", "A smile that arrives before the blade."),
 })
+
+
+# ---- Bleach content pack 5 ----
+DUNGEON_LORE.update({
+    "riverbank_vigil": {"entry": ("کنار رود زیر باران؛ کسی آن‌سوی مه صدایت می‌زند.", "The riverbank in the rain; someone calls your name from beyond the mist."),
+                        "mid": ("ردپاهای کوچکی کنار آب مانده و ناگهان قطع می‌شود.", "Small footprints by the water, ending suddenly."),
+                        "final": ("لب رود؛ طعمه‌ای در مه می‌درخشد و هیچ‌چیز آن‌طور که هست نیست.", "At the water's edge a lure glows in the mist, and nothing is as it seems.")},
+    "bount_labyrinth": {"entry": ("عمارتی که از بیرون کوچک است و از درون تمام‌نشدنی.", "A mansion small outside and endless within."),
+                        "mid": ("عروسک‌ها در راهرو ایستاده‌اند و سرشان به سمت تو می‌چرخد.", "Dolls line the corridor and turn their heads toward you."),
+                        "final": ("سالن آخر؛ ساعتی که زمان را نگه داشته و کسی نمی‌گذارد ببری‌اش.", "The last hall; a clock that holds time and lets no one take it.")},
+    "precipice_run": {"entry": ("پرتگاهی که زیر پایت می‌دود؛ هر لحظه راه تازه‌ای است.", "A precipice that runs beneath your feet; every moment is a new road."),
+                      "mid": ("جریانی بی‌رحم پشت سرت می‌آید؛ بایستی، می‌بلعدت.", "A merciless current follows you; stop, and it swallows you."),
+                      "final": ("انتهای دالان، شکافی تنگ و روشن؛ و زمانی به اندازه‌ی یک نفس.", "At the corridor's end a narrow bright rift, and time for a single breath.")},
+    "zero_trial": {"entry": ("تالاری که فقط شاه را می‌شناسد؛ تو مهمانی هستی که ناخوانده نیامده.", "A hall that knows only the king; you are a guest who did not come unbidden."),
+                   "mid": ("پنج در، پنج آزمون؛ هر کدام به نامی از گذشته جواب می‌دهد.", "Five doors, five trials; each answers to a name from the past."),
+                   "final": ("آخرین مهر؛ سنگین‌تر از هر هائوری و ساکت‌تر از هر دعا.", "The last seal; heavier than any haori and quieter than any prayer.")},
+})
+CHAR_EPI.update({
+    "Hiyori Sarugaki (Kubikiri Orochi)": ("تیغه‌ای که سر می‌خواهد، و صاحبی که سر را برای خودش نگه می‌دارد.", "A blade that wants a head, and an owner who keeps her own."),
+    "Rose Otoribashi (Kinshara)": ("نغمه‌ای که تیغه را می‌نوازد و دشمن را می‌خواباند.", "A song that plays the blade and puts the enemy to sleep."),
+    "Lisa Yadomaru (Haguro Tonbo)": ("کتابش را می‌بندد؛ تازه آن‌وقت جدی می‌شود.", "She closes her book; only then does she get serious."),
+    "Love Aikawa (Tengumaru)": ("شانه‌هایش دیواری است و خنده‌اش پشت آن دیوار.", "His shoulders are a wall and his laugh stands behind it."),
+    "Kensei Muguruma (Tachikaze)": ("بادی که پیش از تیغ می‌رسد و بعدش هیچ‌چیز سر جایش نیست.", "A wind that arrives before the blade, after which nothing stays in place."),
+    "Riruka Dokugamine (Dollhouse)": ("خانه‌ی عروسکی که هر که را بخواهد به درون می‌کشد.", "A dollhouse that draws in whoever it chooses."),
+    "Kaien Shiba (Nejibana)": ("پیچ آب و سوگندی که هنوز تمام نشده.", "A spiral of water and an oath not yet finished."),
+    "Giriko Kutsuzawa (Dead Heat)": ("زمان را مثل بدهی جمع می‌کند و سر موعد می‌گیرد.", "He gathers time like debt and collects when it is due."),
+    "Sajin Komamura (Kokujō Tengen Myōō)": ("عظمتی که زره‌اش را از وفاداری ریخته‌اند.", "A grandeur whose armor was cast from loyalty."),
+    "Yammy Llargo (Ira)": ("خشمش به اندازه‌ی قامتش است؛ یعنی بیشتر از آنچه فکر می‌کنی.", "His rage is the size of his frame, which is more than you think."),
+    "Szayelaporro Granz (Fornicarás)": ("هر حریف یک نمونه، هر نبرد یک نمایش.", "Every rival a specimen, every battle a show."),
+    "Aaroniero Arruruerie (Glotonería)": ("هزار روح در یک بدن؛ و هیچ‌کدام سیر نیست.", "A thousand souls in one body, none of them sated."),
+    "Zommari Rureaux (Brujería)": ("سرعتی که چشم را فریب می‌دهد و نگاه را زندانی می‌کند.", "A speed that tricks the eye and imprisons the gaze."),
+    "Shinji Hirako (Sakanade)": ("تیغه‌ای وارونه و لبخندی که هرگز راست نیست.", "An inverted blade and a smile that is never straight."),
+    "Tier Harribel (Tiburón)": ("دریایی آرام که هر موجش یک حکم است.", "A calm sea in which every wave is a verdict."),
+    "Barragan Louisenbairn (Arrogante)": ("پادشاهی که زمان را می‌پوساند و خودش نمی‌پوسد.", "A king who makes time rot and does not rot himself."),
+    "Kugo Ginjo (Cross of Scaffold)": ("صلیبی که هر کس را به دنبال خود می‌کشد.", "A cross that draws everyone after it."),
+    "Retsu Unohana (Minazuki)": ("آرام‌ترین دست، روزی خشن‌ترین تیغ بود.", "The gentlest hand was once the cruelest blade."),
+    "Genryusai Yamamoto (Zanka no Tachi)": ("هزار سال آتش در تیغه‌ای خاموش.", "A thousand years of fire in a silent blade."),
+    "Ichigo Kurosaki (Final Getsuga Tenshō)": ("آخرین نور پیش از سیاهی، و بهایی که باید پرداخت.", "The last light before the black, and a price that must be paid."),
+})

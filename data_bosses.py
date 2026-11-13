@@ -174,7 +174,35 @@ def _build_extra4(start):
     return out
 
 
+# ---- Bleach content pack 5: 12 more world bosses (boss_87..boss_98, traits are the existing ones) ----
+_EXTRA5 = [
+    ("Kon", "کن", "dodge", 4, "کوچک، پشمالو و پر از ادعا؛ فقط یک چیز را خوب بلد است: فرار.", "Small, fluffy and full of claims; he knows exactly one thing well: running."),
+    ("Jinta Hanakari", "جینتا هاناکاری", "enrage", 12, "پسری با گرز آهنی؛ هر باخت برایش یک توهین شخصی است.", "A boy with an iron club; every loss is a personal insult."),
+    ("Kaien Shiba", "کاین شیبا", "bleed", 21, "سوگندی که یک شب شکست و هنوز در تیغه می‌چرخد.", "An oath broken in one night, still circling in the blade."),
+    ("Giriko Kutsuzawa", "گیریکو کوتسوزاوا", "dodge", 26, "هر ثانیه‌ی تو برایش یک سکه است؛ و او خوب حساب می‌کند.", "Every second of yours is a coin to him, and he counts well."),
+    ("Momo Hinamori", "مومو هیناموری", "burn", 31, "شعله‌ای که روزی از ایمان می‌آمد و حالا از بی‌اعتمادی.", "A flame that once came from faith and now comes from distrust."),
+    ("Izuru Kira", "ایزورو کیرا", "decay", 35, "هر ضربه‌اش سنگینی را بیشتر می‌کند، تا زانو بزنی.", "Each of his blows adds weight until you kneel."),
+    ("Yammy Llargo", "یامی لارگو", "armor", 39, "قدرتش از شماره‌اش نیست؛ از خشمی است که هیچ‌وقت خاموش نشد.", "His strength is not his number but a wrath that never went out."),
+    ("Nemu Kurotsuchi", "نمو کوروتسوچی", "poison", 43, "بی‌صدا فرمان می‌برد، با زهری که در رگ دارد و خودش انتخابش نکرده.", "She obeys in silence, with a poison in her veins she never chose."),
+    ("Wonderweiss Margela", "واندروایس مارگلا", "enrage", 56, "کودکی که کلمه نمی‌داند؛ فریادش پر است از آنچه هیچ‌کس نگفت.", "A child with no words, whose cry is full of what no one said."),
+    ("Kirio Hikifune", "کیریو هیکیفونه", "regen", 82, "مهربانی‌ای که جهان را بازمی‌سازد، قدم‌به‌قدم و زخم‌به‌زخم.", "A kindness that rebuilds the world, step by step and wound by wound."),
+    ("Tenjiro Kirinji", "تنجیرو کیرینجی", "armor", 85, "پیرمردی که کوه‌ها نامش را می‌شناسند؛ عقب‌نشینی را فراموش کرده.", "An old man whom mountains know by name; he has forgotten how to retreat."),
+    ("Senjumaru Shutara", "سنجومارو شوتارا", "illusion", 94, "تیغه‌ها را مثل شعر می‌سازد، و تو در سطرهای آخر خوانده می‌شوی.", "She forges blades like verses, and you are read in the last lines."),
+]
+
+
+def _build_extra5(start):
+    out = []
+    for j, (en, fa, trait, lvl, e_fa, e_en) in enumerate(_EXTRA5):
+        bid = f"boss_{start + j:02d}"
+        out.append({"_id": bid, "boss_id": bid, "name_en": en, "name_fa": fa, "level": lvl,
+                    "hp": int((2.2 * lvl + 15) * 120 * (1 + lvl / 60)), "attack": 20 + lvl * 7, "defense": 2 + lvl * 1.1,
+                    "trait": trait, "epi_fa": e_fa, "epi_en": e_en})
+    return out
+
+
 BOSSES = _build() + _build_extra(len(_NAMES) + 1)
 BOSSES = BOSSES + _build_extra3(len(BOSSES) + 1)
 BOSSES = BOSSES + _build_extra4(len(BOSSES) + 1)
+BOSSES = BOSSES + _build_extra5(len(BOSSES) + 1)
 BOSS_BY_ID = {b["_id"]: b for b in BOSSES}

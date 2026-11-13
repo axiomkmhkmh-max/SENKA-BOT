@@ -85,3 +85,12 @@ SENKA is a combat/progression/competition MMORPG. Story mode is **retired**: the
 - 4 dungeons (+20 keys, key count 80 → 100): Karakura High Midnight, Captains' Assembly Trial, Pit of Jigoku, Hōgyoku Vault.
 - 13 world bosses `boss_74`..`boss_86`, 25 gacha characters `ch_150`..`ch_174` (Bankai / Resurrección / Shikai forms of fan favourites), 6 organisations, 5 artifacts, 6 quests (`arcy*`), 6 dispatch missions, 12 Soul Tower enemies.
 - Old ids unchanged (verified against the pack 3 build). Tests: `python -m unittest discover -s tests -v`.
+
+
+## Bleach content pack 5 (data-only, additive)
+- 8 locations: Karakura Riverbank, Kusajishi (Rukongai 79), Bount Mansion, Xcution Hideout, Captive's Chamber (Las Noches), Precipice World, Seireitei in Ruins, Zero Division Hall. Wired into `LOC_DESC`, `LORE`, and the Siege / Garganta / Winter War / Dangai event location lists.
+- 4 dungeons (+20 keys, key count 100 → 120): Riverbank Vigil, Bount Mansion Labyrinth, Run of the Precipice World, Zero Division Trial. `DUNGEON_IDS` (items + crafting), `PLAN` key count, `_KEY_COST_K` and `DUNGEON_LORE` updated.
+- 12 world bosses `boss_87`..`boss_98` (Kon, Jinta, Kaien, Giriko, Momo, Kira, Yammy, Nemu, Wonderweiss, Hikifune, Kirinji, Senjumaru) using only existing traits.
+- 32 gacha characters `ch_175`..`ch_206`: Rukongai-days / Academy-era childhood forms, Shikai / Resurrección / Bankai forms, Visored and Espada releases (Rare+ have epithets).
+- 6 organisations (Detention Unit, Academy Cadets, Gillian Legion, Silbern Court, Bount Circle, Arisawa Dojo), 6 one-of-a-kind artifacts, 6 story quests (`arcz*`), 6 dispatch missions, 12 Soul Tower enemies, 1 named spell (Hadō 57).
+- Old ids unchanged. Tests: `python -m unittest discover -s tests -v` (pure data checks; no MongoDB / Telegram needed).

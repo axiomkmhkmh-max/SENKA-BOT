@@ -106,11 +106,13 @@ TEMPER_CHANCE = [100, 90, 75, 60, 45]
 DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift",
                "academy_exam", "urahara_pit", "senzaikyu_tower", "maggot_nest", "muken",
                "clinic_nightwatch", "visored_gauntlet", "srdi_lab", "schatten_depths",
-               "karakura_midnight", "captains_trial", "jigoku_pit", "hogyoku_vault"]
+               "karakura_midnight", "captains_trial", "jigoku_pit", "hogyoku_vault",
+               "riverbank_vigil", "bount_labyrinth", "precipice_run", "zero_trial"]
 # key recipe price multiplier per dungeon (old dungeons keep their index-based price; new ones are priced by level)
 _KEY_COST_K = {"academy_exam": 1, "urahara_pit": 2, "senzaikyu_tower": 3, "maggot_nest": 4, "muken": 7,
                "clinic_nightwatch": 1, "visored_gauntlet": 4, "srdi_lab": 5, "schatten_depths": 8,
-               "karakura_midnight": 1, "captains_trial": 4, "jigoku_pit": 7, "hogyoku_vault": 10}
+               "karakura_midnight": 1, "captains_trial": 4, "jigoku_pit": 7, "hogyoku_vault": 10,
+               "riverbank_vigil": 1, "bount_labyrinth": 2, "precipice_run": 5, "zero_trial": 9}
 DIFFS = ["normal", "hard", "nightmare", "abyss", "legendary"]
 
 

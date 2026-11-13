@@ -19,6 +19,11 @@ TOWER_ENEMIES = [
     ("پژواک هوگیوکو", "Hōgyoku Echo"), ("سایه‌ی تالار", "Hall Shade"), ("ستاره‌ی سرد", "Cold Star"),
     ("گناهکار زنجیری", "Chained Sinner"), ("پرستار روح", "Spirit Nurse"), ("پژواک تیغه", "Blade Echo"),
     ("دزد ریاتسو", "Reiatsu Thief"), ("سایه‌ی بلور", "Crystal Shade"), ("قاصد دوزخ", "Hell Messenger"),
+    # ---- pack 5 ----
+    ("روح رود", "River Spirit"), ("عروسک زنجیری", "Chained Doll"), ("سایه‌ی پرتگاه", "Precipice Shade"),
+    ("نگهبان خاکستر", "Ash Sentinel"), ("پژواک صفر", "Echo of Zero"), ("مأمور تسلیم‌نشده", "Unyielding Agent"),
+    ("هالوی مه‌آلود", "Mist Hollow"), ("فول‌برینگر سرکش", "Rogue Fullbringer"), ("کودک سایه", "Shade Child"),
+    ("کوملای دنگای", "Dangai Kumo"), ("گارد خاموش", "Silent Guard"), ("بازتاب هالو", "Hollow Reflection"),
 ]
 TOWER_BOSS_EVERY = 5
 
@@ -43,6 +48,13 @@ MISSIONS = {
     "hall": {"hours": 8, "level": 31, "fa": "نگهبانی تالار کاپیتان‌ها", "en": "Captains Hall Guard", "k": 1.35},
     "jigoku": {"hours": 12, "level": 58, "fa": "شناسایی جیگوکو", "en": "Jigoku Recon", "k": 1.6},
     "vault": {"hours": 12, "level": 95, "fa": "نگهبانی خزانه‌ی هوگیوکو", "en": "Hōgyoku Vault Watch", "k": 1.8},
+    # ---- pack 5 ----
+    "riverbank": {"hours": 3, "level": 7, "fa": "گشت کنار رود", "en": "Riverbank Patrol", "k": 1.05},
+    "kusajishi": {"hours": 4, "level": 12, "fa": "کمک‌رسانی در کوساجیشی", "en": "Kusajishi Relief Run", "k": 1.12},
+    "xcution": {"hours": 6, "level": 27, "fa": "ردیابی فول‌برینگرها", "en": "Fullbringer Tracking", "k": 1.25},
+    "precipice": {"hours": 8, "level": 47, "fa": "عبور از پرتگاه", "en": "Precipice Crossing", "k": 1.45},
+    "ruins": {"hours": 12, "level": 68, "fa": "پاکسازی ویرانه‌ها", "en": "Ruins Clearing", "k": 1.7},
+    "zero": {"hours": 12, "level": 88, "fa": "پیک تالار صفر", "en": "Zero Hall Courier", "k": 1.85},
 }
 RARITY_MULT = {"Common": 1.0, "Uncommon": 1.15, "Rare": 1.35, "Epic": 1.7, "Legendary": 2.2, "Mythic": 3.0}
 ROLE_NOTE = {  # role -> (fa, en)

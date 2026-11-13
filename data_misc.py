@@ -347,9 +347,49 @@ LORE.update({
                         ("روی دیوار سایه‌هایی ایستاده‌اند که صاحب ندارند.", "Shadows with no owners stand against the wall.")],
 })
 
+# ---- Bleach content pack 5: atmosphere + lore ----
+LOC_DESC.update({
+    "riverbank": ("آب آرام می‌گذرد، مه روی آن می‌نشیند و کسی در آن‌سوی مه منتظر است.", "The water runs slowly, mist settles on it, and someone waits on the far side."),
+    "kusajishi_district": ("محله‌ای که نامش از یک کودک مانده و کودکانش از جنگ.", "A district named for a child, and full of children shaped by war."),
+    "bount_mansion": ("پنجره‌ها همیشه روشن‌اند و ساعت‌ها هیچ‌وقت زمان را درست نشان نمی‌دهند.", "The windows are always lit and the clocks never agree on the time."),
+    "xcution_hideout": ("پناهگاهی که از دست‌دادن‌ها ساخته شده؛ هر اتاق یک گمشده دارد.", "A hideout built from losses; every room is missing someone."),
+    "orihime_chamber": ("اتاقی سفید با پنجره‌ای که ماه را به‌اندازه‌ی یک زندان نشان می‌دهد.", "A white room whose window shows the moon at the size of a prison."),
+    "precipice_world": ("دالانی که زیر پایت می‌دود و پشت سرت می‌بلعد.", "A corridor that runs beneath you and devours behind you."),
+    "seireitei_ruins": ("دیوارهای سفید ترک خورده‌اند و در هر ترک، سایه‌ای نشسته است.", "The white walls have cracked, and a shadow sits in every crack."),
+    "zero_division_hall": ("تالاری که هیچ‌کس را به نام نمی‌خواند؛ فقط نگاه می‌کند.", "A hall that calls no one by name; it only watches."),
+})
+LORE.update({
+    "riverbank": [("بچه‌ای لب رود سنگ پرت می‌کند و می‌گوید: «سنگ‌ها هم گاهی برمی‌گردند.»", "A child skips stones at the water's edge: “Even stones come back sometimes.”"),
+                  ("مه غلیظ می‌شود و از میانش صدای زنگوله‌ای دور می‌آید.", "The mist thickens and a faint bell sounds from within it."),
+                  ("روی پل، یک چتر تاشده جا مانده؛ هنوز خیس است.", "A folded umbrella is left on the bridge; it is still wet.")],
+    "kusajishi_district": [("پسربچه‌ای با لبخند می‌گوید: «اینجا هر کس برای خودش اسم می‌گذارد.»", "A boy says with a grin: “Here everyone names themselves.”"),
+                           ("سگی گرسنه کنار تو راه می‌افتد؛ هر دو می‌دانید این دوستی دوام ندارد.", "A starving dog falls in beside you; you both know this friendship will not last."),
+                           ("روی دیوار شکسته با زغال نوشته‌اند: «زنده بمان، حتی اگر زشت.»", "Someone has written on a broken wall in charcoal: “Stay alive, even if ugly.”")],
+    "bount_mansion": [("ساعتی بی‌عقربه بر دیوار است و تیک‌تاکش را می‌شنوی.", "A clock with no hands hangs on the wall, and you hear it tick."),
+                      ("عروسکی پشت پنجره دست تکان می‌دهد؛ پشتش هیچ‌کس نیست.", "A doll waves from a window; no one stands behind it."),
+                      ("روی میز دو فنجان چای مانده، یکی هنوز گرم.", "Two cups of tea sit on the table, one still warm.")],
+    "xcution_hideout": [("قاب عکسی خالی روی طاقچه است؛ کسی آن را هر روز گردگیری می‌کند.", "An empty photo frame sits on the shelf; someone dusts it every day."),
+                        ("کسی می‌گوید: «قدرت که برگردد، دیگر چیزی از ما نمی‌ماند.»", "Someone says: “Once the power returns, nothing of us will be left.”"),
+                        ("یک صندلی بیشتر از آدم‌ها اینجا هست؛ کسی کنارش نمی‌نشیند.", "There is one more chair than there are people; no one sits beside it.")],
+    "orihime_chamber": [("بشقابی دست‌نخورده روی میز است و کنارش یک سنجاق کوچک.", "An untouched plate sits on the table beside a small hairpin."),
+                        ("پنجره بسته است ولی نسیمی از آن می‌آید و بوی گل دارد.", "The window is shut, yet a breeze comes through it, smelling of flowers."),
+                        ("روی دیوار سفید یک ردّ انگشت است؛ کسی همین‌جا دعا کرده.", "A fingerprint marks the white wall; someone prayed right here.")],
+    "precipice_world": [("زمین زیر پایت چند ثانیه می‌ماند و بعد می‌رود.", "The ground beneath you stays for a few seconds and then leaves."),
+                        ("از دور تک‌صدای بالی می‌آید که هیچ‌وقت نزدیک نمی‌شود.", "The faint sound of a wing drifts in, but never comes closer."),
+                        ("روی دیوار نوری باریک می‌دود؛ اگر دنبالش بروی، تا انتها می‌بردت.", "A thin light runs along the wall; follow it and it leads you to the end.")],
+    "seireitei_ruins": [("پرچمی نیمه‌سوخته هنوز از یک برج می‌آویزد.", "A half-burned banner still hangs from a tower."),
+                        ("زیر آوار صدای ضعیفی می‌گوید: «هنوز نباخته‌ایم.»", "From beneath the rubble a faint voice says: “We have not lost yet.”"),
+                        ("خاکستر روی زمین الگوی یک نام را ساخته؛ باد آن را نمی‌خواند.", "Ash on the ground has formed the pattern of a name; the wind will not read it.")],
+    "zero_division_hall": [("پنج صندلی در تالار هست و هیچ‌کدام خالی نیست، هرچند چیزی نمی‌بینی.", "Five seats stand in the hall and none is empty, though you see no one."),
+                           ("صدایی نرم می‌گوید: «همه‌چیز از همین‌جا نگه داشته شده.»", "A soft voice says: “Everything is held up from right here.”"),
+                           ("کلیدی بزرگ روی ستون آویزان است؛ قفلش را هیچ‌جا نمی‌یابی.", "A great key hangs on a pillar; you find no lock for it anywhere.")],
+})
+
 # ---- named Hadō / Bakudō spells (names only; card ids and effects never change) ----
 KIDO_NAMES.update({("had", 11): "Tsuzuri Raiden", ("had", 12): "Fushibi", ("had", 32): "Ōkasen", ("had", 54): "Haien",
                    ("had", 91): "Senju Kōtenkan", ("had", 96): "Ittō Kasō",
                    ("bak", 21): "Sekienton", ("bak", 26): "Kyokkō", ("bak", 58): "Kakushitsuijaku", ("bak", 75): "Gochūtekkan"})
 # ---- pack 3: three more named spells ----
 KIDO_NAMES.update({("bak", 8): "Seki", ("bak", 77): "Tenteikūra", ("had", 78): "Zangeki"})
+# ---- pack 5: one more named spell ----
+KIDO_NAMES.update({("had", 57): "Daichi Tenyō"})
