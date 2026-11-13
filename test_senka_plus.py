@@ -163,5 +163,53 @@ class CharmItemTests(unittest.TestCase):
 
 
 
+class TournamentTests(unittest.TestCase):
+    def setUp(self):
+        import engine_tournament as TN
+        self.TN = TN
+
+    def _entrants(self, n):
+        races = ["human", "shinigami", "quincy", "hollow", "visored", "arrancar", "fullbringer", "human"]
+        return [fighter("P%d" % i, races[i % len(races)], hp=400) for i in range(n)]
+
+    def test_round_names_follow_the_bracket(self):
+        TN = self.TN
+        self.assertEqual(TN.round_name(2), "captains_assembly")
+        self.assertEqual(TN.round_name(4), "seat_trial")
+        self.assertEqual(TN.round_name(8), "academy_exam")
+        self.assertEqual(TN.round_name(16), "preliminary")
+
+    def test_eight_entrants_make_three_rounds_and_one_champion(self):
+        res = self.TN.run_tournament(self._entrants(8), random.Random(7))
+        self.assertEqual([r["name"] for r in res["rounds"]], ["academy_exam", "seat_trial", "captains_assembly"])
+        self.assertIn(res["champion"], ["P%d" % i for i in range(8)])
+        self.assertEqual(len(res["rounds"][-1]["matches"]), 1)
+
+    def test_odd_count_gives_a_bye(self):
+        res = self.TN.run_tournament(self._entrants(3), random.Random(3))
+        byes = [m for r in res["rounds"] for m in r["matches"] if m[1] is None]
+        self.assertEqual(len(byes), 1)
+        self.assertEqual(res["champion"] in [f"P{i}" for i in range(3)], True)
+
+    def test_same_seed_same_champion(self):
+        a = self.TN.run_tournament(self._entrants(6), random.Random(11))
+        b = self.TN.run_tournament(self._entrants(6), random.Random(11))
+        self.assertEqual(a, b)
+
+    def test_entrant_count_and_names_are_checked(self):
+        with self.assertRaises(ValueError):
+            self.TN.run_tournament(self._entrants(1))
+        dup = [fighter("X", "human"), fighter("X", "human")]
+        with self.assertRaises(ValueError):
+            self.TN.run_tournament(dup)
+
+    def test_entrants_are_not_mutated(self):
+        ents = self._entrants(4)
+        before = [f["hp"] for f in ents]
+        self.TN.run_tournament(ents, random.Random(2))
+        self.assertEqual([f["hp"] for f in ents], before)
+
+
+
 if __name__ == "__main__":
     unittest.main()
