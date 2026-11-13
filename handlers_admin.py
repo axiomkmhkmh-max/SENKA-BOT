@@ -64,7 +64,7 @@ async def admin_panel(ctx, arg):
     lvl = await admin_level(ctx.uid)
     if lvl < 20:
         return Out(alert=ctx.t("admin_only"))
-    from handlers_adminpanel import main_menu
+    from handlers_adminpro import main_menu
     return await main_menu(ctx, lvl)
 
 

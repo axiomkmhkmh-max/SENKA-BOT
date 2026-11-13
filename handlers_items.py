@@ -47,8 +47,12 @@ async def bag(ctx, arg):
         rows.append(pg)
     rows.append(nav(ctx))
     eq = f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"
-    cap = f"{fnum(slots_used(inv['items']), L)}/{fnum(inv.get('capacity', 50), L)}"
+    used, capn = slots_used(inv["items"]), max(1, inv.get("capacity", 50))
+    k = min(10, round(10 * used / capn))
+    cap = f"<code>{'▰' * k}{'▱' * (10 - k)}</code> {fnum(used, L)}/{fnum(capn, L)}"
     body = ctx.t("bag_body", cap=cap, eq=eq, n=fnum(len(ids), L))
+    if not ids:
+        body += "\n\n" + ("اینجا خالیه؛ از گشت‌وگذار و دانجن غنیمت جمع کن 🎒" if L == "fa" else "Empty for now. Loot something in Explore or Dungeons 🎒")
     return Out(head(ctx, "ttl_bag") + body, rows)
 
 

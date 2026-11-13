@@ -97,6 +97,7 @@ async def main():
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True))
     from handlers_core import router
     from handlers_admincmd import router as admin_cmd_router  # admin slash commands + /redeem + /tokens (must come before the text router)
+    import handlers_admincmd2  # noqa: F401  (admin slash commands, batch 2)
     import scheduler
     dp = Dispatcher()
     dp.include_router(admin_cmd_router)

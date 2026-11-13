@@ -60,6 +60,7 @@ async def home(ctx, arg):
     rows = [[(ctx.t("m_exp"), "exp", ""), (ctx.t("m_bt"), "bt", "")],
             [(ctx.t("m_prof"), "prof", ""), (ctx.t("m_bag"), "bag", "0")],
             [(ctx.t("m_qst"), "qst", ""), (ctx.t("m_mkt"), "mkt", "")],
+            [(("📋 امروز" if ctx.lang == "fa" else "📋 Today"), "bd", "")],
             [(ctx.t("b_more"), "menu2", "")]]
     return Out(text, rows)
 
@@ -95,7 +96,11 @@ async def menu_group(ctx, arg):
 async def profile(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
-    lines = [head(ctx, "ttl_prof"),
+    hp = max_hp(ch["level"], soft_stat(ch["stats"]["hakuda"]), RACES[ch["race"]]["mods"].get("hp", 1.0))
+    re_max = max_reiatsu(ch["level"], soft_stat(ch["stats"]["reiatsu"]))
+    need = xp_to_next(ch["level"])
+    vitals = f"<code>{bar(ch['xp'], need)}</code> ⭐ {fnum(ch['xp'], L)}/{fnum(need, L)}   ❤️ {fnum(hp, L)}   🔵 {fnum(re_max, L)}"
+    lines = [head(ctx, "ttl_prof"), vitals,
              ctx.t("prof_body", name=esc(ch["name"]), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
                    rank=rank_label(ch["rating"], L), rating=fnum(ch["rating"], L), bond=fnum(min(30, (ch.get("bond") or {}).get(ch.get("weapon_id"), 0) // 5), L), plus=fnum((ch.get("weapon_plus") or {}).get(ch.get("weapon_id"), 0), L), w=fnum(ch["wins"], L), l=fnum(ch["losses"], L),
                    pw=fnum(ch["pvp_w"], L), pl=fnum(ch["pvp_l"], L), power=fnum(power(ch), L)),
@@ -105,6 +110,8 @@ async def profile(ctx, arg):
     if ch.get("artifact"):
         from data_artifacts import art_name
         lines.append("🔱 " + art_name(ch["artifact"], L))
+    if ch.get("points", 0) > 0:
+        lines.append("💡 " + ("امتیاز ارتقا داری؛ از دکمه‌ی ارتقا استفاده کن." if L == "fa" else "You have upgrade points; open Upgrade to spend them."))
     if ch.get("guild_id"):
         g = await col("guilds").find_one({"_id": ch["guild_id"]})
         if g:
