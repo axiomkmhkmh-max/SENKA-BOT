@@ -85,6 +85,21 @@ LOCATIONS.update({
                         [("نگهبان شهر دروغین", "False Town Sentinel"), ("پژواک جنگ", "Echo of War"), ("سایه‌ی ریاتسو", "Reiatsu Phantom")]),
     "silbern_palace": _l("silbern_palace", "سیلبرن، کاخ وندن‌رایش", "Silbern, Wandenreich Palace", 65,
                          [("نگهبان سیلبرن", "Silbern Guard"), ("کوئینسی تاریک", "Dark Quincy"), ("پژواک امپراتور", "Echo of the Emperor")], "quincy"),
+    # ---- Bleach content pack 2 ----
+    "shinigami_academy": _l("shinigami_academy", "آکادمی شینیگامی", "Shinigami Academy", 3,
+                            [("حریف تمرینی", "Sparring Cadet"), ("هالوی آزمایشی", "Trial Hollow"), ("مربی سخت‌گیر", "Strict Instructor")]),
+    "inuzuri": _l("inuzuri", "اینوزوری (روکونگای ۷۸)", "Inuzuri (Rukongai 78)", 11,
+                  [("سگ ولگرد گرسنه", "Starving Stray Dog"), ("دزد کوچه", "Alley Thief"), ("روح گرسنه", "Hungry Soul")]),
+    "urahara_training": _l("urahara_training", "میدان تمرین زیرزمینی اوراهارا", "Urahara's Training Ground", 17,
+                           [("دستگاه تمرین ریشی", "Reishi Training Rig"), ("تله‌ی اوراهارا", "Urahara's Trap"), ("شبح شکارچی", "Stalker Shade")]),
+    "senzaikyu": _l("senzaikyu", "کاخ توبه (سنزایکیو)", "Palace of Penitence", 24,
+                    [("نگهبان کاخ توبه", "Penitence Guard"), ("روح زنجیری", "Chained Soul"), ("شبح اعتراف", "Confessor Wraith")]),
+    "maggot_nest": _l("maggot_nest", "لانه‌ی کرم‌ها", "Maggot's Nest", 32,
+                      [("زندانی خطرناک", "Dangerous Inmate"), ("زندانبان بی‌صدا", "Silent Jailer"), ("آزمایش ناموفق", "Failed Experiment")]),
+    "garganta_tunnel": _l("garganta_tunnel", "تونل گارگانتا", "Garganta Tunnel", 38,
+                          [("شبح گارگانتا", "Garganta Wraith"), ("هالوی گذرنده", "Passing Hollow"), ("سایه‌ی تونل", "Tunnel Shade")]),
+    "muken": _l("muken", "موکن (جهنم بی‌پایان)", "Muken (Infinite Hell)", 80,
+                [("روح محکوم", "Condemned Soul"), ("زنجیر دوزخ", "Hell Chain"), ("نگهبان دوزخ", "Hell Warden")]),
 })
 LOCATIONS = dict(sorted(LOCATIONS.items(), key=lambda kv: kv[1]["level"]))
 
@@ -97,5 +112,14 @@ DUNGEONS = {
     "palace_trial": {"fa": "آزمون کاخ سلطنتی", "en": "Royal Palace Trial", "level": 70, "stages": 6},
     "dangai_rift": {"fa": "شکاف دنگای", "en": "Dangai Rift", "level": 85, "stages": 7},
 }
+# ---- Bleach content pack 2 (appended; keep the order of DUNGEON_IDS in data_items / data_crafting in sync) ----
+DUNGEONS.update({
+    "academy_exam": {"fa": "آزمون نهایی آکادمی", "en": "Academy Final Exam", "level": 8, "stages": 3},
+    "urahara_pit": {"fa": "گودال تمرین اوراهارا", "en": "Urahara's Training Pit", "level": 20, "stages": 4},
+    "senzaikyu_tower": {"fa": "برج سنزایکیو", "en": "Senzaikyū Tower", "level": 25, "stages": 4},
+    "maggot_nest": {"fa": "لانه‌ی کرم‌ها", "en": "Maggot's Nest", "level": 38, "stages": 5},
+    "muken": {"fa": "موکن؛ جهنم بی‌پایان", "en": "Muken, the Infinite Hell", "level": 78, "stages": 6},
+})
+DUNGEONS = dict(sorted(DUNGEONS.items(), key=lambda kv: kv[1]["level"]))
 DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 2.2, "abyss": 3.2, "legendary": 4.5}
 DIFF_FA = {"normal": "عادی", "hard": "سخت", "nightmare": "کابوس", "abyss": "ورطه", "legendary": "افسانه‌ای"}

@@ -8,8 +8,9 @@ from data_races import LOCATIONS
 LOC_IDS = list(LOCATIONS)
 VAR_START = {"threat": 20.0, "stability": 70.0}
 REISHI_START = 50.0
-SEI_LOCS = ("soul_society", "seireitei", "rukongai", "karakura", "zaraki_district", "sokyoku_hill")
-HOLLOW_LOCS = ("rukongai", "karakura", "hueco_mundo", "las_noches", "dangai", "valley_screams", "forest_menos", "fake_karakura")
+SEI_LOCS = ("soul_society", "seireitei", "rukongai", "karakura", "zaraki_district", "sokyoku_hill",
+            "shinigami_academy", "inuzuri", "senzaikyu", "maggot_nest")
+HOLLOW_LOCS = ("rukongai", "karakura", "hueco_mundo", "las_noches", "dangai", "valley_screams", "forest_menos", "fake_karakura", "garganta_tunnel")
 KEY_PTS = {"normal": 1, "hard": 2, "nightmare": 4, "abyss": 8, "legendary": 16}
 
 # kind -> data. pts: points per action. locs: where the action must happen (None = anywhere).

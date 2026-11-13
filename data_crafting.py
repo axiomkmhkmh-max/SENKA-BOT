@@ -103,7 +103,10 @@ def forge_value(rarity: str) -> int:
 
 # ---- recipes -------------------------------------------------------------------------------------------------------------------
 TEMPER_CHANCE = [100, 90, 75, 60, 45]
-DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift"]
+DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift",
+               "academy_exam", "urahara_pit", "senzaikyu_tower", "maggot_nest", "muken"]
+# key recipe price multiplier per dungeon (old dungeons keep their index-based price; new ones are priced by level)
+_KEY_COST_K = {"academy_exam": 1, "urahara_pit": 2, "senzaikyu_tower": 3, "maggot_nest": 4, "muken": 7}
 DIFFS = ["normal", "hard", "nightmare", "abyss", "legendary"]
 
 
@@ -157,7 +160,7 @@ def build_recipes(catalog: dict) -> list:
                          and x["effect"]["dungeon"] == d and x["effect"]["diff"] == diff)
             if oid:
                 out.append({"id": f"key_{d}_{idx}", "type": "key", "out": oid, "dungeon": d, "diff": diff,
-                            "coins": 150 * idx * (d_i + 1),
+                            "coins": 150 * idx * _KEY_COST_K.get(d, d_i + 1),
                             "in": [{"g": "hard", "n": 2 * idx, "t": 0}, {"g": "any", "n": idx, "t": idx}]})
     return out
 

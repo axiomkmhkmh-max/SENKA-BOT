@@ -48,6 +48,16 @@ DIVISIONS = [
     _d("a02", "allies", "🎭", "ویزوردها", "Visored Warehouse", {"dmg": 0.04, "crit": 0.04}, "نیمی انسان، نیمی هالو؛ تمام‌وقت جنگجو.", "Half soul, half hollow, all fighter."),
     _d("a03", "allies", "🔗", "کراس‌زنده (فول‌برینگ)", "Fullbring Circle", {"xp": 0.04, "regen": 0.04}, "پیوند با چیزهایی که دوستشان داری.", "A bond with the things you love."),
     _d("a04", "allies", "🍃", "یاران کاراکورا", "Karakura Gang", {"def": 0.04, "xp": 0.04, "coin": 0.02}, "قدرت دوستی واقعی است.", "The power of friendship is real."),
+    # ---- content pack 2: more organisations (same total power as the others) ----
+    _d("g14", "gotei", "🔮", "سپاه کیدو", "Kidō Corps", {"crit": 0.04, "xp": 0.03}, "کلمات درست، در لحظه‌ی درست.", "The right words at the right moment."),
+    _d("g15", "gotei", "🎆", "خاندان شیبا", "Shiba Clan", {"dmg": 0.04, "drop": 0.03}, "آتشی که جشن می‌گیرد و می‌سوزاند.", "Fire that celebrates and burns."),
+    _d("g16", "gotei", "🏛️", "گارد سلطنتی", "Royal Guard", {"dmg": 0.04, "xp": 0.03}, "وزن جهان بر شانه‌هایشان است.", "The weight of the world rests on their shoulders."),
+    _d("e11", "espada", "🕳️", "اسپادای فروافتاده", "Privaron Espada", {"dmg": 0.05, "def": 0.02}, "تاج افتاد؛ غرور نه.", "The crown fell; the pride did not."),
+    _d("e12", "espada", "🔢", "نومروس", "Números", {"coin": 0.04, "xp": 0.03}, "شماره‌ای برای هر جنگجو و راهی برای بالا رفتن.", "A number for every fighter, and a way up the ranks."),
+    _d("e13", "espada", "🐾", "فراسیون‌های اسپادا", "Espada Fracción", {"regen": 0.04, "def": 0.03}, "وفاداری پشت سایه‌ی ارباب.", "Loyalty behind the master's shadow."),
+    _d("w05", "wande", "🌙", "بازماندگان کوئینسی", "Quincy Remnants", {"def": 0.04, "crit": 0.03}, "ستاره‌ای که از خاموشی بازگشت.", "A star that returned from the dark."),
+    _d("a05", "allies", "🏥", "کلینیک کوروساکی", "Kurosaki Clinic", {"regen": 0.06, "def": 0.03}, "درمان در اتاق انتظار، نبرد در کوچه.", "Healing in the waiting room, battle in the alley."),
+    _d("a06", "allies", "🩸", "شینیگامی جانشین", "Substitute Soul Reapers", {"dmg": 0.04, "xp": 0.03}, "قدرتی قرضی که مال خودت شد.", "Borrowed power that became your own."),
 ]
 DIV_BY_ID = {d["_id"]: d for d in DIVISIONS}
 
@@ -114,4 +124,26 @@ EXTRA_CHARS = [
     ("Isshin Shiba", "ایشین شیبا", "Legendary", "attacker"), ("Zangetsu", "زانگتسو (روح تیغه)", "Legendary", "attacker"),
     ("Hollow Ichigo", "ایچیگوی هالو", "Legendary", "attacker"),
     ("Soul King", "پادشاه روح", "Mythic", "support"), ("Hogyoku", "هوگیوکو", "Mythic", "caster"),
+    # ---- content pack 2 (appended last, so every existing ch_xx id stays the same) ----
+    ("Kiyone Kotetsu", "کیونه کوتتسو", "Common", "support"), ("Sentaro Kotsubaki", "سنتارو کوتسوباکی", "Common", "attacker"),
+    ("Rikichi", "ریکیچی", "Common", "support"), ("Mizuiro Kojima", "میزویرو کوجیما", "Common", "support"),
+    ("Don Kanonji", "دون کانونجی", "Common", "caster"), ("Tetsuzaemon Iba", "تتسوزائمون ایبا", "Common", "attacker"),
+    ("Jidanbo Ikkanzaka", "جیدانبو ایکانزاکا", "Common", "tank"), ("Lilynette Gingerbuck", "لیلینت جینجرباک", "Common", "caster"),
+    ("Pesche Guatiche", "پشه گواتیچه", "Uncommon", "tank"), ("Dondochakka Birstanne", "دوندوچاکا بیرستن", "Uncommon", "tank"),
+    ("Apacci", "آپاچی", "Uncommon", "attacker"), ("Mila Rose", "میلا رز", "Uncommon", "attacker"),
+    ("Sung-Sun", "سونگ‌سان", "Uncommon", "caster"), ("Findor Carias", "فیندور کاریاس", "Uncommon", "attacker"),
+    ("Loly Aivirrne", "لولی آیویرن", "Uncommon", "attacker"), ("Menoly Mallia", "منولی مالیا", "Uncommon", "attacker"),
+    ("Ggio Vega", "جیو وگا", "Uncommon", "attacker"),
+    ("Yachiru Kusajishi", "یاچیرو کوساجیشی", "Rare", "support"), ("Kaien Shiba", "کاین شیبا", "Rare", "attacker"),
+    ("Ginrei Kuchiki", "گینری کوچیکی", "Rare", "tank"), ("Cirucci Sanderwicht", "چیروچی ساندرویشت", "Rare", "caster"),
+    ("Di Roy Linker", "دی روی لینکر", "Rare", "attacker"), ("Luppi Antenor", "لوپی آنتنور", "Rare", "caster"),
+    ("Nirgge Parduoc", "نیرگ پاردوک", "Rare", "tank"), ("Shawlong Koufang", "شالون کوفانگ", "Rare", "attacker"),
+    ("Avirama Redder", "آویراما ردر", "Rare", "attacker"), ("Meninas McAllon", "منیناس مک‌آلون", "Rare", "attacker"),
+    ("Liltotto Lamperd", "لیلتوتو لمپرد", "Rare", "attacker"), ("Robert Accutrone", "رابرت آکوترون", "Rare", "tank"),
+    ("Jerome Guizbatt", "جروم گیزبات", "Rare", "attacker"),
+    ("Gremmy Thoumeaux", "گرمی تومو", "Epic", "caster"), ("Giselle Gewelle", "جیزل گوئله", "Epic", "caster"),
+    ("Quilge Opie", "کویلگه اوپی", "Epic", "attacker"), ("As Nodt", "آس نوت", "Epic", "attacker"),
+    ("Soken Ishida", "سوکن ایشیدا", "Epic", "caster"),
+    ("Oetsu Nimaiya", "اوتسو نیمایا", "Legendary", "attacker"), ("Kirio Hikifune", "کیریو هیکیفونه", "Legendary", "support"),
+    ("Senjumaru Shutara", "سنجومارو شوتارا", "Legendary", "caster"), ("Tenjiro Kirinji", "تنجیرو کیرینجی", "Legendary", "tank"),
 ]

@@ -60,3 +60,12 @@ New collection `dispatches` (TTL on claimed docs); new character fields `tower, 
 
 ## Direction: gameplay-first (v5)
 SENKA is a combat/progression/competition MMORPG. Story mode is **retired**: the Story button, `story` word and `/story` command are gone, and the old panel only shows a short notice. Saved `story_progress` documents are untouched. NPC-style menus stay short and functional. New work is judged by: better combat, character growth, player competition, loot/collection, group play, or a reason to keep playing.
+
+
+## Bleach content pack 2 (data-only, additive)
+- 7 locations: Shinigami Academy, Inuzuri, Urahara's Training Ground, Palace of Penitence (Senzaikyū), Maggot's Nest, Garganta Tunnel, Muken.
+- 5 dungeons (each with 4 key difficulties + key recipes): Academy Final Exam, Urahara's Training Pit, Senzaikyū Tower, Maggot's Nest, Muken.
+- 11 world bosses (`boss_51`..`boss_61`, only existing traits), 39 gacha characters (`ch_81`..`ch_119`), 9 organisations, 5 one-of-a-kind artifacts, 2 dispatch missions, 8 Soul Tower enemies, 10 named Hadō/Bakudō spells.
+- Rule: old ids never change. New items are appended (keys come last in `data_items.PLAN`); only the 10 Kidō cards that gained a spell name were renamed (id, stats and effect unchanged).
+- When adding a dungeon: add it to `data_races.DUNGEONS`, `DUNGEON_IDS` in **both** `data_items` and `data_crafting`, raise the `key` count in `PLAN` (5 per dungeon) and add `DUNGEON_LORE`. When adding a location: `LOCATIONS`, `LOC_DESC` and `LORE`.
+- Tests: `python -m unittest discover -s tests -v` (pure data checks, no MongoDB/Telegram needed).

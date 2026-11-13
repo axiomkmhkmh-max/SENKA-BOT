@@ -235,3 +235,43 @@ LORE.update({
                        ("پله‌ها بی‌پایان‌اند و هر کدام نامی را زمزمه می‌کنند.", "The stairs are endless and each whispers a name."),
                        ("ستاره‌ای بر دیوار حک شده؛ می‌گویند پیش از تو هزاران نفر آن را دیده‌اند.", "A star is carved on the wall; they say thousands saw it before you.")],
 })
+
+
+# ---- Bleach content pack 2: atmosphere + lore for the new locations ----
+LOC_DESC.update({
+    "shinigami_academy": ("سالن‌های چوبی و صدای تیغه‌های تمرینی؛ هر شینیگامی از اینجا شروع کرده.", "Wooden halls and the clatter of practice blades; every Soul Reaper starts here."),
+    "inuzuri": ("محله‌ای که نان را با پنجه باید نگه داشت؛ دوستی اینجا گران‌بهاترین کالاست.", "A district where bread is held with claws; friendship is the costliest commodity."),
+    "urahara_training": ("غاری بی‌سقف زیر فروشگاه؛ آسمانش نقاشی است ولی ضربه‌هایش واقعی.", "A roofless cavern beneath the shop; its sky is painted but the blows are real."),
+    "senzaikyu": ("برجی سفید در دل سیرایتی؛ سکوتش از دیوارهایش سنگین‌تر است.", "A white tower at the heart of Seireitei; its silence is heavier than its walls."),
+    "maggot_nest": ("زندانی عمیق برای خطرناک‌ترین‌ها؛ تاریکی‌اش خودش نگهبان است.", "A deep prison for the most dangerous; its darkness is a guard in itself."),
+    "garganta_tunnel": ("گذرگاهی تاریک میان جهان‌ها؛ دیواره‌اش نفس می‌کشد.", "A dark corridor between worlds; its walls breathe."),
+    "muken": ("زندان بی‌پایان در اعماق؛ زمان اینجا فقط تکرار می‌شود.", "An endless prison in the depths; time here only repeats."),
+})
+LORE.update({
+    "shinigami_academy": [("مربی‌ای فریاد می‌زند: «تیغه را نگه دار، نه اینکه از آن آویزان شو!»", "An instructor shouts: “Hold the blade, don't hang from it!”"),
+                          ("روی تخته فهرست نمره‌ها و نام کسانی آویخته که روزی کاپیتان شدند.", "On the board hang the grade lists and the names of those who became captains."),
+                          ("شاگردی در حیاط کیدو تمرین می‌کند و بار سوم همان وِرد را اشتباه می‌خواند.", "A student practices kidō in the yard and flubs the same incantation a third time.")],
+    "inuzuri": [("کودکی نان کپک‌زده‌اش را با تو نصف می‌کند و می‌گوید: «فردا شاید نباشم.»", "A child splits a moldy loaf with you and says: “Tomorrow I might not be here.”"),
+                ("دیواری شکسته پر از نقاشی‌های گچی است؛ هر کدام یک خانواده.", "A broken wall is covered in chalk drawings; each one is a family."),
+                ("سگی لاغر دنبالت می‌آید و تا دروازه‌ی محله بدرقه‌ات می‌کند.", "A thin dog follows you and sees you off to the district gate.")],
+    "urahara_training": [("تابلویی نوشته: «با مسئولیت خودتان!» و درست زیرش یک تله‌ی تازه کار گذاشته‌اند.", "A sign reads: “Enter at your own risk!” and a fresh trap sits right beneath it."),
+                         ("صدایی از بالا: «بهتر شد! حالا دوباره، این بار با کمی ترس کمتر.»", "A voice from above: “Better! Again, with a little less fear this time.”"),
+                         ("ریشی در هوا موج می‌زند و هر قدمت را سنگین‌تر می‌کند.", "Reishi ripples in the air and makes each step heavier.")],
+    "senzaikyu": [("زنجیرهای خالی از سقف آویزان است، گویی منتظر زندانی بعدی.", "Empty chains hang from the ceiling, as if waiting for the next prisoner."),
+                  ("نگهبانی زیر لب می‌گوید: «از اینجا کسی نمی‌رود، مگر آنکه کسی از بیرون بخواهدش.»", "A guard mutters: “No one leaves here, unless someone outside wants them to.”"),
+                  ("پله‌ای که به تپه‌ی اعدام می‌رسد؛ هنوز کسی آرام از آن بالا نرفته.", "A staircase that leads to the execution hill; no one has climbed it at peace.")],
+    "maggot_nest": [("از سلول‌ها زمزمه‌هایی می‌آید که هیچ‌کس جرأت نمی‌کند جوابشان را بدهد.", "Whispers drift from the cells that no one dares answer."),
+                    ("روی دیوار شماره‌ای خراشیده شده؛ شمارش روزهایی که دیگر معنایی ندارند.", "A tally is scratched on the wall, counting days that no longer mean anything."),
+                    ("زندانبانی می‌گوید: «اگر صدایی از دیوار شنیدی، جوابش نده؛ بشمارش.»", "A jailer says: “If you hear a voice in the wall, don't answer it. Count it.”")],
+    "garganta_tunnel": [("نور ماه از دیواره‌ها می‌چکد و روی زمین ترک می‌اندازد.", "Moonlight drips from the walls and cracks along the floor."),
+                        ("صدای پاهایی پشت سرت می‌آید؛ برمی‌گردی و هیچ‌کس نیست.", "You hear footsteps behind you; you turn and no one is there."),
+                        ("هوا بوی شن و استخوان می‌دهد؛ مقصد نزدیک است، یا شاید دور.", "The air smells of sand and bone; the destination is near, or perhaps far.")],
+    "muken": [("زنجیری از دل سایه بیرون می‌خزد و دور مچت حلقه می‌شود.", "A chain crawls from the shadow and curls around your wrist."),
+              ("خنده‌ای دور، از جایی که هیچ‌کس در آن نیست.", "A far-off laugh, from a place where no one is."),
+              ("زمین زیر پایت تکرار می‌شود؛ هر قدم همان قدم قبلی است.", "The ground beneath you repeats; every step is the one before.")],
+})
+
+# ---- named Hadō / Bakudō spells (names only; card ids and effects never change) ----
+KIDO_NAMES.update({("had", 11): "Tsuzuri Raiden", ("had", 12): "Fushibi", ("had", 32): "Ōkasen", ("had", 54): "Haien",
+                   ("had", 91): "Senju Kōtenkan", ("had", 96): "Ittō Kasō",
+                   ("bak", 21): "Sekienton", ("bak", 26): "Kyokkō", ("bak", 58): "Kakushitsuijaku", ("bak", 75): "Gochūtekkan"})

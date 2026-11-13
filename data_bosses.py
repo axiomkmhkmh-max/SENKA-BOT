@@ -91,5 +91,32 @@ def _build():
     return out
 
 
-BOSSES = _build()
+# ---- Bleach content pack 2: extra world bosses (appended ids; level is explicit, same stat formulas) ----
+# (name_en, name_fa, trait, level, epithet fa, epithet en)
+_EXTRA = [
+    ("Zommari Rureaux", "زومّاری رورو", "dodge", 33, "سرعتش از سایه‌ی خودش جلوتر است.", "His speed outruns his own shadow."),
+    ("Aaroniero Arruruerie", "آرونیرو آرورِری", "illusion", 36, "هزار صدا در یک گلو؛ کدامشان واقعی است؟", "A thousand voices in one throat; which one is real?"),
+    ("Szayelaporro Granz", "سزایل‌آپورو گرانز", "poison", 38, "دانشمندی که هر حریف را نمونه‌ی آزمایشگاه می‌بیند.", "A scientist who sees every rival as a specimen."),
+    ("Kaname Tosen", "کانامه توسن", None, 42, "عدالتی که چشم ندارد، اما می‌بیند.", "A justice with no eyes that still sees."),
+    ("Mayuri Kurotsuchi", "مایوری کوروتسوچی", "poison", 46, "هر زخم برایش یک یادداشت پژوهشی است.", "To him, every wound is a research note."),
+    ("Tier Harribel", "تیر هریبل", None, 54, "آرام و نجیب؛ دریایی در تیغش می‌خروشد.", "Calm and noble; a sea roars in her blade."),
+    ("Byakuya Kuchiki", "بیاکویا کوچیکی", "bleed", 58, "غرور، قانون و هزار تیغه‌ی گلبرگ.", "Pride, law and a thousand petal-blades."),
+    ("Shukuro Tsukishima", "شوکورو تسوکیشیما", "illusion", 62, "گذشته‌ات را می‌برد و خاطره‌ی خودش را جایش می‌گذارد.", "He cuts your past and leaves his own memory in its place."),
+    ("Gremmy Thoumeaux", "گرمی تومو", "illusion", 74, "هر چه در خیالش باشد واقعی می‌شود.", "Whatever he imagines becomes real."),
+    ("Retsu Unohana", "رتسو اونوهانا", "regen", 78, "لبخندش مهربان‌ترین هشدار جهان است.", "Her smile is the gentlest warning in the worlds."),
+    ("Hollow Ichigo", "ایچیگوی هالو", "enrage", 88, "سفید، خندان و گرسنه؛ پاسخگوی هیچ‌کس نیست.", "White, grinning, hungry; answerable to no one."),
+]
+
+
+def _build_extra(start):
+    out = []
+    for j, (en, fa, trait, lvl, e_fa, e_en) in enumerate(_EXTRA):
+        bid = f"boss_{start + j:02d}"
+        out.append({"_id": bid, "boss_id": bid, "name_en": en, "name_fa": fa, "level": lvl,
+                    "hp": int((2.2 * lvl + 15) * 120 * (1 + lvl / 60)), "attack": 20 + lvl * 7, "defense": 2 + lvl * 1.1,
+                    "trait": trait, "epi_fa": e_fa, "epi_en": e_en})
+    return out
+
+
+BOSSES = _build() + _build_extra(len(_NAMES) + 1)
 BOSS_BY_ID = {b["_id"]: b for b in BOSSES}

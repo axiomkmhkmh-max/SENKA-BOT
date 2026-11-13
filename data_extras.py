@@ -6,6 +6,9 @@ TOWER_ENEMIES = [
     ("هالوی سایه", "Shadow Hollow"), ("استخوان‌خوار", "Bone Eater"), ("نگهبان ماسک‌دار", "Masked Warden"),
     ("گرگ ریاتسو", "Reiatsu Wolf"), ("شکارچی سکوت", "Silent Stalker"), ("دیوِ برج", "Tower Fiend"),
     ("شبح گارگانتا", "Garganta Wraith"), ("پژواک ماسک", "Mask Echo"),
+    ("غول ریشی", "Reishi Ogre"), ("سایه‌ی کیدو", "Kidō Shade"), ("نگهبان اسپادا", "Espada Sentinel"),
+    ("استرنریتر گمشده", "Stray Sternritter"), ("آجوکاس تنها", "Lone Adjuchas"), ("ماسک‌دار زنجیری", "Chained Masked"),
+    ("پژواک گرند فیشر", "Fisher's Echo"), ("روح بدخواه", "Malevolent Plus"),
 ]
 TOWER_BOSS_EVERY = 5
 
@@ -14,6 +17,8 @@ MISSIONS = {
     "patrol": {"hours": 2, "level": 1, "fa": "گشت کاراکورا", "en": "Karakura Patrol", "k": 1.0},
     "hunt": {"hours": 4, "level": 10, "fa": "شکار هالو در روکونگای", "en": "Rukongai Hollow Hunt", "k": 1.15},
     "scout": {"hours": 8, "level": 20, "fa": "دیده‌بانی هوئکو موندو", "en": "Hueco Mundo Scouting", "k": 1.3},
+    "academy": {"hours": 3, "level": 3, "fa": "نگهبانی آکادمی", "en": "Academy Guard Duty", "k": 1.05},
+    "garganta": {"hours": 12, "level": 35, "fa": "شناسایی گارگانتا", "en": "Garganta Recon", "k": 1.5},
 }
 RARITY_MULT = {"Common": 1.0, "Uncommon": 1.15, "Rare": 1.35, "Epic": 1.7, "Legendary": 2.2, "Mythic": 3.0}
 ROLE_NOTE = {  # role -> (fa, en)

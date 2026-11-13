@@ -34,10 +34,12 @@ NOUNS = {
 PLAN = [("material", 160, None, 99, 1.0), ("potion", 100, None, 99, 1.2), ("armor", 150, "armor", 1, 2.5),
         ("ring", 75, "accessory", 1, 3.0), ("necklace", 75, "accessory", 1, 3.0), ("kido_card", 198, None, 99, 2.0),
         ("book", 40, None, 99, 2.0), ("evolution", 30, None, 99, 3.0), ("cosmetic", 80, None, 1, 1.5),
-        ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 35, None, 99, 2.0)]
+        ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 60, None, 99, 2.0)]
 KIDO_NAMES = {"had": ("Hadō", "هادو"), "bak": ("Bakudō", "باکودو")}
-DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift"]
+DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift",
+               "academy_exam", "urahara_pit", "senzaikyu_tower", "maggot_nest", "muken"]
 DIFFS = ["normal", "hard", "nightmare", "abyss", "legendary"]
+assert dict((c[0], c[1]) for c in PLAN)["key"] == 5 * len(DUNGEON_IDS), "key count must match DUNGEON_IDS x difficulties"
 STATS = ["zanjutsu", "kido", "hakuda", "hoho", "reiatsu"]
 
 
@@ -49,7 +51,9 @@ KN_FA = {"Sai": "سای", "Hainawa": "هاینوا", "Geki": "گکی", "Shitotsu
          "Enkōsen": "انکوسن", "Rikujōkōrō": "ریکوجوکورو", "Hyapporankan": "هیاپورانکان", "Sajō Sabaku": "ساجو ساباکو",
          "Tozanshō": "توزانشو", "Danku": "دانکو", "Kin": "کین", "Shō": "شو", "Byakurai": "بیاکورای", "Shakkahō": "شاکاهو",
          "Sōkatsui": "سوکاتسوی", "Tenran": "تن‌ران", "Raikōhō": "رایکوهو", "Sōren Sōkatsui": "سورن سوکاتسوی",
-         "Hiryūgekizoku Shinten Raihō": "هیریوگکیزوکو شینتن رایهو", "Kurohitsugi": "کوروهیتسوگی"}
+         "Hiryūgekizoku Shinten Raihō": "هیریوگکیزوکو شینتن رایهو", "Kurohitsugi": "کوروهیتسوگی",
+         "Tsuzuri Raiden": "تسوزوری رایدن", "Fushibi": "فوشیبی", "Ōkasen": "اوکاسن", "Haien": "هاین", "Senju Kōtenkan": "سنجو کوتنکان",
+         "Ittō Kasō": "ایتو کاسو", "Sekienton": "سکیینتون", "Kyokkō": "کیوککو", "Kakushitsuijaku": "کاکوشیتسویجاکو", "Gochūtekkan": "گوچوتکان"}
 _STAT_FA = {"dmg": "آسیب", "def": "دفاع", "crit": "شانس کریتیکال", "xp": "تجربه", "drop": "نرخ دراپ"}
 
 

@@ -132,3 +132,47 @@ STREAK_LINE = {
 def streak_line(streak: int, lang: str) -> str:
     v = STREAK_LINE.get(streak)
     return v[0 if lang == "fa" else 1] if v else ""
+
+
+# ---- Bleach content pack 2 ----
+DUNGEON_LORE.update({
+    "academy_exam": {"entry": ("سالن امتحان؛ ناظرانی خاموش با قلم در دست نگاهت می‌کنند.", "The exam hall; silent proctors watch you, pens in hand."),
+                     "mid": ("سؤال‌ها دشوارتر می‌شوند؛ کیدو دیگر بازی نیست.", "The questions grow harder; kidō is no game now."),
+                     "final": ("آخرین آزمون؛ تیغه‌ات را می‌شناسی؟", "The last exam. Do you know your blade?")},
+    "urahara_pit": {"entry": ("گودالی که اوراهارا برای «بازی» ساخته؛ قوانینش را فقط خودش می‌داند.", "A pit Urahara built for “games”; only he knows its rules."),
+                    "mid": ("هر طبقه تله‌ی تازه‌ای دارد و همه خنده‌دارند، جز برای تو.", "Every floor has a new trap, and all are funny, except to you."),
+                    "final": ("عمیق‌ترین طبقه؛ صدایی از بالا: «کمی بیشتر!»", "The deepest floor; a voice from above: “A little more!”")},
+    "senzaikyu_tower": {"entry": ("پله‌های برج سنزایکیو؛ هر پله یک سوگند را سنگین می‌کند.", "The steps of Senzaikyū Tower; each one weighs down an oath."),
+                        "mid": ("زنجیرها در هوا زمزمه می‌کنند؛ نگهبان‌ها بی‌صدا نزدیک می‌شوند.", "Chains whisper in the air; guards approach in silence."),
+                        "final": ("طبقه‌ی بالا؛ دری که به آسمان باز می‌شود.", "The top floor; a door that opens onto the sky.")},
+    "maggot_nest": {"entry": ("پایین می‌روی؛ هوا سنگین‌تر و نور کم‌رنگ‌تر می‌شود.", "You descend; the air thickens and the light thins."),
+                    "mid": ("هر سلول یک داستان است و هیچ‌کدام پایان خوشی ندارد.", "Each cell is a story, and none of them end well."),
+                    "final": ("عمیق‌ترین سلول؛ آنچه در آن است نمی‌خواهد دیده شود.", "The deepest cell; what lies in it does not wish to be seen.")},
+    "muken": {"entry": ("دروازه‌ی موکن؛ هر که وارد شود شاید هرگز همان بیرون نیاید.", "The gate of Muken; whoever enters may never leave the same."),
+              "mid": ("زمین تکرار می‌شود و زنجیرها پیش از تو می‌رسند.", "The ground repeats and the chains reach you before you reach them."),
+              "final": ("پایین‌ترین نقطه؛ فقط خاموشی و یک نگهبان.", "The lowest point; only silence and one warden.")},
+})
+CHAR_EPI.update({
+    "Yachiru Kusajishi": ("خنده‌ای کوچک روی شانه‌ی غول‌ها.", "A small laugh perched on a giant's shoulder."),
+    "Kaien Shiba": ("نامش هنوز در دل جوخه‌ی ۱۳ زنده است.", "His name still lives in the heart of the 13th Division."),
+    "Ginrei Kuchiki": ("سکوت پیرمردی که یک خاندان را بر دوش دارد.", "The silence of an old man carrying a whole clan."),
+    "Cirucci Sanderwicht": ("زبانی تیز و ضربه‌ای بی‌رحم.", "A sharp tongue and a ruthless strike."),
+    "Di Roy Linker": ("تیغه‌ای که با هر ضربه محکم‌تر می‌شود.", "A blade that grows firmer with every blow."),
+    "Luppi Antenor": ("نگاهی که هرگز آرام نمی‌گیرد.", "A gaze that never rests."),
+    "Nirgge Parduoc": ("کوهی از سکوت و فولاد.", "A mountain of silence and steel."),
+    "Shawlong Koufang": ("نظمی خاموش پشت هر حرکتش.", "A silent order behind every move."),
+    "Avirama Redder": ("سرسخت‌تر از سنگ‌هایی که می‌شکند.", "Stubborner than the stones he breaks."),
+    "Meninas McAllon": ("غرور سربازی که ستاره‌اش را کسب کرده.", "The pride of a soldier who earned her star."),
+    "Liltotto Lamperd": ("زبانی تیز و اشتهایی بزرگ‌تر.", "A sharp tongue and a bigger appetite."),
+    "Robert Accutrone": ("آرامش سربازی پیش از هر یورش.", "A soldier's calm before every charge."),
+    "Jerome Guizbatt": ("سایه‌ای که ردش را پاک می‌کند.", "A shadow that wipes out its own trail."),
+    "Gremmy Thoumeaux": ("خیالی که واقعیت را کنار می‌زند.", "An imagination that pushes reality aside."),
+    "Giselle Gewelle": ("لبخندی که سربازان مرده را بلند می‌کند.", "A smile that raises dead soldiers."),
+    "Quilge Opie": ("شکارچی‌ای که قلمروش را با ریاتسو نشان می‌کند.", "A hunter who marks his territory with reiatsu."),
+    "As Nodt": ("خشمی که مثل بیماری پخش می‌شود.", "A wrath that spreads like a plague."),
+    "Soken Ishida": ("حکمتی خاموش از خاندانی که ایستاد.", "Quiet wisdom from a clan that stood its ground."),
+    "Oetsu Nimaiya": ("قدرتی که پایه‌های جهان را نگه می‌دارد.", "Power that holds up the foundations of the world."),
+    "Kirio Hikifune": ("دستی که بخشیدن و ساختن را با هم می‌داند.", "A hand that knows both mercy and making."),
+    "Senjumaru Shutara": ("سازنده‌ای که با اراده‌اش شکل می‌دهد.", "A maker who shapes with her will."),
+    "Tenjiro Kirinji": ("زخم هر نبرد را مثل یک درس نگه می‌دارد.", "He keeps each battle's scar like a lesson."),
+})
