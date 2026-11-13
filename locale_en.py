@@ -35,9 +35,9 @@ TEXT = {
  "menu_body": "Everything the world offers:", "prof_body": "<b>{name}</b> | {race} — {title}\n⭐ Lv {lvl} | 💪 {power}\n🏅 Rank {rank} ({rating})\n⚔️ PvE {w}W/{l}L | 🥊 PvP {pw}W/{pl}L\n🔗 Zanpakuto bond {bond}% | 🔨 Forge +{plus}",
  "upg_body": "Shape your reiatsu. Points left: <b>{pts}</b>\nGrowth softens after 100 / 200 / 500. Everyone has a human limit.", "no_points": "No points left. Each level-up grants more.",
  "map_body": "📍 You stand in <b>{loc}</b>.\nEvery crossing has a 1-minute cooldown.", "loc_locked": "Your reiatsu is not enough for that place yet.",
- "exp_body": "📍 <b>{loc}</b>\n⚡ Energy {en} (each patrol costs {cost}).\nSomething waits behind every alley: treasure, enemies, secrets, or a rift to another world.",
- "exp_no_energy": "⚡ Your reiatsu runs dry ({n}). It refills in ~{s} min.", "exp_item": "🎁 Among the traces of reiatsu you found {item}.\n+{xp} XP", "exp_npc": "🧙 {lore}\n+{xp} XP, +{coins} 🪙",
- "exp_secret": "🔍 A wall that wasn't real… behind it hid {item}.\n+{xp} XP", "exp_gate": "🌀 The air tore open and a gate appeared. {item} fell into your hand.\n+{xp} XP", "exp_empty": "🍃 {lore}\n+{xp} XP", "bag_full": "🎒 Your bag has no more room.",
+ "exp_body": "📍 <b>{loc}</b>\n⚡ Energy {en} (each hunt costs {cost}).\nSomething waits behind every alley: treasure, enemies, secrets, or a rift to another world.",
+ "exp_no_energy": "⚡ Your reiatsu runs dry ({n}). It refills in ~{s} min.", "exp_item": "🎁 Among the traces of reiatsu you found {item}.\n+{xp} XP", "exp_npc": "🧙 \n+{xp} XP, +{coins} 🪙",
+ "exp_secret": "🔍 A wall that wasn't real… behind it hid {item}.\n+{xp} XP", "exp_gate": "🌀 The air tore open and a gate appeared. {item} fell into your hand.\n+{xp} XP", "exp_empty": "🍃 \n+{xp} XP", "bag_full": "🎒 Your bag has no more room.",
  "dly_done": "You've already taken today's share. Come back tomorrow.", "dly_ok": "🎁 Today's gift: <b>{coins}</b> 🪙\n🔥 Streak: {streak}",
  "rk_lvl": "By level", "rk_pvp": "By PvP",
  "qc_main": "Main", "qc_side": "Side", "qc_daily": "Daily", "qc_weekly": "Weekly", "qc_hidden": "Hidden", "qc_race": "Race", "qc_weapon": "Weapon", "qc_bankai": "Bankai",
@@ -153,7 +153,7 @@ TEXT.update({
  "chr_season_end": "🏆 Season {n} ended. First place: {name}.",
  # ---- events ----
  "ev_garganta_name": "Garganta Opens", "ev_garganta_desc": "A rift tears open; Hollows pour out. Hunt them, clear dungeons, offer keys. Hollow lands pay more.",
- "ev_siege_name": "Seireitei Under Siege", "ev_siege_desc": "Invaders strike the Soul Society. Patrol and fight in its streets to hold the wall.",
+ "ev_siege_name": "Seireitei Under Siege", "ev_siege_desc": "Invaders strike the Soul Society. Hunt and fight in its streets to hold the wall.",
  "ev_wandenreich_name": "Wandenreich Strikes", "ev_wandenreich_desc": "The Quincy invade. Win fights, duels and dungeons, and strike their bosses.",
  "ev_announce": "⚡ <b>{ev}</b>\n{desc}\n🎯 Goal: {goal} points · ⏳ ~{m} min. Everyone fights together!", "ev_end_ok": "🎉 <b>{ev}</b> was repelled by {n} souls!\nTop: {top}",
  "ev_end_fail": "💔 <b>{ev}</b> was not stopped ({n} fought).\nTop: {top}", "ev_dm": "⚡ Event reward: +{xp} XP, +{coins} 🪙",
@@ -162,9 +162,9 @@ TEXT.update({
  "evt_e_nokey": "That is not a key.", "evt_e_noevent": "Nothing to offer it to right now.", "evt_e_young": "Too new to take part; return a little later.",
  "evt_e_cap": "Daily event limit reached.", "evt_e_missing": "You don't have it.",
  # ---- territories ----
- "ter_body": "📍 <b>{loc}</b>\nOwners' guild: +{buff}% coins/XP here. Others pay a {tax}% patrol tax into the owner's bank.", "ter_owner": "🏴 Held by <b>{g}</b>", "ter_free": "No guild holds this land.",
+ "ter_body": "📍 <b>{loc}</b>\nOwners' guild: +{buff}% coins/XP here. Others pay a {tax}% hunt toll into the owner's bank.", "ter_owner": "🏴 Held by <b>{g}</b>", "ter_free": "No guild holds this land.",
  "ter_top": "This week's claim:", "ter_rules": "Needs a guild of {n}+ members and {s}+ points. Settled every week.", "ter_announce": "🏴 <b>{g}</b> claimed <b>{loc}</b>!",
- "ter_got_mine": "🏴 Your guild's land: +{c} 🪙, +{x} XP", "ter_got_tax": "🏴 Patrol tax paid to the land's owners: {n} 🪙 (not deducted from you)",
+ "ter_got_mine": "🏴 Your guild's land: +{c} 🪙, +{x} XP", "ter_got_tax": "🏴 Hunt tax paid to the land's owners: {n} 🪙 (not deducted from you)",
  # ---- here / aid / traces ----
  "hre_body": "📍 <b>{loc}</b>\n👥 Souls here now: {n}\n🪧 Traces left here: {tr}\n💞 Aid sends {en} energy. A trace costs {cost} 🪙.",
  "aid_ok": "💞 You steadied {name}: +{n} energy for them.", "aid_dm": "💞 {name} lent you reiatsu: +{n} energy.",
@@ -205,11 +205,11 @@ TEXT.update({
  "cos_e_nocosmetic": "Not a cosmetic.", "cos_e_already": "Already worn.", "cos_e_missing": "You don't have it.", "cos_e_retry": "Try again.", "cos_e_empty": "Nothing there.", "cos_e_full": "Your bag is full.",
  "pet_body": "The first companion is active. Tap another to bring it forward.", "pet_none": "No companions yet. Hatch a Spirit Egg.", "pet_e_bad": "Not possible.", "pet_e_retry": "Try again.",
  "pet_role_luck": "finds loot: +{v}% drops", "pet_role_regen": "heals {v}% HP each turn", "pet_role_dmg": "+{v}% damage", "pet_role_def": "+{v}% defense",
- "pet_role_patrol": "+{v}% patrol rewards", "pet_role_crit": "+{v}% crit chance",
+ "pet_role_hunt": "+{v}% hunt rewards", "pet_role_crit": "+{v}% crit chance",
  # ---- item effect lines ----
  "ef_mat": "{grp}: used in crafting; forging counts it as {v} unit(s).", "ef_relic_xp_loc": "Attune: +{v}% XP while in {loc}.", "ef_relic_drop": "Attune: +{v}% drop rate.",
- "ef_relic_coin": "Attune: +{v}% coins.", "ef_relic_calm": "Attune: your victories calm the world {v}% more (less Hollow Threat).", "ef_relic_stab": "Attune: patrols steady Seireitei (+{v} stability each).",
- "ef_cosmetic": "{icon} {slot} beside your name · Fame +{fame}", "ef_evo": "Spent when you win a race evolution trial.", "ef_egg": "Hatches a companion with a real role in battle or patrol.",
+ "ef_relic_coin": "Attune: +{v}% coins.", "ef_relic_calm": "Attune: your victories calm the world {v}% more (less Hollow Threat).", "ef_relic_stab": "Attune: hunts steady Seireitei (+{v} stability each).",
+ "ef_cosmetic": "{icon} {slot} beside your name · Fame +{fame}", "ef_evo": "Spent when you win a race evolution trial.", "ef_egg": "Hatches a companion with a real role in battle or hunt.",
  "ef_key": "Opens dungeons, or offered to a world event: +{pts} points.", "ef_armor": "Can be tempered at the workshop for more defense.", "ef_luck": "Luck +{n}: better rare drops.", "ef_konpaku": "Duel charm: one extra Konpaku life for {m} minutes.",
  # ---- admin ----
  "adm_world": "🌍 Threat {threat} | Stability {stab}\nReishi: {rei}\nEvent: {ev}\nBoss: {boss}\nSeason: {season}",
@@ -256,7 +256,7 @@ TEXT.update({
  "aid_ok": "💞 Your reiatsu steadies {name}: +{n} energy.", "aid_dm": "💞 A warm reiatsu brushes yours — {name} lent you strength: +{n} energy.",
  "bty_body": "A name, a price, a promise. Whoever defeats them in a ranked duel (Lv {lvl}+) collects it, minus {fee}% for the ledger-keepers. Unclaimed after {hrs}h, it fades back to you.",
  "bty_ask": "Whisper the exact name of the soul you want hunted.", "bty_ok": "🎯 {name}'s name is inked on the wall.",
- "ter_body": "📍 <b>{loc}</b>\nThe banner's guild fights stronger here: +{buff}% coins/XP. Others pay {tax}% patrol toll into the owner's coffers — taken from the land, never from your purse.",
+ "ter_body": "📍 <b>{loc}</b>\nThe banner's guild fights stronger here: +{buff}% coins/XP. Others pay {tax}% hunt toll into the owner's coffers — taken from the land, never from your purse.",
  "ter_owner": "🏴 Held by <b>{g}</b>", "ter_free": "No banner flies here. Claim it.", "ter_announce": "🏴 <b>{g}</b> raised their banner over <b>{loc}</b>!",
  "ter_got_mine": "🏴 Your banner's land answers: +{c} 🪙, +{x} XP", "ter_got_tax": "🏴 The land's toll goes to its keepers: {n} 🪙 (not taken from you)",
  "crf_body": "Reishi shard, hollow bone, spirit thread — the world sheds them like skin. Brew, forge and temper them, or feed them to a trial.",
@@ -266,11 +266,11 @@ TEXT.update({
  "ssn_body": "🏆 <b>Season {n}</b> — {d} days until the ledger closes\n⭐ Your deeds: {pts} (rank {rank})\n⚔️ Duel rating: {rating}\nWhen the season turns, every rating drifts {k}% back toward the middle.",
  "ssn_announce": "🏆 <b>Season {n} is sealed in the ledger.</b> Loudest names: {top}. The next one begins now.",
  "ef_mat": "{grp} · feeds crafting; the forge weighs it as {v}.", "ef_relic_xp_loc": "Attuned: +{v}% XP while you walk {loc}.", "ef_relic_drop": "Attuned: spoils fall {v}% kinder.",
- "ef_relic_coin": "Attuned: +{v}% coins from every victory.", "ef_relic_calm": "Attuned: your victories quiet the Hollow Tide {v}% more.", "ef_relic_stab": "Attuned: each patrol steadies the Gotei (+{v} resolve).",
+ "ef_relic_coin": "Attuned: +{v}% coins from every victory.", "ef_relic_calm": "Attuned: your victories quiet the Hollow Tide {v}% more.", "ef_relic_stab": "Attuned: each hunt steadies the Gotei (+{v} resolve).",
  "ef_cosmetic": "{icon} {slot} · worn beside your name · Fame +{fame}", "ef_evo": "A fragment of what you may become. Spent only when a trial is won.",
  "ef_egg": "Something inside is already listening. It will hatch with a true calling.", "ef_key": "Opens a dungeon seal — or feeds a world event: +{pts} points.",
  "pet_role_luck": "sniffs out spoils: +{v}% drops", "pet_role_regen": "mends your wounds: {v}% HP each turn", "pet_role_dmg": "lends its fangs: +{v}% damage",
- "pet_role_def": "stands at your shoulder: +{v}% defense", "pet_role_patrol": "walks ahead of you: +{v}% patrol rewards", "pet_role_crit": "sharpens your eye: +{v}% crit",
+ "pet_role_def": "stands at your shoulder: +{v}% defense", "pet_role_hunt": "walks ahead of you: +{v}% hunt rewards", "pet_role_crit": "sharpens your eye: +{v}% crit",
  "rlc_body": "Relics attuned: {n}/{slots}. They sleep until your reiatsu touches them.", "cos_body": "✨ Fame {fame} — the world watches, and rewards a little. You are known as: {name}",
  "pet_body": "The first companion walks beside you. Call another forward.",
 })
@@ -280,7 +280,7 @@ TEXT.update({
  "cmd_body": (
   "Type any word below (or tap it from the <b>/</b> menu). Case doesn't matter.\n\n"
   "🏠 <b>Basics</b>\n<code>home</code> — your world panel\n<code>profile</code> — stats, gear, bonuses\n<code>bag</code> — inventory &amp; equipment\n<code>daily</code> — daily reward\n<code>quests</code> — missions\n\n"
-  "🧭 <b>Adventure</b>\n<code>explore</code> — patrol (energy)\n<code>battle</code> — fight Hollows\n<code>dungeon</code> — enter dungeons\n<code>map</code> — travel between locations\n<code>minigame</code> — Bleach puzzle\n\n"
+  "🧭 <b>Adventure</b>\n<code>explore</code> — hunt (energy)\n<code>battle</code> — fight Hollows\n<code>dungeon</code> — enter dungeons\n<code>map</code> — travel between locations\n<code>minigame</code> — Bleach puzzle\n\n"
   "⚒️ <b>Power</b>\n<code>forge</code> — strengthen your zanpakuto\n<code>craft</code> — potions, keys, armor tempering\n<code>evolution</code> — race evolution trial\n<code>relic</code> / <code>pets</code> — relics, cosmetics, companions\n<code>party</code> — summoned characters\n<code>summon</code> — gacha\n\n"
   "🌍 <b>Shared world</b>\n<code>world</code> — Hollow Tide, Resolve, Reishi, events\n<code>boss</code> — the world boss (everyone, everywhere)\n<code>chronicle</code> — what just happened in the world\n<code>territory</code> — guild lands\n<code>bounty</code> — hunt or post a price\n<code>season</code> — season standings\n\n"
   "💰 <b>Social &amp; trade</b>\n<code>market</code> — Urahara shop, market, auctions\n<code>squad</code> — squad / guild\n<code>ranking</code> — leaderboards\n<code>artifact</code> — your one-of-a-kind treasure · <code>artifact market</code>\n\n"
@@ -323,3 +323,5 @@ TEXT.update({'story_retired':'📜 Story mode has been retired. SENKA is now all
 TEXT.update({'ttl_home':'Soul Society','m_home':'🏯 Soul Society','ttl_map':'Soul World Map','m_map':'🗺️ Realms of the Dead','m_skm':'🚪 Senkaimon',
  'error':'⚠️ The Garganta wavered. Try again.',
  'lg_mask_lost':'🎭 {a} loses control — the Hollow inside takes the wheel!','lg_mask_lost_2':'🎭 {a}\'s mask roars; the Hollow swallows the turn!'})
+
+TEXT.update({'ttl_casino': 'Bleach Casino', 'ttl_bank': 'Bleach Bank'})

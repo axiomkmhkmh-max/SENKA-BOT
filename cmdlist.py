@@ -2,7 +2,7 @@
 CMD_EN = [
     ('home', 'Open your world panel'),
     ('profile', 'Your Soul Reaper profile'),
-    ('explore', 'Patrol the world'),
+    ('explore', 'Hunt Hollows'),
     ('battle', 'Fight Hollows'),
     ('bag', 'Inventory & equipment'),
     ('market', 'Urahara shop, market & auctions'),
@@ -66,7 +66,7 @@ CMD_EN = [
 CMD_FA = [
     ('home', 'پنل دنیای من'),
     ('profile', 'پروفایل شینیگامی'),
-    ('explore', 'گشت در جهان'),
+    ('explore', 'شکار در جهان'),
     ('battle', 'نبرد با هالوها'),
     ('bag', 'کوله و تجهیزات'),
     ('market', 'فروشگاه اوراهارا، بازار و حراج'),

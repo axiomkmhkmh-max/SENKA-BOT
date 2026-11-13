@@ -39,7 +39,9 @@ def item_card(ctx, item_id: str, qty: int = None) -> str:
         if it.get("meaning_en"):
             lines.append("「" + esc(it["meaning_fa" if lang == "fa" else "meaning_en"]) + "」")
         lines.append(f"⚔️ {fnum(it['attack'], lang)} | 🎯 {pctf(it['crit'] * 100, lang, '.1f')} | {el} | {ty}")
-        lines.append("<i>" + esc(spirit_line(it, lang)) + "</i>")
+        _sl = spirit_line(it, lang)
+        if _sl:
+            lines.append("<i>" + esc(_sl) + "</i>")
         for s in it["skills"]:
             lines.append("✦ " + skill_text(s, lang))
     else:

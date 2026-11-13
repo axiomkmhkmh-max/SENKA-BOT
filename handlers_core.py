@@ -18,7 +18,10 @@ import handlers_zanpakuto  # noqa: F401 (Zanpakuto progression)
 import handlers_senkaimon  # noqa: F401 (Senkaimon portal)
 import handlers_hollowraid
 import handlers_viral  # --- NEW BLEACH VIRAL SYSTEM
-import handlers_bleach_systems  # noqa: F401 (race, story, Kidō and faction progression)
+import handlers_bleach_systems  # noqa: F401 (race, Kidō and faction progression)
+import handlers_casino  # noqa: F401 (Bleach Casino)
+import handlers_bank  # noqa: F401 (Bleach Bank)
+import handlers_hunt  # noqa: F401 (Hollow Hunt)
 import handlers_adminpanel  # noqa: F401  (admin button panel)
 import handlers_adminpro  # noqa: F401  (advanced admin hub: analytics, risk, health)
 import handlers_extras  # noqa: F401  (player extras: stats, quiz, coinflip, transfer...)

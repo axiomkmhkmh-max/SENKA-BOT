@@ -55,7 +55,7 @@ GAME_DEFAULTS = {
     # ---- shared world (service_worldcore / service_worldstate) ----------------
     "world_threat_drift_hour": 0.8, "world_threat_win": 0.12, "world_threat_boss_kill": 8.0,
     "world_threat_boss_flee": 6.0, "world_threat_dungeon": 1.2,
-    "world_stab_patrol": 0.08, "world_stab_decay_hour": 0.5, "world_reishi_patrol": 0.25,
+    "world_stab_hunt": 0.08, "world_stab_decay_hour": 0.5, "world_reishi_hunt": 0.25,
     "world_reishi_craft": 0.4, "world_reishi_decay": 0.10,
     "world_enemy_k": 0.25, "world_drop_k": 0.20, "world_price_k": 0.20, "world_stab_xp_k": 0.10,
     "world_boss_interval_k": 0.40,

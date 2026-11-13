@@ -17,6 +17,8 @@ from database import acquire_lease, col, game_settings, try_cooldown
 from service_combat import pvp_timeouts
 from service_drops import art_reconcile, art_settle, expire_drops, typing_expire
 from service_hollowraid import quincy_expire, quincy_tick
+import service_bank
+import service_casino
 from service_economy import settle_listings
 from service_interact import expire_bounties
 from service_world import active_boss, boss_due, expire_bosses, group_doc, herald_due, spawn_boss
@@ -74,6 +76,16 @@ async def tick(bot):
             await handlers_drops.announce_typing_expired(bot, d)
     except Exception:
         log.exception("viral systems tick failed")
+    # ---- casino jackpot (hourly draw) and bank daily tick (every 10 minutes, batches) ----
+    try:
+        if await try_cooldown("casino_jackpot", 3600):
+            win = await service_casino.jackpot_draw()
+            if win:
+                log.info("jackpot won by %s for %s", win["uid"], win["prize"])
+        if await try_cooldown("bank_tick", 600):
+            await service_bank.tick_all()
+    except Exception:
+        log.exception("casino/bank tick failed")
     for doc, ev, outcome, forfeit in await pvp_timeouts():
         if not doc.get("msg_id"):
             continue

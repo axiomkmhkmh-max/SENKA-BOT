@@ -48,7 +48,7 @@ async def today_board(ctx, arg):
         sug = (T(ctx, "🎁 اول پاداش امروز", "🎁 Claim today's reward"), "dly", "")
         hint = T(ctx, "پاداش روزانه را بگیر، بعد برو سراغ نبرد.", "Grab the daily reward first, then head out.")
     elif en >= mx * 0.7:
-        sug = (T(ctx, "⚔️ برو گشت‌وگذار", "⚔️ Go explore"), "exp", "")
+        sug = (T(ctx, "⚔️ برو شکار", "⚔️ Go explore"), "exp", "")
         hint = T(ctx, "انرژی‌ات پره؛ وقتش برای نبرد است.", "Energy is high; time to fight.")
     else:
         sug = (T(ctx, "📜 ماموریت‌ها", "📜 Missions"), "qst", "")
@@ -57,7 +57,7 @@ async def today_board(ctx, arg):
 
     rows = [
         [sug],
-        [(T(ctx, "⚔️ گشت‌وگذار", "⚔️ Explore"), "exp", ""), (T(ctx, "👤 پروفایل", "👤 Profile"), "prof", "")],
+        [(T(ctx, "⚔️ شکار", "⚔️ Explore"), "exp", ""), (T(ctx, "👤 پروفایل", "👤 Profile"), "prof", "")],
         [(T(ctx, "🎒 کوله‌پشتی", "🎒 Bag"), "bag", "0"), (T(ctx, "🛒 بازار", "🛒 Market"), "mkt", "")],
         nav(ctx),
     ]

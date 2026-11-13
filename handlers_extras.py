@@ -38,8 +38,8 @@ FORTUNES = [
     ("شانس با توئه؛ امروز بهترین روز برای ریسک کردن نیست، برای یادگیری هست.", "Luck is yours. Today is for learning, not gambling."),
 ]
 TIPS = [
-    ("انرژی قبل از گشت‌وگذار رو پر کن تا اتلاف نشه.", "Fill energy before exploring so none gets wasted."),
-    ("وقتی انرژی پره، دانجن بهتر از گشت‌وگذاره.", "When energy is full, dungeons pay better than exploring."),
+    ("انرژی قبل از شکار رو پر کن تا اتلاف نشه.", "Fill energy before exploring so none gets wasted."),
+    ("وقتی انرژی پره، دانجن بهتر از شکاره.", "When energy is full, dungeons pay better than exploring."),
     ("ماموریت‌های روزانه رو از دست نده؛ سکه‌ی خوبی میدن.", "Do your daily missions; they pay well."),
     ("قبل از ارتقا، ببین کدوم استات بیشترین اثر رو داره.", "Before upgrading, check which stat gives the most power."),
     ("تو بازار قیمت‌ها رو مقایسه کن؛ همیشه ارزون‌ترین بهترین نیست.", "Compare market prices; cheapest is not always best."),

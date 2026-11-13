@@ -52,7 +52,7 @@ async def bag(ctx, arg):
     cap = f"<code>{'▰' * k}{'▱' * (10 - k)}</code> {fnum(used, L)}/{fnum(capn, L)}"
     body = ctx.t("bag_body", cap=cap, eq=eq, n=fnum(len(ids), L))
     if not ids:
-        body += "\n\n" + ("اینجا خالیه؛ از گشت‌وگذار و دانجن غنیمت جمع کن 🎒" if L == "fa" else "Empty for now. Loot something in Explore or Dungeons 🎒")
+        body += "\n\n" + ("اینجا خالیه؛ از شکار و دانجن غنیمت جمع کن 🎒" if L == "fa" else "Empty for now. Loot something in Explore or Dungeons 🎒")
     return Out(head(ctx, "ttl_bag") + body, rows)
 
 

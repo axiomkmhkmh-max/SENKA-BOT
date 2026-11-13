@@ -1,5 +1,5 @@
 """Soul Artifacts: one-of-a-kind treasures. Each exists exactly once in the whole world and has a single owner at a time.
-Bonus keys are the same ones `data_crafting.player_bonus` already understands (dmg, def, crit, regen, xp, drop, coin, patrol)."""
+Bonus keys are the same ones `data_crafting.player_bonus` already understands (dmg, def, crit, regen, xp, drop, coin, hunt)."""
 
 ARTIFACTS = [
     {"_id": "art_hogyoku", "icon": "🔮", "name_en": "Hōgyoku Shard", "name_fa": "پاره‌ی هوگیوکو",
@@ -27,9 +27,9 @@ ARTIFACTS = [
      "lore_en": "A seal of silver light. Wounds close faster beneath it.",
      "lore_fa": "مهری از نور نقره‌ای؛ زخم‌ها زیرش زودتر بسته می‌شوند."},
     {"_id": "art_garganta", "icon": "🌑", "name_en": "Moonlit Garganta Key", "name_fa": "کلید گارگانتای مهتابی",
-     "bonus": {"patrol": 0.10, "drop": 0.04},
-     "lore_en": "Opens a crack between worlds. Patrols find more on the other side.",
-     "lore_fa": "شکافی میان جهان‌ها باز می‌کند؛ گشت‌ها آن‌سو بیشتر می‌یابند."},
+     "bonus": {"hunt": 0.10, "drop": 0.04},
+     "lore_en": "Opens a crack between worlds. Hunts find more on the other side.",
+     "lore_fa": "شکافی میان جهان‌ها باز می‌کند؛ شکارها آن‌سو بیشتر می‌یابند."},
     {"_id": "art_urahara", "icon": "🧳", "name_en": "Urahara's Locked Case", "name_fa": "جعبه‌ی قفل‌شده‌ی اوراهارا",
      "bonus": {"coin": 0.10},
      "lore_en": "Nobody has ever seen inside. Coins seem to find their way in anyway.",
@@ -63,7 +63,7 @@ ARTIFACTS = [
      "lore_en": "White cloth with a number on the back. It weighs little and asks a lot.",
      "lore_fa": "پارچه‌ای سفید با شماره‌ای روی پشت؛ کم وزن دارد و زیاد می‌طلبد."},
     {"_id": "art_hellbutterfly", "icon": "🦋", "name_en": "Hell Butterfly", "name_fa": "پروانه‌ی دوزخ",
-     "bonus": {"patrol": 0.08, "xp": 0.02},
+     "bonus": {"hunt": 0.08, "xp": 0.02},
      "lore_en": "It flutters ahead and never lands on the wrong road.",
      "lore_fa": "جلوتر پر می‌زند و هرگز روی راه اشتباه نمی‌نشیند."},
     {"_id": "art_badge", "icon": "🏅", "name_en": "Substitute Shinigami Badge", "name_fa": "نشان شینیگامی جانشین",
@@ -109,7 +109,7 @@ ARTIFACTS = [
      "lore_en": "Six petals of a hairpin; they refuse the wound and push it out of the world.",
      "lore_fa": "شش گلبرگ یک سنجاق؛ زخم را نمی‌پذیرند و از جهان بیرونش می‌رانند."},
     {"_id": "art_shinso", "icon": "🗡️", "name_en": "Shinsō Fragment", "name_fa": "پاره‌ی شینسو",
-     "bonus": {"crit": 0.06, "patrol": 0.04},
+     "bonus": {"crit": 0.06, "hunt": 0.04},
      "lore_en": "A sliver of a blade that grows when it is not watched.",
      "lore_fa": "تکه‌ای از تیغی که وقتی کسی نگاهش نکند، بلندتر می‌شود."},
     {"_id": "art_mayuri", "icon": "🧪", "name_en": "Kurotsuchi Vial", "name_fa": "ویال کوروتسوچی",
@@ -130,7 +130,7 @@ ARTIFACTS = [
      "lore_en": "Whoever wears them sees each move one step early, and believes it was always so.",
      "lore_fa": "هر که بزند، هر حرکت را یک قدم زودتر می‌بیند و باور می‌کند همیشه همین بوده."},
     {"_id": "art_straw_hat", "icon": "👒", "name_en": "Kyōraku's Straw Hat", "name_fa": "کلاه حصیری کیوراکو",
-     "bonus": {"drop": 0.05, "patrol": 0.04},
+     "bonus": {"drop": 0.05, "hunt": 0.04},
      "lore_en": "It keeps off the sun and keeps the world off balance. Strangers wave at it without knowing why.",
      "lore_fa": "آفتاب را دور می‌کند و جهان را از تعادل؛ غریبه‌ها بی‌دلیل برایش دست تکان می‌دهند."},
     {"_id": "art_brazo", "icon": "💪", "name_en": "Brazo Derecha Fragment", "name_fa": "پاره‌ی بازوی راست",
@@ -138,12 +138,12 @@ ARTIFACTS = [
      "lore_en": "A shard of an arm that learned to answer a promise. It hits like a wall that decided to move.",
      "lore_fa": "تکه‌ای از بازویی که قولی را جواب داد؛ مثل دیواری می‌زند که تصمیم گرفته حرکت کند."},
     {"_id": "art_silver_tube", "icon": "🧿", "name_en": "Quincy Silver Tube", "name_fa": "لوله‌ی نقره‌ی کوئینسی",
-     "bonus": {"crit": 0.05, "patrol": 0.03},
+     "bonus": {"crit": 0.05, "hunt": 0.03},
      "lore_en": "A tube of silver and a promise of straight lines. Light keeps its word here.",
      "lore_fa": "لوله‌ای نقره‌ای و وعده‌ی خط راست؛ نور اینجا به قولش می‌ماند."},
     # ---- content pack 6 (verified against the Bleach wiki / item database) ----
     {"_id": "art_kukaku_cannon", "icon": "🎆", "name_en": "Kukaku's Cannon", "name_fa": "توپ کوکو",
-     "bonus": {"patrol": 0.04, "xp": 0.02},
+     "bonus": {"hunt": 0.04, "xp": 0.02},
      "lore_en": "Kukaku Shiba's giant firework cannon. It fires people over Seireitei's walls instead of letting them climb.",
      "lore_fa": "توپ غول‌پیکر آتش‌بازی کوکو شیبا؛ آدم‌ها را از روی دیوارهای سیرئیتی پرتاب می‌کند، نه اینکه از آن بالا بروند."},
     {"_id": "art_shihoin_shield", "icon": "🛡️", "name_en": "Shihōin Shield", "name_fa": "سپر شیهوین",
@@ -151,7 +151,7 @@ ARTIFACTS = [
      "lore_en": "A shield with the Shihōin family crest and a long cord. Two zanpakutō stabbed into it can break a Sōkyoku.",
      "lore_fa": "سپری با نشان خانواده‌ی شیهوین و یک بند بلند؛ دو زانپاکوتو که در آن فرو بروند می‌تواند سوکیوکو را بشکند."},
     {"_id": "art_denreishinki", "icon": "📟", "name_en": "Denreishinki", "name_fa": "دنرئیشینکی",
-     "bonus": {"drop": 0.03, "patrol": 0.03},
+     "bonus": {"drop": 0.03, "hunt": 0.03},
      "lore_en": "The Shinigami's pocket communicator. It picks up Hollow signals and sends missions to the human world.",
      "lore_fa": "ارتباطی جیبی شینیگامی‌ها؛ امضای هالوها را می‌گیرد و ماموریت‌ها را به دنیای زندگان می‌فرستد."},
     {"_id": "art_gigai", "icon": "🧍", "name_en": "Reiatsu-Concealing Gigai", "name_fa": "گیکای پنهان‌ساز ریاتسو",
@@ -185,7 +185,7 @@ ARTIFACTS = [
      "lore_fa": "یونیفرم استاندارد سیاه شینیگامی؛ پارچه‌ی ساده‌ای که نشان می‌دهد چه کسی در سوول سوسایتی آموزش دیده."},
     # ---- content pack 8 (verified: Bleach wiki Quincy and Shinigami item pages) ----
     {"_id": "art_hollow_bait", "icon": "🪙", "name_en": "Hollow Bait", "name_fa": "طعمه‌ی هالو",
-     "bonus": {"patrol": 0.03, "drop": 0.03},
+     "bonus": {"hunt": 0.03, "drop": 0.03},
      "lore_en": "A coin-shaped disk. Crush it and Hollows come running from far away.",
      "lore_fa": "دیسکی سکه‌ای‌شکل؛ وقتی خردش کنی، هالوها از دور به سمتت می‌آیند."},
     {"_id": "art_quincy_cross", "icon": "✝️", "name_en": "Quincy Cross", "name_fa": "صلیب کوئینسی",
@@ -193,7 +193,7 @@ ARTIFACTS = [
      "lore_en": "The focus every Quincy needs to summon a bow. Ryūken's version is a pentacle, not a cross.",
      "lore_fa": "کانون هر کوئینسی برای احضار کمان؛ نسخه‌ی ریوکن یک پنتاگرام است، نه صلیب."},
     {"_id": "art_zajiku", "icon": "📜", "name_en": "Zajiku (Set Axis)", "name_fa": "زاجیکو (طومار هدف)",
-     "bonus": {"patrol": 0.04, "xp": 0.02},
+     "bonus": {"hunt": 0.04, "xp": 0.02},
      "lore_en": "A scroll-like device that lists a Shinigami's targets and mission orders, like a Denreishinki on paper.",
      "lore_fa": "طوماری که نام هدف‌ها و دستور ماموریت شینیگامی را نشان می‌دهد؛ مثل دنرئیشینکی، ولی روی کاغذ."},
     # ---- content pack 9 (verified: Bleach wiki and an official-art source) ----
@@ -203,7 +203,7 @@ ARTIFACTS = [
      "lore_fa": "ساخته‌ی پژوهشگاه شینیگامی برای مهار فشار روحی آیزن در موکن؛ تا وقتی یهواخ نابودش کرد، نشکسته بود."},
 ]
 ART_BY_ID = {a["_id"]: a for a in ARTIFACTS}
-BONUS_ICON = (("dmg", "⚔️"), ("def", "🛡️"), ("crit", "🎯"), ("xp", "⭐"), ("drop", "🎁"), ("coin", "🪙"), ("patrol", "🧭"), ("regen", "💚"))
+BONUS_ICON = (("dmg", "⚔️"), ("def", "🛡️"), ("crit", "🎯"), ("xp", "⭐"), ("drop", "🎁"), ("coin", "🪙"), ("hunt", "🧭"), ("regen", "💚"))
 
 
 def art_name(aid: str, lang: str) -> str:
@@ -277,7 +277,7 @@ for _a in ARTIFACTS:
     _a["bonus"] = {k: min(v, MAX_STAT) for k, v in _a["bonus"].items()}
 
 # Every artifact must be worth carrying: at least two useful stats, each between 3% and MAX_STAT.
-_FILLERS = ("def", "regen", "crit", "dmg", "xp", "drop", "patrol", "coin")
+_FILLERS = ("def", "regen", "crit", "dmg", "xp", "drop", "hunt", "coin")
 for _a in ARTIFACTS:
     _b = _a["bonus"]
     for _k in list(_b):

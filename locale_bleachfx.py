@@ -33,10 +33,10 @@ FA = {
     "lg_hit_cero": "🔴 سرو {a} غرید و {d} را در نوری سرخ فرو برد: {n}",
     "lg_hit_cero_2": "🔴 پرتوی سرو از {a} جدا شد و همه‌چیز را بر سر {d} ویران کرد: {n}",
     "lg_charge_break": "💫 سرو {a} پیش از شلیک پراکنده شد!",
-    "lg_konpaku": "👻 روح {a} از جسد بیرون کشیده شد و یک بار دیگر برگشت! (کونپاکو)",
+    "lg_konpaku": "👻 روح {a} از جسد بیرون کشیده شد و یک بار دیگر برشکار! (کونپاکو)",
     "lg_hit_bring": "💠 {a} شیء پیوندی‌اش را به کار گرفت و {d} را کوبید: {n}",
     "lg_hit_bring_2": "💠 فول‌برینگ {a} دور تیغه پیچید و به {d} خورد: {n}",
-    "lg_guts": "🔥 {a}: «هنوز تمام نشده!» — {n} جان برگشت و ریاتسو پرتوان‌تر شد",
+    "lg_guts": "🔥 {a}: «هنوز تمام نشده!» — {n} جان برشکار و ریاتسو پرتوان‌تر شد",
     "lg_guts_2": "🔥 {a} دندان روی هم فشرد و از جا برخاست! +{n} جان",
     "lg_chant": "📿 {a} لب به ورد کیدو گشود… اما دفاعش باز مانده!",
     "lg_chant_2": "📿 {a} ایستاد و هجاها را یکی‌یکی کشید؛ این لحظه خطرناک است!",
@@ -49,11 +49,11 @@ FA = {
     "lg_resolve_2": "💢 هنوز نیفتاده‌ای، <b>{a}</b>! زخم‌ها بسته شد و آتشی تازه در ریاتسو روشن شد!",
     "lg_pressure": "😨 ریاتسوی {a} چنان سنگین است که {d} در جا خشک شد!",
     "lg_pressure_2": "😨 هوا زیر فشار روحی {a} خم شد؛ زانوهای {d} می‌لرزد!",
-    # ---- patrol events ----
+    # ---- hunt events ----
     "exp_konso_ev": "👻 روحی سرگردان (پلاس) در کوچه ایستاده و زنجیر سرنوشتش رو به پوسیدن است.\n\nکونسو را اجرا می‌کنی یا از کنارش می‌گذری؟ روحی که رها شود، ممکن است هالو شود…",
     "b_konso": "🕊 کونسو (ارسال روح)", "b_konso_ignore": "🚶 نادیده بگیر",
     "exp_konso_ok": "🕊 دسته‌ی تیغ را بر پیشانی‌اش گذاشتی؛ روح در نوری آرام محو شد و راهی سول‌سوسایتی شد.\n+{xp} تجربه · +{coins} سکه · ارواح ارسال‌شده: {n}",
-    "exp_konso_milestone": "🏯 {n} روح را به سول‌سوسایتی فرستاده‌ای — پاداش گشت‌زن ارواح: {item}",
+    "exp_konso_milestone": "🏯 {n} روح را به سول‌سوسایتی فرستاده‌ای — پاداش شکارچی ارواح: {item}",
     "exp_konso_ignore": "🚶 از کنار روح گذشتی… اما ردی از ریاتسو پشت سرت ماند. شاید این بار گرسنگی بر او غلبه کند.",
     "exp_konso_gone": "این روح دیگر اینجا نیست.",
     "exp_hollowed": "🕳 همان روحی که رهایش کردی زنجیرش را خورد و <b>هالو</b> شد! ماسک سفید در تاریکی برق زد…\n\n",
@@ -111,7 +111,7 @@ EN = {
     "lg_resolve_2": "💢 You're not down yet, <b>{a}</b>! Wounds close and a fresh fire lights in your reiatsu!",
     "lg_pressure": "😨 {a}'s spiritual pressure is so heavy that {d} freezes in place!",
     "lg_pressure_2": "😨 The air bends under {a}'s reiatsu; {d}'s knees tremble!",
-    # ---- patrol events ----
+    # ---- hunt events ----
     "exp_konso_ev": "👻 A wandering soul (plus) stands in the alley, its chain of fate rotting away.\n\nPerform Konsō, or walk past? A soul left alone may become a Hollow…",
     "b_konso": "🕊 Konsō (send the soul)", "b_konso_ignore": "🚶 Ignore it",
     "exp_konso_ok": "🕊 You press the hilt to its brow; the soul fades in a calm light and passes on to Soul Society.\n+{xp} XP · +{coins} coins · souls sent: {n}",

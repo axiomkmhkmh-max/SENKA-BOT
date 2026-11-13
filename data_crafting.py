@@ -43,7 +43,7 @@ def cosmetic_effect(i: int, tier: int) -> dict:
 
 
 # ---- pets: species index -> (role, bonus per tier step) -----------------------------------------------------
-PET_ROLES = {0: ("luck", 0.015), 1: ("regen", 0.006), 2: ("dmg", 0.010), 3: ("def", 0.010), 4: ("patrol", 0.020), 5: ("crit", 0.004)}
+PET_ROLES = {0: ("luck", 0.015), 1: ("regen", 0.006), 2: ("dmg", 0.010), 3: ("def", 0.010), 4: ("hunt", 0.020), 5: ("crit", 0.004)}
 
 # ---- books -------------------------------------------------------------------------------------------------------
 BOOK_BUFFS = ["dmg", "def", "crit", "xp", "drop"]
@@ -204,7 +204,7 @@ def tagged_name(ch: dict, catalog: dict) -> str:
 
 def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     """Everything equipment-like adds, as plain numbers. Caps keep stacking sane."""
-    b = {"dmg": 0.0, "def": 0.0, "crit": 0.0, "regen": 0.0, "xp": 0.0, "drop": 0.0, "coin": 0.0, "patrol": 0.0, "calm": 0.0, "stab": 0.0}
+    b = {"dmg": 0.0, "def": 0.0, "crit": 0.0, "regen": 0.0, "xp": 0.0, "drop": 0.0, "coin": 0.0, "hunt": 0.0, "calm": 0.0, "stab": 0.0}
     k_r, k_p = float(st["relic_k"]), float(st["pet_k"])
     stage = evo_stage(ch)
     b["dmg"] += float(st["evo_bonus_pct"]) * stage

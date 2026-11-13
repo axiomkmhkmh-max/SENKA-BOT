@@ -456,7 +456,7 @@ async def gear_hub(ctx, arg):
 def bonus_line(ctx, bn: dict) -> str:
     L = ctx.lang
     parts = []
-    for key, icon in (("dmg", "⚔️"), ("def", "🛡️"), ("crit", "🎯"), ("xp", "⭐"), ("drop", "🎁"), ("coin", "🪙"), ("patrol", "🧭"), ("regen", "💚")):
+    for key, icon in (("dmg", "⚔️"), ("def", "🛡️"), ("crit", "🎯"), ("xp", "⭐"), ("drop", "🎁"), ("coin", "🪙"), ("hunt", "🧭"), ("regen", "💚")):
         if bn.get(key):
             parts.append(f"{icon} +{bn[key] * 100:.1f}%")
     return " ".join(parts) if parts else ctx.t("bonus_none")

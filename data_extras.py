@@ -29,7 +29,7 @@ TOWER_BOSS_EVERY = 5
 
 # ---- Dispatch --------------------------------------------------------------------------------------
 MISSIONS = {
-    "patrol": {"hours": 2, "level": 1, "fa": "گشت کاراکورا", "en": "Karakura Patrol", "k": 1.0},
+    "karakura": {"hours": 2, "level": 1, "fa": "شکار کاراکورا", "en": "Karakura Hunt", "k": 1.0},
     "hunt": {"hours": 4, "level": 10, "fa": "شکار هالو در روکونگای", "en": "Rukongai Hollow Hunt", "k": 1.15},
     "scout": {"hours": 8, "level": 20, "fa": "دیده‌بانی هوئکو موندو", "en": "Hueco Mundo Scouting", "k": 1.3},
     "academy": {"hours": 3, "level": 3, "fa": "نگهبانی آکادمی", "en": "Academy Guard Duty", "k": 1.05},
@@ -42,14 +42,14 @@ MISSIONS = {
     "lab": {"hours": 8, "level": 30, "fa": "نمونه‌برداری مؤسسه‌ی پژوهش", "en": "R&D Institute Sampling", "k": 1.35},
     "schatten": {"hours": 12, "level": 55, "fa": "شناسایی شاتن‌برایش", "en": "Schatten Bereich Recon", "k": 1.6},
     # ---- pack 4 ----
-    "school": {"hours": 3, "level": 4, "fa": "گشت دبیرستان", "en": "School Patrol", "k": 1.0},
+    "school": {"hours": 3, "level": 4, "fa": "شکار دبیرستان", "en": "School Hunt", "k": 1.0},
     "shop": {"hours": 4, "level": 9, "fa": "کمک در فروشگاه اوراهارا", "en": "Urahara Shop Shift", "k": 1.1},
     "relief": {"hours": 6, "level": 16, "fa": "کمک در ایستگاه امداد", "en": "Relief Station Duty", "k": 1.2},
     "hall": {"hours": 8, "level": 31, "fa": "نگهبانی تالار کاپیتان‌ها", "en": "Captains Hall Guard", "k": 1.35},
     "jigoku": {"hours": 12, "level": 58, "fa": "شناسایی جیگوکو", "en": "Jigoku Recon", "k": 1.6},
     "vault": {"hours": 12, "level": 95, "fa": "نگهبانی خزانه‌ی هوگیوکو", "en": "Hōgyoku Vault Watch", "k": 1.8},
     # ---- pack 5 ----
-    "riverbank": {"hours": 3, "level": 7, "fa": "گشت کنار رود", "en": "Riverbank Patrol", "k": 1.05},
+    "riverbank": {"hours": 3, "level": 7, "fa": "شکار کنار رود", "en": "Riverbank Hunt", "k": 1.05},
     "kusajishi": {"hours": 4, "level": 12, "fa": "کمک‌رسانی در کوساجیشی", "en": "Kusajishi Relief Run", "k": 1.12},
     "xcution": {"hours": 6, "level": 27, "fa": "ردیابی فول‌برینگرها", "en": "Fullbringer Tracking", "k": 1.25},
     "precipice": {"hours": 8, "level": 47, "fa": "عبور از پرتگاه", "en": "Precipice Crossing", "k": 1.45},

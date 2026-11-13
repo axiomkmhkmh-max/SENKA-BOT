@@ -1,4 +1,4 @@
-"""Persistent Bleach-inspired race, story, faction and Kidō progression."""
+"""Persistent Bleach-inspired race, faction and Kidō progression."""
 import time
 from database import col, game_settings, try_cooldown
 from service_player import get_char, add_xp, add_coins
@@ -20,15 +20,6 @@ RACE_PATHS = {
     "human": [("sensitive", 1, 0, "Spiritually Aware"), ("medium", 20, 20, "Spirit Medium"),
               ("awakened", 45, 50, "Awakened Human")],
 }
-
-STORY_ARCS = [
-    {"id":"substitute", "fa":"جانشین شینیگامی", "en":"Substitute Soul Reaper", "level":1, "race":["human","shinigami","visored","fullbringer"]},
-    {"id":"soul_society", "fa":"نجات روکیـا در سول سوسایتی", "en":"Soul Society: The Rescue", "level":15, "race":["shinigami","visored","human","fullbringer"]},
-    {"id":"arrancar", "fa":"ظهور آرانکار", "en":"Arrancar: The Arrancar", "level":30, "race":["shinigami","visored","hollow","arrancar","quincy"]},
-    {"id":"fake_karakura", "fa":"نبرد کاراکورای جعلی", "en":"Fake Karakura Town", "level":50, "race":["shinigami","visored","arrancar","quincy"]},
-    {"id":"fullbring", "fa":"عامل گمشده", "en":"The Lost Agent", "level":55, "race":["human","fullbringer","shinigami"]},
-    {"id":"tybw", "fa":"جنگ خونین هزارساله", "en":"Thousand-Year Blood War", "level":70, "race":["shinigami","quincy","arrancar","visored"]},
-]
 
 KIDO = {
     "hado1": {"name":"Shō", "type":"Hadō", "level":1, "cost":8, "power":1.15, "fa":"شو — ضربه نیرویی"},
@@ -78,56 +69,6 @@ async def evolve(uid):
     if not r.modified_count:
         return "race", await race_state(uid)
     return "ok", await race_state(uid)
-
-async def story_state(uid):
-    ch = await get_char(uid)
-    if not ch: return None
-    doc = await col("story_progress").find_one({"user_id":uid}) or {"completed":[],"active":None}
-    available = [a for a in STORY_ARCS
-                 if ch["level"] >= a["level"] and ch["race"] in a["race"]
-                 and a["id"] not in doc.get("completed", [])
-                 and a["id"] != doc.get("active")]
-    active = next((a for a in STORY_ARCS if a["id"] == doc.get("active")), None)
-    return {"doc":doc,"available":available,"active":active,"level":ch["level"],"race":ch["race"]}
-
-async def start_story(uid, arc_id):
-    s = await story_state(uid)
-    if not s: return "missing",None
-    arc = next((a for a in s["available"] if a["id"]==arc_id),None)
-    if not arc: return "locked",s
-    if s["active"]: return "busy",s
-    ch = await get_char(uid)
-    # Ensure the progress document exists first; then claim the empty active slot atomically.
-    await col("story_progress").update_one(
-        {"user_id": uid},
-        {"$setOnInsert": {"user_id": uid, "completed": [], "active": None, "step": 0}},
-        upsert=True)
-    result = await col("story_progress").update_one(
-        {"user_id": uid, "active": None, "completed": {"$ne": arc_id}},
-        {"$set": {"active": arc_id, "step": 0,
-                  "start_wins": int(ch.get("wins", 0)), "updated_at": int(time.time())}})
-    if not result.modified_count:
-        return "busy", await story_state(uid)
-    return "ok", await story_state(uid)
-
-async def advance_story(uid):
-    s=await story_state(uid)
-    if not s or not s["active"]: return "none",s
-    arc=s["active"]
-    # Each checkpoint consumes one distinct PvE victory recorded after the arc began.
-    ch=await get_char(uid)
-    doc=s["doc"]; step=int(doc.get("step",0))
-    if int(ch.get("wins",0)) < int(doc.get("start_wins",0)) + step + 1:
-        return "need_win",s
-    if step < 2:
-        r=await col("story_progress").update_one({"user_id":uid,"active":arc["id"],"step":step},{"$inc":{"step":1},"$set":{"updated_at":int(time.time())}})
-        return ("step" if r.modified_count else "race"),await story_state(uid)
-    r=await col("story_progress").update_one({"user_id":uid,"active":arc["id"],"step":step},{"$addToSet":{"completed":arc["id"]},"$set":{"active":None,"step":0,"updated_at":int(time.time())}})
-    if r.modified_count:
-        await add_xp(uid, max(100, s["level"]*25), "story", apply_rate=False)
-        await add_coins(uid, max(50,s["level"]*10), "story")
-        return "complete",await story_state(uid)
-    return "race",await story_state(uid)
 
 async def kido_state(uid):
     ch=await get_char(uid)

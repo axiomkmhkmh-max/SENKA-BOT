@@ -7,6 +7,8 @@ from security import normalize_text
 
 # intent -> (code, arg, synonyms)
 RAW = {
+    "casino": ("cas", "", ["کازینو", "قمار", "casino", "gamble"]),
+    "bank": ("bnk", "", ["بانک", "گاوصندوق", "bank", "vault"]),
     "home": ("home", "", ["دنیای من", "جهان من", "خانه", "پنل اصلی", "پنل", "منو", "همه چیز", "همه‌چیز", "سنکا", "سِنکا", "home", "my world", "menu", "main", "everything", "senka", "panel", "start", "شروع"]),
     "profile": ("prof", "", ["پروفایل", "مشخصات", "کاراکتر من", "profile", "me", "stats", "character"]),
     "explore": ("exp", "", ["گشت", "گشت و گذار", "گشت‌وگذار", "کاوش", "explore", "patrol", "wander"]),

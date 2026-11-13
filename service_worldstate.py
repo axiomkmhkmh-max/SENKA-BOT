@@ -42,8 +42,8 @@ async def _on_action(uid: int, action: str, loc: str):
     await col("characters").update_one({"user_id": uid}, {"$set": {"seen_at": now}})
     # 1) shared variables
     if action == "explore":
-        await world_adjust(stability=(float(st["world_stab_patrol"]) + bn["stab"]) if loc in SEI_LOCS else 0.0,
-                           reishi_loc=loc, reishi=float(st["world_reishi_patrol"]))
+        await world_adjust(stability=(float(st["world_stab_hunt"]) + bn["stab"]) if loc in SEI_LOCS else 0.0,
+                           reishi_loc=loc, reishi=float(st["world_reishi_hunt"]))
     elif action in ("pve_win", "elite_win"):
         await world_adjust(threat=-float(st["world_threat_win"]) * (2 if action == "elite_win" else 1) * (1 + bn["calm"]))
     elif action == "dungeon_clear":
@@ -85,7 +85,7 @@ async def territory_score(ch: dict, loc: str, pts: int, st: dict):
 
 
 async def territory_income(uid: int, loc: str, coins: int, xp: int = 0):
-    """Owner guild members get a small buff in their land; everyone else pays a small patrol tax into the owner's bank."""
+    """Owner guild members get a small buff in their land; everyone else pays a small hunt toll into the owner's bank."""
     st = await game_settings()
     if not st["terr_enabled"] or coins <= 0:
         return None

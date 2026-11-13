@@ -18,7 +18,7 @@ from service_worldstate import on_action, territory_income, territory_owners
 from i18n import bar, esc, fnum
 from security import clean_name
 from data_lore import streak_line
-from data_misc import LOC_DESC, LORE
+from data_misc import LOC_DESC
 from service_combat import active_pve, rank_label, rank_letter
 from service_economy import inv_add, roll_drop
 from service_player import (add_coins, add_xp, claim_daily, claim_quest, energy_now, get_char, max_hp, max_reiatsu,
@@ -187,75 +187,18 @@ async def explore(ctx, arg):
         rows = [[(ctx.t("b_go"), "exp", "go")], [(ctx.t("m_map"), "map", "")], nav(ctx)]
         atmosphere = f"<i>{esc(LOC_DESC[ch['location']][0 if L == 'fa' else 1])}</i>\n\n"
         return Out(head(ctx, "ttl_exp") + atmosphere + ctx.t("exp_body", loc=loc_name(ch["location"], L), en=fnum(cur, L), cost=fnum(st["explore_cost"], L)), rows)
+    if ch.get("bx_hunt"):  # an unfinished hunt is resumed, not paid for again
+        from handlers_hunt import start as hunt_start
+        return await hunt_start(ctx, ch)
     ok, left, nxt = await spend_energy(ctx.uid, int(st["explore_cost"]))
     if not ok:
         return Out(alert=ctx.t("exp_no_energy", n=fnum(left, L), s=fnum(nxt // 60 + 1, L)))
     await on_action(ctx.uid, "explore", ch["location"])
-    bn = player_bonus(ch, ALL, st)
-    wm = await mods_for(ch["location"])
-    roll, acc, ev = random.random(), 0.0, "empty"
-    for name, p in EVENTS:
-        acc += p
-        if roll <= acc:
-            ev = name
-            break
-    # a soul that was left alone earlier has become a Hollow: it finds you on the next patrol
-    hollowed = await col("characters").find_one_and_update({"user_id": ctx.uid, "bx_hollow": {"$gt": 0}}, {"$inc": {"bx_hollow": -1}})
-    if hollowed:
-        ev = "enemy"
-    lvl = ch["level"]
-    base_xp = int((18 + lvl * 4) * (1 + bn["patrol"]))
-    text = ""
-    terr = None
-    if ev == "enemy":
-        from handlers_combat import start_pve_panel
-        if hollowed:
-            return await start_pve_panel(ctx, scale=1.1, intro=ctx.t("exp_hollowed"))
-        return await start_pve_panel(ctx)
-    if ev in ("konso", "pressure"):  # interactive Bleach events: the answer comes from the buttons below
-        await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"bx_pending": {"kind": ev, "until": int(time.time()) + 600}}})
-        from service_player import bump_quest
-        await bump_quest(ctx.uid, "explore", 1)
-        if ev == "konso":
-            return Out(head(ctx, "ttl_exp") + ctx.t("exp_konso_ev"), [[(ctx.t("b_konso"), "kns", "go"), (ctx.t("b_konso_ignore"), "kns", "ig")], nav(ctx)])
-        return Out(head(ctx, "ttl_exp") + ctx.t("exp_press_ev"), [[(ctx.t("b_press_face"), "prs", "face"), (ctx.t("b_press_run"), "prs", "run")], nav(ctx)])
-    if ev == "item":
-        iid = await roll_drop(ctx.uid)
-        got = await inv_add(ctx.uid, iid, 1)
-        _, _, xp = await add_xp(ctx.uid, base_xp, "explore")
-        text = ctx.t("exp_item", item=nm(iid, L), xp=fnum(xp, L)) + ("" if got else "\n" + ctx.t("bag_full"))
-    elif ev == "npc":
-        _, _, xp = await add_xp(ctx.uid, int(base_xp * 1.2), "explore")
-        coins = int((10 + lvl * 3) * float(st["coin_rate"]) * (1 + bn["coin"] + bn["patrol"]) * wm["coin"])
-        await add_coins(ctx.uid, coins, "explore")
-        terr = await territory_income(ctx.uid, ch["location"], coins, xp)
-        text = ctx.t("exp_npc", xp=fnum(xp, L), coins=fnum(coins, L), lore=random.choice(LORE[ch["location"]])[0 if L == "fa" else 1])
-    elif ev == "secret":
-        iid = await roll_drop(ctx.uid, source_mult=1.5, floor_idx=1)
-        got = await inv_add(ctx.uid, iid, 1)
-        _, _, xp = await add_xp(ctx.uid, base_xp * 2, "explore")
-        text = ctx.t("exp_secret", item=nm(iid, L), xp=fnum(xp, L)) + ("" if got else "\n" + ctx.t("bag_full"))
-    elif ev == "gate":
-        keys = [i for i, x in ALL.items() if x.get("effect") and x["effect"].get("type") == "key" and x["effect"]["diff"] == "hard"]
-        iid = random.choice(keys)
-        await inv_add(ctx.uid, iid, 1, force=True)
-        _, _, xp = await add_xp(ctx.uid, base_xp, "explore")
-        text = ctx.t("exp_gate", item=nm(iid, L), xp=fnum(xp, L))
-    else:
-        _, _, xp = await add_xp(ctx.uid, int(base_xp * 0.5), "explore")
-        text = ctx.t("exp_empty", xp=fnum(xp, L), lore=random.choice(LORE[ch["location"]])[0 if L == "fa" else 1])
-    from service_player import bump_quest
-    await bump_quest(ctx.uid, "explore", 1)
-    if terr:
-        text += "\n" + (ctx.t("ter_got_mine", c=fnum(terr["coins"], L), x=fnum(terr["xp"], L)) if terr.get("mine") else ctx.t("ter_got_tax", n=fnum(terr["tax"], L)))
-    tr = await find_trace(ctx.uid)
-    if tr:
-        text += "\n\n" + pick(L, "trace_found_" + tr["kind"], icon=tr["icon"], who=esc(tr["owner"]), c=fnum(tr["coins"], L), x=fnum(tr["xp"], L))
-    return Out(head(ctx, "ttl_exp") + text, [[(ctx.t("b_again"), "exp", "go")], nav(ctx)])
-
+    from handlers_hunt import start as hunt_start
+    return await hunt_start(ctx, ch)
 
 async def _claim_pending(uid: int, kind: str):
-    """Atomically take the pending patrol event (one answer per event, expires after 10 minutes)."""
+    """Atomically take the pending hunt event (one answer per event, expires after 10 minutes)."""
     return await col("characters").find_one_and_update(
         {"user_id": uid, "bx_pending.kind": kind, "bx_pending.until": {"$gt": int(time.time())}}, {"$unset": {"bx_pending": ""}})
 
@@ -275,9 +218,9 @@ async def konso(ctx, arg):
     bn = player_bonus(ch, ALL, st)
     wm = await mods_for(ch["location"])
     lvl = ch["level"]
-    base_xp = int((18 + lvl * 4) * (1 + bn["patrol"]))
+    base_xp = int((18 + lvl * 4) * (1 + bn["hunt"]))
     _, _, xp = await add_xp(ctx.uid, int(base_xp * 1.3), "explore")
-    coins = int((10 + lvl * 3) * float(st["coin_rate"]) * (1 + bn["coin"] + bn["patrol"]) * wm["coin"])
+    coins = int((10 + lvl * 3) * float(st["coin_rate"]) * (1 + bn["coin"] + bn["hunt"]) * wm["coin"])
     await add_coins(ctx.uid, coins, "explore")
     r = await col("characters").find_one_and_update({"user_id": ctx.uid}, {"$inc": {"konso": 1}}, return_document=ReturnDocument.AFTER)
     n = int((r or {}).get("konso", 1))

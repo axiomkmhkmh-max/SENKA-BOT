@@ -1,8 +1,8 @@
 """Player-facing race evolution, faction enlistment and Kidō panels (Story mode is retired; its saved data is kept)."""
 from ui import Out, action, head, nav
 from i18n import fnum
-from service_bleach_systems import (RACE_PATHS, STORY_ARCS, KIDO, FACTIONS, race_state, evolve,
-    story_state, start_story, advance_story, kido_state, learn_kido, cast_kido, faction_state, join_faction)
+from service_bleach_systems import (RACE_PATHS, KIDO, FACTIONS, race_state, evolve,
+    kido_state, learn_kido, cast_kido, faction_state, join_faction)
 
 @action("blhub")
 async def bleach_hub(ctx, arg):
@@ -39,19 +39,6 @@ async def race_evolve_action(ctx,arg):
     if status=="release_required":return Out(ctx.t("race_path_release",release=data["release"]),[nav(ctx,("znp",""))])
     if status!="ok":return Out(alert=ctx.t("error"))
     return Out(ctx.t("race_path_up",stage=data["current"][3]),[nav(ctx,("rpath",""))])
-
-@action("storyp")
-async def story_panel(ctx, arg):
-    # Story mode is retired: saved progress stays in `story_progress`, nothing is shown or granted any more.
-    return Out(head(ctx, "ttl_story") + ctx.t("story_retired"), [nav(ctx)])
-
-@action("ststart")
-async def story_start_action(ctx, arg):
-    return Out(alert=ctx.t("story_retired_short"))
-
-@action("stadv")
-async def story_advance_action(ctx, arg):
-    return Out(alert=ctx.t("story_retired_short"))
 
 @action("kidop")
 async def kido_panel(ctx,arg):

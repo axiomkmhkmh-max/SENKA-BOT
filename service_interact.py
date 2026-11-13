@@ -71,7 +71,7 @@ async def auto_grave(ch: dict):
 
 
 async def find_trace(uid: int):
-    """Called by patrol: maybe stumble on another player's trace in this location."""
+    """Called by a hunt: maybe stumble on another player's trace in this location."""
     st = await game_settings()
     if random.random() > float(st["trace_find_chance"]):
         return None
