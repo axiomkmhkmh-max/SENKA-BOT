@@ -141,6 +141,66 @@ ARTIFACTS = [
      "bonus": {"crit": 0.05, "patrol": 0.03},
      "lore_en": "A tube of silver and a promise of straight lines. Light keeps its word here.",
      "lore_fa": "لوله‌ای نقره‌ای و وعده‌ی خط راست؛ نور اینجا به قولش می‌ماند."},
+    # ---- content pack 6 (verified against the Bleach wiki / item database) ----
+    {"_id": "art_kukaku_cannon", "icon": "🎆", "name_en": "Kukaku's Cannon", "name_fa": "توپ کوکو",
+     "bonus": {"patrol": 0.04, "xp": 0.02},
+     "lore_en": "Kukaku Shiba's giant firework cannon. It fires people over Seireitei's walls instead of letting them climb.",
+     "lore_fa": "توپ غول‌پیکر آتش‌بازی کوکو شیبا؛ آدم‌ها را از روی دیوارهای سیرئیتی پرتاب می‌کند، نه اینکه از آن بالا بروند."},
+    {"_id": "art_shihoin_shield", "icon": "🛡️", "name_en": "Shihōin Shield", "name_fa": "سپر شیهوین",
+     "bonus": {"def": 0.05, "regen": 0.02},
+     "lore_en": "A shield with the Shihōin family crest and a long cord. Two zanpakutō stabbed into it can break a Sōkyoku.",
+     "lore_fa": "سپری با نشان خانواده‌ی شیهوین و یک بند بلند؛ دو زانپاکوتو که در آن فرو بروند می‌تواند سوکیوکو را بشکند."},
+    {"_id": "art_denreishinki", "icon": "📟", "name_en": "Denreishinki", "name_fa": "دنرئیشینکی",
+     "bonus": {"drop": 0.03, "patrol": 0.03},
+     "lore_en": "The Shinigami's pocket communicator. It picks up Hollow signals and sends missions to the human world.",
+     "lore_fa": "ارتباطی جیبی شینیگامی‌ها؛ امضای هالوها را می‌گیرد و ماموریت‌ها را به دنیای زندگان می‌فرستد."},
+    {"_id": "art_gigai", "icon": "🧍", "name_en": "Reiatsu-Concealing Gigai", "name_fa": "گیکای پنهان‌ساز ریاتسو",
+     "bonus": {"def": 0.03, "regen": 0.03},
+     "lore_en": "Urahara's artificial body that hides a Shinigami's reiatsu, so they can live unseen in the human world.",
+     "lore_fa": "بدن مصنوعی اوراهارا که ریاتسوی شینیگامی را پنهان می‌کند تا بتواند بی‌دیده‌شدن در دنیای زندگان زندگی کند."},
+    {"_id": "art_gokon", "icon": "🧤", "name_en": "Gokon Tekkō", "name_fa": "دستکش گوکون تکّو",
+     "bonus": {"crit": 0.03, "dmg": 0.02},
+     "lore_en": "A red glove with a blue-flame skull. One push and the soul is forced out of the body.",
+     "lore_fa": "دستکش قرمزی با نقش جمجمه‌ی شعله‌ور آبی؛ با یک هل دادن، روح را از بدن بیرون می‌کشد."},
+    # ---- content pack 7 (verified: Bleach wiki, item database, character pages) ----
+    {"_id": "art_kojaku", "icon": "🏹", "name_en": "Kojaku (Lone Sparrow)", "name_fa": "کمان کوجاکو",
+     "bonus": {"crit": 0.03, "dmg": 0.02},
+     "lore_en": "Uryū Ishida's first spirit bow, made of reishi. Every Quincy can summon this basic form.",
+     "lore_fa": "کمان ریشی اولیه‌ی اوریو ایشیدا؛ هر کوئینسی‌ای می‌تواند این شکل پایه را احضار کند."},
+    {"_id": "art_ginrei_kojaku", "icon": "🕸️", "name_en": "Ginrei Kojaku (Silver Cliff Sparrow)", "name_fa": "کوجاکوی کوهستان نقره‌ای",
+     "bonus": {"dmg": 0.05, "crit": 0.03},
+     "lore_en": "Uryū's restored bow, woven like a spider's web. It can fire over a thousand arrows in one volley.",
+     "lore_fa": "کمان بازسازی‌شده‌ی اوریو، شبیه تار عنکبوت؛ در یک رگبار بیش از هزار تیر شلیک می‌کند."},
+    {"_id": "art_quincy_bangle", "icon": "📿", "name_en": "Quincy Bangle", "name_fa": "دستبند کوئینسی",
+     "bonus": {"crit": 0.03, "regen": 0.02},
+     "lore_en": "A relic that gathers spirit particles and amplifies them, giving its wearer Quincy power when the bloodline fails.",
+     "lore_fa": "یادگاری که ذرات روحی را جمع و تقویت می‌کند و وقتی توان ذاتی کوئینسی از دست می‌رود، قدرت خون را می‌دهد."},
+    {"_id": "art_sanrei_glove", "icon": "🧤", "name_en": "Sanrei Glove", "name_fa": "دستکش سانرئی",
+     "bonus": {"def": 0.03, "crit": 0.02},
+     "lore_en": "A Quincy glove that repels reishi. It lets the wearer get through places where spirit power is dangerous.",
+     "lore_fa": "دستکش کوئینسی که ریشی را دفع می‌کند؛ کسی که آن را دارد از جاهایی که نیروی روحی خطرناک است رد می‌شود."},
+    {"_id": "art_shihakusho", "icon": "👘", "name_en": "Shihakushō (Shinigami Uniform)", "name_fa": "شیهاکوشو (یونیفرم شینیگامی)",
+     "bonus": {"def": 0.03, "xp": 0.03},
+     "lore_en": "The standard black Soul Reaper uniform. Simple cloth, but it marks who has trained in Soul Society.",
+     "lore_fa": "یونیفرم استاندارد سیاه شینیگامی؛ پارچه‌ی ساده‌ای که نشان می‌دهد چه کسی در سوول سوسایتی آموزش دیده."},
+    # ---- content pack 8 (verified: Bleach wiki Quincy and Shinigami item pages) ----
+    {"_id": "art_hollow_bait", "icon": "🪙", "name_en": "Hollow Bait", "name_fa": "طعمه‌ی هالو",
+     "bonus": {"patrol": 0.03, "drop": 0.03},
+     "lore_en": "A coin-shaped disk. Crush it and Hollows come running from far away.",
+     "lore_fa": "دیسکی سکه‌ای‌شکل؛ وقتی خردش کنی، هالوها از دور به سمتت می‌آیند."},
+    {"_id": "art_quincy_cross", "icon": "✝️", "name_en": "Quincy Cross", "name_fa": "صلیب کوئینسی",
+     "bonus": {"crit": 0.02, "dmg": 0.02},
+     "lore_en": "The focus every Quincy needs to summon a bow. Ryūken's version is a pentacle, not a cross.",
+     "lore_fa": "کانون هر کوئینسی برای احضار کمان؛ نسخه‌ی ریوکن یک پنتاگرام است، نه صلیب."},
+    {"_id": "art_zajiku", "icon": "📜", "name_en": "Zajiku (Set Axis)", "name_fa": "زاجیکو (طومار هدف)",
+     "bonus": {"patrol": 0.04, "xp": 0.02},
+     "lore_en": "A scroll-like device that lists a Shinigami's targets and mission orders, like a Denreishinki on paper.",
+     "lore_fa": "طوماری که نام هدف‌ها و دستور ماموریت شینیگامی را نشان می‌دهد؛ مثل دنرئیشینکی، ولی روی کاغذ."},
+    # ---- content pack 9 (verified: Bleach wiki and an official-art source) ----
+    {"_id": "art_restraint_chair", "icon": "🪑", "name_en": "Aizen's Restraint Chair", "name_fa": "صندلی مهارکننده‌ی آیزن",
+     "bonus": {"def": 0.06, "regen": 0.03},
+     "lore_en": "Built by the Research Institute to hold Aizen's spiritual pressure in Muken. It never broke until Yhwach destroyed it.",
+     "lore_fa": "ساخته‌ی پژوهشگاه شینیگامی برای مهار فشار روحی آیزن در موکن؛ تا وقتی یهواخ نابودش کرد، نشکسته بود."},
 ]
 ART_BY_ID = {a["_id"]: a for a in ARTIFACTS}
 BONUS_ICON = (("dmg", "⚔️"), ("def", "🛡️"), ("crit", "🎯"), ("xp", "⭐"), ("drop", "🎁"), ("coin", "🪙"), ("patrol", "🧭"), ("regen", "💚"))
@@ -187,11 +247,13 @@ def reiatsu_mult(ch: dict, now: float = None) -> float:
 # --- TIERS (Bleach power ladder) ----------------------------------------------------------------------------------
 # Every Soul Artifact now has several copies: `cap` is how many players can hold the same artifact at once.
 # Stronger tiers mirror the anime's ranks: the more powerful the owner in canon, the fewer copies exist.
+# COPY_MULT scales every tier's copy count at once. Raise it when the player base grows (1 = base copies).
+COPY_MULT = 3
 TIERS = {
-    1: {"name_en": "Gotei Rank & File", "name_fa": "سرباز گوتی ۱۳", "cap": 6},
-    2: {"name_en": "Lieutenant / Captain", "name_fa": "ستوان / کاپیتان", "cap": 3},
-    3: {"name_en": "Captain-Commander / Espada", "name_fa": "فرمانده‌ی کل / اسپادا", "cap": 2},
-    4: {"name_en": "Soul King / Central 46", "name_fa": "پادشاه ارواح / سنترال ۴۶", "cap": 1},
+    1: {"name_en": "Gotei Rank & File", "name_fa": "سرباز گوتی ۱۳", "cap": 10 * COPY_MULT},
+    2: {"name_en": "Lieutenant / Captain", "name_fa": "ستوان / کاپیتان", "cap": 5 * COPY_MULT},
+    3: {"name_en": "Captain-Commander / Espada", "name_fa": "فرمانده‌ی کل / اسپادا", "cap": 3 * COPY_MULT},
+    4: {"name_en": "Soul King / Central 46", "name_fa": "پادشاه ارواح / سنترال ۴۶", "cap": 2 * COPY_MULT},
 }
 TIER_OF = {
     "art_gikongan": 1, "art_kon_pill": 1, "art_hat": 1, "art_straw_hat": 1, "art_hellbutterfly": 1,
@@ -203,12 +265,28 @@ TIER_OF = {
     "art_sekkiseki": 2, "art_brazo": 2, "art_fallen": 2,
     "art_zangetsu_frag": 3, "art_ice": 3, "art_sokyoku": 3,
     "art_soulking": 4,
+    "art_kukaku_cannon": 2, "art_shihoin_shield": 3, "art_denreishinki": 1, "art_gigai": 1, "art_gokon": 1,
+    "art_kojaku": 1, "art_ginrei_kojaku": 2, "art_quincy_bangle": 2, "art_sanrei_glove": 1, "art_shihakusho": 1,
+    "art_hollow_bait": 1, "art_quincy_cross": 1, "art_zajiku": 1,
+    "art_restraint_chair": 3,
 }
 MAX_STAT = 0.06  # low power on purpose: every single bonus is capped here (the old 0.10 values were too strong)
 for _a in ARTIFACTS:
     _a["tier"] = TIER_OF.get(_a["_id"], 1)
     _a["cap"] = TIERS[_a["tier"]]["cap"]
     _a["bonus"] = {k: min(v, MAX_STAT) for k, v in _a["bonus"].items()}
+
+# Every artifact must be worth carrying: at least two useful stats, each between 3% and MAX_STAT.
+_FILLERS = ("def", "regen", "crit", "dmg", "xp", "drop", "patrol", "coin")
+for _a in ARTIFACTS:
+    _b = _a["bonus"]
+    for _k in list(_b):
+        _b[_k] = max(0.03, min(MAX_STAT, _b[_k]))
+    for _k in _FILLERS:
+        if len(_b) >= 2:
+            break
+        if _k not in _b:
+            _b[_k] = 0.03
 
 
 def art_cap(aid: str) -> int:
