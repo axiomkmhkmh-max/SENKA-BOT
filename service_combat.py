@@ -70,6 +70,9 @@ async def build_player(ch: dict, name: str = None):
         armor += d
         if "stat" in it["stats"]:
             stats[it["stats"]["stat"]] += it["stats"]["bonus"]
+    # --- NEW BLEACH VIRAL SYSTEM: Hogyoku doubles Reiatsu, a failed theft halves it for a while ---
+    from data_artifacts import reiatsu_mult
+    stats["reiatsu"] = stats["reiatsu"] * reiatsu_mult(ch)
     g = await gacha_doc(ch["user_id"])
     pb = party_bonus(ch.get("party", []), g.get("chars", {}))
     bn = player_bonus(ch, ALL, gs)  # evolution, pet role, relics, temporary buffs

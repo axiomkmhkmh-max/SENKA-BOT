@@ -65,3 +65,30 @@ def art_bonus_text(aid: str, k: float = 1.0) -> str:
     if not a:
         return ""
     return " ".join(f"{ic} +{a['bonus'][key] * k * 100:.0f}%" for key, ic in BONUS_ICON if key in a["bonus"])
+
+# --- NEW BLEACH VIRAL SYSTEM: the true Hogyoku (one copy in the whole database), typing verses, Reiatsu modifiers ---
+import time as _time
+import unicodedata as _ud
+
+HOGYOKU = {"icon": "🔮", "name_fa": "هوگیوکو", "name_en": "Hōgyoku", "reiatsu_mult": 2.0,
+           "bonus": {"xp": 0.20, "coin": 0.20, "drop": 0.10}}
+ESPADA_N = 10
+VERSES = ["Hadō #90: Kurohitsugi", "Hadō #33: Sōkatsui", "Hadō #4: Byakurai", "Hadō #31: Shakkahō", "Hadō #63: Raikōhō",
+          "Hadō #73: Sōren Sōkatsui", "Bakudō #61: Rikujōkōrō", "Bakudō #81: Danku", "Bakudō #9: Hōrin",
+          "Senbonzakura Kageyoshi", "Bankai: Tensa Zangetsu", "Bankai: Daiguren Hyōrinmaru", "Bankai: Kokujō Tengen Myōō",
+          "Getsuga Tenshō", "Gran Rey Cero", "Cero Oscuras", "Reduce all creation to ash, Ryūjin Jakka"]
+
+
+def norm_phrase(s: str) -> str:
+    """Macrons, case and spacing never decide a typing race (nobody types ō on a phone)."""
+    s = _ud.normalize("NFKD", s or "")
+    return " ".join("".join(c for c in s if not _ud.combining(c)).lower().split())
+
+
+def reiatsu_mult(ch: dict, now: float = None) -> float:
+    """Hogyoku doubles Reiatsu; a failed theft halves it until `reiatsu_pen_until`."""
+    now = now or _time.time()
+    m = HOGYOKU["reiatsu_mult"] if (ch or {}).get("hogyoku") else 1.0
+    if float((ch or {}).get("reiatsu_pen_until") or 0) > now:
+        m *= 0.5
+    return m

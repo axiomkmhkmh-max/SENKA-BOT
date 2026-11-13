@@ -84,7 +84,18 @@ RAW = {
 from data_races import LOCATIONS as _LOCS
 for _k, _l in _LOCS.items():
     RAW["go_" + _k] = ("tr", _k, ["برو " + _l["fa"], "سفر به " + _l["fa"], "go " + _l["en"].lower(), "travel " + _k])
-GROUP_OK = {"duel", "duel_friendly", "boss", "help", "home", "chronicle", "commands", "event"}
+# --- NEW BLEACH VIRAL SYSTEM: plain-word group mechanics (reply-based words are handled in handlers_viral.viral_hook) ---
+RAW.update({
+    "bankai_word": ("bkw", "b", ["بانکای", "bankai"]),
+    "shikai_word": ("bkw", "s", ["شایکای", "shikai"]),
+    "mask_word": ("mkw", "", ["ماسک", "mask"]),
+    "bleach_status": ("bst", "", ["وضعیت", "ریاتسو", "reiatsu", "status"]),
+    "steal_hogyoku": ("hgs", "", ["دزدی", "خیانت", "betray"]),
+    "wanted_list": ("wnt", "", ["لیست تحت تعقیب", "تحت تعقیب", "wanted list"]),
+    "espada_board": ("esp", "", ["جدول اسپادا", "اسپادا ۰ تا ۹", "espada board"]),
+})
+GROUP_OK = {"duel", "duel_friendly", "boss", "help", "home", "chronicle", "commands", "event",
+            "bankai_word", "shikai_word", "mask_word", "bleach_status", "steal_hogyoku", "wanted_list", "espada_board"}
 _map: dict = {}
 _extra_at = 0.0
 

@@ -1,0 +1,100 @@
+"""Persian labels for the admin panel: setting names, roles, events, log actions and Persian argument words for admin text commands."""
+
+ROLE_FA = {"owner": "مالک", "super": "سوپر ادمین", "admin": "ادمین", "moderator": "ناظر", "support": "پشتیبان"}
+ROLE_ALIAS = {v: k for k, v in ROLE_FA.items()} | {"سوپر": "super", "ناظر": "moderator"}
+EVENT_FA = {"garganta": "گارگانتا", "siege": "محاصره", "wandenreich": "وندن‌رایش", "winter_war": "جنگ زمستانی", "dangai": "دانگای"}
+LANG_FA = {"fa": "فارسی", "en": "انگلیسی"}
+ACTION_FA = {
+    "ban": "بن", "unban": "آنبن", "warn": "اخطار", "mute": "سکوت", "reset": "ریست بازیکن", "set": "تغییر تنظیم", "item": "تغییر آیتم",
+    "maintenance": "تعمیرات", "broadcast": "پیام همگانی", "addadmin": "افزودن ادمین", "rmadmin": "حذف ادمین",
+    "give_coins": "دادن سکه", "take_coins": "گرفتن سکه", "give_xp": "دادن تجربه", "give_item": "دادن آیتم", "take_item": "گرفتن آیتم",
+    "world_set": "تغییر دنیا", "world_reset": "ریست دنیا", "world_event_start": "شروع رویداد", "world_event_end": "پایان رویداد",
+    "world_boss_spawn": "ظهور باس", "world_boss_end": "پایان باس", "world_season_end": "پایان فصل", "territory_reset": "ریست قلمرو",
+}
+# Persian words accepted as arguments of admin text commands (free-text positions such as reasons/messages are never translated)
+ARG_ALIAS = {
+    "سکه": "coins", "تجربه": "xp", "آیتم": "item", "روشن": "on", "خاموش": "off",
+    "فارسی": "fa", "انگلیسی": "en", "همه": "all",
+    "تهدید": "threat", "ثبات": "stability", "ریشی": "reishi", "تنظیم": "set", "ریست": "reset", "رویداد": "event", "پایان": "end",
+    "باس": "boss", "ظهور": "spawn", "فصل": "season", "قلمرو": "territory",
+    "قیمت_پایه": "base_price", "قیمت_فروش": "sell_price", "حمله": "attack", "سطح_لازم": "level_req",
+} | {v: k for k, v in EVENT_FA.items()} | {"جنگ_زمستانی": "winter_war"} | ROLE_ALIAS
+EXTRA_CMD = {"اخطار": "warn", "سکوت": "mute", "افزودن ادمین": "addadmin", "حذف ادمین": "rmadmin", "ادمین جدید": "addadmin", "ظهور باس": "spawn"}
+
+SETTING_FA = {
+    "maintenance": "حالت تعمیرات", "xp_rate": "ضریب تجربه", "coin_rate": "ضریب سکه", "drop_rate": "ضریب دراپ",
+    "div_min_level": "حداقل سطح لشکر", "div_change_cost": "هزینه‌ی تغییر لشکر", "div_k": "ضریب بونوس لشکر",
+    "hlf_min_level": "حداقل سطح هالوی‌شدن", "hlf_cost": "هزینه‌ی هالوی‌شدن", "hlf_chance": "شانس هالوی‌شدن",
+    "boss_dmg_mult": "ضریب آسیب باس", "boss_hp_mult": "ضریب جان باس", "boss_combo_window": "پنجره‌ی کومبوی باس",
+    "boss_combo_step": "گام کومبوی باس", "boss_combo_cap": "سقف کومبوی باس", "boss_special_chance": "شانس حمله‌ی ویژه‌ی باس",
+    "boss_special_mult": "ضریب حمله‌ی ویژه‌ی باس", "xp_curve_k": "ضریب منحنی تجربه",
+    "boss_min_minutes": "حداقل فاصله‌ی ظهور باس (دقیقه)", "boss_max_minutes": "حداکثر فاصله‌ی ظهور باس (دقیقه)",
+    "boss_duration_minutes": "مدت حضور باس (دقیقه)", "boss_min_level": "حداقل سطح برای باس", "boss_hit_cooldown": "کولداون ضربه به باس",
+    "energy_max": "حداکثر انرژی", "explore_cost": "هزینه‌ی کاوش", "energy_regen_seconds": "ثانیه‌ی بازیابی انرژی",
+    "start_coins": "سکه‌ی شروع", "travel_cooldown": "کولداون سفر",
+    "pvp_min_level": "حداقل سطح پی‌وی‌پی", "pvp_gain_min": "حداقل امتیاز برد پی‌وی‌پی", "pvp_gain_max": "حداکثر امتیاز برد پی‌وی‌پی",
+    "pvp_loss_min": "حداقل امتیاز باخت پی‌وی‌پی", "pvp_loss_max": "حداکثر امتیاز باخت پی‌وی‌پی",
+    "pvp_pair_daily_cap": "سقف روزانه‌ی دوئل با یک نفر", "pvp_full_xp_wins": "بردهای دارای تجربه‌ی کامل",
+    "pvp_turn_seconds": "مهلت هر نوبت پی‌وی‌پی (ثانیه)", "pvp_max_turns": "حداکثر نوبت پی‌وی‌پی",
+    "market_seller_fee": "کارمزد فروشنده‌ی بازار", "market_buyer_fee": "کارمزد خریدار بازار", "market_slots": "جای آگهی بازار",
+    "market_hours": "مدت آگهی بازار (ساعت)", "auction_snipe_seconds": "بازه‌ی ضدشکار حراج (ثانیه)", "auction_extend_seconds": "تمدید حراج (ثانیه)",
+    "gacha_cost": "هزینه‌ی گچا", "gacha_pity_legendary": "ضمانت افسانه‌ای گچا", "gacha_pity_rare": "ضمانت کمیاب گچا",
+    "guild_create_cost": "هزینه‌ی ساخت گیلد", "guild_min_level": "حداقل سطح گیلد", "squad_change_days": "روز تا تغییر اسکواد",
+    "minigame_daily_xp_cap": "سقف تجربه‌ی روزانه‌ی مینی‌گیم", "hollow_daily_xp_cap": "سقف تجربه‌ی روزانه‌ی هالو", "referral_reward": "پاداش دعوت",
+    "world_threat_drift_hour": "رانش ساعتی تهدید دنیا", "world_threat_win": "تهدید پس از برد", "world_threat_boss_kill": "تهدید پس از کشتن باس",
+    "world_threat_boss_flee": "تهدید پس از فرار باس", "world_threat_dungeon": "تهدید دانجن", "world_stab_patrol": "ثبات از گشت",
+    "world_stab_decay_hour": "افت ساعتی ثبات", "world_reishi_patrol": "ریشی از گشت", "world_reishi_craft": "ریشی از ساخت",
+    "world_reishi_decay": "افت ریشی", "world_enemy_k": "ضریب دشمنان دنیا", "world_drop_k": "ضریب دراپ دنیا", "world_price_k": "ضریب قیمت دنیا",
+    "world_stab_xp_k": "ضریب تجربه‌ی ثبات", "world_boss_interval_k": "ضریب فاصله‌ی باس دنیا",
+    "boss_hp_players_ref": "بازیکن مرجع جان باس", "boss_hp_scale_cap": "سقف مقیاس جان باس", "boss_hp_threat_k": "ضریب تهدید در جان باس",
+    "boss_main_share": "سهم جایزه‌ی اصلی باس", "boss_pool_cap": "سقف استخر جایزه‌ی باس", "boss_daily_paid": "سقف جایزه‌ی روزانه‌ی باس",
+    "boss_min_age_minutes": "حداقل سن حساب برای باس (دقیقه)", "boss_refresh_seconds": "ثانیه‌ی نوسازی پیام باس", "boss_broadcast_cap": "سقف گروه‌های اعلان باس",
+    "event_enabled": "رویدادها فعال", "event_min_gap_minutes": "حداقل فاصله‌ی رویدادها (دقیقه)", "event_duration_minutes": "مدت رویداد (دقیقه)",
+    "event_goal_per_player": "هدف رویداد برای هر بازیکن", "event_goal_min": "حداقل هدف رویداد", "event_goal_cap": "سقف هدف رویداد",
+    "event_daily_pts_cap": "سقف امتیاز روزانه‌ی رویداد", "event_reward_xp": "جایزه‌ی تجربه‌ی رویداد", "event_reward_coins": "جایزه‌ی سکه‌ی رویداد",
+    "event_threat_trigger": "آستانه‌ی تهدید برای رویداد", "event_stab_trigger": "آستانه‌ی ثبات برای رویداد", "event_random_chance": "شانس رویداد تصادفی",
+    "relic_slots": "جای یادگار", "relic_k": "ضریب یادگار", "pet_k": "ضریب پت", "evo_bonus_pct": "بونوس تکامل", "evo_trial_scale": "مقیاس آزمون تکامل",
+    "cosmetic_fame_xp": "تجربه‌ی شهرت ظاهری", "cosmetic_fame_cap": "سقف شهرت ظاهری", "craft_cost_k": "ضریب هزینه‌ی ساخت",
+    "temper_max": "حداکثر آبدیده‌کاری", "temper_def_pct": "درصد دفاع آبدیده‌کاری", "buff_max_minutes": "حداکثر مدت بافت (دقیقه)",
+    "terr_enabled": "قلمروها فعال", "terr_min_members": "حداقل اعضای قلمرو", "terr_min_level": "حداقل سطح قلمرو",
+    "terr_min_age_hours": "حداقل سن حساب برای قلمرو (ساعت)", "terr_daily_cap": "سقف روزانه‌ی قلمرو", "terr_min_score": "حداقل امتیاز قلمرو",
+    "terr_buff_pct": "بونوس قلمرو", "terr_tax_pct": "مالیات قلمرو", "terr_tax_daily_cap": "سقف مالیات روزانه‌ی قلمرو",
+    "trace_cost": "هزینه‌ی ردپا", "trace_cooldown": "کولداون ردپا", "trace_max_active": "حداکثر ردپای فعال", "trace_hours": "مدت ردپا (ساعت)",
+    "trace_reward_coins": "سکه‌ی ردپا", "trace_find_daily": "سقف روزانه‌ی یافتن ردپا", "trace_owner_xp": "تجربه‌ی صاحب ردپا",
+    "trace_owner_daily": "سقف روزانه‌ی صاحب ردپا", "trace_find_chance": "شانس یافتن ردپا", "grave_cooldown_hours": "کولداون گور (ساعت)",
+    "aid_energy": "انرژی کمک", "aid_xp": "تجربه‌ی کمک", "aid_daily_send": "سقف ارسال کمک روزانه", "aid_daily_recv": "سقف دریافت کمک روزانه",
+    "aid_min_level": "حداقل سطح کمک", "bounty_min": "حداقل جایزه‌ی سر", "bounty_max_total": "سقف مجموع جایزه‌ی سر", "bounty_fee": "کارمزد جایزه‌ی سر",
+    "bounty_hours": "مدت جایزه‌ی سر (ساعت)", "bounty_daily_claims": "سقف روزانه‌ی دریافت جایزه‌ی سر", "bounty_min_level": "حداقل سطح جایزه‌ی سر",
+    "presence_minutes": "مدت حضور (دقیقه)", "tower_energy": "انرژی برج", "tower_daily_floors": "طبقه‌های روزانه‌ی برج", "tower_heal": "درمان برج",
+    "raid_min_msgs": "پیام لازم برای ظهور هالو در گروه", "raid_cooldown": "فاصله‌ی ظهور هالو (ثانیه)", "raid_ttl": "مدت ماندن هالو (ثانیه)",
+    "raid_hp": "جان هالو", "raid_menos_chance": "شانس منوس", "raid_menos_mult": "ضریب جان منوس", "raid_daily_cap": "سقف پاداش روزانه‌ی هجوم",
+    "raid_min_level": "حداقل سطح هجوم", "raid_strike_cd": "کولداون ضربه‌ی هجوم (ثانیه)", "raid_dmg_k": "ضریب آسیب هجوم",
+    "espada_min_level": "حداقل سطح چالش اسپادا", "espada_cd": "کولداون چالش اسپادا (ثانیه)",
+    "hog_min_level": "حداقل سطح دزدی هوگیوکو", "hog_steal_cd_hours": "کولداون دزدی هوگیوکو (ساعت)", "hog_steal_chance": "شانس دزدی هوگیوکو",
+    "hog_shield_minutes": "محافظت هوگیوکو (دقیقه)", "hog_pen_hours": "مدت جریمه‌ی شکست دزدی (ساعت)",
+    "type_min_msgs": "پیام لازم برای تایپ سریع", "type_cooldown": "فاصله‌ی تایپ سریع (ثانیه)", "type_ttl": "مهلت تایپ سریع (ثانیه)",
+    "type_daily_cap": "سقف برد روزانه‌ی تایپ سریع",
+    "quincy_enabled": "حمله‌ی کوئینسی فعال", "quincy_interval_hours": "فاصله‌ی حمله‌ی کوئینسی (ساعت)",
+    "quincy_active_minutes": "بازه‌ی فعالیت گروه برای کوئینسی (دقیقه)", "quincy_max_groups": "حداکثر گروه در هر حمله",
+    "quincy_hp": "جان ارتش کوئینسی", "quincy_ttl_minutes": "مهلت حمله‌ی کوئینسی (دقیقه)", "quincy_lock_minutes": "مدت قفل بانکای (دقیقه)",
+    "znp_train_energy": "انرژی تمرین زانپاکتو", "znp_train_daily": "تمرین‌های روزانه‌ی زانپاکتو", "znp_train_gain": "مهارت هر تمرین",
+    "znp_mastery_cap": "سقف مهارت زانپاکتو", "znp_shikai_level": "سطح لازم شایکای", "znp_shikai_bond": "پیوند لازم شایکای",
+    "znp_bankai_level": "سطح لازم بانکای", "znp_bankai_mastery": "مهارت لازم بانکای",
+    "chain_cap": "سقف زنجیره", "chain_step": "گام زنجیره", "chain_expire_hours": "انقضای زنجیره (ساعت)", "chain_bonus_every": "پاداش زنجیره هر چند بار",
+    "dispatch_slots": "جای اعزام", "dispatch_k": "ضریب اعزام", "dispatch_time_k": "ضریب زمان اعزام", "dispatch_energy": "انرژی اعزام",
+    "wheel_cost": "هزینه‌ی چرخ", "wheel_extra_daily": "چرخش اضافه‌ی روزانه", "inner_weekly": "دنیای درون در هفته",
+    "drop_enabled": "دراپ گروهی فعال", "drop_min_msgs": "حداقل پیام برای دراپ", "drop_min_users": "حداقل کاربر برای دراپ", "drop_chance": "شانس دراپ",
+    "drop_cooldown_minutes": "کولداون دراپ (دقیقه)", "drop_ttl_seconds": "مهلت دراپ (ثانیه)", "drop_daily_per_user": "سقف روزانه‌ی دراپ هر نفر",
+    "drop_min_level": "حداقل سطح دراپ", "drop_artifact_chance": "شانس آرتیفکت", "drop_player_enabled": "دراپ بازیکنی فعال",
+    "drop_player_min_level": "حداقل سطح دراپ بازیکنی", "drop_player_min_age_hours": "حداقل سن حساب دراپ بازیکنی (ساعت)",
+    "drop_player_cooldown": "کولداون دراپ بازیکنی", "drop_player_daily": "سقف روزانه‌ی دراپ بازیکنی", "drop_pair_daily": "سقف روزانه‌ی دراپ بین دو نفر",
+    "art_k": "ضریب آرتیفکت", "art_fee": "کارمزد آرتیفکت", "art_price_min": "حداقل قیمت آرتیفکت", "art_price_max": "حداکثر قیمت آرتیفکت",
+    "art_list_hours": "مدت آگهی آرتیفکت (ساعت)", "log_enabled": "لاگ رویدادها فعال", "log_nav": "لاگ ناوبری",
+    "season_days": "روزهای فصل", "season_soft_reset": "ریست نرم فصل", "season_daily_pts_cap": "سقف امتیاز روزانه‌ی فصل",
+    "season_min_pts": "حداقل امتیاز فصل", "season_top_coins": "سکه‌ی برترین‌های فصل", "season_part_coin_per_pt": "سکه‌ی مشارکت به‌ازای هر امتیاز",
+    "new_acct_minutes": "مدت حساب جدید (دقیقه)",
+}
+
+
+def setting_label(key: str, fa: bool) -> str:
+    return SETTING_FA.get(key, key) if fa else key

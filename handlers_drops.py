@@ -14,7 +14,8 @@ from i18n import esc, fnum, t
 from render import both
 from security import allow, normalize_text
 from service_drops import (CLAIM_WORDS, art_cancel, art_doc, art_buy, art_list, art_listings_page, art_registry, art_release, art_settle,
-                           drop_abort, drop_attach, drop_claim, drop_create, drop_roll, player_drop_create, set_group_drops)
+                           drop_abort, drop_attach, drop_claim, drop_create, drop_roll, player_drop_create, set_group_drops,
+                           typing_abort, typing_attach, typing_claim, typing_roll)
 from service_log import log_event
 from service_player import get_char
 from service_world import group_doc
@@ -277,6 +278,8 @@ async def _is_chat_admin(message) -> bool:
 async def group_hook(message, text: str, n: str) -> bool:
     """Runs on every group text. True = the message was a drop word and has been handled."""
     user, chat = message.from_user, message.chat
+    if await _typing_hook(message, text):  # --- NEW BLEACH VIRAL SYSTEM: typing race
+        return True
     # ---- claiming: reply to the drop message with «بردار» ----
     if n in CLAIM_WORDS:
         if message.reply_to_message is None:
@@ -347,3 +350,61 @@ async def group_hook(message, text: str, n: str) -> bool:
         except Exception:
             log.exception("auto drop failed")
     return False
+
+# --- NEW BLEACH VIRAL SYSTEM: Gillian / spirit chest typing race ---
+_TT = {
+    "spawn": ("{icon} <b>{name} ظاهر شد!</b>\nاولین نفری که این ورد را <b>دقیقاً</b> تایپ کند برنده است:\n\n<code>{phrase}</code>\n⏳ {sec} ثانیه",
+              "{icon} <b>A {name} appears!</b>\nFirst to type this incantation <b>exactly</b> wins:\n\n<code>{phrase}</code>\n⏳ {sec}s"),
+    "won": ("{icon} {who} ورد را درست خواند و برنده شد!\n✨ موج ریاتسو: +{xp} XP و +{coins} سکه", "{icon} {who} spoke the incantation first!\n✨ Reiatsu surge: +{xp} XP and +{coins} coins"),
+    "expired": ("{icon} {name} ناپدید شد؛ کسی ورد را نگفت.", "{icon} The {name} vanished — nobody spoke the incantation."),
+}
+_TN = {"gillian": ("👹", "گلیان", "Gillian"), "chest": ("🧰", "صندوقچه‌ی روحی", "spirit chest")}
+
+
+def _tt(lang, key, **kw):
+    fa, en = _TT[key]
+    return (fa if lang == "fa" else en).format(**kw)
+
+
+async def _typing_hook(message, text: str) -> bool:
+    user, chat = message.from_user, message.chat
+    res = await typing_claim(chat.id, user.id, text)
+    if res:
+        doc, name, xp, coins = res
+        lang = await _lang(chat.id)
+        icon, _fa, _en = _TN[doc["kind"]]
+        out = _tt(lang, "won", icon=icon, who=esc(user.full_name or name), xp=fnum(xp, lang), coins=fnum(coins, lang))
+        await message.reply(out)
+        if doc.get("msg_id"):
+            try:
+                await message.bot.edit_message_text(out, chat_id=chat.id, message_id=doc["msg_id"])
+            except TelegramAPIError:
+                pass
+        return True
+    if allow(user.id, "typecnt", 4):
+        try:
+            doc = await typing_roll(chat.id)
+            if doc:
+                lang = await _lang(chat.id)
+                icon, fa, en = _TN[doc["kind"]]
+                try:
+                    msg = await message.bot.send_message(chat.id, _tt(lang, "spawn", icon=icon, name=fa if lang == "fa" else en, phrase=esc(doc["phrase"]),
+                                                                      sec=doc["end_at"] - doc["created_at"]))
+                except TelegramAPIError:
+                    await typing_abort(doc["_id"], chat.id)
+                else:
+                    await typing_attach(doc["_id"], msg.message_id)
+        except Exception:
+            log.exception("typing roll failed")
+    return False
+
+
+async def announce_typing_expired(bot, d: dict):
+    if not d.get("msg_id"):
+        return
+    lang = await _lang(d["chat_id"])
+    icon, fa, en = _TN[d["kind"]]
+    try:
+        await bot.edit_message_text(_tt(lang, "expired", icon=icon, name=fa if lang == "fa" else en), chat_id=d["chat_id"], message_id=d["msg_id"])
+    except TelegramAPIError:
+        pass

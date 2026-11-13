@@ -381,3 +381,62 @@ async def inner_choose(uid: int, scene: int, choice: str):
             await col("characters").update_one({"user_id": uid}, {"$set": {f"buffs.{key}": {"pct": pct, "until": int(time.time()) + minutes * 60}}})
             res["buff"] = (key, pct, minutes)
     return "ok", res
+
+# --- NEW BLEACH VIRAL SYSTEM: the one Hogyoku (single document _id "main"; holder gets the `hogyoku` flag on their character) ---
+async def hogyoku_state():
+    d = await col("hogyoku").find_one({"_id": "main"})
+    if d:
+        return d
+    from service_bleach_systems import espada_board
+    board = await espada_board()
+    if not board:
+        return None
+    holder = board[0][1]  # born with the strongest Espada
+    try:
+        await col("hogyoku").insert_one({"_id": "main", "holder": holder, "since": int(time.time()), "history": []})
+        await col("characters").update_one({"user_id": holder}, {"$set": {"hogyoku": True}})
+    except DuplicateKeyError:
+        pass
+    return await col("hogyoku").find_one({"_id": "main"})
+
+
+async def hogyoku_holder():
+    """-> (uid, name, level) or None. Shown on the group's "wanted" list."""
+    d = await hogyoku_state()
+    if not d:
+        return None
+    ch = await get_char(d["holder"])
+    return (d["holder"], ch["name"], ch["level"]) if ch else None
+
+
+async def hogyoku_steal(thief: int, victim: int):
+    """Reply-to-holder theft. -> (result, extra). result: self | notholder | noreg | level | shield | cd | win | fail."""
+    if thief == victim:
+        return "self", None
+    d = await hogyoku_state()
+    if not d or d["holder"] != victim:
+        return "notholder", None
+    ct, cv = await get_char(thief), await get_char(victim)
+    if not ct or not cv:
+        return "noreg", None
+    st = await game_settings()
+    now = int(time.time())
+    if ct["level"] < int(st["hog_min_level"]):
+        return "level", int(st["hog_min_level"])
+    if now - int(d.get("since", 0)) < int(st["hog_shield_minutes"]) * 60:
+        return "shield", int(st["hog_shield_minutes"])
+    left = await try_cooldown(f"hog:steal:{thief}", int(st["hog_steal_cd_hours"]) * 3600)
+    if left:
+        return "cd", int(left)
+    from service_player import power
+    chance = float(st["hog_steal_chance"]) * max(0.5, min(2.0, power(ct) / max(1, power(cv))))
+    if random.random() < chance:
+        got = await col("hogyoku").find_one_and_update({"_id": "main", "holder": victim}, {
+            "$set": {"holder": thief, "since": now}, "$push": {"history": {"$each": [{"uid": thief, "from": victim, "at": now}], "$slice": -10}}})
+        if not got:
+            return "notholder", None
+        await col("characters").update_one({"user_id": victim}, {"$unset": {"hogyoku": ""}})
+        await col("characters").update_one({"user_id": thief}, {"$set": {"hogyoku": True}})
+        return "win", None
+    await col("characters").update_one({"user_id": thief}, {"$set": {"reiatsu_pen_until": now + int(st["hog_pen_hours"]) * 3600}})
+    return "fail", int(st["hog_pen_hours"])

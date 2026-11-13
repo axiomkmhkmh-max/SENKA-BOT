@@ -4,6 +4,7 @@ import logging
 import random
 import time
 
+from admin_fa import ARG_ALIAS, EVENT_FA, EXTRA_CMD, LANG_FA
 from config import GAME_DEFAULTS, settings
 from data_items import ALL
 from database import col, game_settings, set_game_setting
@@ -19,6 +20,7 @@ CMD = {"stats": "stats", "آمار": "stats", "ban": "ban", "بن": "ban", "unba
        "set": "set", "تنظیم": "set", "addadmin": "addadmin", "rmadmin": "rmadmin", "user": "user", "کاربر": "user",
        "reset": "reset", "ریست": "reset", "confirm": "confirm", "تایید": "confirm", "item": "item", "آیتم": "item",
        "spawn": "spawn", "ظهور": "spawn", "maintenance": "maintenance", "تعمیرات": "maintenance", "mute": "mute", "warn": "warn", "world": "world", "دنیا": "world"}
+CMD.update(EXTRA_CMD)
 ROLES = {"owner": 100, "super": 80, "admin": 60, "moderator": 40, "support": 20}
 NEED = {"stats": 20, "user": 20, "warn": 40, "mute": 40, "ban": 40, "unban": 40, "give": 60, "take": 60, "item": 60, "set": 80,
         "broadcast": 60, "reset": 80, "confirm": 80, "spawn": 60, "world": 20, "maintenance": 60, "addadmin": 100, "rmadmin": 100}
@@ -66,6 +68,12 @@ async def admin_panel(ctx, arg):
     return await main_menu(ctx, lvl)
 
 
+def _fa_args(cmd, args):
+    """Persian words in the structured positions of a command become the internal tokens (reasons / messages / ids are never touched)."""
+    pos = {"give": (1,), "take": (1,), "maintenance": (0,), "broadcast": (0,), "world": (0, 1, 2), "item": (1,), "addadmin": (1,)}.get(cmd, ())
+    return [ARG_ALIAS.get(a, a) if i in pos else a for i, a in enumerate(args)]
+
+
 def _int(x, default=None):
     try:
         return int(x)
@@ -88,7 +96,7 @@ async def handle_admin_text(ctx, text: str):
     lvl = await admin_level(ctx.uid)
     if lvl < NEED.get(cmd, 100):
         return None if lvl < 20 else Out(ctx.t("adm_noperm"))
-    args = parts[1:]
+    args = _fa_args(cmd, parts[1:])
     L = ctx.lang
     if cmd == "stats":
         return Out(await dashboard(ctx))
@@ -106,9 +114,11 @@ async def handle_admin_text(ctx, text: str):
         reason = " ".join(args[1:])
         if cmd == "user":
             ch = await get_char(tid)
-            body = f"<code>{tid}</code> @{esc(u.get('username') or '-')} lang={u.get('lang')} banned={bool(u.get('banned'))}"
+            body = (f"<code>{tid}</code> @{esc(u.get('username') or '-')} زبان={LANG_FA.get(u.get('lang'), u.get('lang'))} بن={'بله' if u.get('banned') else 'خیر'}" if L == 'fa'
+                    else f"<code>{tid}</code> @{esc(u.get('username') or '-')} lang={u.get('lang')} banned={bool(u.get('banned'))}")
             if ch:
-                body += f"\n{esc(ch['name'])} | {ch['race']} | Lv {ch['level']} | 🪙 {fnum(ch['coins'], L)} | ⭐ {ch['rating']}"
+                from data_races import RACES
+                body += f"\n{esc(ch['name'])} | {RACES.get(ch['race'], {}).get('name_fa' if L == 'fa' else 'name_en', ch['race'])} | {'سطح' if L == 'fa' else 'Lv'} {ch['level']} | 🪙 {fnum(ch['coins'], L)} | ⭐ {ch['rating']}"
             return Out(body)
         if cmd == "ban":
             await col("users").update_one({"telegram_id": tid}, {"$set": {"banned": True, "ban_reason": reason[:100]}})
@@ -173,7 +183,7 @@ async def handle_admin_text(ctx, text: str):
         old = (await game_settings())[args[0]]
         raw = args[1].lower()
         try:
-            val = (raw in ("on", "true", "1", "yes")) if isinstance(old, bool) else type(old)(float(raw) if isinstance(old, float) else int(raw))
+            val = (raw in ("on", "true", "1", "yes", "روشن", "بله")) if isinstance(old, bool) else type(old)(float(raw) if isinstance(old, float) else int(raw))
         except ValueError:
             return Out(ctx.t("adm_fail"))
         await set_game_setting(args[0], val)
@@ -250,9 +260,9 @@ async def admin_world(ctx, args, lvl: int) -> str:
     sub = args[0].lower() if args else ""
     if not sub:
         b = await col("boss_sessions").find_one({"scope": "global", "active": True})
-        rei = ", ".join(f"{k}:{v:.0f}" for k, v in sorted((ws.get("reishi") or {}).items()))
+        rei = ", ".join(f"{(LOCATIONS.get(k) or {}).get('fa', k) if L == 'fa' else k}:{v:.0f}" for k, v in sorted((ws.get("reishi") or {}).items()))
         return ctx.t("adm_world", threat=f"{ws.get('threat', 0):.1f}", stab=f"{ws.get('stability', 0):.1f}", rei=rei or "—",
-                     ev=(f"{ev['kind']} {ev['progress']}/{ev['goal']}" if ev else "—"), boss=(f"{b['name_en']} {max(0, b['hp'])}/{b['max_hp']}" if b else "—"),
+                     ev=(f"{EVENT_FA.get(ev['kind'], ev['kind']) if L == 'fa' else ev['kind']} {ev['progress']}/{ev['goal']}" if ev else "—"), boss=(f"{(b.get('name_fa') or b['name_en']) if L == 'fa' else b['name_en']} {max(0, b['hp'])}/{b['max_hp']}" if b else "—"),
                      season=ws["season"]["id"])
     if lvl < 60:
         return ctx.t("adm_noperm")

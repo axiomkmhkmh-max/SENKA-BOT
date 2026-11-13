@@ -654,3 +654,55 @@ async def announce_season(bot, summary):
         except Exception:
             pass
         await asyncio.sleep(0.05)
+
+# --- NEW BLEACH VIRAL SYSTEM: Quincy invasion messages ---
+_QT = {
+    "open": ("🩸 <b>یوهاباخ و ارتش کوئینسی به جامعه ارواح حمله کردند!</b>\n❤️ {bar} {hp}/{mx}\n⏳ {mins} دقیقه وقت دارید؛ کلمه‌ی «حمله» را بفرستید!\n⚠️ اگر شکست بخورند، بانکای این گروه {lock} دقیقه دزدیده می‌شود.",
+             "🩸 <b>Yhwach and the Quincy army invade Soul Society!</b>\n❤️ {bar} {hp}/{mx}\n⏳ {mins} minutes — send “strike” in chat!\n⚠️ If they win, this group's Bankai is stolen for {lock} minutes."),
+    "live": ("🩸 <b>ارتش کوئینسی</b>\n❤️ {bar} {hp}/{mx}\n⚔️ مبارزان: {n}\nکلمه‌ی «حمله» را بفرستید!", "🩸 <b>Quincy Army</b>\n❤️ {bar} {hp}/{mx}\n⚔️ Fighters: {n}\nSend “strike”!"),
+    "lost": ("💀 <b>ارتش کوئینسی پیروز شد!</b>\n🔒 بانکای این گروه تا {lock} دقیقه دزدیده شده است.", "💀 <b>The Quincy army prevailed!</b>\n🔒 This group's Bankai is stolen for {lock} minutes."),
+    "won": ("🏆 <b>ارتش کوئینسی عقب نشست!</b>\nبرترین‌ها:\n{top}\n🎁 پاداش برای {paid} نفر{drop}", "🏆 <b>The Quincy army is repelled!</b>\nTop damage:\n{top}\n🎁 Rewards paid to {paid}{drop}"),
+}
+
+
+def quincy_text(lang: str, doc: dict, key: str = "live", **kw) -> str:
+    from config import GAME_DEFAULTS as _G
+    fa, en = _QT[key]
+    return (fa if lang == "fa" else en).format(bar=bar(max(0, doc["hp"]), doc["max_hp"]), hp=fnum(max(0, doc["hp"]), lang), mx=fnum(doc["max_hp"], lang),
+                                               n=len(doc.get("hits") or {}), mins=max(1, (doc["end_at"] - doc["created_at"]) // 60),
+                                               lock=int(_G["quincy_lock_minutes"]), **kw)
+
+
+async def post_quincy(bot, doc):
+    from service_hollowraid import quincy_abort, quincy_attach
+    from service_world import group_doc
+    lang = glang(await group_doc(doc["chat_id"]))
+    try:
+        msg = await bot.send_message(doc["chat_id"], quincy_text(lang, doc, "open"))
+    except TelegramForbiddenError:
+        await col("groups").update_one({"chat_id": doc["chat_id"]}, {"$set": {"blocked": True}})
+        await quincy_abort(doc["_id"])
+    except TelegramAPIError:
+        await quincy_abort(doc["_id"])
+    else:
+        await quincy_attach(doc["_id"], msg.message_id)
+
+
+async def edit_quincy(bot, doc, text: str):
+    if not doc.get("msg_id"):
+        return
+    try:
+        await bot.edit_message_text(text, chat_id=doc["chat_id"], message_id=doc["msg_id"])
+    except TelegramAPIError:
+        pass
+
+
+async def end_quincy_lost(bot, doc):
+    from service_world import group_doc
+    lang = glang(await group_doc(doc["chat_id"]))
+    text = quincy_text(lang, doc, "lost")
+    await edit_quincy(bot, doc, text)
+    try:
+        await bot.send_message(doc["chat_id"], text)
+    except TelegramAPIError:
+        pass

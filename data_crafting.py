@@ -218,6 +218,10 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     for kind, v in art.items():
         if kind in b:
             b[kind] += v * float(st.get("art_k", 1.0))
+    if ch.get("hogyoku"):  # --- NEW BLEACH VIRAL SYSTEM ---
+        from data_artifacts import HOGYOKU
+        for kind, v in HOGYOKU["bonus"].items():
+            b[kind] += v
     for kind, v in division_bonus(ch).items():  # Gotei division / Espada number / Wandenreich order
         if kind in b:
             b[kind] += v * float(st.get("div_k", 1.0))

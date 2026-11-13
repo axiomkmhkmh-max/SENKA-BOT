@@ -401,3 +401,79 @@ async def expire_drops() -> list:
 
 async def set_group_drops(chat_id: int, on: bool):
     await col("groups").update_one({"chat_id": chat_id}, {"$set": {"drops_off": not on}, "$setOnInsert": {"chat_id": chat_id, "lang": "fa"}}, upsert=True)
+
+# --- NEW BLEACH VIRAL SYSTEM: Gillian / spirit-chest typing race ---
+_typing = {}  # chat_id -> (normalised phrase, end_at, drop id): keeps the hot path (every group message) free of DB reads
+
+
+async def typing_roll(chat_id: int):
+    """Count one group message; return a new typing-race doc when the chat is lively enough, else None."""
+    from data_artifacts import VERSES
+    st = await game_settings()
+    if not st["drop_enabled"] or (await group_doc(chat_id)).get("drops_off"):
+        return None
+    now = int(time.time())
+    s = await col("type_state").find_one_and_update({"_id": chat_id}, {"$inc": {"n": 1}, "$setOnInsert": {"last": 0}}, upsert=True,
+                                                    return_document=ReturnDocument.AFTER)
+    if s["n"] < int(st["type_min_msgs"]) or now - int(s.get("last", 0)) < int(st["type_cooldown"]):
+        return None
+    if not (await col("type_state").update_one({"_id": chat_id, "last": s.get("last", 0)}, {"$set": {"n": 0, "last": now}})).modified_count:
+        return None
+    phrase = random.choice(VERSES)
+    doc = {"_id": uuid.uuid4().hex[:10], "chat_id": chat_id, "phrase": phrase, "kind": random.choice(["gillian", "chest"]),
+           "status": "active", "created_at": now, "end_at": now + int(st["type_ttl"])}
+    await col("type_drops").insert_one(doc)
+    from data_artifacts import norm_phrase
+    _typing[chat_id] = (norm_phrase(phrase), doc["end_at"], doc["_id"])
+    return doc
+
+
+async def typing_attach(did: str, msg_id: int):
+    await col("type_drops").update_one({"_id": did}, {"$set": {"msg_id": msg_id}})
+
+
+async def typing_abort(did: str, chat_id: int):
+    _typing.pop(chat_id, None)
+    await col("type_drops").update_one({"_id": did}, {"$set": {"status": "failed"}})
+
+
+async def typing_claim(chat_id: int, uid: int, text: str):
+    """-> (doc, name, xp, coins) when `text` is exactly the verse of the live race and the sender may win it, else None."""
+    from data_artifacts import norm_phrase
+    cur = _typing.get(chat_id)
+    if not cur or cur[1] <= time.time():
+        _typing.pop(chat_id, None)
+        return None
+    if norm_phrase(text) != cur[0]:
+        return None
+    ch = await get_char(uid)
+    st = await game_settings()
+    if not ch or ch["level"] < int(st["drop_min_level"]):
+        return None
+    if await counter_get(f"typing:{uid}:{today()}") >= int(st["type_daily_cap"]):
+        return None
+    doc = await col("type_drops").find_one_and_update({"_id": cur[2], "status": "active", "end_at": {"$gt": int(time.time())}},
+                                                      {"$set": {"status": "won", "winner": uid, "won_at": int(time.time())}},
+                                                      return_document=ReturnDocument.AFTER)
+    if not doc:
+        return None
+    _typing.pop(chat_id, None)
+    await bump_counter(f"typing:{uid}:{today()}", 1, int(st["type_daily_cap"]))
+    from service_player import add_xp
+    xp, coins = int((80 + 15 * ch["level"]) * 3), int((150 + 25 * ch["level"]) * 2)  # a "Reiatsu surge": triple XP
+    await add_xp(uid, xp, "typing")
+    await add_coins(uid, coins, "typing")
+    return doc, ch["name"], xp, coins
+
+
+async def typing_expire():
+    """Close races nobody won. Returns the docs so the scheduler can edit their messages."""
+    now = int(time.time())
+    out = []
+    while True:
+        d = await col("type_drops").find_one_and_update({"status": "active", "end_at": {"$lte": now}}, {"$set": {"status": "expired"}},
+                                                        return_document=ReturnDocument.AFTER)
+        if not d:
+            return out
+        _typing.pop(d["chat_id"], None)
+        out.append(d)

@@ -15,7 +15,8 @@ import handlers_drops
 import handlers_world
 from database import acquire_lease, col, game_settings, try_cooldown
 from service_combat import pvp_timeouts
-from service_drops import art_reconcile, art_settle, expire_drops
+from service_drops import art_reconcile, art_settle, expire_drops, typing_expire
+from service_hollowraid import quincy_expire, quincy_tick
 from service_economy import settle_listings
 from service_interact import expire_bounties
 from service_world import active_boss, boss_due, expire_bosses, group_doc, spawn_boss
@@ -60,6 +61,16 @@ async def tick(bot):
                                                               {"$set": {"refresh_at": now}}, return_document=ReturnDocument.AFTER)
         if hit:
             await handlers_world.refresh_global_boss(bot, hit)
+    # --- NEW BLEACH VIRAL SYSTEM: Quincy invasion + unwon typing races ---
+    try:
+        for doc in await quincy_tick():
+            await handlers_world.post_quincy(bot, doc)
+        for doc in await quincy_expire():
+            await handlers_world.end_quincy_lost(bot, doc)
+        for d in await typing_expire():
+            await handlers_drops.announce_typing_expired(bot, d)
+    except Exception:
+        log.exception("viral systems tick failed")
     for doc, ev, outcome, forfeit in await pvp_timeouts():
         if not doc.get("msg_id"):
             continue

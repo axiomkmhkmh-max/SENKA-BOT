@@ -4,6 +4,7 @@ import time
 
 from aiogram.types import BotCommand, BotCommandScopeChat
 
+from admin_fa import ACTION_FA, EVENT_FA, LANG_FA, ROLE_FA, setting_label
 from cmdlist import ADMIN_CMDS_EN, ADMIN_CMDS_FA, CMD_EN, CMD_FA
 from config import GAME_DEFAULTS, settings
 from database import col, game_settings, set_game_setting
@@ -16,6 +17,7 @@ import logging
 log = logging.getLogger("senka.adminpanel")
 KEYS = sorted(GAME_DEFAULTS)
 PAGE = 10
+AUD_FA = {"fa": "فارسی", "en": "انگلیسی", "all": "همه"}
 
 
 def T(ctx, fa, en):
@@ -57,6 +59,7 @@ async def main_menu(ctx, lvl):
     st = await game_settings()
     mt = T(ctx, "🔧 تعمیرات: روشن ✅" if st["maintenance"] else "🔧 تعمیرات: خاموش", "🔧 Maintenance: ON ✅" if st["maintenance"] else "🔧 Maintenance: off")
     role = next((k for k, v in ROLES.items() if v == lvl), "?")
+    role = ROLE_FA.get(role, role) if ctx.lang == "fa" else role
     rows = [[(T(ctx, "📊 آمار زنده", "📊 Live stats"), "adm", ""), (T(ctx, "🌍 دنیا", "🌍 World"), "adw", "")],
             [(T(ctx, "👤 کاربر", "👤 Users"), "adu", ""), (T(ctx, "📣 پیام همگانی", "📣 Broadcast"), "adc", "")],
             [(T(ctx, "⚙️ تنظیمات بازی", "⚙️ Game settings"), "ads", "0"), (mt, "adt", "")],
@@ -92,7 +95,7 @@ async def world_panel(ctx, arg):
     rows = []
     if lvl >= 60:
         rows += [[(T(ctx, "🐉 ظهور باس", "🐉 Spawn boss"), "adx", "bs"), (T(ctx, "⛔ پایان باس", "⛔ End boss"), "adx", "be")]]
-        rows += chunk([(f"{e['icon']} {k}", "adx", "ev:" + k) for k, e in EVENTS.items()], 3)
+        rows += chunk([(f"{e['icon']} {EVENT_FA.get(k, k) if ctx.lang == 'fa' else k}", "adx", "ev:" + k) for k, e in EVENTS.items()], 3)
         rows += [[(T(ctx, "⏹ پایان رویداد", "⏹ End event"), "adx", "ee"), (T(ctx, "🏁 پایان فصل", "🏁 End season"), "adx", "se")],
                  [(T(ctx, "🔄 ریست دنیا", "🔄 Reset world"), "adx", "rs?")]]
     rows.append(_back(ctx))
@@ -130,7 +133,7 @@ async def settings_list(ctx, arg):
     pages = (len(KEYS) + PAGE - 1) // PAGE
     p = max(0, min(int(arg or 0), pages - 1)) if str(arg).lstrip("-").isdigit() else 0
     st = await game_settings()
-    items = [(f"{k}: {_short(st[k])}"[:34], "adk", str(KEYS.index(k))) for k in KEYS[p * PAGE:(p + 1) * PAGE]]
+    items = [(f"{setting_label(k, ctx.lang == 'fa')}: {_short(st[k])}"[:48], "adk", str(KEYS.index(k))) for k in KEYS[p * PAGE:(p + 1) * PAGE]]
     rows = chunk(items, 2)
     pn = []
     if p > 0:
@@ -175,7 +178,7 @@ async def setting_edit(ctx, arg):
     if new != old:
         await set_game_setting(key, new)
         await alog(ctx.uid, "set", key, old, new)
-    text = head(ctx, "ttl_adm") + f"<code>{key}</code>\n{T(ctx, 'الان', 'Now')}: <b>{_short(new)}</b>\n{T(ctx, 'پیش‌فرض', 'Default')}: {_short(default)}"
+    text = head(ctx, "ttl_adm") + f"<b>{setting_label(key, ctx.lang == 'fa')}</b>\n<code>{key}</code>\n{T(ctx, 'الان', 'Now')}: <b>{_short(new)}</b>\n{T(ctx, 'پیش‌فرض', 'Default')}: {_short(default)}"
     ix = str(idx)
     if isinstance(default, bool):
         rows = [[(T(ctx, "🔁 تغییر", "🔁 Toggle"), "adk", ix + ":t")]]
@@ -227,13 +230,17 @@ async def _user_card(ctx, tid):
         return Out(T(ctx, "کاربر پیدا نشد.", "User not found."), [nav(ctx, ("adu", ""))])
     ch = await get_char(tid)
     lvl = await admin_level(ctx.uid)
-    body = f"<code>{tid}</code> @{esc(u.get('username') or '-')} · {u.get('lang', '?')}\n"
+    body = f"<code>{tid}</code> @{esc(u.get('username') or '-')} · {LANG_FA.get(u.get('lang'), u.get('lang', '?')) if L == 'fa' else u.get('lang', '?')}\n"
     body += T(ctx, "🚫 بن‌شده", "🚫 banned") + "\n" if u.get("banned") else ""
     body += f"⚠️ {u.get('warns', 0)}\n"
     if ch:
-        body += f"{esc(ch['name'])} | {ch['race']} | Lv {ch['level']} | 🪙 {fnum(ch['coins'], L)} | ⭐ {ch['rating']}"
+        from data_races import RACES
+        rn = RACES.get(ch['race'], {}).get('name_fa' if L == 'fa' else 'name_en', ch['race'])
+        body += f"{esc(ch['name'])} | {rn} | {T(ctx, 'سطح', 'Lv')} {ch['level']} | 🪙 {fnum(ch['coins'], L)} | ⭐ {ch['rating']}"
         if ch.get("division"):
-            body += f" | {ch['division']}"
+            from data_bleach import DIV_BY_ID
+            dv = DIV_BY_ID.get(ch['division'])
+            body += f" | {(dv['fa'] if L == 'fa' else dv['en']) if dv else ch['division']}"
     rows = []
     if lvl >= 40:
         rows.append([(T(ctx, "✅ آنبن", "✅ Unban") if u.get("banned") else T(ctx, "🚫 بن", "🚫 Ban"), "adb", f"{'ub' if u.get('banned') else 'bn'}.{tid}"),
@@ -298,8 +305,8 @@ async def broadcast_panel(ctx, arg):
         return _deny(ctx)
     if arg in ("fa", "en", "all"):
         await _set_input(ctx, "ad_bc_" + arg)
-        return Out(head(ctx, "ttl_adm") + T(ctx, f"متن پیام ({arg}) را بفرست. «لغو» برای انصراف.", f"Send the message text ({arg}). Type cancel to abort."), [_back(ctx)])
-    rows = [[("🌐 " + T(ctx, "همه", "Everyone"), "adc", "all")], [("🇮🇷 فارسی", "adc", "fa"), ("🇬🇧 English", "adc", "en")], _back(ctx)]
+        return Out(head(ctx, "ttl_adm") + T(ctx, f"متن پیام ({AUD_FA[arg]}) را بفرست. «لغو» برای انصراف.", f"Send the message text ({arg}). Type cancel to abort."), [_back(ctx)])
+    rows = [[("🌐 " + T(ctx, "همه", "Everyone"), "adc", "all")], [("🇮🇷 فارسی", "adc", "fa"), (T(ctx, "🇬🇧 انگلیسی", "🇬🇧 English"), "adc", "en")], _back(ctx)]
     return Out(head(ctx, "ttl_adm") + T(ctx, "پیام همگانی برای چه کسانی؟", "Broadcast to whom?"), rows)
 
 
@@ -340,7 +347,7 @@ async def log_panel(ctx, arg):
     lines = []
     for d in docs:
         hm = time.strftime("%m-%d %H:%M", time.gmtime(d["at"] + 12600))
-        lines.append(f"<code>{hm}</code> {d['admin']} · {esc(str(d['action']))} → {esc(str(d.get('target')))}")
+        lines.append(f"<code>{hm}</code> {d['admin']} · {esc(ACTION_FA.get(d['action'], str(d['action'])) if ctx.lang == 'fa' else str(d['action']))} → {esc(str(d.get('target')))}")
     return Out(head(ctx, "ttl_adm") + ("\n".join(lines) or "—"), [_back(ctx)])
 
 
@@ -357,8 +364,8 @@ async def admins_panel(ctx, arg):
         await alog(ctx.uid, "rmadmin", tid, None, None, "panel")
         await refresh_admin_commands(ctx.bot, tid, False)
     docs = await col("admin_users").find({}).to_list(50)
-    lines = [f"👑 <code>{settings.owner_id}</code> owner"] + [f"• <code>{d['user_id']}</code> {d.get('role')}" for d in docs]
+    lines = [f"👑 <code>{settings.owner_id}</code> {T(ctx, 'مالک', 'owner')}"] + [f"• <code>{d['user_id']}</code> {ROLE_FA.get(d.get('role'), d.get('role')) if ctx.lang == 'fa' else d.get('role')}" for d in docs]
     rows = chunk([(f"❌ {d['user_id']}", "ada", f"rm.{d['user_id']}") for d in docs], 3) if lvl >= 100 else []
     rows.append(_back(ctx))
-    hint = T(ctx, "\n\nافزودن: <code>addadmin آیدی نقش</code> (admin، moderator، support، super)", "\n\nAdd: <code>addadmin id role</code> (admin, moderator, support, super)")
+    hint = T(ctx, "\n\nافزودن: <code>افزودن ادمین آیدی نقش</code> (ادمین، ناظر، پشتیبان، سوپر)", "\n\nAdd: <code>addadmin id role</code> (admin, moderator, support, super)")
     return Out(head(ctx, "ttl_adm") + "\n".join(lines) + (hint if lvl >= 100 else ""), rows)

@@ -17,6 +17,7 @@ import handlers_bleach  # noqa: F401  (allegiance panel)
 import handlers_zanpakuto  # noqa: F401 (Zanpakuto progression)
 import handlers_senkaimon  # noqa: F401 (Senkaimon portal)
 import handlers_hollowraid
+import handlers_viral  # --- NEW BLEACH VIRAL SYSTEM
 import handlers_bleach_systems  # noqa: F401 (race, story, Kidō and faction progression)
 import handlers_adminpanel  # noqa: F401  (admin button panel)
 import handlers_items
@@ -236,6 +237,10 @@ async def on_group_text(message: Message, text: str):
         return
     if await handlers_hollowraid.raid_hook(message, n):
         return
+    if await handlers_viral.viral_hook(message, text, n):  # --- NEW BLEACH VIRAL SYSTEM: espada fights, hogyoku theft, quincy strikes
+        return
+    if n in ("مبارزه", "fight") and message.reply_to_message:  # a plain duel when no Espada seat is at stake
+        text = n = "دوئل"
     if not allow(user.id, "grp", 1.5):
         return
     if n in ("spawn boss", "ظهور باس"):
