@@ -69,3 +69,19 @@ SENKA is a combat/progression/competition MMORPG. Story mode is **retired**: the
 - Rule: old ids never change. New items are appended (keys come last in `data_items.PLAN`); only the 10 Kidō cards that gained a spell name were renamed (id, stats and effect unchanged).
 - When adding a dungeon: add it to `data_races.DUNGEONS`, `DUNGEON_IDS` in **both** `data_items` and `data_crafting`, raise the `key` count in `PLAN` (5 per dungeon) and add `DUNGEON_LORE`. When adding a location: `LOCATIONS`, `LOC_DESC` and `LORE`.
 - Tests: `python -m unittest discover -s tests -v` (pure data checks, no MongoDB/Telegram needed).
+
+
+## Bleach content pack 3 (data-only, additive)
+- 8 locations: Kurosaki Clinic, Seireitei Gate (White Road), Kuchiki Manor, Shiba Estate, Visored Warehouse, R&D Institute, Las Noches Throne Hall, Schatten Bereich. Wired into `LOC_DESC`, `LORE`, the Siege / Garganta / Winter War event location lists.
+- 4 dungeons (4 × 5 key difficulties + key recipes): Clinic Night Watch, Visored Gauntlet, SRDI Laboratory, Depths of Schatten Bereich. `DUNGEON_IDS` (items + crafting), `PLAN` key count (60 → 80), `_KEY_COST_K` and `DUNGEON_LORE` updated.
+- 12 world bosses `boss_62`..`boss_73` (Ikkaku, Renji, Rukia, Nelliel, Komamura, Hitsugaya, Yoruichi, Urahara, Ukitake, Kyōraku, Ichibe, Ichigo) using only existing traits.
+- 30 gacha characters `ch_120`..`ch_149` (Rare+ have epithets), 8 organisations, 6 one-of-a-kind artifacts, 6 story quests (`arcx*`), 6 dispatch missions, 12 Soul Tower enemies, 3 named spells (Seki, Tenteikūra, Zangeki).
+- Rule kept: old ids never change. Only 3 Kidō cards gained a spell name (id, stats and effect unchanged).
+- Tests: `python -m unittest discover -s tests -v` (pure data checks; no MongoDB / Telegram needed).
+
+
+## Bleach content pack 4 (data-only, additive)
+- 8 locations: Junrinan, Karakura High School, Urahara Shop, 4th Division Relief Station, Captains' Assembly Hall, Jigoku, Sternritter Hall, Hōgyoku Chamber.
+- 4 dungeons (+20 keys, key count 80 → 100): Karakura High Midnight, Captains' Assembly Trial, Pit of Jigoku, Hōgyoku Vault.
+- 13 world bosses `boss_74`..`boss_86`, 25 gacha characters `ch_150`..`ch_174` (Bankai / Resurrección / Shikai forms of fan favourites), 6 organisations, 5 artifacts, 6 quests (`arcy*`), 6 dispatch missions, 12 Soul Tower enemies.
+- Old ids unchanged (verified against the pack 3 build). Tests: `python -m unittest discover -s tests -v`.

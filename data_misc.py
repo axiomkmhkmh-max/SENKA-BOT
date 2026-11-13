@@ -271,7 +271,85 @@ LORE.update({
               ("زمین زیر پایت تکرار می‌شود؛ هر قدم همان قدم قبلی است.", "The ground beneath you repeats; every step is the one before.")],
 })
 
+# ---- Bleach content pack 3: atmosphere + lore for the new locations ----
+LOC_DESC.update({
+    "kurosaki_clinic": ("کلینیکی کوچک با چراغ همیشه روشن؛ شبانه، بیمارانش همیشه انسان نیستند.", "A small clinic with a lamp always lit; at night, not every patient is human."),
+    "seireitei_gate": ("دروازه‌ای که از آن بالاتر راهی نیست؛ گذر از آن یعنی رسیدن یا مردن.", "A gate with no road beyond it; to cross is to arrive or to fall."),
+    "kuchiki_manor": ("باغی بی‌نقص و دیوارهایی بی‌صدا؛ غرور اینجا با سنگ ساخته شده.", "A flawless garden and silent walls; pride here is built of stone."),
+    "shiba_estate": ("خانه‌ای که آتش‌بازی را به هنر و جنگ را به جشن تبدیل می‌کند.", "A house that turns fireworks into art and war into festival."),
+    "visored_warehouse": ("انباری قدیمی با ماسک‌هایی که نگاهت می‌کنند؛ تمرین اینجا دو رو دارد.", "An old warehouse with masks that watch you; training here has two faces."),
+    "research_institute": ("آزمایشگاهی که پرسش را بر جان مقدم می‌دارد؛ نمونه‌ها هنوز نفس می‌کشند.", "A laboratory that puts the question before the life; its specimens still breathe."),
+    "las_noches_throne": ("تالاری که تاجش را از شن ساخته‌اند؛ هر ستون یک خواسته‌ی برآورده‌نشده است.", "A hall whose crown is made of sand; every pillar is an unfulfilled wish."),
+    "schatten_bereich": ("جهان سایه‌ی امپراتور؛ ستاره‌ها اینجا روی زمین می‌افتند.", "The Emperor's shadow-world; here the stars fall to the ground."),
+})
+LORE.update({
+    "kurosaki_clinic": [("پرستاری می‌گوید: «بیمار اتاق سه امشب هم نیامد؛ فقط سایه‌اش آمد.»", "A nurse says: “The patient in room three didn't come tonight, only his shadow did.”"),
+                        ("روی میز پذیرش یک فنجان چای هست که هیچ‌وقت سرد نمی‌شود.", "A cup of tea sits on the reception desk and never goes cold."),
+                        ("از پنجره‌ی طبقه‌ی بالا صدای دعوای دو خواهر می‌آید؛ بعد خنده‌شان.", "From an upstairs window comes two sisters bickering, then laughing.")],
+    "seireitei_gate": [("غولی پای دروازه می‌گوید: «تا زنده‌ام کسی از اینجا رد نمی‌شود، مگر اینکه بتواند مرا بلند کند.»", "A giant at the gate says: “While I live no one passes, unless they can lift me.”"),
+                       ("جاده‌ی سفید زیر آفتاب برق می‌زند؛ هر رد پا روی آن زود محو می‌شود.", "The white road gleams in the sun; every footprint fades fast."),
+                       ("بالای دروازه پرچمی بی‌نشان تکان می‌خورد، گویی منتظر نامی است.", "A blank banner flutters above the gate as if waiting for a name.")],
+    "kuchiki_manor": [("خدمتکاری بی‌صدا تعظیم می‌کند و بی‌آنکه چیزی بپرسد مسیر را نشانت می‌دهد.", "A silent retainer bows and points your way without a question."),
+                      ("گلبرگ‌ها در باد می‌چرخند، انگار تیغه‌ای ناپیدا آن‌ها را هدایت می‌کند.", "Petals swirl in the wind as if an unseen blade guides them."),
+                      ("پیرمردی کنار حوض می‌گوید: «قانون محکم‌تر از سنگ است، تا وقتی دلی نشکند.»", "An old man by the pond says: “Law is firmer than stone, until a heart breaks.”")],
+    "shiba_estate": [("کسی از پشت‌بام فریاد می‌زند: «اول آتش‌بازی، بعد سؤال!»", "Someone shouts from the roof: “Fireworks first, questions later!”"),
+                     ("توپی بزرگ و دودزده وسط حیاط ایستاده و هنوز بوی شب‌های جشن می‌دهد.", "A great soot-black cannon stands in the yard and still smells of festival nights."),
+                     ("نشان خاندان روی دروازه‌ی چوبی حک شده؛ حاشیه‌اش سوخته اما ناخوانا نیست.", "The clan crest is carved on the wooden gate; its edge is scorched but legible.")],
+    "visored_warehouse": [("ماسکی روی دیوار آویزان است و وقتی رد می‌شوی، چشم‌هایش به دنبالت می‌چرخد.", "A mask hangs on the wall and its eyes follow you as you pass."),
+                          ("صدایی از زیرزمین: «اگر ماسکت را کنترل نکنی، او کنترلت می‌کند.»", "A voice from the cellar: “If you don't control your mask, it controls you.”"),
+                          ("روی زمین تمرین، جای پاهای بی‌شماری مانده؛ بعضی‌ها دو رو دارند.", "The practice floor bears countless footprints; some of them have two faces.")],
+    "research_institute": [("پشت شیشه‌ی ضخیم چیزی تکان می‌خورد و نمی‌خواهی بدانی چیست.", "Behind thick glass something moves, and you don't want to know what."),
+                           ("روی تخته‌ی آزمایشگاه یادداشتی مانده: «نمونه ۴۴ فرار کرد. دوباره.»", "A note left on the lab board: “Specimen 44 escaped. Again.”"),
+                           ("چراغ‌ها بی‌دلیل چشمک می‌زنند، گویی ساختمان هم دارد فکر می‌کند.", "The lights blink for no reason, as though the building itself were thinking.")],
+    "las_noches_throne": [("روی تخت، صندلی خالی و سایه‌ای که هنوز اینجا نشسته.", "On the dais an empty chair, and a shadow that still sits there."),
+                          ("ستون‌ها از شن ساخته شده‌اند؛ هر کدام آهسته می‌ریزد.", "The pillars are made of sand; each one slowly crumbles."),
+                          ("صدایی می‌پرسد: «اگر همه‌چیز را داشتی، باز هم می‌جنگیدی؟»", "A voice asks: “If you had everything, would you still fight?”")],
+    "schatten_bereich": [("ستاره‌ای از آسمان می‌افتد و پیش از رسیدن به زمین خاموش می‌شود.", "A star falls from the sky and goes out before it reaches the ground."),
+                         ("سایه‌ای از خودت جلوتر می‌رود و پیش از تو تعظیم می‌کند.", "A shadow walks ahead of you and bows before you do."),
+                         ("هر قدم یک نام را زمزمه می‌کند، نام کسانی که پیش‌تر اینجا آمدند.", "Each step whispers a name, those of the ones who came here before.")],
+})
+
+# ---- Bleach content pack 4: atmosphere + lore ----
+LOC_DESC.update({
+    "junrinan": ("اولین محله‌ی روکونگای؛ جایی که هر سفر پس از مرگ آغاز می‌شود.", "The first district of Rukongai, where every journey after death begins."),
+    "karakura_high": ("راهروهای ساکت، کلاس‌های خالی و ریاتسویی که از دیوار می‌چکد.", "Quiet halls, empty classrooms, and reiatsu dripping from the walls."),
+    "urahara_shop": ("مغازه‌ای کوچک که هرچه می‌خواهی در آن هست، به‌جز پاسخ سؤال‌هایت.", "A small shop with everything you want except answers to your questions."),
+    "relief_station": ("بوی گیاهان دارویی و سکوتی که می‌خواهد زخم‌ها را بخواباند.", "The smell of herbs and a silence that tries to put wounds to sleep."),
+    "captains_hall": ("تالاری که فرمان‌ها در آن می‌افتند و جهان‌ها تصمیم‌شان را می‌گیرند.", "A hall where orders are given and worlds make up their minds."),
+    "jigoku": ("دوزخ؛ زنجیر و شعله، و ردی از خندهی گناهان کهنه.", "Hell: chains, flame, and the faint laugh of old sins."),
+    "sternritter_hall": ("تالاری از نور سرد؛ هر ستاره‌ی روی دیوار نامی دارد.", "A hall of cold light; every star on the wall bears a name."),
+    "hogyoku_chamber": ("بلوری در میانه‌ی اتاق می‌تپد؛ هر خواسته‌ای را می‌شنود و هیچ‌کدام را رایگان برآورده نمی‌کند.", "A crystal pulses in the middle of the room; it hears every wish and grants none for free."),
+})
+LORE.update({
+    "junrinan": [("پیرمردی نان می‌فروشد و می‌گوید: «همه از همین‌جا شروع می‌کنند.»", "An old man sells bread and says: “Everyone starts right here.”"),
+                 ("کودکی نقشه‌ی محله را روی خاک می‌کشد و راه میان‌بُر را نشانت می‌دهد.", "A child draws the district map in the dirt and shows you the shortcut."),
+                 ("چراغ‌های کاغذی در باد تکان می‌خورند، گویی یاد کسانی‌اند که رفتند.", "Paper lanterns sway in the wind as if remembering those who left.")],
+    "karakura_high": [("زنگ تفریح می‌خورد، اما هیچ‌کس در حیاط نیست.", "The recess bell rings, but the yard is empty."),
+                      ("روی تخته نوشته‌ای نیمه‌پاک‌شده: «ریاتسو را جدی بگیرید.»", "A half-erased line on the board: “Take reiatsu seriously.”"),
+                      ("از پشت‌بام خنده‌ای می‌آید؛ بالا که می‌روی، فقط باد است.", "Laughter from the roof; you climb up and find only wind.")],
+    "urahara_shop": [("تابلوی «تخفیف ویژه» دارد و درست زیرش «ورود با مسئولیت خودتان».", "A “special discount” sign hangs above “enter at your own risk.”"),
+                     ("پسرکی جارو را مثل تیغه می‌چرخاند و می‌گوید: «سخت‌تر!»", "A boy swings a broom like a blade and says: “Harder!”"),
+                     ("از اتاق پشتی صدای خنده‌ای می‌آید که هیچ‌کس توضیحش نمی‌دهد.", "A laugh comes from the back room that no one will explain.")],
+    "relief_station": [("پرستاری با لبخند می‌گوید: «اول بنشین، بعد قهرمان شو.»", "A nurse says with a smile: “Sit first, be a hero after.”"),
+                       ("بوی چای گیاهی تمام راهرو را پر کرده است.", "The scent of herbal tea fills the whole corridor."),
+                       ("روی تخت آخر پتویی تاشده؛ می‌گویند صاحبش خودش را سالم تحویل داد.", "A blanket lies folded on the last bed; they say its owner left on his own feet.")],
+    "captains_hall": [("صندلی‌ها دایره‌وار چیده شده‌اند و یکی خالی است.", "The seats form a circle and one of them is empty."),
+                      ("هائوری‌ای سفید روی چوب‌لباسی آویزان است؛ هنوز بوی تیغ می‌دهد.", "A white haori hangs on a stand; it still smells of steel."),
+                      ("پیرمردی می‌گوید: «تصمیم‌ها اینجا سنگین‌ترند از شمشیرها.»", "An old man says: “Decisions here weigh more than swords.”")],
+    "jigoku": [("زنجیری از دل شعله بیرون می‌آید و پیش از تو می‌ایستد.", "A chain rises from the flame and stops before you."),
+               ("صدایی می‌پرسد: «بدهی‌ات را کی می‌پردازی؟»", "A voice asks: “When will you pay your debt?”"),
+               ("آسمان سرخ است و هر ستاره‌اش زنجیری است.", "The sky is red and each of its stars is a chain.")],
+    "sternritter_hall": [("روی هر صندلی نشانی از یک حرف حک شده.", "A letter is carved on every seat."),
+                         ("نوری سرد از سقف می‌ریزد و سایه‌ات را باریک می‌کند.", "Cold light falls from the ceiling and thins your shadow."),
+                         ("صدای قدم‌هایی در سکوت؛ و بعد هیچ.", "Footsteps in the silence, and then nothing.")],
+    "hogyoku_chamber": [("بلور می‌تپد و ضرباهنگش به دلت می‌افتد.", "The crystal pulses and its beat finds your heart."),
+                        ("هر خواسته‌ای را که فکر کنی، اتاق پیش‌تر می‌داند.", "Whatever wish you think of, the room already knows."),
+                        ("روی دیوار سایه‌هایی ایستاده‌اند که صاحب ندارند.", "Shadows with no owners stand against the wall.")],
+})
+
 # ---- named Hadō / Bakudō spells (names only; card ids and effects never change) ----
 KIDO_NAMES.update({("had", 11): "Tsuzuri Raiden", ("had", 12): "Fushibi", ("had", 32): "Ōkasen", ("had", 54): "Haien",
                    ("had", 91): "Senju Kōtenkan", ("had", 96): "Ittō Kasō",
                    ("bak", 21): "Sekienton", ("bak", 26): "Kyokkō", ("bak", 58): "Kakushitsuijaku", ("bak", 75): "Gochūtekkan"})
+# ---- pack 3: three more named spells ----
+KIDO_NAMES.update({("bak", 8): "Seki", ("bak", 77): "Tenteikūra", ("had", 78): "Zangeki"})

@@ -118,5 +118,63 @@ def _build_extra(start):
     return out
 
 
+# ---- Bleach content pack 3: 12 more world bosses (boss_62..boss_73, traits are the existing ones) ----
+_EXTRA3 = [
+    ("Ikkaku Madarame", "ایککاکو مادارامه", "enrage", 24, "می‌خندد؛ جنگ برایش یک جشن کوچک است.", "He laughs; to him a fight is a small festival."),
+    ("Renji Abarai", "رنجی آبارای", "bleed", 29, "تیغه‌اش بند‌بند می‌شود و هر بندش دندان دارد.", "His blade splits into joints, and each joint has teeth."),
+    ("Rukia Kuchiki", "روکیا کوچیکی", None, 34, "سفید، سرد و آرام؛ مثل برف پیش از طوفان.", "White, cold and calm, like snow before a storm."),
+    ("Nelliel Tu Odelschwanck", "نلیل تو اودلشوانک", "dodge", 44, "یاد گرفته چگونه از ضربه جا بخالی؛ و چگونه برگردد.", "She has learned to slip a blow, and to come back."),
+    ("Sajin Komamura", "ساجین کوماموتو", "armor", 48, "غولی از زره و وفاداری.", "A giant of armor and loyalty."),
+    ("Toshiro Hitsugaya", "توشیرو هیتسوگایا", None, 52, "کوچک‌ترین کاپیتان؛ سردترین نگاه.", "The smallest captain; the coldest gaze."),
+    ("Yoruichi Shihoin", "یورویچی شیهوئین", "dodge", 57, "پیش از آنکه ببینی‌اش، رفته است.", "She is gone before you see her."),
+    ("Kisuke Urahara", "کیسوکه اوراهارا", "illusion", 63, "پشت بادبزن لبخند می‌زند؛ و هر ضربه‌اش از قبل حساب شده.", "He smiles behind a fan; every blow is calculated in advance."),
+    ("Jushiro Ukitake", "جوشیرو اوکیتاکه", "burn", 68, "نجیب و مریض؛ ولی شعله‌اش را از هیچ‌کس قرض نمی‌گیرد.", "Noble and frail, yet he borrows his flame from no one."),
+    ("Shunsui Kyoraku", "شونسویی کیوراکو", "dodge", 72, "بازی می‌کند؛ و قواعد بازی را او می‌نویسد.", "He plays, and he writes the rules of the game."),
+    ("Ichibe Hyosube", "ایچیبه هیوسوبه", "decay", 84, "نامی که بگیرد، دیگر مال تو نیست.", "A name he takes is no longer yours."),
+    ("Ichigo Kurosaki", "ایچیگو کوروساکی", "enrage", 96, "تیغه‌اش سیاه است و تنها دلیلش، کسانی‌اند که پشت اویند.", "His blade is black and his only reason is those behind him."),
+]
+
+
+def _build_extra3(start):
+    out = []
+    for j, (en, fa, trait, lvl, e_fa, e_en) in enumerate(_EXTRA3):
+        bid = f"boss_{start + j:02d}"
+        out.append({"_id": bid, "boss_id": bid, "name_en": en, "name_fa": fa, "level": lvl,
+                    "hp": int((2.2 * lvl + 15) * 120 * (1 + lvl / 60)), "attack": 20 + lvl * 7, "defense": 2 + lvl * 1.1,
+                    "trait": trait, "epi_fa": e_fa, "epi_en": e_en})
+    return out
+
+
+
+# ---- Bleach content pack 4: 13 more world bosses (boss_74..boss_86) ----
+_EXTRA4 = [
+    ("Shuhei Hisagi", "شوهی هیساگی", "bleed", 27, "شمشیرش را روی خاطره تیز می‌کند.", "He sharpens his sword on memory."),
+    ("Hiyori Sarugaki", "هیوری ساروگاکی", "enrage", 30, "کوچک است، ولی خشمش از قدش بلندتر است.", "She is small, but her rage stands taller than she does."),
+    ("Rangiku Matsumoto", "رانگیکو ماتسوموتو", "decay", 37, "خاکستری که می‌رقصد و هرچه لمس کند، می‌پوسد.", "Ash that dances and withers whatever it touches."),
+    ("Yasutora Sado", "یاسوتورا سادو", "armor", 40, "دیواری که مشت می‌زند.", "A wall that throws punches."),
+    ("Soi Fon", "سوی فون", "dodge", 41, "سریع‌ترین نیش؛ و بی‌ترین فاصله.", "The fastest sting at the shortest distance."),
+    ("Kensei Muguruma", "کنسی موگوروما", "bleed", 45, "مشت و تیغ، یک ضربه.", "Fist and blade, one blow."),
+    ("Uryu Ishida", "اوریو ایشیدا", None, 50, "غرور کوئینسی؛ و تیری که خطا نمی‌کند.", "A Quincy's pride and an arrow that does not miss."),
+    ("Kugo Ginjo", "کوگو گینجو", "regen", 60, "رهبری که هرگز تنها نمی‌ماند.", "A leader who is never left alone."),
+    ("Shinji Hirako", "شینجی هیراکو", "illusion", 66, "همه‌چیز وارونه می‌شود، مثل تیغه‌اش.", "Everything turns upside down, like his blade."),
+    ("Bambietta Basterbine", "بامبیتا باستربین", "burn", 70, "هر چیزی را که لمس کند، منفجر می‌کند.", "Whatever she touches, she detonates."),
+    ("Askin Nakk Le Vaar", "اسکین ناک لو وار", "poison", 76, "مرگ را هم قابل مذاکره می‌کند.", "He makes even death negotiable."),
+    ("Gerard Valkyrie", "جرارد والکیری", "regen", 80, "معجزه‌ای که زخم‌ها را پس می‌زند.", "A miracle that turns wounds back."),
+    ("Isshin Shiba", "ایشین شیبا", "burn", 86, "پدری که هنوز می‌تواند جهان را بسوزاند.", "A father who can still burn the world."),
+]
+
+
+def _build_extra4(start):
+    out = []
+    for j, (en, fa, trait, lvl, e_fa, e_en) in enumerate(_EXTRA4):
+        bid = f"boss_{start + j:02d}"
+        out.append({"_id": bid, "boss_id": bid, "name_en": en, "name_fa": fa, "level": lvl,
+                    "hp": int((2.2 * lvl + 15) * 120 * (1 + lvl / 60)), "attack": 20 + lvl * 7, "defense": 2 + lvl * 1.1,
+                    "trait": trait, "epi_fa": e_fa, "epi_en": e_en})
+    return out
+
+
 BOSSES = _build() + _build_extra(len(_NAMES) + 1)
+BOSSES = BOSSES + _build_extra3(len(BOSSES) + 1)
+BOSSES = BOSSES + _build_extra4(len(BOSSES) + 1)
 BOSS_BY_ID = {b["_id"]: b for b in BOSSES}

@@ -9,6 +9,16 @@ TOWER_ENEMIES = [
     ("غول ریشی", "Reishi Ogre"), ("سایه‌ی کیدو", "Kidō Shade"), ("نگهبان اسپادا", "Espada Sentinel"),
     ("استرنریتر گمشده", "Stray Sternritter"), ("آجوکاس تنها", "Lone Adjuchas"), ("ماسک‌دار زنجیری", "Chained Masked"),
     ("پژواک گرند فیشر", "Fisher's Echo"), ("روح بدخواه", "Malevolent Plus"),
+    # ---- pack 3 ----
+    ("شبح بی‌نام", "Nameless Wraith"), ("ستاره‌ی افتاده", "Fallen Star"), ("نگهبان زنجیر", "Chain Sentinel"),
+    ("پژواک بانکای", "Bankai Echo"), ("روح هیرنکیاکو", "Hirenkyaku Wisp"), ("سایه‌ی ماسک شکسته", "Broken Mask Shade"),
+    ("گیلیان کوچک", "Tiny Gillian"), ("ماه‌کش", "Moonchaser"), ("شکارچی ریشی", "Reishi Hunter"),
+    ("سرباز ستاره‌دار", "Star-Marked Soldier"), ("نگهبان کاخ سفید", "White Palace Warden"), ("پژواک سیرایتی", "Seireitei Echo"),
+    # ---- pack 4 ----
+    ("روح کلاس", "Classroom Wraith"), ("موش آزمایشگاهی", "Lab Specimen"), ("نگهبان جیگوکو", "Jigoku Warden"),
+    ("پژواک هوگیوکو", "Hōgyoku Echo"), ("سایه‌ی تالار", "Hall Shade"), ("ستاره‌ی سرد", "Cold Star"),
+    ("گناهکار زنجیری", "Chained Sinner"), ("پرستار روح", "Spirit Nurse"), ("پژواک تیغه", "Blade Echo"),
+    ("دزد ریاتسو", "Reiatsu Thief"), ("سایه‌ی بلور", "Crystal Shade"), ("قاصد دوزخ", "Hell Messenger"),
 ]
 TOWER_BOSS_EVERY = 5
 
@@ -19,6 +29,20 @@ MISSIONS = {
     "scout": {"hours": 8, "level": 20, "fa": "دیده‌بانی هوئکو موندو", "en": "Hueco Mundo Scouting", "k": 1.3},
     "academy": {"hours": 3, "level": 3, "fa": "نگهبانی آکادمی", "en": "Academy Guard Duty", "k": 1.05},
     "garganta": {"hours": 12, "level": 35, "fa": "شناسایی گارگانتا", "en": "Garganta Recon", "k": 1.5},
+    # ---- pack 3 ----
+    "clinic": {"hours": 2, "level": 5, "fa": "کمک در کلینیک کوروساکی", "en": "Kurosaki Clinic Aid", "k": 1.0},
+    "escort": {"hours": 6, "level": 12, "fa": "اسکورت سنکایمون", "en": "Senkaimon Escort", "k": 1.12},
+    "convoy": {"hours": 6, "level": 15, "fa": "کاروان امداد روکونگای", "en": "Rukongai Relief Convoy", "k": 1.18},
+    "spar": {"hours": 4, "level": 25, "fa": "تمرین با ویزوردها", "en": "Sparring with the Visored", "k": 1.22},
+    "lab": {"hours": 8, "level": 30, "fa": "نمونه‌برداری مؤسسه‌ی پژوهش", "en": "R&D Institute Sampling", "k": 1.35},
+    "schatten": {"hours": 12, "level": 55, "fa": "شناسایی شاتن‌برایش", "en": "Schatten Bereich Recon", "k": 1.6},
+    # ---- pack 4 ----
+    "school": {"hours": 3, "level": 4, "fa": "گشت دبیرستان", "en": "School Patrol", "k": 1.0},
+    "shop": {"hours": 4, "level": 9, "fa": "کمک در فروشگاه اوراهارا", "en": "Urahara Shop Shift", "k": 1.1},
+    "relief": {"hours": 6, "level": 16, "fa": "کمک در ایستگاه امداد", "en": "Relief Station Duty", "k": 1.2},
+    "hall": {"hours": 8, "level": 31, "fa": "نگهبانی تالار کاپیتان‌ها", "en": "Captains Hall Guard", "k": 1.35},
+    "jigoku": {"hours": 12, "level": 58, "fa": "شناسایی جیگوکو", "en": "Jigoku Recon", "k": 1.6},
+    "vault": {"hours": 12, "level": 95, "fa": "نگهبانی خزانه‌ی هوگیوکو", "en": "Hōgyoku Vault Watch", "k": 1.8},
 }
 RARITY_MULT = {"Common": 1.0, "Uncommon": 1.15, "Rare": 1.35, "Epic": 1.7, "Legendary": 2.2, "Mythic": 3.0}
 ROLE_NOTE = {  # role -> (fa, en)

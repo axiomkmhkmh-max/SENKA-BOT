@@ -9,8 +9,10 @@ LOC_IDS = list(LOCATIONS)
 VAR_START = {"threat": 20.0, "stability": 70.0}
 REISHI_START = 50.0
 SEI_LOCS = ("soul_society", "seireitei", "rukongai", "karakura", "zaraki_district", "sokyoku_hill",
-            "shinigami_academy", "inuzuri", "senzaikyu", "maggot_nest")
-HOLLOW_LOCS = ("rukongai", "karakura", "hueco_mundo", "las_noches", "dangai", "valley_screams", "forest_menos", "fake_karakura", "garganta_tunnel")
+            "shinigami_academy", "inuzuri", "senzaikyu", "maggot_nest",
+            "seireitei_gate", "kuchiki_manor", "research_institute", "relief_station", "captains_hall")
+HOLLOW_LOCS = ("rukongai", "karakura", "hueco_mundo", "las_noches", "dangai", "valley_screams", "forest_menos", "fake_karakura", "garganta_tunnel",
+               "las_noches_throne", "jigoku")
 KEY_PTS = {"normal": 1, "hard": 2, "nightmare": 4, "abyss": 8, "legendary": 16}
 
 # kind -> data. pts: points per action. locs: where the action must happen (None = anywhere).
@@ -26,8 +28,8 @@ EVENTS = {
                     "locs": None, "mods": {"enemy": 1.30, "drop": 1.20, "xp": 1.25, "coin": 1.0}, "mod_locs": None,
                     "win": {"threat": -10.0, "stability": 10.0}, "lose": {"threat": 5.0, "stability": -12.0}},
     "winter_war": {"icon": "🌑", "pts": {"pve_win": 1, "elite_win": 2, "pvp_win": 3, "boss_hit": 2, "dungeon_clear": 4, "key": 1},
-                   "locs": ("karakura", "fake_karakura", "hueco_mundo", "las_noches", "forest_menos"), "mods": {"enemy": 1.25, "drop": 1.25, "xp": 1.20, "coin": 1.10},
-                   "mod_locs": ("karakura", "fake_karakura", "hueco_mundo", "las_noches", "forest_menos"),
+                   "locs": ("karakura", "fake_karakura", "hueco_mundo", "las_noches", "forest_menos", "kurosaki_clinic", "las_noches_throne", "karakura_high"), "mods": {"enemy": 1.25, "drop": 1.25, "xp": 1.20, "coin": 1.10},
+                   "mod_locs": ("karakura", "fake_karakura", "hueco_mundo", "las_noches", "forest_menos", "kurosaki_clinic", "las_noches_throne", "karakura_high"),
                    "win": {"threat": -12.0, "stability": 8.0}, "lose": {"threat": 8.0, "stability": -10.0}},
     "dangai": {"icon": "🌌", "pts": {"explore": 1, "pve_win": 1, "elite_win": 2, "dungeon_clear": 6, "key": 1},
                "locs": ("dangai", "royal_palace", "soul_king"), "mods": {"enemy": 1.20, "drop": 1.30, "xp": 1.30, "coin": 1.0},

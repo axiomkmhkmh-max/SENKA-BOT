@@ -100,6 +100,40 @@ LOCATIONS.update({
                           [("شبح گارگانتا", "Garganta Wraith"), ("هالوی گذرنده", "Passing Hollow"), ("سایه‌ی تونل", "Tunnel Shade")]),
     "muken": _l("muken", "موکن (جهنم بی‌پایان)", "Muken (Infinite Hell)", 80,
                 [("روح محکوم", "Condemned Soul"), ("زنجیر دوزخ", "Hell Chain"), ("نگهبان دوزخ", "Hell Warden")]),
+    # ---- Bleach content pack 3 ----
+    "kurosaki_clinic": _l("kurosaki_clinic", "کلینیک کوروساکی", "Kurosaki Clinic", 6,
+                          [("هالوی شبانه", "Night Hollow"), ("روح بیمار", "Ailing Spirit"), ("شکارچی پشت‌بام", "Rooftop Stalker")]),
+    "seireitei_gate": _l("seireitei_gate", "دروازه‌ی سیرایتی (جاده‌ی سفید)", "Seireitei Gate (White Road)", 13,
+                         [("نگهبان دروازه", "Gate Sentry"), ("مهاجم شبانه", "Night Intruder"), ("سایه‌ی دیوار سفید", "White Wall Shade")]),
+    "kuchiki_manor": _l("kuchiki_manor", "عمارت کوچیکی", "Kuchiki Manor", 19,
+                        [("خدمتکار سایه", "Shadow Retainer"), ("نگهبان باغ", "Garden Sentinel"), ("شبح خاندان", "Clan Wraith")]),
+    "shiba_estate": _l("shiba_estate", "املاک شیبا", "Shiba Estate", 26,
+                       [("آتش‌باز بی‌پروا", "Reckless Fireworker"), ("نگهبان توپ‌خانه", "Cannon-House Guard"), ("سایه‌ی میدان آتش", "Fire-Yard Shade")]),
+    "visored_warehouse": _l("visored_warehouse", "انبار ویزوردها", "Visored Warehouse", 34,
+                            [("مبارز ماسک‌دار", "Masked Sparrer"), ("پژواک هالو", "Hollow Echo"), ("حریف تمرینی ویزورد", "Visored Sparring Rival")]),
+    "research_institute": _l("research_institute", "مؤسسه‌ی پژوهش و توسعه", "Research & Development Institute", 42,
+                             [("آزمایش فراری", "Escaped Specimen"), ("نگهبان آزمایشگاه", "Lab Warden"), ("نمونه‌ی شکست‌خورده", "Failed Sample")]),
+    "las_noches_throne": _l("las_noches_throne", "تالار تخت لاس‌نوچس", "Las Noches Throne Hall", 50,
+                            [("نگهبان تالار", "Hall Guardian"), ("سایه‌ی تاج", "Crown Shade"), ("فراسیون وفادار", "Loyal Fracción")]),
+    "schatten_bereich": _l("schatten_bereich", "شاتن‌برایش (قلمرو سایه)", "Schatten Bereich (Shadow Realm)", 75,
+                           [("سایه‌ی امپراتور", "Emperor's Shadow"), ("ستاره‌ی سایه", "Shade Star"), ("خادم تاریکی", "Servant of the Dark")]),
+    # ---- Bleach content pack 4 ----
+    "junrinan": _l("junrinan", "جونرینان (روکونگای ۱)", "Junrinan (Rukongai 1)", 2,
+                   [("روح تازه‌رسیده", "Newly Arrived Soul"), ("دزد بازار", "Market Thief"), ("سگ نگهبان", "Guard Dog")]),
+    "karakura_high": _l("karakura_high", "دبیرستان کاراکورا", "Karakura High School", 4,
+                        [("هالوی راهرو", "Hallway Hollow"), ("روح کلاس", "Classroom Spirit"), ("سایه‌ی پشت‌بام", "Rooftop Shade")]),
+    "urahara_shop": _l("urahara_shop", "فروشگاه اوراهارا", "Urahara Shop", 9,
+                       [("موش آزمایشگاهی", "Test Subject"), ("تله‌ی ناشناس", "Unmarked Trap"), ("مشتری مشکوک", "Suspicious Customer")]),
+    "relief_station": _l("relief_station", "ایستگاه امداد جوخه‌ی ۴", "4th Division Relief Station", 16,
+                         [("بیمار بی‌قرار", "Restless Patient"), ("روح زخمی", "Wounded Soul"), ("سایه‌ی بیمارستان", "Infirmary Shade")]),
+    "captains_hall": _l("captains_hall", "تالار جلسه‌ی کاپیتان‌ها", "Captains' Assembly Hall", 31,
+                        [("نگهبان تالار", "Assembly Guard"), ("پژواک فرمان", "Echo of Command"), ("سایه‌ی هائوری", "Haori Shade")]),
+    "jigoku": _l("jigoku", "جیگوکو (دوزخ)", "Jigoku (Hell)", 58,
+                 [("گناهکار زنجیری", "Chained Sinner"), ("نگهبان دوزخ", "Hell Keeper"), ("شعله‌ی محکوم", "Condemned Flame")]),
+    "sternritter_hall": _l("sternritter_hall", "تالار استرنریترها", "Sternritter Hall", 62,
+                           [("ستاره‌دار خاموش", "Silent Star"), ("نگهبان مقدس", "Holy Guard"), ("پژواک ستاره", "Star Echo")]),
+    "hogyoku_chamber": _l("hogyoku_chamber", "اتاق هوگیوکو", "Hōgyoku Chamber", 95,
+                          [("پژواک خواسته", "Echo of a Wish"), ("نگهبان بلور", "Crystal Keeper"), ("سایه‌ی اراده", "Shade of Will")]),
 })
 LOCATIONS = dict(sorted(LOCATIONS.items(), key=lambda kv: kv[1]["level"]))
 
@@ -119,6 +153,20 @@ DUNGEONS.update({
     "senzaikyu_tower": {"fa": "برج سنزایکیو", "en": "Senzaikyū Tower", "level": 25, "stages": 4},
     "maggot_nest": {"fa": "لانه‌ی کرم‌ها", "en": "Maggot's Nest", "level": 38, "stages": 5},
     "muken": {"fa": "موکن؛ جهنم بی‌پایان", "en": "Muken, the Infinite Hell", "level": 78, "stages": 6},
+})
+# ---- Bleach content pack 3 (appended; DUNGEON_IDS in data_items / data_crafting get the same four ids at the end) ----
+DUNGEONS.update({
+    "clinic_nightwatch": {"fa": "نگهبانی شب کلینیک", "en": "Clinic Night Watch", "level": 12, "stages": 3},
+    "visored_gauntlet": {"fa": "گذرگاه آزمون ویزورد", "en": "Visored Gauntlet", "level": 35, "stages": 4},
+    "srdi_lab": {"fa": "آزمایشگاه مؤسسه‌ی پژوهش", "en": "SRDI Laboratory", "level": 48, "stages": 5},
+    "schatten_depths": {"fa": "اعماق شاتن‌برایش", "en": "Depths of Schatten Bereich", "level": 90, "stages": 7},
+})
+# ---- Bleach content pack 4 ----
+DUNGEONS.update({
+    "karakura_midnight": {"fa": "نیمه‌شب دبیرستان کاراکورا", "en": "Karakura High Midnight", "level": 6, "stages": 3},
+    "captains_trial": {"fa": "آزمون تالار کاپیتان‌ها", "en": "Captains' Assembly Trial", "level": 32, "stages": 4},
+    "jigoku_pit": {"fa": "گودال جیگوکو", "en": "Pit of Jigoku", "level": 60, "stages": 6},
+    "hogyoku_vault": {"fa": "خزانه‌ی هوگیوکو", "en": "Hōgyoku Vault", "level": 95, "stages": 7},
 })
 DUNGEONS = dict(sorted(DUNGEONS.items(), key=lambda kv: kv[1]["level"]))
 DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 2.2, "abyss": 3.2, "legendary": 4.5}

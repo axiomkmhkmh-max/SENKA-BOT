@@ -176,3 +176,78 @@ CHAR_EPI.update({
     "Senjumaru Shutara": ("سازنده‌ای که با اراده‌اش شکل می‌دهد.", "A maker who shapes with her will."),
     "Tenjiro Kirinji": ("زخم هر نبرد را مثل یک درس نگه می‌دارد.", "He keeps each battle's scar like a lesson."),
 })
+
+
+# ---- Bleach content pack 3 ----
+DUNGEON_LORE.update({
+    "clinic_nightwatch": {"entry": ("نیمه‌شب؛ چراغ کلینیک روشن است و هوا سنگین‌تر از معمول.", "Midnight; the clinic lamp is lit and the air is heavier than usual."),
+                          "mid": ("در راهرو چیزی می‌خزد؛ بیماران امشب مهمان‌های ناخوانده‌اند.", "Something crawls the corridor; tonight's patients are uninvited guests."),
+                          "final": ("پشت در آخر، سایه‌ای که نمی‌خواهد تا صبح برود.", "Behind the last door, a shadow that will not leave before dawn.")},
+    "visored_gauntlet": {"entry": ("زیرزمین انبار؛ ماسک‌هایی بر دیوار که نگاهت می‌کنند.", "The warehouse cellar; masks on the wall that watch you."),
+                         "mid": ("هر دور سخت‌تر می‌شود و صدای درون سرت بلندتر.", "Each round grows harder and the voice inside your head louder."),
+                         "final": ("آخرین حریف ماسک ندارد؛ فقط چهره‌ی خودت.", "The last rival wears no mask, only your own face.")},
+    "srdi_lab": {"entry": ("درهای شیشه‌ای باز می‌شوند؛ هر اتاق یک آزمایش نیمه‌تمام است.", "Glass doors slide open; every room is an unfinished experiment."),
+                 "mid": ("آژیر قرمز؛ نمونه‌ها دیگر در قفس‌هایشان نیستند.", "Red alarm; the specimens are no longer in their cages."),
+                 "final": ("اتاق مرکزی؛ آنچه آنجاست هنوز پرسشی بی‌پاسخ است.", "The central chamber; what waits there is still an unanswered question.")},
+    "schatten_depths": {"entry": ("پایین‌ترین ستاره؛ زیر پایت جهانی از سایه گسترده است.", "The lowest star; a world of shadow spreads beneath your feet."),
+                        "mid": ("سایه‌ها صف می‌کشند؛ بعضی تعظیم می‌کنند، بعضی تیغ می‌کشند.", "The shadows form ranks; some bow, some draw blades."),
+                        "final": ("ته سایه‌ها؛ تختی خالی و چشمی که همه‌چیز را می‌بیند.", "The bottom of the shadows; an empty throne and an eye that sees all.")},
+})
+CHAR_EPI.update({
+    "Miyako Shiba": ("آرامشی که پشتِ یک نام بزرگ پنهان است.", "A calm hidden behind a great name."),
+    "Hisana Kuchiki": ("مهربانی‌ای که حتی از دور می‌شود حس‌اش کرد.", "A kindness you can feel even from afar."),
+    "Sojun Kuchiki": ("وقار قدیمی که غرور را به وظیفه تبدیل می‌کند.", "Old dignity that turns pride into duty."),
+    "Yylfordt Granz": ("تیرگی‌ای که لبخندش را هم پنهان می‌کند.", "A gloom that hides even his smile."),
+    "Gantenbainne Mosqueda": ("نظم خاموش و خنجری آماده.", "Silent order and a dagger at the ready."),
+    "Charlotte Chuhlhourne": ("زیبایی‌ای که به قیمت دیگران تمام می‌شود.", "A beauty that costs others dearly."),
+    "Nianzol Weizol": ("کوهی که با هر ضربه بزرگ‌تر می‌شود.", "A mountain that grows with every blow."),
+    "Pepe Waccabrada": ("خشمی که پیش از حرف می‌رسد.", "A rage that arrives before words."),
+    "Mask de Masculine": ("ماسکی که از بالاتر از گوشت و پوست است.", "A mask beyond flesh and skin."),
+    "Berenice Gabrielli": ("چشمی که لبخند را از دور شکار می‌کند.", "An eye that hunts a smile from afar."),
+    "NaNaNa Najahkoop": ("شوخی‌اش پرده‌ای روی تیغ است.", "Her jokes are a curtain over a blade."),
+    "Royd Lloyd": ("تقلیدی که از اصل بهتر بازی می‌کند.", "An imitation that plays better than the original."),
+    "Yukio Hans Vorarlna": ("نسخه‌ای از خودش که پیش‌تر می‌رود.", "A version of himself that always moves ahead."),
+    "Wonderweiss Margela": ("فریادی بی‌کلمه که جهان را می‌لرزاند.", "A wordless cry that shakes the world."),
+    "Ichigo Kurosaki (Bankai)": ("سیاهی‌ای که فقط برای محافظت کشیده می‌شود.", "A blackness drawn only to protect."),
+    "Byakuya Kuchiki (Bankai)": ("هزار تیغه، یک تصمیم.", "A thousand blades, one decision."),
+    "Toshiro Hitsugaya (Daiguren)": ("زمستانی که شعله را هم می‌یخ‌زند.", "A winter that freezes even flame."),
+})
+
+
+# ---- Bleach content pack 4 ----
+DUNGEON_LORE.update({
+    "karakura_midnight": {"entry": ("دبیرستان در نیمه‌شب؛ هر در، دری به دنیایی دیگر است.", "The school at midnight; every door opens onto another world."),
+                          "mid": ("کلاس‌ها پر از سایه‌اند و صدای گچ روی تخته می‌آید.", "The classrooms are full of shadows and chalk squeaks on the board."),
+                          "final": ("پشت‌بام؛ ماه بالای سر و چیزی که منتظرت بوده.", "The roof; the moon overhead and something that has been waiting.")},
+    "captains_trial": {"entry": ("تالار خالی است، اما صدای قدم کاپیتان‌ها هنوز در آن می‌پیچد.", "The hall is empty, yet the captains' footsteps still echo."),
+                       "mid": ("هر آزمون صدای فرمانده‌ای را می‌آورد که پیش‌تر راه رفته.", "Each trial brings the voice of a commander who walked it before."),
+                       "final": ("صندلی آخر؛ فقط لایق می‌نشیند.", "The last seat; only the worthy sit.")},
+    "jigoku_pit": {"entry": ("پلکان دوزخ؛ هر پله بدهی‌ای را به یاد می‌آورد.", "The stair of Hell; every step recalls a debt."),
+                   "mid": ("زنجیرها خودشان را به مچت می‌بندند و شعله بوی گناه می‌دهد.", "Chains bind themselves to your wrist and flames smell of sin."),
+                   "final": ("ته گودال؛ نگهبانی که هیچ‌وقت نمی‌خوابد.", "The pit's bottom; a keeper who never sleeps.")},
+    "hogyoku_vault": {"entry": ("خزانه‌ای بی‌دیوار؛ بلورها از هر طرف می‌تپند.", "A vault with no walls; crystals pulse from every side."),
+                      "mid": ("خواسته‌هایی که هیچ‌وقت گفته نشدند، اینجا فرم می‌گیرند.", "Wishes never spoken take shape here."),
+                      "final": ("قلب خزانه؛ بلوری که می‌پرسد: «چه می‌خواهی؟»", "The vault's heart; a crystal that asks: “What do you want?”")},
+})
+CHAR_EPI.update({
+    "Rudbornn Chelute": ("لبخندی که پیش از ضربه می‌رسد.", "A smile that arrives before the blow."),
+    "Ikkaku Madarame (Bankai)": ("نام تیغه‌اش را هنوز با غرور می‌گوید.", "He still says his blade's name with pride."),
+    "Yumichika Ayasegawa (Ruri'iro Kujaku)": ("زیبایی‌ای که می‌خورد و بزرگ می‌شود.", "A beauty that feeds and grows."),
+    "Yasutora Sado (La Muerte)": ("دست راستی که دیوار را به مشت تبدیل می‌کند.", "A right arm that turns a wall into a fist."),
+    "Orihime Inoue (Shun Shun Rikka)": ("شش گلبرگ، یک قول.", "Six petals, one promise."),
+    "Renji Abarai (Bankai)": ("هر بند، یک قول که شکسته نمی‌شود.", "Every joint a vow that does not break."),
+    "Rukia Kuchiki (Bankai)": ("سفیدی‌ای که حتی آسمان را آرام می‌کند.", "A whiteness that calms even the sky."),
+    "Rangiku Matsumoto (Haineko)": ("خاکستری که می‌رقصد و می‌برد.", "Ash that dances and cuts."),
+    "Soi Fon (Bankai)": ("یک ضربه، یک مرگ؛ نه بیشتر.", "One strike, one death; no more."),
+    "Shuhei Hisagi (Bankai)": ("تیغ‌های سیاهش مثل یادآوری تیز است.", "His black blades are sharp as memory."),
+    "Grimmjow Jaegerjaquez (Pantera)": ("پلنگی که از قفس‌ها خسته است.", "A panther tired of cages."),
+    "Nnoitra Gilga (Santa Teresa)": ("شش بازو و یک خنده‌ی بی‌رحم.", "Six arms and a merciless laugh."),
+    "Uryu Ishida (Vollständig)": ("نور ستاره‌ای که غرورش را نگه داشته.", "Starlight that keeps its pride."),
+    "Kenpachi Zaraki (Unleashed)": ("وقتی نام تیغه‌اش را بداند، زمین می‌لرزد.", "When he knows his blade's name, the ground shakes."),
+    "Kisuke Urahara (Bankai)": ("خنده‌ی پشت بادبزن؛ و هزار حساب پشت خنده.", "A laugh behind a fan, and a thousand calculations behind it."),
+    "Shunsui Kyoraku (Bankai)": ("بازی‌ای که قواعدش را خودش می‌نویسد.", "A game whose rules he writes himself."),
+    "Mayuri Kurotsuchi (Bankai)": ("هر زخم یک یادداشت و هر یادداشت یک فاجعه.", "Every wound a note, every note a catastrophe."),
+    "Ulquiorra Cifer (Segunda Etapa)": ("بالی از تاریکی و نگاهی بی‌معنی.", "Wings of darkness and a meaningless gaze."),
+    "Coyote Starrk (Resurrección)": ("هزار گرگ در یک تنهایی.", "A thousand wolves in one loneliness."),
+    "Gin Ichimaru (Bankai)": ("لبخندی که پیش از تیغ می‌رسد.", "A smile that arrives before the blade."),
+})
