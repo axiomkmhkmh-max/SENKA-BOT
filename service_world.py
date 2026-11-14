@@ -180,8 +180,11 @@ async def expire_bosses():
     out = []
     now = int(time.time())
     while True:
+        # a boss already at 0 HP is a kill waiting for settle_boss (the hit that landed it), not an escape:
+        # never let the timer claim it, or the kill is paid as a flee and the killer gets nothing
         doc = await col("boss_sessions").find_one_and_update(
-            {"active": True, "expires_at": {"$lte": now}}, {"$set": {"active": False, "escaped": True, "ended_at": now}},
+            {"active": True, "expires_at": {"$lte": now}, "hp": {"$gt": 0}},
+            {"$set": {"active": False, "escaped": True, "ended_at": now}},
             return_document=ReturnDocument.AFTER)
         if not doc:
             break
