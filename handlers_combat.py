@@ -40,8 +40,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
         r2.append(mk(ctx.t("a_kd", n=E.best_kido(f, "had"), spell=KIDO_NAMES.get(("had", E.best_kido(f, "had")), "")), "kd"))
     if E.can(f, "bk"):
         r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
-    if r2:
-        rows.append(r2)
+    for i in range(0, len(r2), 2):  # at most two long labels per line, so they stay readable on a phone
+        rows.append(r2[i:i + 2])
     if E.can(f, "gt"):  # gathered: release the wave
         rows.append([mk(ctx.t("a_gt"), "gt")])
     if E.can(f, "gx"):  # spirit gauge full: Bankai (Resurrección for Hollow / Arrancar)
