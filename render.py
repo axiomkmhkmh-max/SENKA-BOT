@@ -6,6 +6,7 @@ import random
 from data_bleachfx import RESURRECCION_RACES, move_name
 from data_bosses import BOSS_BY_ID
 from i18n import LOCALES, bar, esc, fnum, t
+from engine_range import ZONE_EN, ZONE_FA
 
 FX_ICON = {"burn": "🔥", "poison": "☠️", "bleed": "🩸", "shock": "⚡", "weaken": "🔻", "fear": "😨", "hiren": "🌪️"}
 
@@ -33,6 +34,32 @@ def pick(lang: str, key: str, **kw) -> str:
     table = LOCALES.get(lang) or LOCALES["en"]
     keys = [key] + [f"{key}_{i}" for i in range(2, 9) if f"{key}_{i}" in table]
     return t(lang, random.choice(keys), **kw)
+
+
+def dist_label(lang: str, d: int) -> str:
+    return (ZONE_FA if lang == "fa" else ZONE_EN).get(int(d), "")
+
+
+def dist_event_text(lang: str, e: dict) -> str:
+    fa = lang == "fa"
+    a, d = esc(e.get("a", "")), esc(e.get("d", ""))
+    if e["k"] == "move":
+        tech = e.get("tech", "")
+        return (f"🏃 {a} با {esc(tech)} به فاصله‌ی {dist_label(lang, e['to'])} رسید" if fa
+                else f"🏃 {a} closes in with {esc(tech)} → {dist_label(lang, e['to'])}")
+    if e["k"] == "retreat":
+        return (f"↩️ {a} عقب کشید ({dist_label(lang, e['to'])})" if fa
+                else f"↩️ {a} backs off ({dist_label(lang, e['to'])})")
+    if e["k"] == "side":
+        return (f"↔️ {a} به حالت جانبی رفت؛ ضربه‌های بعدی سبک‌تر می‌خورن" if fa
+                else f"↔️ {a} sidesteps; the next blows land glancing")
+    if e["k"] == "outrange":
+        return f"💨 {a} به برد نرسید و نوبتش هدر رفت" if fa else f"💨 {a} is out of range and loses the turn"
+    return f"💥 {d} به عقب پرت شد" if fa else f"💥 {d} is knocked back"
+
+
+def dist_line(lang: str, state: dict) -> str:
+    return ("📏 فاصله: " if lang == "fa" else "📏 Range: ") + dist_label(lang, state.get("dist", 2))
 
 
 def events_text(lang: str, events: list) -> str:
@@ -73,6 +100,8 @@ def events_text(lang: str, events: list) -> str:
                    "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure",
                    "gauge_full", "unleash_end", "resurrect", "konpaku", "gather"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
+        elif k in ("move", "retreat", "outrange", "knock", "side"):  # distance (فاصله) events
+            out.append(dist_event_text(lang, e))
         elif k == "shield":
             out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))
         elif k == "form":
@@ -110,7 +139,7 @@ def battle_text(lang: str, state: dict, events: list = None, title: str = "") ->
     parts = [title] if title else []
     parts.append(fighter_line(lang, state["a"], "🧑"))
     parts.append(fighter_line(lang, state["b"], "👹"))
-    parts.append(t(lang, "bt_turn", n=fnum(state["turn"], lang)))
+    parts.append(t(lang, "bt_turn", n=fnum(state["turn"], lang)) + "  " + dist_line(lang, state))
     shown = events if events is not None else state.get("last", [])
     if not shown and state.get("turn") == 1 and state.get("intro"):  # opening of a fight: spirit pressure crushes the weaker side
         shown = state["intro"]

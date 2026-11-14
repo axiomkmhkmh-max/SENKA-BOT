@@ -6,6 +6,7 @@ race killers, signature rules and the spirit gauge all keep working inside team 
 Pure logic: no MongoDB, no Telegram.
 """
 import engine as E
+from engine_range import START_DIST, MOVES, ZONE_MAX
 
 TEAM_MIN, TEAM_MAX = 1, 3
 TAG_POWER = 1.10        # first blow of a fighter who was tagged in
@@ -17,7 +18,7 @@ def new_team_state(team_a, team_b, rng=None):
         if not (TEAM_MIN <= len(team) <= TEAM_MAX):
             raise ValueError("a team needs 1 to 3 fighters")
     st = {"teams": {"a": list(team_a), "b": list(team_b)}, "idx": {"a": 0, "b": 0}, "cur": "a",
-          "round": 1, "done": False, "winner": None, "last": []}
+          "round": 1, "done": False, "winner": None, "last": [], "dist": START_DIST}
     for f in list(team_a) + list(team_b):
         f["tag_in"] = False
     return st
@@ -51,6 +52,15 @@ def _check_end(st):
     return False
 
 
+def _view(st, side):
+    """The active pair as a two-fighter view, so the shared distance helpers can run on it."""
+    return {"a": active(st, "a"), "b": active(st, "b"), "cur": side, "dist": E.dist_of(st)}
+
+
+def _sync(st, v):
+    st["dist"] = v["dist"]
+
+
 def act(st, side, action, target=None, rng=None):
     """action: 'atk' or 'tag' (target = index of the fighter to bring in). Returns the events of this action."""
     if st["done"]:
@@ -73,6 +83,25 @@ def act(st, side, action, target=None, rng=None):
         else:  # no valid fighter to bring in: the turn is lost to a plain attack instead
             action = "atk"
             ev.append({"k": "tag_fail"})
+    if action in ("mvs", "mvn", "rt"):  # distance: the turn is spent moving, not striking
+        v = _view(st, side)
+        ev.append(E._range_move(v, side, action))
+        _sync(st, v)
+        action = None
+    if action == "atk":
+        me = active(st, side)
+        band = E._band(me, "atk")
+        d = E.dist_of(st)
+        if band and d > band[1]:  # out of reach: the turn closes the gap
+            v = _view(st, side)
+            ev.append(E._close_in(v, side, band[1]))
+            _sync(st, v)
+            action = None
+        elif band and d < band[0]:  # too close for this weapon: back off
+            v = _view(st, side)
+            ev.append(E.apply_retreat(v, side))
+            _sync(st, v)
+            action = None
     if action == "atk":
         me = active(st, side)
         power = 1.0

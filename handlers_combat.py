@@ -29,6 +29,10 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
     i = 0 if L == "fa" else 1
     mk = lambda label, act: (label, "pa" if pub else "ba", f"{sid}.{act}", pub)
     rows = [[mk(ctx.t("a_atk"), "atk")]]
+    rows.append([mk("🏃 شونپو" if L == "fa" else "🏃 Shunpo", "mvs"),
+                 mk("⚡ سونیدو" if L == "fa" else "⚡ Sonido", "mvn"),
+                 mk("↩️ عقب" if L == "fa" else "↩️ Back", "rt"),
+                 mk("↔️ جانبی" if L == "fa" else "↔️ Side", "sd")])  # distance: close in / back off
     if E.can(f, "hvy"):
         rows[0].append(mk(ctx.t("a_hvy"), "hvy"))
     r2 = []
@@ -216,7 +220,7 @@ async def battle_action(ctx, arg):
 
 
 WORD_ACTIONS = {"حمله": "atk", "ضربه": "atk", "attack": "atk", "atk": "atk", "strike": "atk",
-                "سنگین": "hvy", "heavy": "hvy", "دفاع": "df", "guard": "df", "defend": "df", "defense": "df"}
+                "سنگین": "hvy", "heavy": "hvy", "شونپو": "mvs", "shunpo": "mvs", "سونیدو": "mvn", "sonido": "mvn", "عقب": "rt", "retreat": "rt", "back": "rt", "جانبی": "sd", "sidestep": "sd", "دفاع": "df", "guard": "df", "defend": "df", "defense": "df"}
 WORD_RELEASE = ("بانکای", "bankai", "رهاسازی", "release", "رسورکسیون", "resurreccion", "resurrección")
 
 

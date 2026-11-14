@@ -8,6 +8,8 @@ import random
 from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
 from data_races import soft_stat
 from data_weapons import BEATS
+from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
+                          apply_knockback, zone_mult, SIDESTEP)
 from data_bleachfx import (CERO_BREAK_AI, CERO_BREAK_PLAYER, CHANT_BAK, CHANT_HADO, CHANT_OPEN, GAUGE, RESOLVE,
                            RESURRECCION, RESURRECCION_RACES, SHUNPO_COUNTER, SIG)
 
@@ -23,7 +25,7 @@ def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, 
     return {"name": name, "level": level, "stats": dict(stats), "hp": int(max_hp), "max_hp": int(max_hp),
             "re": int(max_re), "max_re": int(max_re), "weapon": {"attack": w.get("attack", 3), "crit": w.get("crit", 0.0),
             "element": element or w.get("element", "light"), "skills": list(w.get("skills", [])),
-            "type": w.get("weapon_type", "melee")}, "armor": armor, "mods": dict(mods or {}),
+            "type": w.get("weapon_type", "melee"), "reach": reach_for(w.get("weapon_type", "melee"), w.get("reach"))}, "armor": armor, "mods": dict(mods or {}),
             "kido": {"had": list((kido or {}).get("had", [1])), "bak": list((kido or {}).get("bak", [1]))},
             "race": race, "ai": ai, "zmult": zmult, "fx": [], "guard": False, "shield": 0, "luck": luck,
             "form": {"on": 0, "mult": 1.0, "left": 0, "fat": 0, "used": [0, 0], "fx": None},
@@ -146,7 +148,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         crit_p += GAUGE["crit"]
     crit = rng.random() < crit_p
     cm = 1.5 + eff(att, "zanjutsu") * 0.003 + skill_p(att, "surge") / 100
-    dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att)
+    dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * _zone(state, side)
     dmg *= RACE_KILLER.get(att.get("race"), {}).get(dfn.get("race"), 1.0)  # canon race killers (SENKA+)
     ex = skill_p(att, "execute")
     if ex and dfn["hp"] < dfn["max_hp"] * 0.3:
@@ -256,6 +258,71 @@ def best_kido(f, branch):
 
 GETSUGA_COST = 0.15   # share of max reiatsu for the release
 GETSUGA_DMG = 2.4     # strike multiplier of the release (a heavy strike is 1.6)
+
+
+# ---- distance (فاصله): see engine_range.py ----
+MOVE_ACTIONS = {"mvs": "shunpo", "mvn": "sonido", "rt": None}   # player/AI movement actions
+PUSH_KIND = {"hvy": "hvy", "gt": "gt", "gx": "unleash"}         # attacks that knock the target back
+
+
+def dist_of(state):
+    return int(state.get("dist", START_DIST))
+
+
+def _band(f, action):
+    """(min, max) zones this action can hit at, or None when the action ignores distance."""
+    lo, hi = reach_for(f["weapon"].get("type", "melee"), f["weapon"].get("reach"))
+    if action == "atk" or (action == "sg" and f.get("sig") == "bring"):
+        return lo, hi
+    if action in ("hvy", "gx"):
+        return lo, min(ZONE_MAX, hi + 1)
+    if action == "gt":
+        return lo, min(ZONE_MAX, hi + 2)
+    if action == "kd":  # kidō carries: no minimum range
+        return 0, min(ZONE_MAX, hi + 1)
+    if action == "sg" and f.get("sig") == "cero":
+        return 0, ZONE_MAX
+    return None
+
+
+def _zone(state, side):
+    """Damage multiplier from spacing (attacker's weapon vs gap) and the target's stance."""
+    lo, hi = reach_for(state[side]["weapon"].get("type", "melee"), state[side]["weapon"].get("reach"))
+    other = "b" if side == "a" else "a"
+    stance = SIDESTEP["mult"] if (state.get("ang") or {}).get(other) else 1.0
+    return zone_mult(lo, hi, dist_of(state)) * stance
+
+
+def _finish(state, ev, max_turns):
+    _check_end(state, ev)
+    if not state["done"]:
+        advance(state, max_turns)
+    else:
+        state["awaiting"] = False
+    state["last"] = ev
+    return ev
+
+
+def _move(state, side, move):
+    f = state[side]
+    if not can_move(f, move, dist_of(state)):
+        return {"k": "outrange", "a": f["name"]}
+    return apply_move(state, side, move)
+
+
+def _close_in(state, side, hi):
+    """Out of reach: the turn is spent closing the gap (sonido for a long gap, shunpo otherwise)."""
+    d = dist_of(state)
+    long_gap = d - MOVES["shunpo"]["zones"] > hi
+    return _move(state, side, "sonido" if long_gap and can_move(state[side], "sonido", d) else "shunpo")
+
+
+def _range_move(state, side, action):
+    if action == "rt":
+        if dist_of(state) >= ZONE_MAX:
+            return {"k": "outrange", "a": state[side]["name"]}
+        return apply_retreat(state, side)
+    return _move(state, side, MOVE_ACTIONS[action])
 
 
 def can(f, action):
@@ -418,7 +485,7 @@ def _signature(state, side, rng, ev):
         ev.append({"k": "guts", "a": f["name"], "n": h})
 
 
-def do_action(state, action, rng, max_turns=30):
+def _do_action(state, action, rng, max_turns=30):
     side = state["cur"]
     f = state[side]
     ev = []
@@ -440,7 +507,7 @@ def do_action(state, action, rng, max_turns=30):
         if chanted:  # the incantation is spent: full-power spell
             raw *= CHANT_HADO
             _x(f)["chant"] = 0
-        dmg = int(max(1, raw * _dmg_mult(f) * _take_mult(o) - total_def(o) * 0.15))
+        dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.15))
         _apply(state, side, dmg, False, rng, ev, "hado", False)
         ev[-1]["chant"] = chanted
         ev[-1]["num"] = n
@@ -507,6 +574,41 @@ def do_action(state, action, rng, max_turns=30):
     return ev
 
 
+def do_action(state, action, rng, max_turns=30):
+    """Distance-aware action: movement, reach checks, auto-approach/back-off, knockback and sidestep."""
+    side = state["cur"]
+    f = state[side]
+    o = state["b" if side == "a" else "a"]
+    ang = state.setdefault("ang", {"a": 0, "b": 0})
+    ang[side] = 0  # your stance ends when your turn starts; a sidestep below sets it again
+    if action == "sd":
+        if f["re"] < f["max_re"] * SIDESTEP["cost"]:
+            return _finish(state, [{"k": "outrange", "a": f["name"]}], max_turns)
+        f["re"] -= int(f["max_re"] * SIDESTEP["cost"])
+        ang[side] = 1
+        return _finish(state, [{"k": "side", "a": f["name"]}], max_turns)
+    if action in MOVE_ACTIONS:
+        return _finish(state, [_range_move(state, side, action)], max_turns)
+    eff = action if can(f, action) else "atk"
+    band = _band(f, eff)
+    if band:
+        lo, hi = band
+        d = dist_of(state)
+        if d > hi:  # out of reach: the turn closes the gap instead of striking
+            return _finish(state, [_close_in(state, side, hi)], max_turns)
+        if d < lo:  # too close for this weapon: the turn backs off
+            return _finish(state, [apply_retreat(state, side)], max_turns)
+    hp0 = o["hp"]
+    ev = _do_action(state, action, rng, max_turns)
+    dmg = hp0 - o["hp"]
+    if eff in PUSH_KIND and dmg > 0 and o["hp"] > 0 and not state["done"]:
+        other = "b" if side == "a" else "a"
+        push = apply_knockback(state, other, PUSH_KIND[eff], dmg, o["max_hp"])
+        if push:
+            ev.append({"k": "knock", "a": f["name"], "d": o["name"], "n": push})
+    return ev
+
+
 def ai_choose(state, side, rng):
     f = state[side]
     r = rng.random()
@@ -521,6 +623,14 @@ def ai_choose(state, side, rng):
         return "sg"
     if sg == "cero" and r < 0.20 and can(f, "sg"):
         return "sg"
+    band = _band(f, "atk")
+    d = dist_of(state)
+    if band and d > band[1] and r < 0.8:  # out of reach: close in
+        return "mvs"
+    if band and d < band[0]:  # ranged weapon at contact: back off
+        return "rt"
+    if d <= 1 and r < 0.12 and not (state.get("ang") or {}).get(side):  # sidestep out of an adjacent fight
+        return "sd"
     if r < 0.70:
         return "atk"
     if r < 0.85:
@@ -542,7 +652,7 @@ def new_state(a, b, rng, pvp=False):
     ea, eb = eff(a, "hoho"), eff(b, "hoho")
     first = "a" if ea > eb or (ea == eb and rng.random() < 0.5) else "b"
     return {"a": a, "b": b, "turn": 1, "cur": first, "first": first, "done": False, "winner": None,
-            "awaiting": False, "last": [], "intro": intro, "pvp": bool(pvp)}
+            "awaiting": False, "last": [], "intro": intro, "pvp": bool(pvp), "dist": START_DIST}
 
 
 def run_ai(state, rng, max_turns=30, ai_sides=("b",)):
