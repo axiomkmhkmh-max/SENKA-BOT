@@ -208,6 +208,8 @@ async def battle_action(ctx, arg):
     return await battle_panel(ctx, doc, ev)
 
 
+WORD_ACTIONS = {"حمله": "atk", "ضربه": "atk", "attack": "atk", "atk": "atk", "strike": "atk",
+                "سنگین": "hvy", "heavy": "hvy", "دفاع": "df", "guard": "df", "defend": "df", "defense": "df"}
 WORD_RELEASE = ("بانکای", "bankai", "رهاسازی", "release", "رسورکسیون", "resurreccion", "resurrección")
 
 
@@ -220,6 +222,17 @@ async def battle_word(ctx, text):
     doc = await active_pve(ctx.uid)
     if not doc:
         return None
+    act = WORD_ACTIONS.get(n)
+    if act:  # typed «حمله» / "attack" in a fight = the same as pressing the button
+        if not E.can(doc["state"]["a"], act):
+            return None  # e.g. not enough reiatsu for a heavy strike: normal routing
+        status, d, data = await pve_act(ctx.uid, doc["sid"], act)
+        if status != "ok":
+            return Out(ctx.t("bt_" + status), [nav(ctx)], new=True)
+        ev, outcome = data
+        out = await _pve_result(ctx, d, ev, outcome) if outcome else await battle_panel(ctx, d, ev)
+        out.new = True
+        return out
     z = ((await col("characters").find_one({"user_id": ctx.uid}, {"zanpakuto": 1})) or {}).get("zanpakuto") or {}
     released = bool(z.get("shikai") or z.get("bankai")) and bool(z.get("blade_id"))
     names = set(WORD_RELEASE)
