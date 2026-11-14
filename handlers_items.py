@@ -16,7 +16,7 @@ from service_player import get_char, today
 from ui import Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "book", "egg", "key", "material", "evolution")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "book", "egg", "key", "material", "evolution", "quincy")}
 
 
 def _rk(i):

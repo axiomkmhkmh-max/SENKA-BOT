@@ -120,6 +120,22 @@ async def use_item(uid: int, item_id: str):
         until = int(time.time()) + int(eff["minutes"]) * 60
         await col("characters").update_one({"user_id": uid}, {"$set": {"konpaku_until": until}})
         return "ok", eff["minutes"]
+    if t == "znp_reset":  # Zanpakuto Rebirth Seal: the zanpakuto becomes the blade you hold now, starting over
+        from service_combat import active_pve
+        if await active_pve(uid):
+            return "busy", None
+        if not ch.get("weapon_id"):
+            return "noweapon", None
+        if not await inv_remove(uid, item_id, 1):
+            return "missing", None
+        await col("characters").update_one({"user_id": uid}, {"$set": {"zanpakuto": {"blade_id": ch["weapon_id"], "mastery": 0}}})
+        return "ok", None
+    if t == "almighty":  # Yhwach's Eye: arms one survival of a fatal blow in PvE (see service_combat.pve_start)
+        if not await inv_remove(uid, item_id, 1):
+            return "missing", None
+        until = int(time.time()) + int(eff["minutes"]) * 60
+        await col("characters").update_one({"user_id": uid}, {"$set": {"almighty_until": until}})
+        return "ok", eff["minutes"]
     if t == "xp":
         if not await inv_remove(uid, item_id, 1):
             return "missing", None

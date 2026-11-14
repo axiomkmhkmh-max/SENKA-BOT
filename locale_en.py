@@ -56,7 +56,7 @@ TEXT = {
  "flt_a": "All", "flt_w": "Blades", "flt_e": "Gear", "flt_u": "Usable",
  "bag_body": "🎒 Slots {cap} | Items shown: {n}\n{eq}", "eq_ok": "✅ Ready for battle!", "eq_noequip": "That can't be equipped.", "eq_level": "Your level is too low.", "eq_already": "Already equipped.", "eq_missing": "You don't have it.", "eq_retry": "Try again.",
  "ueq_empty": "Nothing equipped.", "ueq_full": "Bag is full.", "ueq_retry": "Try again.",
- "us_ok": "Used! ({n})", "us_nouse": "Use this in battle or it has no direct use.", "us_level": "Needs level {n}.", "us_known": "You already know it.", "us_missing": "You don't have it.", "us_petfull": "Too many companions.",
+ "us_ok": "Used! ({n})", "us_nouse": "Use this in battle or it has no direct use.", "us_level": "Needs level {n}.", "us_known": "You already know it.", "us_busy": "You can't rebirth your zanpakuto during a battle.", "us_noweapon": "Equip the blade you want first, then use the seal.", "us_missing": "You don't have it.", "us_petfull": "Too many companions.",
  "sell_ok": "Sold for {n} 🪙", "sell_fail": "Couldn't sell.",
  "mkt_body": "Urahara's shop is open; everything has a price.\nBrowse player listings and auctions too. Fees: seller 5%, buyer 2%. Epic+ items are auction only.",
  "mk_shop": "🏪 Urahara shop", "mk_fixed": "🏷️ Listings", "mk_auction": "🔨 Auctions", "mk_mine": "📦 My listings", "mk_empty": "Nothing listed.", "mk_page": "Page {p}/{n}",
@@ -210,7 +210,7 @@ TEXT.update({
  "ef_mat": "{grp}: used in crafting; forging counts it as {v} unit(s).", "ef_relic_xp_loc": "Attune: +{v}% XP while in {loc}.", "ef_relic_drop": "Attune: +{v}% drop rate.",
  "ef_relic_coin": "Attune: +{v}% coins.", "ef_relic_calm": "Attune: your victories calm the world {v}% more (less Hollow Threat).", "ef_relic_stab": "Attune: hunts steady Seireitei (+{v} stability each).",
  "ef_cosmetic": "{icon} {slot} beside your name · Fame +{fame}", "ef_evo": "Spent when you win a race evolution trial.", "ef_egg": "Hatches a companion with a real role in battle or hunt.",
- "ef_key": "Opens dungeons, or offered to a world event: +{pts} points.", "ef_armor": "Can be tempered at the workshop for more defense.", "ef_luck": "Luck +{n}: better rare drops.", "ef_konpaku": "Duel charm: one extra Konpaku life for {m} minutes.",
+ "ef_key": "Opens dungeons, or offered to a world event: +{pts} points.", "ef_armor": "Can be tempered at the workshop for more defense.", "ef_luck": "Luck +{n}: better rare drops.", "ef_almighty": "Yhwach's Eye: for {m} minutes, the first fatal blow of each battle leaves you with a sliver of life.", "ef_konpaku": "Duel charm: one extra Konpaku life for {m} minutes.",
  # ---- admin ----
  "adm_world": "🌍 Threat {threat} | Stability {stab}\nReishi: {rei}\nEvent: {ev}\nBoss: {boss}\nSeason: {season}",
  "adm_usage_world": "world | world set threat|stability <0-100> | world set reishi <loc> <0-100> | world reset | world event garganta|siege|wandenreich|end | world boss spawn|end | world season end | world territory reset <loc>",

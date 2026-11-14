@@ -356,7 +356,7 @@ def start_turn(state, rng):
 def _check_end(state, ev=None):
     a, b = state["a"], state["b"]
     for f in (a, b):  # Konpaku (SENKA+): duels only; the soul is pulled back once
-        if f["hp"] <= 0 and state.get("pvp") and f.get("lives", 0) > 0:
+        if f["hp"] <= 0 and (state.get("pvp") or f.get("almighty")) and f.get("lives", 0) > 0:
             f["lives"] -= 1
             f["hp"] = max(1, int(f["max_hp"] * KONPAKU["hp"]))
             f["fx"] = [e for e in f["fx"] if e["k"] not in DOT and e["k"] not in ("fear", "weaken", "shock")]

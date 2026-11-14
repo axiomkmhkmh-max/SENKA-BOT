@@ -209,6 +209,9 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     elif not tower:
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
+    if float(ch.get("almighty_until", 0) or 0) > time.time():  # Yhwach's Eye: one fatal blow is survived
+        player["almighty"] = True
+        player["lives"] = 1
     if carry:
         player["hp"] = max(1, int(player["max_hp"] * carry["hp"]))
         player["re"] = max(0, int(player["max_re"] * carry["re"]))

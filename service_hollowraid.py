@@ -127,6 +127,17 @@ async def raid_settle(doc: dict) -> dict:
             iid = await roll_drop(uid, source_mult=1.0)
             if await inv_add(uid, iid, 1):
                 extra.append((uid, iid))
+    if doc["kind"] == "quincy":  # Quincy armies carry the Almighty's eye and Blut reishi
+        if top and random.random() < 0.15 and await inv_add(top[0][0], "it_q001", 1):
+            extra.append((top[0][0], "it_q001"))
+        if top and random.random() < 0.03 and await inv_add(top[0][0], "it_q017", 1):
+            extra.append((top[0][0], "it_q017"))
+        from data_items import QUINCY_DROPS
+        for uid in paid_uids:
+            if random.random() < 0.3:
+                iid = random.choice(QUINCY_DROPS)
+                if await inv_add(uid, iid, 1):
+                    extra.append((uid, iid))
     names = doc.get("names") or {}
     return {"top": [(names.get(str(u), str(u)), d) for u, d in top[:3]], "paid": paid, "drop": drop, "extra": extra}
 
