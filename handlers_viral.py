@@ -2,6 +2,8 @@
 Plain-word group mechanics (no slash): sword stance words, mask, Bleach status card, Espada 0-9 board and seat challenges,
 Hogyoku theft by reply, Quincy invasion strikes. Reply-based words go through `viral_hook` (called from handlers_core.on_group_text);
 the other words are ordinary intents (see intents.py) that land in the actions below."""
+import time
+
 from aiogram.exceptions import TelegramAPIError
 
 from data_artifacts import HOGYOKU
@@ -13,9 +15,10 @@ from security import allow
 from service_bleach_systems import STANCE, STANCE_SECONDS, espada_board, espada_challenge, espada_rank, stance_set
 from service_extras import hogyoku_holder, hogyoku_state, hogyoku_steal
 from service_hollowraid import bankai_lock_left, quincy_strike, raid_settle
+from service_player import get_char
 from service_world import group_doc
-from ui import SEP, Out, action, nav
-from database import try_cooldown
+from ui import RED, SEP, Out, action, chunk, nav
+from database import col, game_settings, try_cooldown
 from handlers_zanpakuto import _chant, _state
 import handlers_world
 
@@ -42,7 +45,17 @@ T = {  # key -> (fa, en)
     "mask": ("🎭 ماسک روی صورتت نشست! ×{x} قدرت، اما در هر ضربه {p}٪ احتمال دارد هالوی درون کنترل را بگیرد.",
              "🎭 The mask clamps on! ×{x} power, but each strike has a {p}% chance the Hollow takes over."),
     "mask_cry": ("«خون… بیشتر!»", "“Blood… more!”"),
-    "steal_hint": ("برای دزدیدن هوگیوکو روی پیام دارنده‌اش ریپلای کن و «خیانت» بنویس.", "To steal the Hōgyoku, reply to its holder and write “betray”."),
+     "steal_hint": ("برای دزدیدن هوگیوکو دکمه‌ی زیر را بزن، یا روی پیام دارنده‌اش ریپلای کن و «خیانت» بنویس.", "To steal the Hōgyoku, tap the button below, or reply to its holder and write “betray”."),
+    "q_gone": ("این حمله تمام شده.", "This invasion is over."),
+    "q_pop": ("🩸 {dmg} آسیب! ❤️ {hp} مانده", "🩸 {dmg} damage! ❤️ {hp} left"),
+    "q_last": ("🏆 ضربه‌ی آخر مال تو بود!", "🏆 You landed the final blow!"),
+    "self": ("نمی‌تونی به خودت چالش بدی.", "You can't challenge yourself."),
+    "notespada": ("این بازیکن دیگر اسپادا نیست.", "That player is no longer an Espada."),
+    "notbetter": ("فقط به اسپادای بالاتر از خودت می‌تونی چالش بدی.", "You can only challenge a higher Espada."),
+    "notholder": ("هوگیوکو دست این بازیکن نیست.", "This player doesn't hold the Hōgyoku."),
+    "hog_none": ("فعلاً کسی هوگیوکو را ندارد.", "Nobody holds the Hōgyoku right now."),
+    "hog_self": ("هوگیوکو همین الان دست خودته!", "You already hold the Hōgyoku!"),
+    "hog_lost": ("🔮 {a} هوگیوکو را از دست تو ربود!", "🔮 {a} snatched the Hōgyoku from you!"),
 }
 
 
@@ -53,6 +66,27 @@ def _t(lang, key, **kw):
 
 async def _group_lang(chat_id):
     return glang(await group_doc(chat_id))
+
+
+async def _active_quincy(chat_id: int):
+    return await col("quincy_raids").find_one({"chat_id": chat_id, "status": "active", "end_at": {"$gt": int(time.time())}})
+
+
+async def _raid_min_level() -> int:
+    return int((await game_settings())["raid_min_level"])
+
+
+async def _quincy_won_text(doc: dict, lang: str) -> str:
+    """Pay everybody out and build the victory text (shared by the reply word and the button)."""
+    out = await raid_settle(doc)
+    top = "\n".join(f"{i + 1}. {esc(str(name))} — {fnum(d, lang)}" for i, (name, d) in enumerate(out["top"]))
+    extra = ""
+    if out["drop"]:
+        uid, iid = out["drop"]
+        extra = "\n✨ " + esc(iname(iid, lang)) + " → " + esc(str((doc.get("names") or {}).get(str(uid), uid)))
+    for uid, iid in out.get("extra", []):
+        extra += "\n🎁 " + esc(iname(iid, lang)) + " → " + esc(str((doc.get("names") or {}).get(str(uid), uid)))
+    return handlers_world.quincy_text(lang, doc, "won", top=top, paid=out["paid"], drop=extra)
 
 
 async def viral_hook(message, text: str, n: str) -> bool:
@@ -93,36 +127,161 @@ async def viral_hook(message, text: str, n: str) -> bool:
         else:
             await message.reply(_t(lang, res, n=extra))
         return True
-    if n in STRIKE_WORDS and reply is not None:  # a reply strikes the army; plain word = attack panel
+    if n in STRIKE_WORDS and reply is None:  # the plain word opens the strike panel while an army is attacking this group
+        if not await _active_quincy(chat.id):
+            return False  # no army here: the word keeps its ordinary meaning (battle panel)
+        if not allow(user.id, "qpanel", 3.0) or await try_cooldown(f"quincy:panel:{chat.id}", 20):
+            return True
+        doc = await _active_quincy(chat.id)
+        if doc:
+            lang = await _group_lang(chat.id)
+            try:
+                await message.reply(handlers_world.quincy_text(lang, doc, "live"), reply_markup=handlers_world.quincy_kb(lang))
+            except TelegramAPIError:
+                pass
+        return True
+    if n in STRIKE_WORDS and reply is not None:  # a reply strikes the army
         res, doc, dmg = await quincy_strike(chat.id, user.id)
         if res == "nodoc":
             return False
         lang = await _group_lang(chat.id)
         if res in ("noreg", "level", "cd"):
             if res != "cd":
-                await message.reply(_t(lang, res, n=3))
+                await message.reply(_t(lang, res, n=await _raid_min_level()))
             return True
         if res == "rage":
             await message.reply(_t(lang, "rage", who=me))
             return True
         if res == "dead":
-            out = await raid_settle(doc)
-            top = "\n".join(f"{i + 1}. {esc(str(nm))} — {fnum(d, lang)}" for i, (nm, d) in enumerate(out["top"]))
-            extra = ""
-            if out["drop"]:
-                uid, iid = out["drop"]
-                extra = "\n✨ " + esc(iname(iid, lang)) + " → " + esc(str((doc.get("names") or {}).get(str(uid), uid)))
-            for uid, iid in out.get("extra", []):
-                extra += "\n🎁 " + esc(iname(iid, lang)) + " → " + esc(str((doc.get("names") or {}).get(str(uid), uid)))
-            text_won = handlers_world.quincy_text(lang, doc, "won", top=top, paid=out["paid"], drop=extra)
+            text_won = await _quincy_won_text(doc, lang)
             await message.reply(text_won)
-            await handlers_world.edit_quincy(message.bot, doc, text_won)
+            await handlers_world.edit_quincy(message.bot, doc, text_won, final=True)
             return True
         await message.reply(_t(lang, "q_hit", who=me, dmg=fnum(dmg, lang)))
         if not await try_cooldown(f"quincy:edit:{doc['_id']}", 5):
             await handlers_world.edit_quincy(message.bot, doc, handlers_world.quincy_text(lang, doc, "live"))
         return True
     return False
+
+
+# ---- panel (button) versions of the reply mechanics ----------------------------------------------------------------
+async def _edit_panel(ctx, doc, lang, final=False, text=None):
+    """Refresh the pressed message when it is a strike panel and not the army's own message (throttled)."""
+    msg = ctx.message
+    if not msg or msg.message_id == doc.get("msg_id"):
+        return
+    if not final and await try_cooldown(f"quincy:pedit:{ctx.chat_id}:{msg.message_id}", 3):
+        return
+    try:
+        await ctx.bot.edit_message_text(text or handlers_world.quincy_text(lang, doc, "live"), chat_id=ctx.chat_id, message_id=msg.message_id,
+                                        reply_markup=None if final else handlers_world.quincy_kb(lang))
+    except TelegramAPIError:
+        pass
+
+
+@action("vrq")
+async def quincy_press(ctx, arg):
+    """«⚔️ حمله» under the Quincy army message (and under the panel the word «حمله» opens). Popup for the player,
+    the army message is refreshed for everyone (at most every few seconds)."""
+    res, doc, dmg = await quincy_strike(ctx.chat_id, ctx.uid)
+    L = ctx.lang
+    if res == "nodoc":
+        try:
+            if ctx.message:
+                await ctx.message.edit_reply_markup(reply_markup=None)
+        except TelegramAPIError:
+            pass
+        return Out(alert=_t(L, "q_gone"))
+    if res == "noreg":
+        return Out(alert=_t(L, "noreg"))
+    if res == "level":
+        return Out(alert=_t(L, "level", n=await _raid_min_level()))
+    if res == "cd":
+        return Out(alert=_t(L, "cd"))
+    if res == "rage":
+        return Out(alert=_t(L, "rage", who=ctx.user.full_name or ctx.user.first_name or ""))
+    gl = await _group_lang(ctx.chat_id)
+    if res == "dead":
+        text_won = await _quincy_won_text(doc, gl)
+        await handlers_world.edit_quincy(ctx.bot, doc, text_won, final=True)
+        await _edit_panel(ctx, doc, gl, final=True, text=text_won)
+        try:
+            await ctx.bot.send_message(ctx.chat_id, text_won)
+        except TelegramAPIError:
+            pass
+        return Out(alert=_t(L, "q_last"))
+    if not await try_cooldown(f"quincy:edit:{doc['_id']}", 5):
+        await handlers_world.edit_quincy(ctx.bot, doc, handlers_world.quincy_text(gl, doc, "live"))
+    await _edit_panel(ctx, doc, gl)
+    return Out(alert=_t(L, "q_pop", dmg=fnum(dmg, L), hp=fnum(max(0, doc["hp"]), L)))
+
+
+async def _hog_rows(ctx):
+    h = await hogyoku_holder()
+    rows = []
+    if h and h[0] != ctx.uid:
+        rows.append([("🔮 دزدیدن هوگیوکو" if ctx.lang == "fa" else "🔮 Steal the Hōgyoku", "vrh", "", False, RED)])
+    rows.append(nav(ctx))
+    return rows
+
+
+@action("vrh")
+async def hog_press(ctx, arg):
+    """Button version of «reply to the holder + خیانت»."""
+    L = ctx.lang
+    h = await hogyoku_holder()
+    if not h:
+        return Out(alert=_t(L, "hog_none"))
+    if h[0] == ctx.uid:
+        return Out(alert=_t(L, "hog_self"))
+    res, extra = await hogyoku_steal(ctx.uid, h[0])
+    me = esc(ctx.user.full_name or ctx.user.first_name or "")
+    if res == "win":
+        text = _t(L, "hog_win", a=me, b=esc(h[1]))
+        try:  # the old holder may be nowhere near this chat
+            await ctx.bot.send_message(h[0], _t(await handlers_world._user_lang(h[0]), "hog_lost", a=me))
+        except Exception:
+            pass
+    elif res == "fail":
+        text = _t(L, "hog_fail", a=me, h=extra)
+    elif res == "cd":
+        return Out(alert=_t(L, "hog_cd", m=max(1, extra // 60)))
+    elif res == "shield":
+        return Out(alert=_t(L, "hog_shield", n=extra))
+    else:  # level | noreg | notholder | self
+        return Out(alert=_t(L, res, n=extra))
+    return Out(text, await _hog_rows(ctx))
+
+
+async def _esp_view(ctx):
+    fa = ctx.lang == "fa"
+    board = await espada_board()
+    my = await espada_rank(ctx.uid)
+    lines = [f"<b>{r}</b> · {esc(name)} (Lv.{lv})" for r, _u, name, lv in board]
+    note = ("برای گرفتن جایگاه، روی دکمه‌ی یک اسپادای بالاتر بزن، یا روی پیامش ریپلای کن و «مبارزه» بنویس." if fa
+            else "To take a seat, tap a higher Espada below, or reply to them and write “fight”.")
+    btns = [(f"⚔️ #{r} {str(name)[:12]}", "vre", str(u)) for r, u, name, _lv in board if u != ctx.uid and (my is None or r < my)]
+    rows = chunk(btns, 2)
+    rows.append(nav(ctx))
+    text = ("🔔 <b>اسپادا ۰ تا ۹</b>" if fa else "🔔 <b>Espada 0-9</b>") + f"\n{SEP}\n" + ("\n".join(lines) or "—") + "\n\n" + note
+    return text, rows
+
+
+@action("vre")
+async def esp_press(ctx, arg):
+    """Button version of «reply to a higher Espada + مبارزه». arg = the seat holder's user id."""
+    L = ctx.lang
+    if not (arg or "").isdigit():
+        return Out(alert=_t(L, "gone"))
+    tgt = int(arg)
+    tc, mc = await get_char(tgt), await get_char(ctx.uid)
+    res, extra = await espada_challenge(ctx.uid, tgt)
+    if res not in ("win", "lose"):
+        return Out(alert=_t(L, res, n=extra))
+    me, you = esc((mc or {}).get("name", "?")), esc((tc or {}).get("name", "?"))
+    head_t = _t(L, "esp_win" if res == "win" else "esp_lose", a=me, b=you, r=extra)
+    body, rows = await _esp_view(ctx)
+    return Out(head_t + "\n\n" + body, rows)
 
 
 # ---- word actions (private chat and group) ------------------------------------------------------------------------
@@ -191,7 +350,7 @@ async def bleach_status(ctx, arg):
 
 @action("hgs")
 async def steal_hint(ctx, arg):
-    return Out(_t(ctx.lang, "steal_hint"), [nav(ctx)])
+    return Out(_t(ctx.lang, "steal_hint"), await _hog_rows(ctx))
 
 
 @action("wnt")
@@ -208,14 +367,10 @@ async def wanted_list(ctx, arg):
         lines.append(("🔔 اسپادا " if fa else "🔔 Espada #") + f"{r}: <b>{esc(name)}</b> (Lv.{lv})")
     body = "\n".join(lines) or ("—")
     head = "🎯 هدف‌های تحت تعقیب" if fa else "🎯 Wanted targets"
-    return Out(f"⚔️ <b>{head}</b>\n{SEP}\n{body}\n\n" + _t(ctx.lang, "steal_hint"), [nav(ctx)])
+    return Out(f"⚔️ <b>{head}</b>\n{SEP}\n{body}\n\n" + _t(ctx.lang, "steal_hint"), await _hog_rows(ctx))
 
 
 @action("esp")
 async def espada_panel(ctx, arg):
-    fa = ctx.lang == "fa"
-    board = await espada_board()
-    lines = [f"<b>{r}</b> · {esc(name)} (Lv.{lv})" for r, _u, name, lv in board]
-    note = ("برای گرفتن جایگاه، روی پیام یک اسپادای بالاتر ریپلای کن و «مبارزه» بنویس." if fa
-            else "To take a seat, reply to a higher Espada and write “fight”.")
-    return Out(("🔔 <b>اسپادا ۰ تا ۹</b>" if fa else "🔔 <b>Espada 0-9</b>") + f"\n{SEP}\n" + ("\n".join(lines) or "—") + "\n\n" + note, [nav(ctx)])
+    text, rows = await _esp_view(ctx)
+    return Out(text, rows)

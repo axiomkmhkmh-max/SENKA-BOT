@@ -40,6 +40,7 @@ LABELS = {
     "axy": "خرید آرتیفکت", "axl": "گذاشتن آرتیفکت در بازار", "axp": "تایید قیمت آرتیفکت", "axc": "لغو آگهی آرتیفکت", "axr": "رها کردن آرتیفکت",
     "axk": "تایید رها کردن آرتیفکت", "axn": "آگهی آرتیفکت من",
     "bqy": "حذف دسته‌ای از کیف",
+    "vrq": "ضربه به ارتش کوئینسی (دکمه)", "vrh": "دزدیدن هوگیوکو (دکمه)", "vre": "چالش اسپادا (دکمه)",
 }
 # pure navigation: logged only when `log_nav` is on
 NAV = {"home", "menu2", "mg", "div", "dvi", "hlf", "adm", "adw", "adx", "ads", "adk", "adu", "adn", "adb", "adc", "adz", "adl", "ada", "adt", "noop", "cmd", "hlp", "lang", "set", "bag", "iv", "bqm", "bqv", "bqt", "bqa", "bqc", "bqx", "mkt", "mkb", "mka", "mkv", "mkav", "mkm", "shp", "sv", "bt", "map", "rnk",

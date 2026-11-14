@@ -669,9 +669,9 @@ async def announce_season(bot, summary):
 
 # --- NEW BLEACH VIRAL SYSTEM: Quincy invasion messages ---
 _QT = {
-    "open": ("🩸 <b>یوهاباخ و ارتش کوئینسی به جامعه ارواح حمله کردند!</b>\n❤️ {bar} {hp}/{mx}\n⏳ {mins} دقیقه وقت دارید؛ کلمه‌ی «حمله» را بفرستید!\n⚠️ اگر شکست بخورند، بانکای این گروه {lock} دقیقه دزدیده می‌شود.",
-             "🩸 <b>Yhwach and the Quincy army invade Soul Society!</b>\n❤️ {bar} {hp}/{mx}\n⏳ {mins} minutes — send “strike” in chat!\n⚠️ If they win, this group's Bankai is stolen for {lock} minutes."),
-    "live": ("🩸 <b>ارتش کوئینسی</b>\n❤️ {bar} {hp}/{mx}\n⚔️ مبارزان: {n}\nکلمه‌ی «حمله» را بفرستید!", "🩸 <b>Quincy Army</b>\n❤️ {bar} {hp}/{mx}\n⚔️ Fighters: {n}\nSend “strike”!"),
+    "open": ("🩸 <b>یوهاباخ و ارتش کوئینسی به جامعه ارواح حمله کردند!</b>\n❤️ {bar} {hp}/{mx}\n⏳ {mins} دقیقه وقت دارید؛ دکمه‌ی «⚔️ حمله» را بزنید یا «حمله» را ریپلای کنید!\n⚠️ اگر شکست بخورند، بانکای این گروه {lock} دقیقه دزدیده می‌شود.",
+             "🩸 <b>Yhwach and the Quincy army invade Soul Society!</b>\n❤️ {bar} {hp}/{mx}\n⏳ {mins} minutes — tap “⚔️ Strike” or reply “strike”!\n⚠️ If they win, this group's Bankai is stolen for {lock} minutes."),
+    "live": ("🩸 <b>ارتش کوئینسی</b>\n❤️ {bar} {hp}/{mx}\n⚔️ مبارزان: {n}\nدکمه‌ی «⚔️ حمله» را بزنید یا «حمله» را ریپلای کنید!", "🩸 <b>Quincy Army</b>\n❤️ {bar} {hp}/{mx}\n⚔️ Fighters: {n}\nTap “⚔️ Strike” or reply “strike”!"),
     "lost": ("💀 <b>ارتش کوئینسی پیروز شد!</b>\n🔒 بانکای این گروه تا {lock} دقیقه دزدیده شده است.", "💀 <b>The Quincy army prevailed!</b>\n🔒 This group's Bankai is stolen for {lock} minutes."),
     "won": ("🏆 <b>ارتش کوئینسی عقب نشست!</b>\nبرترین‌ها:\n{top}\n🎁 پاداش برای {paid} نفر{drop}", "🏆 <b>The Quincy army is repelled!</b>\nTop damage:\n{top}\n🎁 Rewards paid to {paid}{drop}"),
 }
@@ -685,12 +685,18 @@ def quincy_text(lang: str, doc: dict, key: str = "live", **kw) -> str:
                                                lock=int(_G["quincy_lock_minutes"]), **kw)
 
 
+def quincy_kb(lang: str):
+    """The public «⚔️ حمله» button under the army message (owner 0 = anyone in the group may press it)."""
+    label = "⚔️ حمله" if lang == "fa" else "⚔️ Strike"
+    return InlineKeyboardMarkup(inline_keyboard=[[make_button(label, make_cb("vrq", "", 0), "vrq", "success")]])
+
+
 async def post_quincy(bot, doc):
     from service_hollowraid import quincy_abort, quincy_attach
     from service_world import group_doc
     lang = glang(await group_doc(doc["chat_id"]))
     try:
-        msg = await bot.send_message(doc["chat_id"], quincy_text(lang, doc, "open"))
+        msg = await bot.send_message(doc["chat_id"], quincy_text(lang, doc, "open"), reply_markup=quincy_kb(lang))
     except TelegramForbiddenError:
         await col("groups").update_one({"chat_id": doc["chat_id"]}, {"$set": {"blocked": True}})
         await quincy_abort(doc["_id"])
@@ -700,11 +706,13 @@ async def post_quincy(bot, doc):
         await quincy_attach(doc["_id"], msg.message_id)
 
 
-async def edit_quincy(bot, doc, text: str):
+async def edit_quincy(bot, doc, text: str, final: bool = False):
+    """Refresh the army message. While the fight is on it keeps its button; `final=True` (won/lost) removes it."""
     if not doc.get("msg_id"):
         return
+    kb = None if final else quincy_kb(glang(await group_doc(doc["chat_id"])))
     try:
-        await bot.edit_message_text(text, chat_id=doc["chat_id"], message_id=doc["msg_id"])
+        await bot.edit_message_text(text, chat_id=doc["chat_id"], message_id=doc["msg_id"], reply_markup=kb)
     except TelegramAPIError:
         pass
 
@@ -713,7 +721,7 @@ async def end_quincy_lost(bot, doc):
     from service_world import group_doc
     lang = glang(await group_doc(doc["chat_id"]))
     text = quincy_text(lang, doc, "lost")
-    await edit_quincy(bot, doc, text)
+    await edit_quincy(bot, doc, text, final=True)
     try:
         await bot.send_message(doc["chat_id"], text)
     except TelegramAPIError:
