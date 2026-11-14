@@ -41,7 +41,7 @@ def head(ctx: Ctx, title_key: str) -> str:
 # Telegram button colours (Bot API 9.4+): "success" = green, "danger" = red, "primary" = blue.
 GREEN, RED, BLUE = "success", "danger", "primary"
 STYLE_GREEN = {"begin", "st", "bs", "bn", "bh", "dua", "us", "sb", "mkby", "gp", "gdp", "glc", "qc",
-               "mgm", "abd", "mkb", "mkav", "gj", "tr", "zp", "race", "axy", "axp"}
+               "mgm", "whs", "abd", "mkb", "mkav", "gj", "tr", "zp", "race", "axy", "axp"}
 STYLE_RED = {"dud", "mkc", "gll", "ueq", "axc", "axk"}
 STYLE_PLAIN = {"home", "noop"}
 
