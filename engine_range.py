@@ -44,6 +44,11 @@ def in_reach(dist: int, reach: tuple) -> bool:
     return reach[0] <= dist <= reach[1]
 
 
+def get_dist(state: dict) -> int:
+    """Current gap. Battles saved before the distance update have no `dist`: they start at START_DIST."""
+    return clamp(int(state.get("dist", START_DIST)))
+
+
 def clamp(d: int) -> int:
     return max(ZONE_MIN, min(ZONE_MAX, d))
 
@@ -65,7 +70,7 @@ def apply_move(state: dict, side: str, move: str) -> dict:
     f = state[side]
     m = MOVES[move]
     f["re"] -= move_cost(f["max_re"], move)
-    gap = state["dist"]
+    gap = get_dist(state)
     new = clamp(gap - m["zones"])
     gap_before = gap
     state["dist"] = new
@@ -75,7 +80,7 @@ def apply_move(state: dict, side: str, move: str) -> dict:
 
 
 def apply_retreat(state: dict, side: str) -> dict:
-    gap_before = state["dist"]
+    gap_before = get_dist(state)
     state["dist"] = clamp(gap_before + RETREAT["zones"])
     return {"k": "retreat", "a": state[side]["name"], "from": gap_before, "to": state["dist"]}
 
@@ -87,7 +92,7 @@ def apply_knockback(state: dict, target_side: str, kind: str, dmg: int, max_hp: 
         return 0
     extra = 1 if dmg >= max_hp * 0.20 else 0
     push = base + extra
-    state["dist"] = clamp(state["dist"] + push)
+    state["dist"] = clamp(get_dist(state) + push)
     return push
 
 

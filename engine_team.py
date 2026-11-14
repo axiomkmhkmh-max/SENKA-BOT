@@ -68,6 +68,7 @@ def act(st, side, action, target=None, rng=None):
     if side != st["cur"]:
         raise ValueError("not this side's turn")
     rng = rng or __import__("random").Random()
+    st.setdefault("dist", START_DIST)
     me, foe = active(st, side), active(st, _other(side))
     ev = []
     if me is None or foe is None:

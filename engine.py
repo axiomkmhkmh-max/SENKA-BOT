@@ -579,6 +579,7 @@ def do_action(state, action, rng, max_turns=30):
     side = state["cur"]
     f = state[side]
     o = state["b" if side == "a" else "a"]
+    state.setdefault("dist", START_DIST)  # a battle saved before the distance update carries no gap yet
     ang = state.setdefault("ang", {"a": 0, "b": 0})
     ang[side] = 0  # your stance ends when your turn starts; a sidestep below sets it again
     if action == "sd":
