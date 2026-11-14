@@ -43,10 +43,11 @@ def _view(lang, doc, key="live"):
 async def raid_hook(message, n: str) -> bool:
     """Called on every group text. True = it was a strike on an incursion and has been handled."""
     user, chat = message.from_user, message.chat
-    if n in STRIKE_WORDS and message.reply_to_message is not None:
+    if n in STRIKE_WORDS:
         if not allow(user.id, "raidhit", 0.8):
             return True
-        res, doc, dmg = await raid_strike(chat.id, user.id, message.reply_to_message.message_id)
+        res, doc, dmg = await raid_strike(chat.id, user.id,
+                                           message.reply_to_message.message_id if message.reply_to_message else None)
         if res == "nodoc":
             return False
         lang = glang(await group_doc(chat.id))

@@ -49,10 +49,13 @@ async def raid_abort(did: str):
     await col("hollow_raids").update_one({"_id": did}, {"$set": {"status": "failed"}})
 
 
-async def raid_strike(chat_id: int, uid: int, reply_msg_id: int):
+async def raid_strike(chat_id: int, uid: int, reply_msg_id=None):
     """-> (result, doc, dmg). result: nodoc | gone | noreg | level | cd | hit | dead (this strike killed it)."""
     now = int(time.time())
-    doc = await col("hollow_raids").find_one({"chat_id": chat_id, "msg_id": reply_msg_id})
+    if reply_msg_id is None:  # plain «حمله» without a reply: hit the incursion currently open in this chat
+        doc = await col("hollow_raids").find_one({"chat_id": chat_id, "status": "active", "end_at": {"$gt": now}})
+    else:
+        doc = await col("hollow_raids").find_one({"chat_id": chat_id, "msg_id": reply_msg_id})
     if not doc:
         return "nodoc", None, 0
     if doc["status"] != "active" or doc["end_at"] <= now:
