@@ -119,6 +119,16 @@ def _take_mult(dfn):
     return m
 
 
+# gear soft cap: weapon attack above GEAR_KNEE only counts GEAR_SLOPE. Stops the level-80 tier from
+# doubling the level-30 tier and keeps the power curve continuous after level 30. Tunable here.
+GEAR_KNEE, GEAR_SLOPE = 90, 0.6
+
+
+def gear_soft(attack: float) -> float:
+    a = float(attack or 0)
+    return a if a <= GEAR_KNEE else GEAR_KNEE + (a - GEAR_KNEE) * GEAR_SLOPE
+
+
 def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierce=0.0):
     att, dfn = state[side], state["b" if side == "a" else "a"]
     fx = _f2fx(att)
@@ -141,7 +151,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         return 0
     pierce = att["mods"].get("pierce", 0) + skill_p(att, "pierce") / 100 + (fx[1] if fx and fx[0] == "pierce" else 0) + extra_pierce
     defense = total_def(dfn) * (1 - min(0.8, pierce))
-    base = eff(att, "zanjutsu") * att["zmult"] + att["weapon"]["attack"]
+    base = eff(att, "zanjutsu") * att["zmult"] + gear_soft(att["weapon"]["attack"])
     raw = max(1.0, base - defense * 0.6) * power
     crit_p = 0.05 + eff(att, "hoho") * 0.001 + att["weapon"]["crit"] + att["mods"].get("crit", 0) + (SIG["hiren"]["crit"] if has_fx(att, "hiren") else 0)
     if _x(att)["awake"] > 0:

@@ -29,22 +29,38 @@ def _rk(i):
 @action("bag")
 async def bag(ctx, arg):
     L = ctx.lang
-    page_s, _, flt = (arg or "0").partition(":")
-    page, flt = int(page_s or 0), (flt or "a")
+    parts = (arg or "0").split(":")
+    try:
+        page = int(parts[0] or 0)
+    except ValueError:
+        page = 0
+    flt = (parts[1] if len(parts) > 1 and parts[1] else "a")
+    srt = (parts[2] if len(parts) > 2 and parts[2] else "r")  # r = rarity (default), d = damage (weapons first)
+    if flt not in FILTERS:
+        flt = "a"
     inv = await inv_get(ctx.uid)
     ch = await get_char(ctx.uid)
     cats = FILTERS.get(flt)
-    ids = sorted([i for i, q in inv["items"].items() if q > 0 and i in ALL and (not cats or ALL[i]["category"] in cats)], key=lambda i: (_rk(i), i))
+    ids = [i for i, q in inv["items"].items() if q > 0 and i in ALL and (not cats or ALL[i]["category"] in cats)]
+    if srt == "d":
+        ids.sort(key=lambda i: (-ALL[i].get("attack", 0), _rk(i), i))
+    else:
+        ids.sort(key=lambda i: (_rk(i), i))
     pages = max(1, math.ceil(len(ids) / PER))
     page = max(0, min(page, pages - 1))
-    rows = [[(f"{nm(i, L).replace('<', '').replace('>', '')} ×{inv['items'][i]}", "iv", i)] for i in ids[page * PER:(page + 1) * PER]]
-    fr = [(("• " if flt == k else "") + ctx.t("flt_" + k), "bag", f"0:{k}") for k in FILTERS]
+    back = f"{page}:{flt}:{srt}"  # the item card returns here, to the same page, filter and sort
+    rows = [[(f"{nm(i, L).replace('<', '').replace('>', '')} ×{inv['items'][i]}", "iv", f"{i}:{back}")]
+            for i in ids[page * PER:(page + 1) * PER]]
+    fr = [((("• " if flt == k else "") + ctx.t("flt_" + k)), "bag", f"0:{k}:{srt}") for k in FILTERS]
     rows.append(fr)
+    if ids:
+        sort_lbl = ("🔀 مرتب: آسیب" if srt != "d" else "🔀 مرتب: کمیاب‌ترین") if L == "fa" else ("🔀 Sort: damage" if srt != "d" else "🔀 Sort: rarity")
+        rows.append([(sort_lbl, "bag", f"{page}:{flt}:{'d' if srt != 'd' else 'r'}")])
     pg = []
     if page > 0:
-        pg.append(("◀️", "bag", f"{page - 1}:{flt}"))
+        pg.append(("◀️", "bag", f"{page - 1}:{flt}:{srt}"))
     if page < pages - 1:
-        pg.append(("▶️", "bag", f"{page + 1}:{flt}"))
+        pg.append(("▶️", "bag", f"{page + 1}:{flt}:{srt}"))
     if pg:
         rows.append(pg)
     if ids:
@@ -62,17 +78,20 @@ async def bag(ctx, arg):
 
 @action("iv")
 async def item_view(ctx, arg):
+    # arg is "<item_id>" or "<item_id>:<page>:<filter>:<sort>" so Back returns to the same spot in the bag
+    iid, _, back = (arg or "").partition(":")
+    back = back or "0:a:r"
     inv = await inv_get(ctx.uid)
-    qty = inv["items"].get(arg, 0)
-    if arg not in ALL or qty <= 0:
+    qty = inv["items"].get(iid, 0)
+    if iid not in ALL or qty <= 0:
         return await bag(ctx, "0")
-    it = ALL[arg]
+    it = ALL[iid]
     rows = []
     if it.get("slot") or it["category"] == "weapon":
-        rows.append([(ctx.t("b_equip"), "eq", arg)])
+        rows.append([(ctx.t("b_equip"), "eq", iid)])
     ety = (it.get("effect") or {}).get("type")
     if ety in ("kido", "xp", "pet", "buff", "kido_book", "bond"):
-        rows.append([(ctx.t("b_use"), "us", arg)])
+        rows.append([(ctx.t("b_use"), "us", iid)])
     elif ety == "relic":
         rows.append([(ctx.t("m_rlc"), "rlc", "")])
     elif ety == "cosmetic":
@@ -81,12 +100,12 @@ async def item_view(ctx, arg):
         rows.append([(ctx.t("m_crf"), "crf" if ety == "mat" else "evo", "")])
     elif ety == "key":
         rows.append([(ctx.t("m_evt"), "evt", "")])
-    row2 = [(ctx.t("b_sell_npc"), "sl", arg)]
+    row2 = [(ctx.t("b_sell_npc"), "sl", iid)]
     if it.get("tradeable"):
-        row2.append((ctx.t("b_list"), "ml", arg))
+        row2.append((ctx.t("b_list"), "ml", iid))
     rows.append(row2)
-    rows.append(nav(ctx, ("bag", "0")))
-    return Out(head(ctx, "ttl_bag") + item_card(ctx, arg, qty), rows)
+    rows.append(nav(ctx, ("bag", back)))
+    return Out(head(ctx, "ttl_bag") + item_card(ctx, iid, qty), rows)
 
 
 @action("eq")
