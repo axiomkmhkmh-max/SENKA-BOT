@@ -26,6 +26,7 @@ import handlers_adminpanel  # noqa: F401  (admin button panel)
 import handlers_adminpro  # noqa: F401  (advanced admin hub: analytics, risk, health)
 import handlers_extras  # noqa: F401  (player extras: stats, quiz, coinflip, transfer...)
 import handlers_wheel  # noqa: F401  (Urahara's wheel: panel + animated spin)
+import handlers_inner  # noqa: F401  (Inner World: weekly scene panel + choices)
 import handlers_items
 import handlers_panels
 import handlers_world
