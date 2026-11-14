@@ -96,7 +96,7 @@ RAW.update({
     "wanted_list": ("wnt", "", ["لیست تحت تعقیب", "تحت تعقیب", "wanted list"]),
     "espada_board": ("esp", "", ["جدول اسپادا", "اسپادا ۰ تا ۹", "espada board"]),
 })
-GROUP_OK = {"duel", "duel_friendly", "boss", "help", "home", "chronicle", "commands", "event",
+GROUP_OK = {"duel", "duel_friendly", "boss", "battle", "help", "home", "chronicle", "commands", "event",
             "bankai_word", "shikai_word", "mask_word", "bleach_status", "steal_hogyoku", "wanted_list", "espada_board"}
 _map: dict = {}
 _extra_at = 0.0
