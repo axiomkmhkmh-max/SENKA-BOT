@@ -104,6 +104,20 @@ async def solo_vote(ctx, arg):
     return Out(head(ctx, "ttl_exp") + text, [[(again, "exp", "go")], nav(ctx)])
 
 
+async def solo_word(ctx, n: str):
+    """Private chat: typing چپ / وسط / راست (or left / mid / right) during a solo chase = pressing that button.
+    Returns an Out, or None when this is not a chase word (normal routing continues)."""
+    d = WORD_TO_DIR.get(n)
+    if not d:
+        return None
+    ch = await get_char(ctx.uid)
+    if not ch or not ch.get("bx_hunt"):
+        return None
+    out = await solo_vote(ctx, d)
+    out.new = True
+    return out
+
+
 # ---- group side ------------------------------------------------------------------------------
 
 def _group_text(lang, chase, names, votes, seconds_left, extra=""):

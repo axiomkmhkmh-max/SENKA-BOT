@@ -23,7 +23,7 @@ RAW = {
     "bleach_hub": ("blhub", "", ["جهان بلیچ", "سیستم های بلیچ", "bleach", "bleach systems"]),
     "racepath": ("rpath", "", ["مسیر نژاد", "تکامل نژاد", "race path", "race evolution path"]),
     "market": ("mkt", "", ["بازار", "بازارچه", "market", "shop", "store", "trade"]),
-    "battle": ("bt", "", ["نبرد", "مبارزه", "جنگ", "battle", "fight", "combat"]),
+    "battle": ("bt", "", ["نبرد", "مبارزه", "جنگ", "حمله", "battle", "fight", "combat", "attack"]),
     "squad": ("gld", "", ["جوخه", "گیلد", "کلن", "squad", "guild", "clan"]),
     "ranking": ("rnk", "", ["رتبه بندی", "رتبه‌بندی", "لیدربورد", "جدول", "ranking", "leaderboard", "rank", "top"]),
     "quests": ("qst", "", ["ماموریت", "مأموریت", "ماموریت ها", "مأموریت‌ها", "کار", "quests", "quest", "missions", "tasks"]),

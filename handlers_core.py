@@ -214,6 +214,9 @@ async def handle_text(message: Message, text: str):
     war = await handlers_combat.battle_word(ctx, text)  # in a fight: the blade's name releases Bankai when the gauge is full
     if war is not None:
         return await send_out(message, ctx, war)
+    chase = await handlers_hunt.solo_word(ctx, normalize_text(text))  # typed چپ/وسط/راست during a solo chase
+    if chase is not None:
+        return await send_out(message, ctx, chase)
     hit = await resolve(text)
     if not hit:
         return await message.answer(ctx.t("unknown"), reply_markup=markup(ctx, [[(ctx.t("m_home"), "home", "")]]))
