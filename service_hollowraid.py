@@ -90,6 +90,9 @@ async def raid_strike(chat_id: int, uid: int, reply_msg_id=None):
     return "hit", after, dmg
 
 
+RAID_EXTRA_DROP_P = 0.4  # chance each non-top fighter gets an item when the incursion falls
+
+
 async def raid_settle(doc: dict) -> dict:
     """Pay everyone who hit it. Returns {"top": [(name, dmg)], "paid": n, "drop": (uid, item) | None}."""
     st = await game_settings()
@@ -99,9 +102,11 @@ async def raid_settle(doc: dict) -> dict:
     mult = {"menos": 3.0, "quincy": 4.0}.get(doc["kind"], 1.0)
     lv = max(1, int(doc.get("lv") or 1))
     paid = 0
+    paid_uids = set()
     for uid, dmg in hits.items():
         if not await bump_counter(f"raid:{uid}:{day_id()}", 1, int(st["raid_daily_cap"])):
             continue
+        paid_uids.add(uid)
         share = min(1.0, dmg / total * 3)  # even small contributors earn a fair cut
         xp = int((30 + 6 * lv) * mult * (0.5 + share / 2))
         coins = int((60 + 12 * lv) * mult * (0.5 + share / 2))
@@ -114,8 +119,16 @@ async def raid_settle(doc: dict) -> dict:
         iid = await roll_drop(top[0][0], source_mult=1.5 if doc["kind"] != "hollow" else 1.0)
         if await inv_add(top[0][0], iid, 1):
             drop = (top[0][0], iid)
+    extra = []  # everyone else who fought also gets a roll for an item (the top fighter keeps the special drop)
+    for uid, _ in top:
+        if drop and uid == drop[0]:
+            continue
+        if uid in paid_uids and random.random() < RAID_EXTRA_DROP_P:
+            iid = await roll_drop(uid, source_mult=1.0)
+            if await inv_add(uid, iid, 1):
+                extra.append((uid, iid))
     names = doc.get("names") or {}
-    return {"top": [(names.get(str(u), str(u)), d) for u, d in top[:3]], "paid": paid, "drop": drop}
+    return {"top": [(names.get(str(u), str(u)), d) for u, d in top[:3]], "paid": paid, "drop": drop, "extra": extra}
 
 # --- NEW BLEACH VIRAL SYSTEM: Quincy invasion (Yhwach's army) -----------------------------------------------------------
 # Every few hours the scheduler opens one per active group. Members type the strike word for the ttl; if the boss survives,

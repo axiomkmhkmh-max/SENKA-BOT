@@ -207,6 +207,9 @@ async def battle_action(ctx, arg):
             await inv_add(ctx.uid, potion["id"], 1, force=True)
         return Out(alert=ctx.t("bt_" + status))
     ev, outcome = data
+    if potion and not ev:  # the fight had already ended: the potion was not used
+        from service_economy import inv_add
+        await inv_add(ctx.uid, potion["id"], 1, force=True)
     if outcome:
         return await _pve_result(ctx, doc, ev, outcome)
     return await battle_panel(ctx, doc, ev)

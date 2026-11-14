@@ -234,6 +234,10 @@ async def pve_act(uid: int, sid: str, action: str, potion: dict = None):
     if not doc or doc["status"] != "active":
         return "gone", None, None
     st = doc["state"]
+    if st.get("done"):
+        # The fight already ended without being settled (e.g. the enemy's opening move killed a fighter who entered
+        # the next dungeon stage with 1 HP). Settle it now so the result shows and the player is not stuck in it.
+        return "ok", doc, ([], await pve_settle(doc))
     if st["cur"] != "a" or not st.get("awaiting"):
         return "notturn", None, None
     rng = random.Random()

@@ -112,6 +112,8 @@ async def viral_hook(message, text: str, n: str) -> bool:
             if out["drop"]:
                 uid, iid = out["drop"]
                 extra = "\n✨ " + esc(iname(iid, lang)) + " → " + esc(str((doc.get("names") or {}).get(str(uid), uid)))
+            for uid, iid in out.get("extra", []):
+                extra += "\n🎁 " + esc(iname(iid, lang)) + " → " + esc(str((doc.get("names") or {}).get(str(uid), uid)))
             text_won = handlers_world.quincy_text(lang, doc, "won", top=top, paid=out["paid"], drop=extra)
             await message.reply(text_won)
             await handlers_world.edit_quincy(message.bot, doc, text_won)

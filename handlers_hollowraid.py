@@ -21,6 +21,7 @@ T = {
     "hit": ("⚔️ {who}: {dmg} آسیب!", "⚔️ {who}: {dmg} damage!"),
     "dead": ("💀 <b>{name}</b> پاک‌سازی شد!\n🏆 برترین‌ها:\n{top}\n🎁 پاداش برای {paid} نفر{drop}", "💀 <b>{name}</b> has been purged!\n🏆 Top damage:\n{top}\n🎁 Rewards paid to {paid}{drop}"),
     "drop": ("\n✨ دراپ ویژه: {item} برای {who}", "\n✨ Special drop: {item} for {who}"),
+    "drop_more": ("\n🎁 {item} برای {who}", "\n🎁 {item} for {who}"),
     "gone": ("این هالو دیگر اینجا نیست.", "That Hollow is gone."),
     "noreg": ("اول در ربات ثبت‌نام کن.", "Register with the bot first."),
     "level": ("سطح بالاتری لازم است.", "You need a higher level."),
@@ -62,6 +63,9 @@ async def raid_hook(message, n: str) -> bool:
                 uid, iid = out["drop"]
                 who = esc(str((doc.get("names") or {}).get(str(uid), uid)))
                 extra = _t(lang, "drop", item=esc(iname(iid, lang)), who=who)
+            for uid, iid in out.get("extra", []):
+                who = esc(str((doc.get("names") or {}).get(str(uid), uid)))
+                extra += _t(lang, "drop_more", item=esc(iname(iid, lang)), who=who)
             text = _t(lang, "dead", name=NAME[doc["kind"]][0 if lang == "fa" else 1], top=top, paid=out["paid"], drop=extra)
             await message.reply(text)
             await _edit(message.bot, doc, text)
