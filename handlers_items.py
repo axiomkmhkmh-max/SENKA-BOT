@@ -12,8 +12,10 @@ from i18n import esc, fnum
 from service_economy import (FORGE_CHANCE, auction_bid, equip, forge, forge_cost, gacha_doc, gacha_pull, inv_get, market_buy, market_cancel, market_create,
                              npc_sell, price_mult, settle_listings, shop_buy, shop_stock, slots_used, suggested_price, toggle_party, unequip,
                              use_item)
+from service_economy import inv_remove
+from service_log import log_event
 from service_player import get_char, today
-from ui import Out, action, chunk, head, nav
+from ui import GREEN, RED, Out, action, chunk, head, nav
 
 PER = 6
 FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "book", "egg", "key", "material", "evolution", "quincy")}
@@ -45,6 +47,8 @@ async def bag(ctx, arg):
         pg.append(("▶️", "bag", f"{page + 1}:{flt}"))
     if pg:
         rows.append(pg)
+    if ids:
+        rows.append([("☑️ انتخاب چندتایی و حذف" if L == "fa" else "☑️ Select multiple & remove", "bqm", f"{page}:{flt}")])
     rows.append(nav(ctx))
     eq = f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"
     used, capn = slots_used(inv["items"]), max(1, inv.get("capacity", 50))
@@ -122,6 +126,205 @@ async def sell_npc(ctx, arg):
     out = await bag(ctx, "0")
     out.alert = ctx.t("sell_ok", n=fnum(n, ctx.lang))
     return out
+
+
+# ---- multi-select remove -------------------------------------------------------------------
+# Selection lives in Mongo (collection "bag_sel", one doc per player) because callback_data is capped at 64 bytes.
+# One unit is removed per selected item. Every removal goes through a confirmation screen.
+SEL_MAX = 40
+
+
+def _ids_for(inv, flt):
+    cats = FILTERS.get(flt)
+    return sorted([i for i, q in inv["items"].items() if q > 0 and i in ALL and (not cats or ALL[i]["category"] in cats)], key=lambda i: (_rk(i), i))
+
+
+async def _sel_get(uid, inv):
+    d = await col("bag_sel").find_one({"_id": uid})
+    return [i for i in (d or {}).get("items", []) if inv["items"].get(i, 0) > 0 and i in ALL]
+
+
+async def _sel_set(uid, items):
+    if items:
+        await col("bag_sel").update_one({"_id": uid}, {"$set": {"items": items, "at": time.time()}}, upsert=True)
+    else:
+        await col("bag_sel").delete_one({"_id": uid})
+
+
+def _pf(arg):
+    """'page:flt' -> (page, flt) with safe defaults."""
+    p, _, f = (arg or "0").partition(":")
+    return (int(p) if p.lstrip("-").isdigit() else 0), (f if f in FILTERS else "a")
+
+
+async def _sel_view(ctx, page, flt, alert=None):
+    L = ctx.lang
+    fa = L == "fa"
+    inv = await inv_get(ctx.uid)
+    ids = _ids_for(inv, flt)
+    sel = await _sel_get(ctx.uid, inv)
+    sset = set(sel)
+    pages = max(1, math.ceil(len(ids) / PER))
+    page = max(0, min(page, pages - 1))
+    rows = []
+    for i in ids[page * PER:(page + 1) * PER]:
+        on = i in sset
+        label = f"{'☑️' if on else '⬜'} {nm(i, L).replace('<', '').replace('>', '')} ×{inv['items'][i]}"
+        rows.append([(label, "bqt", f"{i}:{page}:{flt}", False, GREEN if on else "none")])
+    rows.append([(("• " if flt == k else "") + ctx.t("flt_" + k), "bqv", f"0:{k}", False, "none") for k in FILTERS])
+    pg = []
+    if page > 0:
+        pg.append(("◀️", "bqv", f"{page - 1}:{flt}", False, "none"))
+    if page < pages - 1:
+        pg.append(("▶️", "bqv", f"{page + 1}:{flt}", False, "none"))
+    if pg:
+        rows.append(pg)
+    rows.append([("✅ همه‌ی این صفحه" if fa else "✅ Whole page", "bqa", f"{page}:{flt}", False, "none"),
+                 ("🧹 پاک‌کردن انتخاب" if fa else "🧹 Clear", "bqc", f"{page}:{flt}", False, "none")])
+    if sel:
+        n = fnum(len(sel), L)
+        rows.append([((f"💱 فروش ({n})" if fa else f"💱 Sell ({n})"), "bqx", f"s:{page}:{flt}", False, GREEN),
+                     ((f"🚮 دور انداختن ({n})" if fa else f"🚮 Discard ({n})"), "bqx", f"d:{page}:{flt}", False, RED)])
+    rows.append(nav(ctx, ("bag", f"{page}:{flt}")))
+    if fa:
+        body = (f"☑️ <b>حالت انتخاب</b> | صفحه {fnum(page + 1, L)}/{fnum(pages, L)}\n"
+                f"انتخاب‌شده: <b>{fnum(len(sel), L)}</b> از حداکثر {fnum(SEL_MAX, L)}\n"
+                "روی هر آیتم بزن تا تیک بخوره. انتخاب‌ها بین صفحه‌ها و فیلترها می‌مونه و صفحه نمی‌پره 👌\n"
+                "از هر آیتم انتخاب‌شده فقط <b>یک عدد</b> حذف می‌شه.")
+        if not ids:
+            body += "\n\nاین فیلتر خالیه."
+    else:
+        body = (f"☑️ <b>Select mode</b> | page {page + 1}/{pages}\n"
+                f"Selected: <b>{len(sel)}</b> / {SEL_MAX} max\n"
+                "Tap items to tick them. Picks survive page and filter changes, and the page won't jump.\n"
+                "Only <b>one unit</b> of each selected item is removed.")
+        if not ids:
+            body += "\n\nNothing under this filter."
+    return Out(head(ctx, "ttl_bag") + body, rows, alert=alert)
+
+
+@action("bqm")
+async def bag_select_enter(ctx, arg):
+    page, flt = _pf(arg)
+    await _sel_set(ctx.uid, [])  # always start a fresh selection
+    return await _sel_view(ctx, page, flt)
+
+
+@action("bqv")
+async def bag_select_view(ctx, arg):
+    page, flt = _pf(arg)
+    return await _sel_view(ctx, page, flt)
+
+
+@action("bqt")
+async def bag_select_toggle(ctx, arg):
+    item, _, rest = (arg or "").partition(":")
+    page, flt = _pf(rest)
+    inv = await inv_get(ctx.uid)
+    if item not in ALL or inv["items"].get(item, 0) <= 0:
+        return await _sel_view(ctx, page, flt)
+    sel = await _sel_get(ctx.uid, inv)
+    alert = None
+    if item in sel:
+        sel.remove(item)
+    elif len(sel) >= SEL_MAX:
+        alert = f"حداکثر {fnum(SEL_MAX, ctx.lang)} آیتم در هر نوبت." if ctx.lang == "fa" else f"Max {SEL_MAX} items at a time."
+    else:
+        sel.append(item)
+    await _sel_set(ctx.uid, sel)
+    return await _sel_view(ctx, page, flt, alert)
+
+
+@action("bqa")
+async def bag_select_page(ctx, arg):
+    page, flt = _pf(arg)
+    inv = await inv_get(ctx.uid)
+    ids = _ids_for(inv, flt)
+    pages = max(1, math.ceil(len(ids) / PER))
+    page = max(0, min(page, pages - 1))
+    sel = await _sel_get(ctx.uid, inv)
+    alert = None
+    for i in ids[page * PER:(page + 1) * PER]:
+        if i in sel:
+            continue
+        if len(sel) >= SEL_MAX:
+            alert = f"حداکثر {fnum(SEL_MAX, ctx.lang)} آیتم در هر نوبت." if ctx.lang == "fa" else f"Max {SEL_MAX} items at a time."
+            break
+        sel.append(i)
+    await _sel_set(ctx.uid, sel)
+    return await _sel_view(ctx, page, flt, alert)
+
+
+@action("bqc")
+async def bag_select_clear(ctx, arg):
+    page, flt = _pf(arg)
+    await _sel_set(ctx.uid, [])
+    return await _sel_view(ctx, page, flt)
+
+
+@action("bqx")
+async def bag_select_confirm(ctx, arg):
+    mode, _, rest = (arg or "").partition(":")
+    page, flt = _pf(rest)
+    L = ctx.lang
+    fa = L == "fa"
+    inv = await inv_get(ctx.uid)
+    sel = await _sel_get(ctx.uid, inv)
+    if not sel or mode not in ("s", "d"):
+        return await _sel_view(ctx, page, flt, ("چیزی انتخاب نشده." if fa else "Nothing selected."))
+    sell = mode == "s"
+    shown = [f"• {nm(i, L)} ×1 <i>({'از' if fa else 'of'} {fnum(inv['items'][i], L)})</i>" for i in sel[:15]]
+    if len(sel) > 15:
+        shown.append((f"… و {fnum(len(sel) - 15, L)} مورد دیگه" if fa else f"… and {len(sel) - 15} more"))
+    if sell:
+        rate = float((await game_settings())["coin_rate"])
+        est = sum(max(1, int(ALL[i]["sell_price"] * rate)) for i in sel)
+        if fa:
+            head_t = f"💱 <b>تأیید فروش به فروشگاه</b>\n{fnum(len(sel), L)} آیتم، از هرکدوم ۱ عدد:\n\n"
+            tail = f"\n\n💰 دریافتی تقریبی: <b>{fnum(est, L)} 🪙</b>\nمطمئنی؟"
+        else:
+            head_t = f"💱 <b>Confirm sale to shop</b>\n{len(sel)} items, 1 unit each:\n\n"
+            tail = f"\n\n💰 Estimated payout: <b>{est:,} 🪙</b>\nAre you sure?"
+        yes = ("✅ تأیید فروش" if fa else "✅ Confirm sale", "bqy", f"s:{page}:{flt}", False, GREEN)
+    else:
+        if fa:
+            head_t = f"🚮 <b>تأیید دور انداختن</b>\n{fnum(len(sel), L)} آیتم، از هرکدوم ۱ عدد (بدون سکه و غیرقابل بازگشت):\n\n"
+            tail = "\n\nمطمئنی؟"
+        else:
+            head_t = f"🚮 <b>Confirm discard</b>\n{len(sel)} items, 1 unit each (no coins, cannot be undone):\n\n"
+            tail = "\n\nAre you sure?"
+        yes = ("✅ تأیید دور انداختن" if fa else "✅ Confirm discard", "bqy", f"d:{page}:{flt}", False, RED)
+    rows = [[yes], [("❌ لغو" if fa else "❌ Cancel", "bqv", f"{page}:{flt}", False, "none")]]
+    return Out(head(ctx, "ttl_bag") + head_t + "\n".join(shown) + tail, rows)
+
+
+@action("bqy")
+async def bag_select_do(ctx, arg):
+    mode, _, rest = (arg or "").partition(":")
+    page, flt = _pf(rest)
+    fa = ctx.lang == "fa"
+    # take the selection atomically: a double tap on "confirm" can never run it twice
+    d = await col("bag_sel").find_one_and_delete({"_id": ctx.uid})
+    items = [i for i in (d or {}).get("items", []) if i in ALL][:SEL_MAX]
+    if not items or mode not in ("s", "d"):
+        return await _sel_view(ctx, page, flt, ("چیزی انتخاب نشده." if fa else "Nothing selected."))
+    done, total = 0, 0
+    for i in items:
+        if mode == "s":
+            n = await npc_sell(ctx.uid, i, 1)
+            if n:
+                done += 1
+                total += n
+        elif await inv_remove(ctx.uid, i, 1):
+            done += 1
+            log_event("shop", ctx.uid, f"دور انداختن: {ALL[i]['name_fa']} ×1", item=i)
+    if not done:
+        return await _sel_view(ctx, page, flt, ("انجام نشد؛ آیتم‌ها دیگه تو کیفت نیستن." if fa else "Nothing happened; those items are gone from your bag."))
+    if mode == "s":
+        msg = f"✅ {fnum(done, ctx.lang)} آیتم فروخته شد: {fnum(total, ctx.lang)} 🪙" if fa else f"✅ Sold {done} items for {total:,} 🪙"
+    else:
+        msg = f"🚮 {fnum(done, ctx.lang)} آیتم دور انداخته شد." if fa else f"🚮 Discarded {done} items."
+    return await _sel_view(ctx, page, flt, msg)
 
 
 # ---- listing flow -----------------------------------------------------------------------------
