@@ -536,9 +536,15 @@ def _do_action(state, action, rng, max_turns=30):
     elif action == "gt":
         f["re"] -= int(f["max_re"] * GETSUGA_COST)
         _x(f)["slash"] = 0
-        _deal(state, side, GETSUGA_DMG, rng, ev, "hvy")
-        if ev and ev[-1].get("k") == "hit":
-            ev[-1]["gt"] = True
+        other = "b" if side == "a" else "a"
+        o = state[other]
+        if (state.get("ang") or {}).get(other):
+            # the crescent wave flies through the space the target just left: step off the line and it misses
+            ev.append({"k": "miss", "a": f["name"], "d": o["name"]})
+        else:
+            _deal(state, side, GETSUGA_DMG, rng, ev, "hvy")
+            if ev and ev[-1].get("k") == "hit":
+                ev[-1]["gt"] = True
     elif action == "ch":  # Kidō chanting: the turn is spent speaking the incantation, and you stand open
         _x(f)["chant"] = 1
         _x(f)["open"] = 1
@@ -603,9 +609,10 @@ def do_action(state, action, rng, max_turns=30):
     kbl = state.setdefault("kbl", {"a": False, "b": False})
     kbl[side] = False  # this fighter is striking now: their knock-lock ends
     # a heavy cannot be followed by another heavy: the blade must be re-set
-    _x(f)["hv_last"] = (eff == "hvy")
     hp0 = o["hp"]
+    # hv_last is read by can(f, "hvy") inside _do_action, so it must only be set after the strike
     ev = _do_action(state, action, rng, max_turns)
+    _x(f)["hv_last"] = (eff == "hvy")
     dmg = hp0 - o["hp"]
     other = "b" if side == "a" else "a"
     if eff in PUSH_KIND and dmg > 0 and o["hp"] > 0 and not state["done"] and not kbl[other]:
