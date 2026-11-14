@@ -140,6 +140,7 @@ async def boss_hit(uid: int, sid: str):
     dmg = dmg * mult * float(st["boss_dmg_mult"]) * (1 + float(st["boss_combo_step"]) * combo) * (float(st["boss_special_mult"]) if special else 1.0)
     dmg = max(1, int(dmg))
     heal = int(sess["max_hp"] * 0.004) if trait == "regen" and sess["hp"] < sess["max_hp"] * 0.99 else 0
+    heal = 0 if sess["hp"] - dmg <= 0 else min(heal, dmg // 2)  # regen can never undo a killing blow or stall the last 1%
     pname = tagged_name(ch, ALL)
     entry = {"n": pname, "d": dmg, "c": bool(crit), "s": bool(special), "r": ch["race"]}
     doc = await col("boss_sessions").find_one_and_update(
@@ -164,8 +165,14 @@ async def settle_boss(sid: str):
         return_document=ReturnDocument.AFTER)
     if not doc:
         return None
-    summary = await _pay(doc, killed=True)
-    await _end_global(doc)
+    try:
+        summary = await _pay(doc, killed=True)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("boss payout failed: %s", sid)
+        summary = {"rows": [], "drops": {}, "evo_drops": {}, "killed": True, "enraged": False, "n": 0}
+    finally:
+        await _end_global(doc)  # always free the boss slot, otherwise no new boss ever spawns
     return summary
 
 

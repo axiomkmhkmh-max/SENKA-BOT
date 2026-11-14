@@ -431,9 +431,13 @@ async def boss_hit_cb(ctx, arg):
             summary = await settle_boss(arg)
             if summary:
                 import handlers_world
-                await handlers_world.end_global_boss(ctx.bot, d, summary)
-                if ctx.private:
-                    await _edit(ctx, boss_text(ctx.lang, d, summary) + _drops(ctx.lang, summary), None)
+                try:
+                    await handlers_world.end_global_boss(ctx.bot, d, summary)
+                    if ctx.private:
+                        await _edit(ctx, boss_text(ctx.lang, d, summary) + _drops(ctx.lang, summary), None)
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).exception("boss end announce failed")
         else:
             await _refresh_boss(ctx, d)
             if data.get("phase_up"):
@@ -448,6 +452,17 @@ async def boss_hit_cb(ctx, arg):
         return Out(alert=ctx.t("wait_s", n=data))
     if status == "level":
         return Out(alert=ctx.t("boss_e_level", n=data))
+    if status == "gone":
+        # self-heal: a boss at 0 HP that was never paid out (earlier crash) gets settled now
+        summary = await settle_boss(arg)
+        if summary:
+            import handlers_world
+            d = await col("boss_sessions").find_one({"_id": arg})
+            if d:
+                try:
+                    await handlers_world.end_global_boss(ctx.bot, d, summary)
+                except Exception:
+                    pass
     return Out(alert=ctx.t("boss_e_" + status))
 
 
