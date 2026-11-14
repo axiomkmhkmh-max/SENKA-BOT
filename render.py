@@ -43,7 +43,9 @@ def events_text(lang: str, events: list) -> str:
         n = fnum(e.get("n", 0), lang)
         if k == "hit":
             kind = e.get("kind", "atk")
-            if kind == "hvy" and e.get("mv") and move_name(e["mv"], lang):  # released blade: the real technique name
+            if e.get("gt"):  # Getsuga Tenshō: the gathered wave, named as it leaves the blade
+                line = pick(lang, "lg_getsuga", a=a, d=d, n=n)
+            elif kind == "hvy" and e.get("mv") and move_name(e["mv"], lang):  # released blade: the real technique name
                 line = pick(lang, "lg_hit_move", a=a, d=d, n=n, move=esc(move_name(e["mv"], lang)))
             else:
                 line = pick(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
@@ -69,7 +71,7 @@ def events_text(lang: str, events: list) -> str:
                 out.append(pick(lang, "lg_unleash_res" if e.get("r") in RESURRECCION_RACES else "lg_unleash", a=a))
         elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost",
                    "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure",
-                   "gauge_full", "unleash_end", "resurrect", "konpaku"):
+                   "gauge_full", "unleash_end", "resurrect", "konpaku", "gather"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k == "shield":
             out.append(t(lang, "lg_shield", a=a, n=n, num=e.get("num", ""), spell=e.get("spell", "")))

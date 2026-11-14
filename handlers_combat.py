@@ -32,6 +32,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
     if E.can(f, "hvy"):
         rows[0].append(mk(ctx.t("a_hvy"), "hvy"))
     r2 = []
+    if E.can(f, "gc"):  # Getsuga: gather reiatsu into the blade (turn spent)
+        r2.append(mk(ctx.t("a_gc"), "gc"))
     if E.can(f, "ch"):  # Kidō chanting: costs the turn, leaves you open, boosts the next spell
         r2.append(mk(ctx.t("a_ch"), "ch"))
     if E.can(f, "kd"):
@@ -40,6 +42,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
         r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
     if r2:
         rows.append(r2)
+    if E.can(f, "gt"):  # gathered: release the wave
+        rows.append([mk(ctx.t("a_gt"), "gt")])
     if E.can(f, "gx"):  # spirit gauge full: Bankai (Resurrección for Hollow / Arrancar)
         rows.append([mk(ctx.t("a_gx_hollow" if f.get("race") in RESURRECCION_RACES else "a_gx"), "gx")])
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit

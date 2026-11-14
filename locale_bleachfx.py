@@ -17,7 +17,9 @@ FA = {
     "lg_resurrect_2": "🦴 از دل ویرانه‌ی ماسک {a}، ارکانار برخاست!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 شونپو", "a_sg_hiren": "🌪️ هیرنکیاکو", "a_sg_cero": "🔴 جمع‌کردن سرو", "a_sg_cero_fire": "💥 شلیک سرو!",
-    "a_sg_bring": "💠 ضربه‌ی فول‌برینگ", "a_sg_guts": "🔥 اراده‌ی جنگجو", "a_ch": "📿 ورد کیدو",
+    "a_sg_bring": "💠 ضربه‌ی فول‌برینگ", "a_sg_guts": "🔥 اراده‌ی جنگجو", "a_ch": "📿 ورد کیدو", "a_gc": "🌙 جمع‌آوری ریاتسو", "a_gt": "🌙 گتسوگا تنشوگا",
+    "lg_gather": "🌙 {a} شمشیر را بالا برد و ریاتسو را در تیغه جمع کرد…",
+    "lg_getsuga": "🌙 <b>{a}</b> شمشیرش را فرود آورد: <b>گتسوگا تنشوگا!</b> موج ریاتسو به سوی {d} رفت — {n} آسیب.",
     # ---- battle log ----
     "lg_shunpo": "🌀 {a} شونپو زد و از چشم‌ها محو شد — ضربه‌ی بعدی به او نمی‌رسد!",
     "lg_shunpo_2": "🌀 صدای پای {a} هم شنیده نشد؛ فقط ردی از ریاتسو ماند!",
@@ -79,7 +81,9 @@ EN = {
     "lg_resurrect_2": "🦴 From the ruins of {a}'s mask, the Arrancar rises!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 Shunpo", "a_sg_hiren": "🌪️ Hirenkyaku", "a_sg_cero": "🔴 Gather Cero", "a_sg_cero_fire": "💥 Fire Cero!",
-    "a_sg_bring": "💠 Fullbring Strike", "a_sg_guts": "🔥 Fighting Spirit", "a_ch": "📿 Chant Kidō",
+    "a_sg_bring": "💠 Fullbring Strike", "a_sg_guts": "🔥 Fighting Spirit", "a_ch": "📿 Chant Kidō", "a_gc": "🌙 Gather reiatsu", "a_gt": "🌙 Getsuga Tenshō",
+    "lg_gather": "🌙 {a} raised the blade and gathered reiatsu into it…",
+    "lg_getsuga": "🌙 <b>{a}</b> brought the blade down: <b>Getsuga Tenshō!</b> A wave of reiatsu tore toward {d} — {n} damage.",
     # ---- battle log ----
     "lg_shunpo": "🌀 {a} flash-steps out of sight — the next strike will not find them!",
     "lg_shunpo_2": "🌀 Not even a footstep from {a}; only a trace of reiatsu remains!",

@@ -44,7 +44,7 @@ def has_fx(f, k):
 def _new_x():
     """Bleach combat-feel state (see data_bleachfx). Plain ints only, so it is stored as-is in MongoDB."""
     return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
-            "gauge": 0, "awake": 0}
+            "gauge": 0, "awake": 0, "slash": 0}
 
 
 def _x(f):
@@ -254,6 +254,10 @@ def best_kido(f, branch):
     return max(ok) if ok else None
 
 
+GETSUGA_COST = 0.15   # share of max reiatsu for the release
+GETSUGA_DMG = 2.4     # strike multiplier of the release (a heavy strike is 1.6)
+
+
 def can(f, action):
     if action in ("atk", "df"):
         return True
@@ -274,6 +278,10 @@ def can(f, action):
     if action == "gx":  # Bankai / Resurrección: a full spirit gauge, and not already released
         x = _x(f)
         return x["gauge"] >= GAUGE["full"] and x["awake"] <= 0 and f["re"] >= f["max_re"] * GAUGE["cost"]
+    if action == "gc":  # Getsuga: raise the blade and gather reiatsu into it (the turn is spent)
+        return _x(f)["slash"] <= 0 and not _x(f)["chant"]
+    if action == "gt":  # release the gathered reiatsu as one wave
+        return _x(f)["slash"] > 0 and f["re"] >= f["max_re"] * GETSUGA_COST
     if action == "ch":
         return best_kido(f, "had") is not None and not _x(f)["chant"]
     if action == "f1":
@@ -454,6 +462,16 @@ def do_action(state, action, rng, max_turns=30):
         f["guard"] = True
         f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * 0.05))
         ev.append({"k": "guard", "a": f["name"]})
+    elif action == "gc":
+        _x(f)["slash"] = 1
+        _x(f)["open"] = 1
+        ev.append({"k": "gather", "a": f["name"]})
+    elif action == "gt":
+        f["re"] -= int(f["max_re"] * GETSUGA_COST)
+        _x(f)["slash"] = 0
+        _deal(state, side, GETSUGA_DMG, rng, ev, "hvy")
+        if ev and ev[-1].get("k") == "hit":
+            ev[-1]["gt"] = True
     elif action == "ch":  # Kidō chanting: the turn is spent speaking the incantation, and you stand open
         _x(f)["chant"] = 1
         _x(f)["open"] = 1

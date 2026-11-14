@@ -93,7 +93,7 @@ async def viral_hook(message, text: str, n: str) -> bool:
         else:
             await message.reply(_t(lang, res, n=extra))
         return True
-    if n in STRIKE_WORDS:
+    if n in STRIKE_WORDS and reply is not None:  # a reply strikes the army; plain word = attack panel
         res, doc, dmg = await quincy_strike(chat.id, user.id)
         if res == "nodoc":
             return False
