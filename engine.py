@@ -329,7 +329,7 @@ def can(f, action):
     if action in ("atk", "df"):
         return True
     if action == "hvy":
-        return f["re"] >= f["max_re"] * 0.10
+        return f["re"] >= f["max_re"] * 0.10 and not _x(f).get("hv_last")
     if action == "kd":
         return best_kido(f, "had") is not None
     if action == "bk":
@@ -599,13 +599,19 @@ def do_action(state, action, rng, max_turns=30):
             return _finish(state, [_close_in(state, side, hi)], max_turns)
         if d < lo:  # too close for this weapon: the turn backs off
             return _finish(state, [apply_retreat(state, side)], max_turns)
+    # a fighter who was just knocked back is not knocked again until they have struck back
+    kbl = state.setdefault("kbl", {"a": False, "b": False})
+    kbl[side] = False  # this fighter is striking now: their knock-lock ends
+    # a heavy cannot be followed by another heavy: the blade must be re-set
+    _x(f)["hv_last"] = (eff == "hvy")
     hp0 = o["hp"]
     ev = _do_action(state, action, rng, max_turns)
     dmg = hp0 - o["hp"]
-    if eff in PUSH_KIND and dmg > 0 and o["hp"] > 0 and not state["done"]:
-        other = "b" if side == "a" else "a"
+    other = "b" if side == "a" else "a"
+    if eff in PUSH_KIND and dmg > 0 and o["hp"] > 0 and not state["done"] and not kbl[other]:
         push = apply_knockback(state, other, PUSH_KIND[eff], dmg, o["max_hp"])
         if push:
+            kbl[other] = True
             ev.append({"k": "knock", "a": f["name"], "d": o["name"], "n": push})
     return ev
 
