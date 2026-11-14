@@ -17,7 +17,7 @@ RAW = {
     "sword": ("znp", "", ["شمشیر من", "سلاح", "زانپاکتو", "دنیای درون شمشیر", "my sword", "weapon", "zanpakuto", "sword spirit"]),
     "zanpakuto": ("znp", "", ["روح شمشیر", "روح زانپاکتو", "zanpakuto spirit", "blade spirit"]),
     "race_path": ("rpath", "", ["مسیر نژاد", "تکامل نژاد", "race path", "race evolution"]),
-    "kido": ("kidop", "", ["کیدو", "کیدوها", "آموزش کیدو", "kido", "kidō", "kido spells", "spells"]),
+    "kido": ("kidop", "", ["کیدو", "کیدوها", "آموزش کیدو", "باکودو", "هادو", "bakudo", "bakudō", "hado", "hadō", "kido", "kidō", "kido spells", "spells"]),
     "faction": ("fctp", "", ["سازمان", "عضویت سازمان", "گوتی ۱۳", "وندن‌رایش", "faction", "organization", "gotei 13", "espada", "wandenreich"]),
     "senkaimon": ("skm", "", ["سنکایمون", "دروازه", "پورتال", "senkaimon", "gate", "portal"]),
     "bleach_hub": ("blhub", "", ["جهان بلیچ", "سیستم های بلیچ", "bleach", "bleach systems"]),
@@ -96,7 +96,7 @@ RAW.update({
     "wanted_list": ("wnt", "", ["لیست تحت تعقیب", "تحت تعقیب", "wanted list"]),
     "espada_board": ("esp", "", ["جدول اسپادا", "اسپادا ۰ تا ۹", "espada board"]),
 })
-GROUP_OK = {"duel", "duel_friendly", "boss", "battle", "help", "home", "chronicle", "commands", "event",
+GROUP_OK = {"duel", "duel_friendly", "boss", "battle", "kido", "help", "home", "chronicle", "commands", "event",
             "bankai_word", "shikai_word", "mask_word", "bleach_status", "steal_hogyoku", "wanted_list", "espada_board"}
 _map: dict = {}
 _extra_at = 0.0
