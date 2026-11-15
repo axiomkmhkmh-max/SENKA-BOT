@@ -338,15 +338,20 @@ async def seat_claim(uid: int):
 
 
 # ===================================================================================================
-# 6. Inner World (weekly, a few visits)
+# 6. Inner World (daily window, a few visits)
 # ===================================================================================================
+def _inner_window() -> str:
+    """Visits reset every day (UTC date), not every week."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
 def _scene_for(uid: int, wk: str, n: int) -> int:
     return random.Random(f"{uid}:{wk}:{n}").randrange(len(INNER))
 
 
 async def inner_state(uid: int) -> dict:
     st = await game_settings()
-    wk = week()
+    wk = _inner_window()
     used = await counter_get(f"inner:{uid}:{wk}")
     cap = int(st["inner_weekly"])
     return {"used": used, "cap": cap, "left": max(0, cap - used), "scene": _scene_for(uid, wk, used) if used < cap else None}
@@ -354,7 +359,7 @@ async def inner_state(uid: int) -> dict:
 
 async def inner_choose(uid: int, scene: int, choice: str):
     st = await game_settings()
-    wk = week()
+    wk = _inner_window()
     if choice not in ("a", "b"):
         return "bad", None
     if await try_cooldown(f"inner:cd:{uid}", 3):
@@ -364,7 +369,7 @@ async def inner_choose(uid: int, scene: int, choice: str):
         return "limit", None
     if scene != _scene_for(uid, wk, used):
         return "stale", None
-    if not await bump_counter(f"inner:{uid}:{wk}", 1, int(st["inner_weekly"]), ttl_hours=24 * 9):
+    if not await bump_counter(f"inner:{uid}:{wk}", 1, int(st["inner_weekly"]), ttl_hours=48):
         return "limit", None
     eff = INNER[scene][choice][4]
     ch = await get_char(uid)
