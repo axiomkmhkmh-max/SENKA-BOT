@@ -448,6 +448,10 @@ async def pvp_act(uid: int, sid: str, action: str, forced: str = None):
     side = "a" if uid == doc["a_uid"] else "b" if uid == doc["b_uid"] else forced
     if side is None:
         return "notplayer", None, None
+    # a duel that already ended (its settle may still be pending) is over, not "not your turn":
+    # after the last blow `awaiting` is cleared, so an old panel's button used to show the wrong message
+    if st.get("done"):
+        return "gone", None, None
     if st["cur"] != side or not st.get("awaiting"):
         return "notturn", None, None
     rng = random.Random()

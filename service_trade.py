@@ -218,34 +218,36 @@ async def _execute(doc):
            int(ch.get("coins", 0)) < int(give["coins"]):
             await col("trades").update_one({"_id": tid}, {"$set": {"status": "failed", "reason": "missing"}})
             return "missing"
-    removed, coins_out, coins_in = [], {}, {}
+    removed, debited = [], []
     try:
+        # take what each side gives. A coin debit that fails (the player spent the coins since the check) must
+        # abort the trade; before, its return value was ignored and the other side got items for free.
         for uid, (give, _) in plan.items():
+            amount = int(give["coins"])
+            if amount:
+                if not await add_coins(uid, -amount, "trade"):
+                    raise RuntimeError("missing")
+                debited.append((uid, amount))
             for i, q in give["items"].items():
                 if not await inv_remove(uid, i, q):
-                    raise RuntimeError("remove failed")
+                    raise RuntimeError("missing")
                 removed.append((uid, i, q))
-            coins_out[uid] = int(give["coins"])
+        # pair: each side receives exactly the other side's offer; group: the host-split shares
         for uid, (_, get) in plan.items():
             for i, q in get["items"].items():
                 await inv_add(uid, i, q, force=True)
-            coins_in[uid] = int(get.get("coins", 0)) if doc["kind"] == "group" else None
-        if doc["kind"] == "pair":
-            # pair: each side receives exactly the other side's coins
-            for uid, (give, get) in plan.items():
-                await add_coins(uid, -int(give["coins"]), "trade")
-            for uid, (give, get) in plan.items():
-                await add_coins(uid, int(get["coins"]), "trade")
-        else:
-            for uid in plan:
-                await add_coins(uid, -coins_out[uid], "trade")
-            for uid in plan:
-                await add_coins(uid, coins_in[uid], "trade")
-    except Exception:
-        for uid, i, q in removed:  # best effort: return what was already taken; coins are not rolled back here
+            amount = int(get.get("coins", 0))
+            if amount:
+                await add_coins(uid, amount, "trade")
+    except Exception as exc:
+        # roll back everything already moved: items go back, coins are refunded
+        for uid, amount in debited:
+            await add_coins(uid, amount, "trade_refund")
+        for uid, i, q in removed:
             await inv_add(uid, i, q, force=True)
-        await col("trades").update_one({"_id": tid}, {"$set": {"status": "failed", "reason": "error"}})
-        return "error"
+        reason = "missing" if str(exc) == "missing" else "error"
+        await col("trades").update_one({"_id": tid}, {"$set": {"status": "failed", "reason": reason}})
+        return reason
     await col("trades").update_one({"_id": tid}, {"$set": {"status": "done", "finished_at": int(time.time())}})
     await col("trade_log").insert_one({"trade": str(tid), "kind": doc["kind"], "members": doc["members"],
                                        "offers": doc["offers"], "at": int(time.time())})

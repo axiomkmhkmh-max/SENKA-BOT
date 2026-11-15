@@ -51,6 +51,19 @@ def hilo_multiplier(steps: int) -> float:
     return round(HILO_STEP ** steps * 0.95, 4)  # 0.95 keeps a small edge for the house
 
 
+def hilo_win_chance(card: int, guess: str) -> float:
+    """Chance that a guess wins. 'hi' beats the (13 - card) higher ranks, 'lo' the (card - 1) lower ones; ties lose."""
+    wins = (13 - card) if guess == "hi" else (card - 1)
+    return wins / 13
+
+
+def hilo_step_factor(card: int, guess: str) -> float:
+    """Payout factor of one correct guess, scaled by the chance it wins. A fixed factor let players
+    always pick the likelier side (e.g. 'hi' on a 1) and beat the house; this keeps every step at 0.95 EV."""
+    p = hilo_win_chance(card, guess)
+    return round(0.95 / p, 4) if p > 0 else 0.0
+
+
 def hilo_play(bet: int, guesses: list, rng: random.Random) -> dict:
     """Play a whole Hi-Lo round from a list of 'hi'/'lo' guesses (max HILO_MAX_STEPS)."""
     if not guesses or len(guesses) > HILO_MAX_STEPS:

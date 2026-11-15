@@ -107,11 +107,14 @@ class TeamBattleTests(unittest.TestCase):
 
     def test_tag_gives_first_blow_bonus(self):
         T = self.T
+        # melee reach is 0-1 and fights start at distance 2, so the fighters begin in contact (dist 0)
         plain = T.new_team_state([fighter("A", "shinigami")], [fighter("B", "human", hp=10**6)])
+        plain["dist"] = 0
         ev1 = T.act(plain, "a", "atk", rng=FixedRng())
         h1 = [e for e in ev1 if e.get("k") == "hit"][0]["n"]
         tagged = T.new_team_state([fighter("A0", "human", hp=10**6), fighter("A1", "shinigami")],
                                   [fighter("B", "human", hp=10**6)])
+        tagged["dist"] = 0
         T.act(tagged, "a", "tag", target=1, rng=FixedRng())
         T.act(tagged, "b", "atk", rng=FixedRng())
         ev2 = T.act(tagged, "a", "atk", rng=FixedRng())
@@ -137,6 +140,7 @@ class TeamBattleTests(unittest.TestCase):
         T = self.T
         def first_hit(att_race):
             st = T.new_team_state([fighter("A", att_race)], [fighter("B", "hollow", hp=10**6)])
+            st["dist"] = 0  # in contact, so the first blow lands instead of closing the gap
             ev = T.act(st, "a", "atk", rng=FixedRng())
             return [e for e in ev if e.get("k") == "hit"][0]["n"]
         self.assertGreater(first_hit("quincy"), first_hit("human"))

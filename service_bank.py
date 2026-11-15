@@ -104,7 +104,7 @@ async def loan(uid: int, amount: int):
     r = B.take_loan(acc, collateral_value(ch), amount, _today())
     if not r["ok"]:
         return None, r["reason"]
-    await add_coins(uid, amount, "bank_loan")
+    # the loan is credited to the vault only (the engine adds it to acc["balance"]); paying it into the wallet too doubled it
     B.ledger(acc, "loan", amount, _today())
     await save(acc)
     return acc, None

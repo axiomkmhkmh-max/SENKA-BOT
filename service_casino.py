@@ -2,6 +2,8 @@
 import random
 import time
 
+from pymongo import ReturnDocument
+
 import engine_casino as C
 from database import col
 from service_player import add_coins, get_char
@@ -127,39 +129,52 @@ async def hilo_start(uid: int, bet: int):
     if not await add_coins(uid, -bet, "casino_hilo"):
         return None, "insufficient"
     card = random.randint(1, 13)
-    prof["hilo"] = {"bet": bet, "card": card, "steps": 0}
+    prof["hilo"] = {"bet": bet, "card": card, "steps": 0, "mult": 1.0}
     await _save(prof)
     return prof["hilo"], None
 
 
+async def _claim_hilo(uid: int):
+    """Take the live Hi-Lo round out of the profile in one atomic step. Only one request can hold it,
+    so a double-tapped 'cash' cannot pay out twice and a double-tapped guess cannot count twice."""
+    doc = await col("casino_profile").find_one_and_update(
+        {"user_id": uid, "hilo": {"$ne": None}}, {"$set": {"hilo": None}}, return_document=ReturnDocument.BEFORE)
+    return (doc or {}).get("hilo")
+
+
+async def _put_back_hilo(uid: int, st: dict) -> None:
+    await col("casino_profile").update_one({"user_id": uid}, {"$set": {"hilo": st}})
+
+
 async def hilo_guess(uid: int, guess: str):
     """guess: 'hi' | 'lo' | 'cash'. Returns (state, finished_result or None)."""
-    prof = await profile(uid)
-    st = prof.get("hilo")
-    if not st:
+    if guess not in ("hi", "lo", "cash"):
         return None, None
+    st = await _claim_hilo(uid)
+    if not st:  # no live round, or another request is already handling it
+        return None, None
+    bet = st["bet"]
+    mult = float(st.get("mult", C.hilo_multiplier(st["steps"])))  # rounds started before the fix have no "mult"
     if guess == "cash":
-        prof["hilo"] = None
-        await _save(prof)
         if st["steps"] == 0:  # cashing out before any guess refunds the stake
-            await add_coins(uid, st["bet"], "casino_hilo_refund")
+            await add_coins(uid, bet, "casino_hilo_refund")
             return None, None
-        payout = int(st["bet"] * C.hilo_multiplier(st["steps"]))
-        result = {"game": "hilo", "won": True, "bet": st["bet"], "payout": payout, "net": payout - st["bet"],
+        payout = int(bet * mult)
+        result = {"game": "hilo", "won": True, "bet": bet, "payout": payout, "net": payout - bet,
                   "steps": st["steps"], "cards": [st["card"]]}
-        return None, await settle(uid, "hilo", st["bet"], result, debit=False)
+        return None, await settle(uid, "hilo", bet, result, debit=False)
     if st["steps"] >= C.HILO_MAX_STEPS:
+        await _put_back_hilo(uid, st)
         return st, None
     ok, nxt = C.hilo_step(st["card"], guess, random.Random())
     if not ok:
-        prof["hilo"] = None
-        await _save(prof)
-        result = {"game": "hilo", "won": False, "bet": st["bet"], "payout": 0, "net": -st["bet"],
+        result = {"game": "hilo", "won": False, "bet": bet, "payout": 0, "net": -bet,
                   "steps": st["steps"], "cards": [st["card"], nxt]}
-        return None, await settle(uid, "hilo", st["bet"], result, debit=False)
+        return None, await settle(uid, "hilo", bet, result, debit=False)
+    # the step pays by the chance it had to win, so reading the card gives no edge
+    st["mult"] = round(mult * C.hilo_step_factor(st["card"], guess), 4)
     st["card"], st["steps"] = nxt, st["steps"] + 1
-    prof["hilo"] = st
-    await _save(prof)
+    await _put_back_hilo(uid, st)
     return st, None
 
 

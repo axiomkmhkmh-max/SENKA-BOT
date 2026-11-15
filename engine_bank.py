@@ -76,7 +76,8 @@ def take_loan(acc: dict, collateral_value: int, amount: int, day: int) -> dict:
         return {"ok": False, "reason": "over_limit", "limit": limit}
     if acc["loans"]:
         return {"ok": False, "reason": "already_has_loan"}
-    acc["loans"].append({"principal": amount, "owed": amount, "day": day, "collateral_value": collateral_value})
+    # "start" is fixed for the whole loan; "day" moves forward as interest accrues
+    acc["loans"].append({"principal": amount, "owed": amount, "day": day, "start": day, "collateral_value": collateral_value})
     acc["balance"] += amount
     return {"ok": True, "owed": amount, "balance": acc["balance"]}
 
@@ -92,12 +93,13 @@ def repay_loan(acc: dict, day: int) -> dict:
     if not acc["loans"]:
         return {"ok": False, "reason": "no_loan"}
     loan = acc["loans"][0]
+    start = loan.get("start", loan["day"])  # accrue_loan moves loan["day"], so the due date must come from the start
     accrue_loan(loan, day)
     if acc["balance"] < loan["owed"]:
         return {"ok": False, "reason": "insufficient", "owed": loan["owed"]}
     acc["balance"] -= loan["owed"]
     acc["loans"].clear()
-    acc["credit"] = credit_on_repay(acc.get("credit", CREDIT_START), on_time=day - loan["day"] <= LOAN_DEFAULT_DAYS)
+    acc["credit"] = credit_on_repay(acc.get("credit", CREDIT_START), on_time=day - start <= LOAN_DEFAULT_DAYS)
     return {"ok": True, "paid": loan["owed"], "balance": acc["balance"], "credit": acc["credit"]}
 
 
@@ -106,7 +108,7 @@ def check_default(acc: dict, day: int) -> dict | None:
     if not acc["loans"]:
         return None
     loan = acc["loans"][0]
-    if day - loan["day"] < LOAN_DEFAULT_DAYS:
+    if day - loan.get("start", loan["day"]) < LOAN_DEFAULT_DAYS:
         return None
     seized = loan["collateral_value"]
     acc["loans"].clear()
