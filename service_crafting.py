@@ -103,6 +103,48 @@ async def temper(uid: int):
 
 
 # ---- relics ------------------------------------------------------------------------------------------------------
+async def _relic_level_up(uid: int, ch: dict, item_id: str) -> str:
+    """A duplicate idol is consumed to raise the attuned relic one level (max RELIC_MAX_LVL).
+    Lives here (not in service_effects) so the relic panel never depends on that module's imports."""
+    from effects import RELIC_MAX_LVL
+    lvl = int((ch.get("relic_lvl") or {}).get(item_id, 1))
+    if lvl >= RELIC_MAX_LVL:
+        return "relic_max"
+    if not await inv_remove(uid, item_id, 1):
+        return "missing"
+    r = await col("characters").update_one({"user_id": uid, f"relic_lvl.{item_id}": {"$exists": False} if lvl == 1 else lvl},
+                                           {"$set": {f"relic_lvl.{item_id}": lvl + 1}})
+    if not r.modified_count:
+        await inv_add(uid, item_id, 1, force=True)
+        return "retry"
+    return "leveled"
+
+
+def relic_upgrade_cost(item_id: str, lvl: int) -> int:
+    """Coins to raise an attuned relic from `lvl` to `lvl + 1`, like forging gear (cost grows with level and item value)."""
+    return int(ALL[item_id]["base_price"] * 0.5 * lvl) + 500 * lvl
+
+
+async def relic_upgrade_coins(uid: int, item_id: str) -> tuple:
+    """Level an attuned relic up with coins instead of a duplicate idol. -> (result, coins)."""
+    from effects import RELIC_MAX_LVL
+    ch = await get_char(uid)
+    if item_id not in (ch.get("relics") or []):
+        return "empty", 0
+    lvl = int((ch.get("relic_lvl") or {}).get(item_id, 1))
+    if lvl >= RELIC_MAX_LVL:
+        return "relic_max", 0
+    cost = relic_upgrade_cost(item_id, lvl)
+    if not await add_coins(uid, -cost, "relic_upgrade"):
+        return "funds", cost
+    r = await col("characters").update_one({"user_id": uid, f"relic_lvl.{item_id}": {"$exists": False} if lvl == 1 else lvl},
+                                           {"$set": {f"relic_lvl.{item_id}": lvl + 1}})
+    if not r.modified_count:
+        await add_coins(uid, cost, "relic_upgrade_refund")
+        return "retry", 0
+    return "ok", cost
+
+
 async def relic_attune(uid: int, item_id: str) -> str:
     st = await game_settings()
     it = ALL.get(item_id)
@@ -111,7 +153,6 @@ async def relic_attune(uid: int, item_id: str) -> str:
     slots = max(1, int(st["relic_slots"]))
     ch = await get_char(uid)
     if item_id in (ch.get("relics") or []):  # duplicate idol: level the relic up, no extra slot
-        from service_effects import _relic_level_up
         return await _relic_level_up(uid, ch, item_id)
     if not await inv_remove(uid, item_id, 1):
         return "missing"
@@ -126,7 +167,6 @@ async def relic_attune(uid: int, item_id: str) -> str:
 async def _merge_bag_duplicates(uid: int, item_id: str) -> None:
     """Spare copies of a just-attuned idol still in the bag fold into its level (max RELIC_MAX_LVL),
     so two idols in the bag become one relic of level 2 with a single tap."""
-    from service_effects import _relic_level_up
     for _ in range(10):
         ch = await get_char(uid)
         if (await inv_get(uid))["items"].get(item_id, 0) <= 0:

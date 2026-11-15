@@ -19,7 +19,7 @@ from fmt import item_card, nm, pet_line
 from i18n import bar, esc, fnum
 from render import both, boss_text, gl, glang, pick
 from security import make_cb
-from service_crafting import (RECIPE_BY_ID, RECIPES, craft, cosmetic_remove, cosmetic_wear, evo_start, pet_activate, recipes_for, relic_attune,
+from service_crafting import (RECIPE_BY_ID, RECIPES, craft, cosmetic_remove, cosmetic_wear, evo_start, pet_activate, recipes_for, relic_attune, relic_upgrade_coins, relic_upgrade_cost,
                               relic_release, scaled_coins, temper)
 from service_economy import PETS, inv_get
 from service_interact import (MARK_ICON, MARKS, bounty_board, bounty_place, bounty_total, crowd, crowd_counts, find_by_name, leave_trace, send_aid)
@@ -486,6 +486,8 @@ async def relic_panel(ctx, arg):
                      else f"⭐ Level {lvl}/{RELIC_MAX_LVL} · power ×{round(power, 2)}")
         lines.append(f"{idx + 1}. {nm(rid, L)}\n   {effect_text(ctx, ALL[rid])}\n   {power_txt}")
         rows.append([(f"⬇️ {nm(rid, L)}".replace("<", "").replace(">", ""), "rlr", str(idx))])
+        if lvl < RELIC_MAX_LVL:  # coin upgrade, like forging gear: no duplicate idol needed
+            rows[-1].append((f"🔨 {fnum(relic_upgrade_cost(rid, lvl), L)} 🪙", "rlu", rid))
     bag = [i for i, q in inv["items"].items() if q > 0 and (ALL.get(i, {}).get("effect") or {}).get("type") == "relic"]
     bag.sort(key=lambda i: -RARITIES.index(ALL[i]["rarity"]))
     # every relic in the bag is listed (two per row, with the count of copies), not just the first six
@@ -510,6 +512,18 @@ async def relic_attune_cb(ctx, arg):
     if r != "ok":
         return Out(alert=ctx.t("rlc_e_" + r))
     return await relic_panel(ctx, "")
+
+
+@action("rlu")
+async def relic_upgrade_cb(ctx, arg):
+    r, cost = await relic_upgrade_coins(ctx.uid, arg)
+    if r == "ok":
+        return await relic_panel(ctx, "")
+    msg = {"funds": ("سکه‌ی کافی نداری. لازم: {c} 🪙", "Not enough coins. Need {c} 🪙"),
+           "relic_max": ("این یادگار به بالاترین سطح رسیده است.", "This relic is at max level."),
+           "empty": ("این یادگار هم‌ساز نیست.", "This relic is not attuned."),
+           "retry": ("دوباره امتحان کن.", "Try again.")}.get(r, ("دوباره امتحان کن.", "Try again."))
+    return Out(alert=msg[0 if ctx.lang == "fa" else 1].format(c=fnum(cost, ctx.lang)))
 
 
 @action("rlr")
