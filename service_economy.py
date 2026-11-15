@@ -182,20 +182,31 @@ async def use_item(uid: int, item_id: str):
 
 
 # ---- drops & pity --------------------------------------------------------------
+# Drop caps. Each one limits one stacking source; the stacked total is what made rare drops too common.
+DROP_BONUS_CAP = 0.25   # faction, division, artifact, relic and pet drop bonuses, summed, count at most this much
+WORLD_DROP_CAP = 1.5    # location (reishi) and event drop factor ceiling
+LUCK_BOOST_CAP = 0.2    # luck from level and accessories: at most +20% on rare-and-up weights
+RARE_MULT_CAP = 2.5     # rare, epic, legendary and mythic weights never get more than this multiplier
+
+
 async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0.1, floor_idx: int = 0, rng=random):
     st = await game_settings()
     ch = await get_char(uid)
     luck = ch.get("level", 1) // 20
     for k in ("acc_id", "charm_id"):
         luck += ALL.get(ch.get(k) or "", {}).get("stats", {}).get("luck", 0)
-    boost = 1 + min(0.5, luck * 0.005)
+    boost = 1 + min(LUCK_BOOST_CAP, luck * 0.005)
     mult = float(st["drop_rate"]) * source_mult
-    mult *= 1 + player_bonus(ch, ALL, st)["drop"]
+    mult *= 1 + min(DROP_BONUS_CAP, player_bonus(ch, ALL, st)["drop"])
     try:
-        mult *= (await mods_for(ch["location"]))["drop"]
+        mult *= min(WORLD_DROP_CAP, (await mods_for(ch["location"]))["drop"])
     except Exception:
         pass
-    weights = [w * (boost * mult if i >= 2 else 1.0) for i, w in enumerate(DROP_W)]
+    # rare-and-up weights take the whole stacked multiplier, but never more than RARE_MULT_CAP.
+    # Before this cap, boss/elite x2 * faction + artifact drop bonus * world factor * luck could reach ~10x,
+    # which is why Legendary and Mythic showed up almost every time.
+    rare_mult = min(RARE_MULT_CAP, boost * mult)
+    weights = [w * (rare_mult if i >= 2 else 1.0) for i, w in enumerate(DROP_W)]
     idx = rng.choices(range(6), weights)[0]
     idx = max(idx, floor_idx)
     pity = dict(ch.get("pity") or {"rare": 0, "epic": 0, "legendary": 0})

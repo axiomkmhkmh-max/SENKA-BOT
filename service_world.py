@@ -118,7 +118,11 @@ async def boss_hit(uid: int, sid: str):
                          {"attack": 1, "element": ELEMENTS[sum(map(ord, b["_id"])) % 8], "skills": [], "weapon_type": "melee"}, armor=0)
     state = {"a": player, "b": boss, "turn": 1, "cur": "a", "first": "a", "done": False, "winner": None}
     ev = []
-    E._deal(state, "a", 1.0, rng, ev, "atk")
+    if ch.get("boss_style") == "kido" and E.can(player, "kd"):
+        # the player chose a Hadō strike for bosses: the spell replaces the blade for this hit (costs reiatsu)
+        ev = E._do_action(state, "kd", rng)
+    else:
+        E._deal(state, "a", 1.0, rng, ev, "atk")
     dmg = sum(e.get("n", 0) for e in ev if e["k"] == "hit")
     crit = any(e.get("c") for e in ev if e["k"] == "hit")
     if dmg <= 0:

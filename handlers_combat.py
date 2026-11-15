@@ -61,8 +61,6 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
         canon_row.append(mk(ctx.t("a_neg"), "neg"))
     if E.can(f, "gar"):
         canon_row.append(mk(ctx.t("a_gar"), "gar"))
-    if E.can(f, "bnt"):
-        canon_row.append(mk(ctx.t("a_bnt"), "bnt"))
     if canon_row:
         rows.append(canon_row[:2])
         if canon_row[2:]:
@@ -189,8 +187,6 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
     if o.get("evo"):
         lines.append(ctx.t("evo_done", title=o["evo"]["title_fa" if L == "fa" else "title_en"]))
-    from data_gangs import gang_result_lines  # Xcution siphon, rank, surge, boss and Bount stacks
-    lines.extend(gang_result_lines(o, L))
     terr = o.get("terr")
     if terr:
         lines.append(ctx.t("ter_got_mine", c=fnum(terr["coins"], L), x=fnum(terr["xp"], L)) if terr.get("mine") else ctx.t("ter_got_tax", n=fnum(terr["tax"], L)))
@@ -504,6 +500,18 @@ async def _refresh_boss(ctx, d):
     await _edit(ctx, text, kb)
 
 
+@action("bsty")
+async def boss_style_toggle(ctx, arg):
+    """Switch the boss attack between the blade and Hadō (Shinigami and Visored only)."""
+    me = await get_char(ctx.uid)
+    if not me or me.get("race") not in ("shinigami", "visored"):
+        return Out(alert=("فقط شینیگامی و ویزرد می‌تونن با هادو به باس حمله کنن." if ctx.lang == "fa"
+                          else "Only Shinigami and Visored can strike bosses with Hadō."))
+    new = "blade" if me.get("boss_style") == "kido" else "kido"
+    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"boss_style": new}})
+    return await boss_info(ctx, "")
+
+
 @action("bossinfo")
 async def boss_info(ctx, arg):
     from database import game_settings
@@ -516,7 +524,14 @@ async def boss_info(ctx, arg):
         return Out(ctx.t("boss_none_next", m=fnum(m, ctx.lang)), [nav(ctx, ("wrd", ""))] if ctx.private else None, new=not ctx.private)
     kb = [[(ctx.t("b_attack"), "bh", d["_id"], True)]]
     if ctx.private:
-        return Out(boss_text(ctx.lang, d), kb + [nav(ctx, ("wrd", ""))])
+        rows = kb + [nav(ctx, ("wrd", ""))]
+        me = await get_char(ctx.uid)
+        if me and me.get("race") in ("shinigami", "visored"):  # the only races that can strike with Hadō
+            style_kido = me.get("boss_style") == "kido"
+            label = ("🔁 نوع حمله: هادو" if style_kido else "🔁 نوع حمله: زانپاکتو") if ctx.lang == "fa" else \
+                    ("🔁 Attack: Hadō" if style_kido else "🔁 Attack: Zanpakutō")
+            rows = kb + [[(label, "bsty", "")], nav(ctx, ("wrd", ""))]
+        return Out(boss_text(ctx.lang, d), rows)
     g = await group_doc(ctx.chat_id)
     kb = [[("⚔️ " + gl(glang(g), "حمله", "Attack"), "bh", d["_id"], True)]]
     return Out(both(glang(g), lambda L: boss_text(L, d)), kb, new=True)
