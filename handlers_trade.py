@@ -42,6 +42,22 @@ ERR = {
 }
 
 
+def _pubify(rows):
+    """Session buttons are shared: a group table message is seen by every member, so the signature must not
+    bind them to whoever opened it. Access is still checked on each press (service_trade.get_session).
+    trdnew stays private: its argument is a player id, so only the one who was offered it may press it."""
+    out = []
+    for row in rows:
+        new = []
+        for b in row:
+            if b[1].startswith("trd") and b[1] != "trdnew":
+                style = b[4] if len(b) > 4 else "auto"
+                b = (b[0], b[1], b[2] if len(b) > 2 else "", True, style)
+            new.append(b)
+        out.append(new)
+    return out
+
+
 def _err(ctx, code):
     fa, en = ERR.get(code, ("یه مشکلی پیش اومد.", "Something went wrong."))
     return fa if ctx.lang == "fa" else en
@@ -79,7 +95,7 @@ async def trade_hub(ctx, arg):
         for p in people:
             rows.append([(f"{p['name']} · {p['level']} · {p['race']}", "trdnew", str(p["user_id"]))])
     rows.append([(T(ctx, "📜 تاریخچه", "📜 History"), "trdlog", "")])
-    return Out("\n".join(lines), rows + [nav(ctx)])
+    return Out("\n".join(lines), _pubify(rows + [nav(ctx)]))
 
 
 @action("trdnew")
@@ -94,6 +110,11 @@ async def trade_new(ctx, arg):
     except Exception:
         pass  # the partner may never have started the bot; the trade still exists in their hub
     return await trade_view(ctx, tid)
+
+
+@action("trdv")
+async def trade_panel(ctx, arg):
+    return await trade_view(ctx, arg)
 
 
 @action("trdgrp")
@@ -153,7 +174,7 @@ async def trade_view(ctx, tid):
     elif doc["kind"] == "group" and len(members) < TRADE_GROUP_MAX:
         rows.append([(T(ctx, "➕ پیوستن", "➕ Join"), "trdjoin", tid)])
     rows.append(nav(ctx, ("trdhub", "")))
-    return Out("\n".join(lines), rows)
+    return Out("\n".join(lines), _pubify(rows))
 
 
 @action("trdadd")
@@ -163,7 +184,7 @@ async def trade_add_list(ctx, tid):
     items = [(i, q) for i, q in (inv.get("items") or {}).items() if q > 0][:12]
     rows = [[(f"{iname(i, ctx.lang)} ×{q}", "trdi", f"{tid}:{i}")] for i, q in items]
     rows.append(nav(ctx, ("trdv", tid)))
-    return Out(T(ctx, "کدوم آیتم رو بذارم روی میز؟", "Which item do you want to put on the table?"), rows)
+    return Out(T(ctx, "کدوم آیتم رو بذارم روی میز؟", "Which item do you want to put on the table?"), _pubify(rows))
 
 
 @action("trdi")
@@ -183,7 +204,7 @@ async def trade_rm_list(ctx, tid):
     mine = (doc["offers"].get(str(ctx.uid)) or {}).get("items") or {}
     rows = [[(f"{iname(i, ctx.lang)} ×{q}", "trdr", f"{tid}:{i}")] for i, q in mine.items()]
     rows.append(nav(ctx, ("trdv", tid)))
-    return Out(T(ctx, "کدوم آیتم رو از میز برداریم؟", "Which item do you want to take off the table?"), rows)
+    return Out(T(ctx, "کدوم آیتم رو از میز برداریم؟", "Which item do you want to take off the table?"), _pubify(rows))
 
 
 @action("trdr")
