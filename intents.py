@@ -22,7 +22,7 @@ RAW = {
     "senkaimon": ("skm", "", ["سنکایمون", "دروازه", "پورتال", "senkaimon", "gate", "portal"]),
     "bleach_hub": ("blhub", "", ["جهان بلیچ", "سیستم های بلیچ", "bleach", "bleach systems"]),
     "racepath": ("rpath", "", ["مسیر نژاد", "تکامل نژاد", "race path", "race evolution path"]),
-    "market": ("mkt", "", ["بازار", "بازارچه", "market", "shop", "store", "trade"]),
+    "market": ("mkt", "", ["بازار", "بازارچه", "market", "shop", "store"]),
     "battle": ("bt", "", ["نبرد", "مبارزه", "جنگ", "حمله", "battle", "fight", "combat", "attack"]),
     "squad": ("gld", "", ["جوخه", "گیلد", "کلن", "squad", "guild", "clan"]),
     "ranking": ("rnk", "", ["رتبه بندی", "رتبه‌بندی", "لیدربورد", "جدول", "ranking", "leaderboard", "rank", "top"]),
@@ -99,7 +99,7 @@ RAW.update({
 # Respec / race change and the trade hub: /respec and /trade used to crash because these keys were missing.
 RAW.update({
     "resp": ("resp", "", ["ریست استت", "تغییر نژاد", "respec", "change race", "reset stats"]),
-    "trdhub": ("trdhub", "", ["ترید", "هاب ترید", "trade hub", "trading hub"]),
+    "trdhub": ("trdhub", "", ["ترید", "هاب ترید", "trade", "trade hub", "trading hub"]),
     "xgn": ("xgn", "", ["اکسکیوشن", "xcution", "گروه اکسکیوشن"]),
 })
 GROUP_OK = {"duel", "duel_friendly", "boss", "battle", "kido", "help", "home", "chronicle", "commands", "event",

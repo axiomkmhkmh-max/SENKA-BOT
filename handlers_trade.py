@@ -87,6 +87,12 @@ async def trade_new(ctx, arg):
     tid, err = await open_pair(ctx.uid, int(arg))
     if err:
         return Out(alert=_err(ctx, err))
+    # the other player must hear about it, or the trade looks like it never started
+    try:
+        await ctx.bot.send_message(int(arg), f"🤝 {esc(ctx.user.first_name or '?')} یه ترید با تو باز کرد. از «ترید» ببین.\n"
+                                             f"🤝 {esc(ctx.user.first_name or '?')} opened a trade with you. Open «trade» to see it.")
+    except Exception:
+        pass  # the partner may never have started the bot; the trade still exists in their hub
     return await trade_view(ctx, tid)
 
 
