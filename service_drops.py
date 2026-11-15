@@ -376,6 +376,11 @@ async def drop_claim(chat_id: int, uid: int, reply_msg_id: int):
     if got["kind"] == "art":
         res = await art_claim(uid, got["ref"], "dropped")
         res = "ok" if res == "ok" else ("has" if res == "has" else "gone")
+        if res == "gone":
+            # the artifact stayed reserved (state=dropped) after its drop expired, so no later drop could pick it
+            # up again and it stopped spawning. Release the reservation like expire_drops does.
+            await col("artifacts").update_one({"_id": got["ref"], "state": "dropped", "drop_id": got["_id"]},
+                                              {"$set": {"state": "free"}, "$unset": {"drop_id": ""}})
     else:
         res = "ok" if await inv_add(uid, got["ref"], 1) else "full"
     if res == "gone":

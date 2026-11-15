@@ -579,11 +579,25 @@ async def pet_panel(ctx, arg):
     rows = []
     for idx, p in enumerate(pets):
         lines.append(("✅ " if idx == 0 else f"{idx}. ") + pet_line(ctx, p))
-        if idx:
-            rows.append([(f"🐾 {PETS[p['sp'] % len(PETS)][0 if L != 'fa' else 1]} ★{p['tier'] + 1}", "pea", str(idx))])
+        name = f"🐾 {PETS[p['sp'] % len(PETS)][0 if L != 'fa' else 1]} ★{p['tier'] + 1}"
+        # every companion can be released, the active one too (the next one becomes active).
+        # The release button used to live only in handlers_effects.py, which is never imported, so it never showed.
+        row = [(name, "pea", str(idx)) if idx else ("✅ " + name, "pet", "")]  # the active one just refreshes
+        row.append(("🗑", "pdel", f"{idx}.0", False, "danger"))
+        rows.append(row)
     if not pets:
         lines.append(ctx.t("pet_none"))
-    return Out("\n".join(lines), rows[:8] + [nav(ctx, ("eqp", ""))])
+    return Out("\n".join(lines), rows + [nav(ctx, ("eqp", ""))])
+
+
+@action("pdel")
+async def pet_release_cb(ctx, arg):
+    from service_effects import pet_release
+    i = (arg or "0").partition(".")[0]
+    r = await pet_release(ctx.uid, int(i) if i.isdigit() else -1)
+    if r != "ok":
+        return Out(alert=("این همراه دیگه اینجا نیست، دوباره امتحان کن." if ctx.lang == "fa" else "That companion is gone; try again."))
+    return await pet_panel(ctx, "")
 
 
 @action("pea")

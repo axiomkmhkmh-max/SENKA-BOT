@@ -65,8 +65,9 @@ async def start(ctx, ch):
 
 async def _rewards_solo(ctx, ch, caught: bool, chase):
     lvl = ch["level"]
-    base_xp = int(18 + lvl * 4)
-    base_coins = int((10 + lvl * 3))
+    # hunts pay double XP and coins now (was 18+4·lvl and 10+3·lvl)
+    base_xp = int((18 + lvl * 4) * 2)
+    base_coins = int((10 + lvl * 3) * 2)
     if not caught:
         _, _, xp = await add_xp(ctx.uid, int(base_xp * 0.5), "hunt")
         return _t(ctx.lang, "escaped", xp=fnum(xp, ctx.lang))

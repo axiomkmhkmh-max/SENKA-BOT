@@ -182,6 +182,7 @@ async def sell_npc(ctx, arg):
 # Selection lives in Mongo (collection "bag_sel", one doc per player) because callback_data is capped at 64 bytes.
 # One unit is removed per selected item. Every removal goes through a confirmation screen.
 SEL_MAX = 40
+RAR_FA = {"Common": "معمولی", "Uncommon": "غیرمعمول", "Rare": "نادر", "Epic": "حماسی", "Legendary": "افسانه‌ای", "Mythic": "اساطیری"}
 
 
 def _ids_for(inv, flt):
@@ -231,6 +232,11 @@ async def _sel_view(ctx, page, flt, alert=None):
         rows.append(pg)
     rows.append([("✅ همه‌ی این صفحه" if fa else "✅ Whole page", "bqa", f"{page}:{flt}", False, "none"),
                  ("🧹 پاک‌کردن انتخاب" if fa else "🧹 Clear", "bqc", f"{page}:{flt}", False, "none")])
+    # whole rarity tiers in the current filter (e.g. every Epic), so a big bag can be cleared in a few taps
+    present = [r for r in RARITIES if any(ALL[i].get("rarity") == r for i in ids)]
+    if present:
+        rows.append([((f"🎯 همه‌ی {RAR_FA.get(r, r)}" if fa else f"🎯 All {r}"), "bqr", f"{r}:{page}:{flt}", False, "none")
+                     for r in present[:6]])
     if sel:
         n = fnum(len(sel), L)
         rows.append([((f"💱 فروش ({n})" if fa else f"💱 Sell ({n})"), "bqx", f"s:{page}:{flt}", False, GREEN),
@@ -295,6 +301,26 @@ async def bag_select_page(ctx, arg):
     sel = await _sel_get(ctx.uid, inv)
     alert = None
     for i in ids[page * PER:(page + 1) * PER]:
+        if i in sel:
+            continue
+        if len(sel) >= SEL_MAX:
+            alert = f"حداکثر {fnum(SEL_MAX, ctx.lang)} آیتم در هر نوبت." if ctx.lang == "fa" else f"Max {SEL_MAX} items at a time."
+            break
+        sel.append(i)
+    await _sel_set(ctx.uid, sel)
+    return await _sel_view(ctx, page, flt, alert)
+
+
+@action("bqr")
+async def bag_select_rarity(ctx, arg):
+    """Select every item of one rarity in the current filter (up to SEL_MAX). arg = rarity:page:filter"""
+    rar, _, rest = (arg or "").partition(":")
+    page, flt = _pf(rest)
+    inv = await inv_get(ctx.uid)
+    ids = [i for i in _ids_for(inv, flt) if ALL[i].get("rarity") == rar]
+    sel = await _sel_get(ctx.uid, inv)
+    alert = None
+    for i in ids:
         if i in sel:
             continue
         if len(sel) >= SEL_MAX:
@@ -543,7 +569,14 @@ async def shop(ctx, arg):
     if pg:
         rows.append(pg)
     rows.append(nav(ctx, ("mkt", "")))
-    return Out(head(ctx, "ttl_shp") + ctx.t("shp_body", p=fnum(page + 1, L), n=fnum(pages, L)), rows)
+    # the stock turns over at 00:00 UTC, which is 03:30 in Tehran. Show that clock time, not only a countdown.
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    left = int((now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1) - now).total_seconds() // 60)
+    h, m = divmod(left, 60)
+    reset = (f"🕓 ریست بعدی فروشگاه: ۰۳:۳۰ (به وقت تهران) — {fnum(h, L)} ساعت و {fnum(m, L)} دقیقه دیگر" if L == "fa"
+             else f"🕓 Next shop reset: 03:30 Tehran time — in {h}h {m}m")
+    return Out(head(ctx, "ttl_shp") + ctx.t("shp_body", p=fnum(page + 1, L), n=fnum(pages, L)) + "\n" + reset, rows)
 
 
 @action("sv")
@@ -685,7 +718,9 @@ async def party(ctx, arg):
         lvl, star = copies_to_level_star(copies)
         on = "✅ " if cid in ch.get("party", []) else ""
         bonus = ", ".join(f"{ctx.t('bn_' + k)} +{pctf(v * 100, L, '.1f')}" for k, v in char_bonus(cid, copies).items())
-        rows.append([(f"{on}{RARITY_ICON[c['rarity']]} {c['name_fa' if L == 'fa' else 'name_en']} {ctx.t('lbl_level')} {fnum(lvl, L)}{'★' * star} ({bonus})", "pt", f"{cid}.{page}")])
+        label = f"{on}{RARITY_ICON[c['rarity']]} {c['name_fa' if L == 'fa' else 'name_en']} {ctx.t('lbl_level')} {fnum(lvl, L)}{'★' * star} ({bonus})"
+        # 🗑 opens the sell confirmation (every copy goes, and it leaves the party); the old panel had no way to remove one
+        rows.append([(label, "pt", f"{cid}.{page}"), ("🗑", "gsc", f"{cid}.{page}", False, "danger")])
     pg = []
     if page > 0:
         pg.append(("◀️", "pty", str(page - 1)))
@@ -719,11 +754,15 @@ async def forge_panel(ctx, arg):
         alert = ctx.t("frg_" + r, n=fnum(extra, L))
         ch = await get_char(ctx.uid)
         plus = (ch.get("weapon_plus") or {}).get(wid, 0)
+        if r == "ok":  # say what the new level is worth, not just the number (combat uses +6% attack per level)
+            alert += (f"\n⚔️ +۶٪ قدرت به جنگ‌افزار اضافه شد (کل ×{round(1 + 0.06 * plus, 2)})" if L == "fa"
+                      else f"\n⚔️ +6% attack added (total ×{round(1 + 0.06 * plus, 2)})")
     if plus >= 10:
         body = ctx.t("frg_maxed", name=nm(wid, L), plus=fnum(plus, L))
         rows = [nav(ctx, ("prof", ""))]
     else:
         cost, need = forge_cost(wid, plus)
         body = ctx.t("frg_body", name=nm(wid, L), plus=fnum(plus, L), cost=fnum(cost, L), mats=fnum(need, L), chance=FORGE_CHANCE[plus])
+        body += (f"\n⚔️ بونوس فعلی: ×{round(1 + 0.06 * plus, 2)} قدرت" if L == "fa" else f"\n⚔️ Current bonus: ×{round(1 + 0.06 * plus, 2)} attack")
         rows = [[(ctx.t("b_forge_go"), "frg", "go")], nav(ctx, ("prof", ""))]
     return Out(head(ctx, "ttl_frg") + body, rows, alert=alert)

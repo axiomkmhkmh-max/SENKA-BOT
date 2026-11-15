@@ -122,8 +122,27 @@ async def profile(ctx, arg):
         if g:
             lines.append("🛡️ " + esc(g["name_fa" if L == "fa" else "name_en"]))
     rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")], [(ctx.t("b_forge"), "frg", ""), (ctx.t("m_eqp"), "eqp", "")],
-            [("🧍 " + ("تن من" if L == "fa" else "What I wear"), "worn", "")], nav(ctx)]
+            [("🧍 " + ("تن من" if L == "fa" else "What I wear"), "worn", "")]]
+    if ch.get("race") in ("shinigami", "visored"):  # the boss attack switch, reachable from the profile too
+        kido = ch.get("boss_style") == "kido"
+        if L == "fa":
+            lbl = "🔁 حمله به باس: " + ("هادو" if kido else "زانپاکتو")
+        else:
+            lbl = "🔁 Boss attack: " + ("Hadō" if kido else "Zanpakutō")
+        rows.append([(lbl, "bsp", "")])
+    rows.append(nav(ctx))
     return Out("\n".join(lines), rows)
+
+
+@action("bsp")
+async def boss_style_profile(ctx, arg):
+    me = await get_char(ctx.uid)
+    if not me or me.get("race") not in ("shinigami", "visored"):
+        return Out(alert=("فقط شینیگامی و ویزرد می‌تونن با هادو به باس حمله کنن." if ctx.lang == "fa"
+                          else "Only Shinigami and Visored can strike bosses with Hadō."))
+    new = "blade" if me.get("boss_style") == "kido" else "kido"
+    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"boss_style": new}})
+    return await profile(ctx, "")
 
 
 @action("upg")
@@ -420,7 +439,8 @@ async def worn_panel(ctx, arg):
     ch = await need_char(ctx)
     L, fa = ctx.lang, ctx.lang == "fa"
     st = await game_settings()
-    page = int(arg) if str(arg or "0") in ("0", "1", "2") else 0
+    # the profile button sends an empty arg; int("") used to raise here, so "تن من" never opened
+    page = int(arg) if str(arg or "").strip() in ("0", "1", "2") else 0
     H = lambda t: f"\n<b>{t}</b>"  # noqa: E731
 
     if page == 0:
@@ -433,12 +453,13 @@ async def worn_panel(ctx, arg):
             extra = []
             if field == "weapon_id":
                 plus = int((ch.get("weapon_plus") or {}).get(iid, 0))
-                if plus:
-                    extra.append(f"🔨 +{fnum(plus, L)}")
+                if plus:  # show what the level is worth: forge gives +6% attack per level
+                    extra.append(f"🔨 +{fnum(plus, L)} (×{round(1 + 0.06 * plus, 2)} {'قدرت' if fa else 'attack'})")
             if field == "armor_id":
                 plus = int((ch.get("armor_plus") or {}).get(iid, 0))
-                if plus:
-                    extra.append(f"🔨 +{fnum(plus, L)}")
+                if plus:  # tempering adds temper_def_pct of the base defence per level
+                    pct = round(float(st["temper_def_pct"]) * 100 * plus)
+                    extra.append(f"🔨 +{fnum(plus, L)} (+{fnum(pct, L)}٪ {'دفاع' if fa else 'defence'})")
             parts.append(H(f"{label} " + ("" if not extra else " ".join(extra))) + "\n" + item_card(ctx, iid))
         bn = player_bonus(ch, ALL, st)
         parts.append(H("🧿 " + ("بونوس کل" if fa else "Total bonuses")) + "\n" + _bl(ctx, bn))
