@@ -1,5 +1,6 @@
 """Player-facing race evolution, faction enlistment and Kidō panels (Story mode is retired; its saved data is kept)."""
 from ui import Out, action, head, nav
+from database import col
 from i18n import fnum
 from service_bleach_systems import (RACE_PATHS, KIDO, FACTIONS, race_state, evolve,
     kido_state, learn_kido, cast_kido, faction_state, join_faction)
@@ -64,7 +65,14 @@ async def kido_cards(ctx,arg):
     s=await kido_state(ctx.uid)
     if not s:return Out(ctx.t("not_registered"))
     L=ctx.lang
-    learned=s["learned"]
+    learned=set(s["learned"])
+    # starting spells (given at registration / legacy defaults) are known in combat too, so their cards are open
+    doc=await col("characters").find_one({"user_id":ctx.uid},{"kido":1,"race":1})
+    if (doc or {}).get("race") in ("shinigami","visored"):  # only these races use Kidō in combat
+        for n in ((doc or {}).get("kido") or {}).get("had",[]) or []:
+            learned.add(f"hado{int(n)}")
+        for n in ((doc or {}).get("kido") or {}).get("bak",[]) or []:
+            learned.add(f"bakudo{int(n)}")
     total=len(KIDO)
     got=sum(1 for k in KIDO if k in learned)
     head_line=(f"🃏 کارت‌های کیدو: {got}/{total}" if L=="fa" else f"🃏 Kidō cards: {got}/{total}")

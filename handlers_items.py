@@ -14,7 +14,7 @@ from service_economy import (FORGE_CHANCE, auction_bid, equip, forge, forge_cost
                              use_item)
 from service_economy import inv_remove
 from service_log import log_event
-from service_player import get_char, today
+from service_player import add_coins, get_char, today
 from ui import GREEN, RED, Out, action, chunk, head, nav
 
 PER = 6
@@ -26,6 +26,32 @@ def _rk(i):
 
 
 # ---- bag ----------------------------------------------------------------------------------
+BAG_START, BAG_STEP, BAG_MAX = 50, 10, 150  # slots: start, +per upgrade, ceiling
+
+
+def bag_upgrade_cost(capacity: int) -> int:
+    """Coins for the next +BAG_STEP slots: 500 for the first, +100 for each step after."""
+    return 500 + 100 * max(0, (int(capacity) - BAG_START) // BAG_STEP)
+
+
+@action("bagup")
+async def bag_upgrade(ctx, arg):
+    L = ctx.lang
+    inv = await inv_get(ctx.uid)
+    cap = max(1, inv.get("capacity", BAG_START))
+    if cap >= BAG_MAX:
+        return Out(alert="کوله‌ت به سقف رسیده." if L == "fa" else "Your bag is already at its maximum.")
+    cost = bag_upgrade_cost(cap)
+    if not await add_coins(ctx.uid, -cost, "bag_upgrade"):
+        return Out(alert=("سکه‌ی کافی نداری." if L == "fa" else "Not enough coins."))
+    # conditional on the capacity we priced, so two taps cannot both upgrade for one payment
+    res = await col("inventories").update_one({"user_id": ctx.uid, "capacity": cap}, {"$inc": {"capacity": BAG_STEP}})
+    if not res.modified_count:
+        await add_coins(ctx.uid, cost, "bag_upgrade_refund")
+        return Out(alert=("لطفاً دوباره امتحان کن." if L == "fa" else "Please try again."))
+    return await bag(ctx, "0")
+
+
 @action("bag")
 async def bag(ctx, arg):
     L = ctx.lang
@@ -65,6 +91,11 @@ async def bag(ctx, arg):
         rows.append(pg)
     if ids:
         rows.append([("☑️ انتخاب چندتایی و حذف" if L == "fa" else "☑️ Select multiple & remove", "bqm", f"{page}:{flt}")])
+    capn_now = max(1, inv.get("capacity", 50))
+    if capn_now < BAG_MAX:
+        cost = bag_upgrade_cost(capn_now)
+        lbl = (f"⬆️ ارتقای کوله +{BAG_STEP} ({fnum(cost, L)} 🪙)" if L == "fa" else f"⬆️ Upgrade bag +{BAG_STEP} ({fnum(cost, L)} 🪙)")
+        rows.append([(lbl, "bagup", "")])
     rows.append(nav(ctx))
     eq = f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"
     used, capn = slots_used(inv["items"]), max(1, inv.get("capacity", 50))

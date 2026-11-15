@@ -8,6 +8,7 @@ from database import col, try_cooldown
 from i18n import bar, esc, fnum
 from render import glang
 from security import allow
+from chat_tidy import reply_tidy
 from data_espada_raid import ESPADA
 from service_hollowraid import STRIKE_WORDS, raid_abort, raid_attach, raid_roll, raid_settle, raid_strike
 from service_world import group_doc
@@ -63,7 +64,7 @@ async def raid_hook(message, n: str) -> bool:
             return False
         lang = glang(await group_doc(chat.id))
         if res in ("gone", "noreg", "level", "cd"):
-            await message.reply(_t(lang, res))
+            await reply_tidy(message, _t(lang, res), 60)
             return True
         nm = esc(user.full_name or user.first_name or "")
         if res == "dead":
@@ -88,8 +89,8 @@ async def raid_hook(message, n: str) -> bool:
             if phase(doc.get("esp"), before) != phase(doc.get("esp"), now_f):
                 p2 = (ESPADA.get(int(doc.get("esp") or 0)) or {}).get("phase2") or {}
                 if p2:
-                    await message.reply("⚠️ " + esc(p2["fa" if lang == "fa" else "en"]))
-        await message.reply(_t(lang, "hit", who=nm, dmg=fnum(dmg, lang)))
+                    await reply_tidy(message, "⚠️ " + esc(p2["fa" if lang == "fa" else "en"]), 90)
+        await reply_tidy(message, _t(lang, "hit", who=nm, dmg=fnum(dmg, lang)), 90)
         if not await try_cooldown(f"raid:edit:{doc['_id']}", 5):
             await _edit(message.bot, doc, _view(lang, doc))
         return True
