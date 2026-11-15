@@ -246,6 +246,8 @@ async def send_drop(bot, chat_id: int, doc: dict):
         await drop_abort(doc)
         return None
     await drop_attach(doc["_id"], msg.message_id)
+    if doc["kind"] == "art":  # starts the group's pity timer for the next Soul Artifact
+        await col("groups").update_one({"chat_id": chat_id}, {"$set": {"last_art_drop": int(time.time())}}, upsert=True)
     g = await col("groups").find_one({"chat_id": chat_id}, {"title": 1}) or {}
     what = art_name(doc["ref"], "fa") if doc["kind"] == "art" else nm(doc["ref"], "fa").replace("<", "").replace(">", "")
     log_event("drop", doc.get("dropper", 0), f"دراپ «{what}» در گروه «{g.get('title', chat_id)}»" + (" 🔱 (آرتیفکت یکتا)" if doc["kind"] == "art" else ""),

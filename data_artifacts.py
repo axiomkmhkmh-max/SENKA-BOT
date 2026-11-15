@@ -289,6 +289,17 @@ for _a in ARTIFACTS:
             _b[_k] = 0.03
 
 
+def art_due(chance: float, now: float, last_art_at: float, pity_seconds: float, roll: float) -> bool:
+    """Should this drop be a Soul Artifact?
+
+    `roll` is a random number in [0, 1). A plain chance alone made artifacts rare (about one every 14 busy hours),
+    so a group that has gone `pity_seconds` without one gets a guaranteed artifact on its next drop.
+    `last_art_at` = 0 means the group has never had one, so the pity timer counts from 0 and is already due."""
+    if pity_seconds and pity_seconds > 0 and now - float(last_art_at or 0) >= pity_seconds:
+        return True
+    return roll < float(chance)
+
+
 def art_cap(aid: str) -> int:
     a = ART_BY_ID.get(aid)
     return int(a["cap"]) if a else 1

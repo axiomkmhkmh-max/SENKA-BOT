@@ -98,7 +98,7 @@ def events_text(lang: str, events: list) -> str:
                 out.append(pick(lang, "lg_unleash_res" if e.get("r") in RESURRECCION_RACES else "lg_unleash", a=a))
         elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost",
                    "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure",
-                   "gauge_full", "unleash_end", "resurrect", "konpaku", "gather"):
+                   "gauge_full", "unleash_end", "resurrect", "konpaku", "gather", "blut_vene", "blut_arterie", "negacion", "garganta"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k in ("move", "retreat", "outrange", "knock", "side"):  # distance (فاصله) events
             out.append(dist_event_text(lang, e))

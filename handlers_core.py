@@ -29,6 +29,7 @@ import handlers_wheel  # noqa: F401  (Urahara's wheel: panel + animated spin)
 import handlers_inner  # noqa: F401  (Inner World: weekly scene panel + choices)
 import handlers_trade  # noqa: F401  (player trading: hub, shared view, group offers)
 import handlers_respec  # noqa: F401  (stat reset and race change)
+import handlers_gangs  # noqa: F401  (Xcution membership panel)
 import handlers_items
 import handlers_panels
 import handlers_world

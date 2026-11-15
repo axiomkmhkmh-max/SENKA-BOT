@@ -92,6 +92,12 @@ def _f2fx(f):
     return f["form"]["fx"] if f["form"]["on"] else None
 
 
+def _foe_mult(att, dfn):
+    """Race passive against the foe kind (Spiritual Awareness: humans vs hollows). Enemies carry `foe`."""
+    from data_races import spiritual_awareness_mult
+    return spiritual_awareness_mult(att.get("race"), dfn.get("foe"))
+
+
 def _dmg_mult(att):
     m = att["mods"].get("dmg", 1.0)
     if att["form"]["fat"] > 0:
@@ -159,7 +165,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         crit_p += GAUGE["crit"]
     crit = rng.random() < crit_p
     cm = 1.5 + eff(att, "zanjutsu") * 0.003 + skill_p(att, "surge") / 100
-    dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * _zone(state, side)
+    dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * _zone(state, side) * _foe_mult(att, dfn)
     dmg *= RACE_KILLER.get(att.get("race"), {}).get(dfn.get("race"), 1.0)  # canon race killers (SENKA+)
     ex = skill_p(att, "execute")
     if ex and dfn["hp"] < dfn["max_hp"] * 0.3:
@@ -355,6 +361,14 @@ def can(f, action):
         if sg == "cero" and x["charge"]:
             return True  # the charge is already paid for: firing is always possible
         return x["cd"] <= 0 and f["re"] >= f["max_re"] * SIG[sg]["cost"]
+    if action in ("neg", "gar"):  # Hollow Negación and Garganta: own cost, shared special cooldown
+        from data_bleachfx import GARGANTA, NEGACION
+        c = NEGACION if action == "neg" else GARGANTA
+        return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
+    if action in ("blv", "bla", "bal"):  # Quincy Blut / Arrancar Bala: their own cost, sharing the special cooldown
+        from data_bleachfx import BALA, BLUT
+        c = BLUT["blut_vene"] if action == "blv" else BLUT["blut_arterie"] if action == "bla" else BALA
+        return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
     if action == "gx":  # Bankai / Resurrección: a full spirit gauge, and not already released
         x = _x(f)
         return x["gauge"] >= GAUGE["full"] and x["awake"] <= 0 and f["re"] >= f["max_re"] * GAUGE["cost"]
@@ -504,6 +518,39 @@ def _do_action(state, action, rng, max_turns=30):
         action = "atk"
     if action == "atk":
         _deal(state, side, 1.0, rng, ev, "atk")
+    elif action == "blv":  # Blut Vene: reinforced skin, a shield that soaks the next hits
+        from data_bleachfx import BLUT
+        c = BLUT["blut_vene"]
+        f["re"] -= int(f["max_re"] * c["cost"])
+        _x(f)["cd"] = c["cd"]
+        n = max(1, int(f["max_hp"] * c["shield"]))
+        f["shield"] += n
+        ev.append({"k": "blut_vene", "a": f["name"], "n": n})
+    elif action == "bla":  # Blut Arterie: the blood runs through the blade, stronger strikes for a while
+        from data_bleachfx import BLUT
+        c = BLUT["blut_arterie"]
+        f["re"] -= int(f["max_re"] * c["cost"])
+        _x(f)["cd"] = c["cd"]
+        _x(f)["buff_t"], _x(f)["buff_m"] = c["turns"] + 1, c["mult"]
+        ev.append({"k": "blut_arterie", "a": f["name"]})
+    elif action == "neg":  # Negación: the Hollow power field shields its bearer
+        from data_bleachfx import NEGACION
+        f["re"] -= int(f["max_re"] * NEGACION["cost"])
+        _x(f)["cd"] = NEGACION["cd"]
+        n = max(1, int(f["max_hp"] * NEGACION["shield"]))
+        f["shield"] += n
+        ev.append({"k": "negacion", "a": f["name"], "n": n})
+    elif action == "gar":  # Garganta: a tunnel opens and the gap to the foe is the full range
+        from data_bleachfx import GARGANTA
+        f["re"] -= int(f["max_re"] * GARGANTA["cost"])
+        _x(f)["cd"] = GARGANTA["cd"]
+        state["dist"] = ZONE_MAX
+        ev.append({"k": "garganta", "a": f["name"]})
+    elif action == "bal":  # Bala: a hardened reiatsu bullet, piercing armour
+        from data_bleachfx import BALA
+        f["re"] -= int(f["max_re"] * BALA["cost"])
+        _x(f)["cd"] = BALA["cd"]
+        _deal(state, side, BALA["mult"], rng, ev, "atk", allow_procs=True, extra_pierce=BALA["pierce"])
     elif action == "hvy":
         f["re"] -= int(f["max_re"] * 0.10)
         _deal(state, side, 1.6, rng, ev, "hvy")

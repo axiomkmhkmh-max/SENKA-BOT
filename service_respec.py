@@ -13,7 +13,7 @@ Both are refused while you are in a fight (PvE, duel, trade) so nothing changes 
 import time
 
 from data_crafting import evo_gate_stage
-from data_races import RACES, STATS
+from data_races import RACES, STATS, race_selectable
 from database import col, game_settings
 from service_player import add_coins, get_char
 
@@ -109,7 +109,7 @@ async def change_race(uid: int, new_race: str):
         return "noreg", None
     if new_race == ch["race"] or new_race not in RACES:
         return "invalid", None
-    if RACES[new_race].get("locked"):
+    if not race_selectable(new_race, ch):
         return "locked", None
     busy = await _busy(uid)
     if busy:

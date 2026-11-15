@@ -48,6 +48,33 @@ def rebased_stats(race: str, stats: dict) -> dict:
     return {k: int(new[k]) + max(0, int(stats.get(k, 0)) - old[k]) for k in STATS}
 
 
+# Human passive: Tatsuki, Keigo and Mizuiro can see spirits and hollows, so they strike harder at them.
+SPIRITUAL_AWARENESS_VS_HOLLOW = 1.10
+
+
+def spiritual_awareness_mult(race: str, foe: str) -> float:
+    """Damage multiplier a fighter gets from its race against its foe kind (1.0 when there is no passive)."""
+    return SPIRITUAL_AWARENESS_VS_HOLLOW if race == "human" and foe == "hollow" else 1.0
+
+
+# Visored: the Visored race is locked, so players reach it by clearing the Visored Gauntlet as a Shinigami.
+VISORED_UNLOCK_DUNGEON = "visored_gauntlet"
+
+
+def unlocks_visored(race: str, dungeon_id: str) -> bool:
+    """True when clearing `dungeon_id` as `race` unlocks the Visored race (only Shinigami can take the trial)."""
+    return race == "shinigami" and dungeon_id == VISORED_UNLOCK_DUNGEON
+
+
+def race_selectable(race_key: str, ch: dict) -> bool:
+    """Can this character pick `race_key` (locked races need their unlock)?"""
+    if race_key not in RACES:
+        return False
+    if not RACES[race_key].get("locked"):
+        return True
+    return race_key == "visored" and bool((ch or {}).get("visored_unlocked"))
+
+
 def race_title(race: str, level: int, lang: str) -> str:
     evo = RACES[race]["evo"]
     n = len(evo)

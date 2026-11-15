@@ -11,7 +11,7 @@ from data_items import ALL, EVO_BY_RARITY
 from data_races import DIFFICULTY, DUNGEONS, LOCATIONS, RACES, soft_stat
 from data_weapons import ELEMENTS, RARITIES
 from data_crafting import DIFFS
-from data_zanpakuto import BLADE_STAGES
+from data_zanpakuto import BLADE_STAGES, BLADE_STYLE
 import engine as E
 from database import col, game_settings
 from service_log import log_event
@@ -115,6 +115,8 @@ async def build_player(ch: dict, name: str = None):
         elif key == "crit":
             mods[key] = mods.get(key, 0.0) + per_stage * stage
     mods["dmg"] = mods.get("dmg", 1.0) * (1 + pb.get("dmg", 0) + bn["dmg"])
+    from data_gangs import xcution_dmg_mult
+    mods["dmg"] *= xcution_dmg_mult(ch)  # Xcution rank: +2% damage per rank for members
     mods["def"] = mods.get("def", 1.0) * (1 + pb.get("def", 0) + bn["def"])
     # Preserve race/evolution Kidō modifiers while adding companion bonuses.
     mods["kido"] = mods.get("kido", 1.0) * (1 + pb.get("kido", 0))
@@ -136,12 +138,7 @@ async def build_player(ch: dict, name: str = None):
         release_bonus += 0.12 + min(0.08, int(zstate.get("mastery", 0)) / 500) + stage.get("bankai_bonus", 0.0)
     zmult = 1 + min(1.0, bond / 500) + release_bonus  # bond adds up to +100% (500 bond); no 30 ceiling
     # Distinct release identities alter battle style rather than granting identical flat power.
-    blade_style = {
-        "zangetsu": {"dmg": 1.08}, "senbonzakura": {"crit": 0.05},
-        "hyorinmaru": {"def": 1.08}, "kyoka_suigetsu": {"crit": 0.04, "dmg": 1.03},
-        "zanka_no_tachi": {"dmg": 1.12}, "sode_no_shirayuki": {"def": 1.05, "kido": 1.08},
-        "zabimaru": {"dmg": 1.07}, "wabisuke": {"def": 1.10},
-    }.get(zstate.get("blade_id"), {})
+    blade_style = BLADE_STYLE.get(zstate.get("blade_id"), {})
     if zstate.get("shikai") or zstate.get("bankai"):
         for stat, value in blade_style.items():
             if stat in ("dmg", "def", "kido"):
@@ -241,7 +238,10 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         if "gauge" in carry:  # the spirit gauge is the same fighter's courage: it does not reset between stages
             player["x"]["gauge"] = max(0, int(carry["gauge"]))
     from data_bleachfx import enemy_sig
-    state = E.new_state(player, make_enemy(lvl, scale, name, rng, sig=enemy_sig(loc.get("race"), pick)), rng)
+    foe = make_enemy(lvl, scale, name, rng, sig=enemy_sig(loc.get("race"), pick))
+    if enemy_sig(loc.get("race"), pick) == "cero":  # hollow foe: tells the human passive who it is
+        foe["foe"] = "hollow"
+    state = E.new_state(player, foe, rng)
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
            "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "lvl": lvl,
@@ -316,6 +316,8 @@ async def pve_settle(doc: dict):
                              col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1, **({"zanpakuto.mastery": 1} if (ch0.get("zanpakuto") or {}).get("shikai") and int((ch0.get("zanpakuto") or {}).get("mastery", 0)) < int(gs.get("znp_mastery_cap", 1000)) else {}), **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
                              bump_quest(uid, "battle_win", 1))
         out.update(xp=got, coins=coins, levels=lv)
+        from service_gangs_hook import gang_rewards  # Xcution siphon and Bount absorption (rules in data_gangs.py)
+        out["gang"] = await gang_rewards(uid, doc)
         from service_worldstate import on_action, territory_income
         out["terr"] = await territory_income(uid, doc["loc"], coins, xp)
         chance = 1.0 if (doc["elite"] or (d and d["stage"] == d["total"])) else 0.35
@@ -332,6 +334,10 @@ async def pve_settle(doc: dict):
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)
+            from data_races import unlocks_visored
+            dch = await get_char(uid)
+            if dch and unlocks_visored(dch.get("race"), d.get("id")):
+                await col("characters").update_one({"user_id": uid}, {"$set": {"visored_unlocked": True}})  # Visored trial passed
             di = DIFFS.index(d["diff"]) if d["diff"] in DIFFS else 0
             if random.random() < 0.20 + 0.08 * di:  # evolution fuel comes from the deep places
                 pool = EVO_BY_RARITY[RARITIES[min(3, max(0, di - (1 if random.random() < 0.5 else 0)))]] or EVO_BY_RARITY["Common"]

@@ -17,7 +17,7 @@ FA = {
     "lg_resurrect_2": "🦴 از دل ویرانه‌ی ماسک {a}، ارکانار برخاست!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 شونپو", "a_sg_hiren": "🌪️ هیرنکیاکو", "a_sg_cero": "🔴 جمع‌کردن سرو", "a_sg_cero_fire": "💥 شلیک سرو!",
-    "a_sg_bring": "💠 ضربه‌ی فول‌برینگ", "a_sg_guts": "🛡️ سانتن کسشون (شون‌شون ریکّا)", "a_ch": "📿 ورد کیدو", "a_gc": "🌙 جمع‌آوری ریاتسو", "a_gt": "🌙 گتسوگا تنشوگا",
+    "a_sg_bring": "💠 ضربه‌ی فول‌برینگ", "a_sg_guts": "🛡️ سانتن کسشون (شون‌شون ریکّا)", "a_blv": "🩸 بلوت: ونه", "a_bla": "🩸 بلوت: آرتری", "a_bal": "🔵 بالا", "a_neg": "🕳️ نگاسیون", "a_gar": "🕳️ گارگانتا", "a_ch": "📿 ورد کیدو", "a_gc": "🌙 جمع‌آوری ریاتسو", "a_gt": "🌙 گتسوگا تنشوگا",
     "lg_gather": "🌙 {a} شمشیر را بالا برد و ریاتسو را در تیغه جمع کرد…",
     "lg_getsuga": "🌙 <b>{a}</b> شمشیرش را فرود آورد: <b>گتسوگا تنشوگا!</b> موج ریاتسو به سوی {d} رفت — {n} آسیب.",
     # ---- battle log ----
@@ -39,7 +39,7 @@ FA = {
     "lg_hit_bring": "💠 {a} شیء پیوندی‌اش را به کار گرفت و {d} را کوبید: {n}",
     "lg_hit_bring_2": "💠 فول‌برینگ {a} دور تیغه پیچید و به {d} خورد: {n}",
     "lg_guts": "🛡️ {a} سه لایه‌ی «سانتن کسشون» را بالا برد: {n} آسیب جذب می‌کنه",
-    "lg_guts_2": "🛡️ {a} با سانتن کسشون جلوی ضربه ایستاد! +{n} سپر",
+    "lg_guts_2": "🛡️ {a} با سانتن کسشون جلوی ضربه ایستاد! +{n} سپر", "lg_blut_vene": "🩸 {a} بلوت ونه را فعال کرد: {n} سپر", "lg_negacion": "🕳️ {a} میدان نگاسیون باز کرد: {n} سپر", "lg_garganta": "🕳️ {a} گارگانتا باز کرد و فاصله را کامل کرد", "lg_blut_arterie": "🩸 {a} بلوت آرتری را فعال کرد: ضربه‌ها قوی‌تر میشن",
     "lg_chant": "📿 {a} لب به ورد کیدو گشود… اما دفاعش باز مانده!",
     "lg_chant_2": "📿 {a} ایستاد و هجاها را یکی‌یکی کشید؛ این لحظه خطرناک است!",
     "lg_chant_line": "📜 «ای نیروی خفته در ژرفای ارواح، به نام من برخیز و پیش از آنکه ورد تمام شود، راه را بسوز…»",
@@ -81,7 +81,7 @@ EN = {
     "lg_resurrect_2": "🦴 From the ruins of {a}'s mask, the Arrancar rises!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 Shunpo", "a_sg_hiren": "🌪️ Hirenkyaku", "a_sg_cero": "🔴 Gather Cero", "a_sg_cero_fire": "💥 Fire Cero!",
-    "a_sg_bring": "💠 Fullbring Strike", "a_sg_guts": "🛡️ Santen Kesshun", "a_ch": "📿 Chant Kidō", "a_gc": "🌙 Gather reiatsu", "a_gt": "🌙 Getsuga Tenshō",
+    "a_sg_bring": "💠 Fullbring Strike", "a_sg_guts": "🛡️ Santen Kesshun", "a_blv": "🩸 Blut: Vene", "a_bla": "🩸 Blut: Arterie", "a_bal": "🔵 Bala", "a_neg": "🕳️ Negación", "a_gar": "🕳️ Garganta", "a_ch": "📿 Chant Kidō", "a_gc": "🌙 Gather reiatsu", "a_gt": "🌙 Getsuga Tenshō",
     "lg_gather": "🌙 {a} raised the blade and gathered reiatsu into it…",
     "lg_getsuga": "🌙 <b>{a}</b> brought the blade down: <b>Getsuga Tenshō!</b> A wave of reiatsu tore toward {d} — {n} damage.",
     # ---- battle log ----
@@ -103,7 +103,7 @@ EN = {
     "lg_hit_bring": "💠 {a} brings their bound object to bear and smashes {d}: {n}",
     "lg_hit_bring_2": "💠 {a}'s Fullbring wraps the blade and slams into {d}: {n}",
     "lg_guts": "🛡️ {a} raises Santen Kesshun, three layers of shield: {n} damage absorbed",
-    "lg_guts_2": "🛡️ {a} stands behind Santen Kesshun! +{n} shield",
+    "lg_guts_2": "🛡️ {a} stands behind Santen Kesshun! +{n} shield", "lg_blut_vene": "🩸 {a} activates Blut Vene: {n} shield", "lg_negacion": "🕳️ {a} raises a Negación field: {n} shield", "lg_garganta": "🕳️ {a} opens a Garganta and puts the full distance between you", "lg_blut_arterie": "🩸 {a} activates Blut Arterie: strikes hit harder",
     "lg_chant": "📿 {a} begins a Kidō incantation… but leaves their guard open!",
     "lg_chant_2": "📿 {a} stands still, drawing out each syllable — a dangerous moment!",
     "lg_chant_line": "📜 \"Power slumbering in the depths of the soul, rise at my name and burn a path before the last word fades…\"",

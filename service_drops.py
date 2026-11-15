@@ -262,7 +262,11 @@ async def drop_create(chat_id: int, dropper: int = 0, dropper_name: str = "", ki
     st = await game_settings()
     did = uuid.uuid4().hex[:10]
     if kind is None:
-        if random.random() < float(st["drop_artifact_chance"]):
+        from data_artifacts import art_due
+        from service_world import group_doc
+        grp = await group_doc(chat_id)
+        pity = float(st.get("drop_art_pity_hours", 6)) * 3600
+        if art_due(float(st["drop_artifact_chance"]), time.time(), grp.get("last_art_drop", 0), pity, random.random()):
             ref = await _reserve_art(did)
             kind = "art" if ref else None
         if kind is None:

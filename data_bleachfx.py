@@ -11,7 +11,7 @@ All numbers live here; change them in one place.
 import re
 
 # race -> signature action key. The battle button label comes from locale key a_sg_<key>.
-RACE_SIG = {"shinigami": "shunpo", "visored": "shunpo", "quincy": "hiren", "hollow": "cero",
+RACE_SIG = {"shinigami": "shunpo", "visored": "cero", "quincy": "hiren", "hollow": "cero",
             "arrancar": "cero", "fullbringer": "bring", "human": "guts"}
 
 # cost = share of max Reiatsu, cd = turns before it can be used again
@@ -21,8 +21,19 @@ SIG = {
     # Cero: charge one turn (telegraphed), fire the next. Wild enemies fire a weaker one (ai_*) so it stays answerable.
     "cero": {"cost": 0.12, "cd": 2, "mult": 2.8, "pierce": 0.30, "ai_mult": 2.0, "ai_pierce": 0.15},
     "bring": {"cost": 0.10, "cd": 4, "mult": 1.25, "bleed": 0.4},
-    "guts": {"cost": 0.10, "cd": 5, "shield": 0.20},  # Orihime: Santen Kesshun, a three-layer shield
+    "guts": {"cost": 0.10, "cd": 5, "shield": 0.20},
+  # Orihime: Santen Kesshun, a three-layer shield
 }
+
+# canon moves (Quincy Blut and Arrancar Bala), read by engine.can and engine._do_action
+BLUT = {
+    "blut_vene": {"cost": 0.12, "cd": 4, "shield": 0.18},
+    "blut_arterie": {"cost": 0.12, "cd": 4, "mult": 1.25, "turns": 2},
+}
+BALA = {"cost": 0.06, "cd": 1, "mult": 1.30, "pierce": 0.25}
+# canon: Hollow Negación (a power field that shields) and Garganta (a tunnel that opens the gap to the foe)
+NEGACION = {"cost": 0.10, "cd": 3, "shield": 0.15}
+GARGANTA = {"cost": 0.15, "cd": 4}
 # a single hit of at least this share of the charger's max HP breaks a gathered Cero (interrupt it!). Wild enemies break
 # more easily than players, so a player's own Cero is a real gamble but not a coin-flip against every normal hit.
 CERO_BREAK_AI = 0.22

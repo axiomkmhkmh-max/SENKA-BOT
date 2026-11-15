@@ -3,7 +3,7 @@
 Commands: "ریست استت" / "respec" open the menu. Callback codes: resp, rspst (reset stats), rspr (pick a race),
 rspc:<race> (ask to confirm), rspx:<race> (do it).
 """
-from data_races import RACES
+from data_races import RACES, race_selectable
 from i18n import fnum
 from service_player import get_char
 from service_respec import change_race, race_change_quote, respec_quote, respec_stats
@@ -80,7 +80,7 @@ async def race_pick(ctx, arg):
         return Out(_msg(ctx, "noreg"), [nav(ctx)])
     rows = []
     for key, r in RACES.items():
-        if key == ch["race"] or r.get("locked"):
+        if key == ch["race"] or not race_selectable(key, ch):
             continue
         rows.append([(_race_name(key, L), "rspc", key)])
     rows.append(nav(ctx, ("resp", "")))

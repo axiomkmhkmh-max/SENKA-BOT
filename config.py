@@ -101,7 +101,7 @@ GAME_DEFAULTS = {
     "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,
     # ---- group drops, Soul Artifacts, Artifact Exchange, log channel -------------------------------
     "drop_enabled": True, "drop_min_msgs": 30, "drop_min_users": 3, "drop_chance": 0.6, "drop_cooldown_minutes": 60,
-    "drop_ttl_seconds": 180, "drop_daily_per_user": 6, "drop_min_level": 3, "drop_artifact_chance": 0.12,
+    "drop_ttl_seconds": 180, "drop_daily_per_user": 6, "drop_min_level": 3, "drop_artifact_chance": 0.12, "drop_art_pity_hours": 6,
     "drop_player_enabled": True, "drop_player_min_level": 10, "drop_player_min_age_hours": 24, "drop_player_cooldown": 3600,
     "drop_player_daily": 3, "drop_pair_daily": 2,
     "art_k": 1.0, "art_fee": 0.10, "art_price_min": 2000, "art_price_max": 10000000, "art_list_hours": 72,

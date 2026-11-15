@@ -16,6 +16,12 @@ RACE_ABILITIES = {
     "gt": SHINIGAMI_LIKE,
     # Spirit-gauge release: Bankai for Shinigami/Visored, Resurrección for Hollow/Arrancar. Nobody else has one.
     "gx": SHINIGAMI_LIKE + ("hollow", "arrancar"),
+    # Canon: Quincy Blut (Vene and Arterie) and Arrancar Bala.
+    "blv": ("quincy",),
+    "bla": ("quincy",),
+    "bal": ("arrancar",),
+    "neg": ("hollow",),
+    "gar": ("hollow", "arrancar"),
 }
 
 

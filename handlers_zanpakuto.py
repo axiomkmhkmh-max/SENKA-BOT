@@ -6,6 +6,7 @@ import time
 from service_butterfly import butterfly
 from data_items import ALL, iname
 from data_misc import FORMS
+from data_zanpakuto import BLADE_STAGES, blade_valid, stage_name, unlocked_blades
 from data_world import day_id
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from i18n import fnum
@@ -74,9 +75,11 @@ async def _state(uid):
         return None, None
     wid = ch.get("weapon_id") or ""
     z = dict(ch.get("zanpakuto") or {})
-    if wid and not z.get("blade_id"):
-        await col("characters").update_one({"user_id": uid, "zanpakuto.blade_id": {"$exists": False}}, {"$set": {"zanpakuto.blade_id": wid}})
-        z["blade_id"] = wid
+    # The blade is chosen from the catalogue (zanpakuto.blade_id), never from the weapon in hand.
+    # Anything else, including the old weapon ids saved by the previous version, is dropped here.
+    if z.get("blade_id") and not blade_valid(z["blade_id"], ch["level"]):
+        z.pop("blade_id", None)
+        await col("characters").update_one({"user_id": uid}, {"$unset": {"zanpakuto.blade_id": ""}})
     # Bond is per blade: it belongs to the weapon in hand, so switching blades starts that blade's bond from its own count.
     z["bond"] = int((ch.get("bond") or {}).get(wid, 0))
     z["mastery"] = int(z.get("mastery", 0))
@@ -99,25 +102,50 @@ async def zanpakuto_panel(ctx, arg):
     s1 = _t(ctx.lang, "on") if z.get("shikai") else _t(ctx.lang, "off", need=_t(ctx.lang, "need_s", lv=n1[0], bond=n1[1]))
     s2 = _t(ctx.lang, "on") if z.get("bankai") else _t(ctx.lang, "off", need=_t(ctx.lang, "need_b", lv=n2[0], m=n2[1]))
     left = max(0, int(gs["znp_train_daily"]) - await counter_get(f"znp:train:{ctx.uid}:{day_id()}"))
-    held_id = (ch.get("weapon_id") or z.get("blade_id") or "")  # the name shown is the blade you hold now
-    body = _t(ctx.lang, "body", blade=iname(held_id, ctx.lang) or "-", bond=fnum(bond, ctx.lang),
+    body = _t(ctx.lang, "body", blade=_blade_label(z, ctx.lang), bond=fnum(bond, ctx.lang),
               mastery=fnum(z["mastery"], ctx.lang), cap=fnum(int(gs["znp_mastery_cap"]), ctx.lang), f1=f1, s1=s1, f2=f2, s2=s2,
               left=left, daily=int(gs["znp_train_daily"]), gain=int(gs["znp_train_gain"]), cost=int(gs["znp_train_energy"]))
     body += "\n" + _pressure(z["mastery"], ctx.lang)
-    # Progress (bond, mastery, Shikai/Bankai) stays with the blade the zanpakutō was first bound to.
-    bound = z.get("blade_id") or ""
-    if bound and held_id and bound != held_id:
-        bound_name = iname(bound, ctx.lang) or "-"
-        body += ("\n<i>پیوند، تسلط و شیکا/بانکا متعلق به تیغه‌ی اولت است: " + bound_name + "</i>"
-                 if ctx.lang == "fa" else
-                 "\n<i>Bond, mastery and release belong to your first blade: " + bound_name + "</i>")
     rows = [[(_t(ctx.lang, "b_train"), "ztrn", "")]]
+    if unlocked_blades(ch["level"]):  # the blade is chosen here, not by the weapon in hand
+        rows.append([("🗡 تغییر تیغه" if ctx.lang == "fa" else "🗡 Choose blade", "znpb", "")])
     if not z.get("shikai") and lv >= n1[0] and bond >= n1[1]:
         rows.append([(_t(ctx.lang, "b_rel1", f=f1), "zrel", "1")])
     if z.get("shikai") and not z.get("bankai") and lv >= n2[0] and z["mastery"] >= n2[1]:
         rows.append([(_t(ctx.lang, "b_rel2", f=f2), "zrel", "2")])
     rows.append(nav(ctx))
     return Out(f"\u2694\ufe0f <b>\U0001d5b2\U0001d5a4\U0001d5ad\U0001d5aa\U0001d5a0</b> | <b>{_t(ctx.lang, 'title')}</b>\n{SEP}\n" + body, rows)
+
+
+def _blade_label(z, lang):
+    bid = z.get("blade_id")
+    if bid not in BLADE_STAGES:
+        return "-"
+    return BLADE_STAGES[bid]["shikai"][0 if lang == "fa" else 1]
+
+
+@action("znpb")
+async def blade_choose(ctx, arg):
+    ch, z = await _state(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"), [nav(ctx)])
+    rows = [[(BLADE_STAGES[b]["shikai"][0 if ctx.lang == "fa" else 1], "znpc", b)] for b in unlocked_blades(ch["level"])]
+    rows = [r for r in rows]
+    rows.append(nav(ctx, ("znp", "")))
+    text = ("🗡 تیغه‌ای که می‌خوای بگیری را انتخاب کن. هر تیغه با رسیدن به لول خودش باز میشه." if ctx.lang == "fa"
+            else "🗡 Pick the blade you want to bind. Each blade opens at its own level.")
+    return Out(text, rows)
+
+
+@action("znpc")
+async def blade_set(ctx, arg):
+    ch, z = await _state(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"), [nav(ctx)])
+    if not blade_valid(arg, ch["level"]):
+        return Out(alert=("این تیغه هنوز باز نشده." if ctx.lang == "fa" else "That blade is still locked."))
+    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"zanpakuto.blade_id": arg}})
+    return await zanpakuto_panel(ctx, "")
 
 
 @action("ztrn")

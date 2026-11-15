@@ -50,6 +50,21 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
         rows.append([mk(ctx.t("a_gt"), "gt")])
     if E.can(f, "gx"):  # spirit gauge full: Bankai (Resurrección for Hollow / Arrancar)
         rows.append([mk(ctx.t("a_gx_hollow" if f.get("race") in RESURRECCION_RACES else "a_gx"), "gx")])
+    canon_row = []
+    if E.can(f, "blv"):
+        canon_row.append(mk(ctx.t("a_blv"), "blv"))
+    if E.can(f, "bla"):
+        canon_row.append(mk(ctx.t("a_bla"), "bla"))
+    if E.can(f, "bal"):
+        canon_row.append(mk(ctx.t("a_bal"), "bal"))
+    if E.can(f, "neg"):
+        canon_row.append(mk(ctx.t("a_neg"), "neg"))
+    if E.can(f, "gar"):
+        canon_row.append(mk(ctx.t("a_gar"), "gar"))
+    if canon_row:
+        rows.append(canon_row[:2])
+        if canon_row[2:]:
+            rows.append(canon_row[2:])
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
         rows.append([mk(ctx.t(key), "sg")])
