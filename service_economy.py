@@ -171,13 +171,10 @@ async def use_item(uid: int, item_id: str):
         await col("characters").update_one({"user_id": uid}, {"$inc": {f"bond.{wid}": eff["amount"]}})
         return "ok", eff["amount"]
     if t == "pet":
-        if len(ch.get("pets", [])) >= 12:
-            return "petfull", None
-        if not await inv_remove(uid, item_id, 1):
-            return "missing", None
-        sp = random.randrange(len(PETS))
-        await col("characters").update_one({"user_id": uid}, {"$push": {"pets": {"sp": sp, "tier": eff["tier"]}}})
-        return "ok", sp
+        # eggs go through the incubator (service_effects.use_egg): they hatch after egg_hatch_explores explores.
+        # This branch used to push a pet straight away, so the incubator was dead code.
+        from service_effects import use_egg
+        return await use_egg(uid, item_id)
     return "nouse", None
 
 

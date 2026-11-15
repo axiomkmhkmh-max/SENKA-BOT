@@ -164,6 +164,17 @@ async def use(ctx, arg):
         out = await bag(ctx, "0")
         out.alert = ctx.t("us_ok", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))
         return out
+    if r in ("incubate", "incubating"):  # egg placed in the incubator (or one is already incubating)
+        L, n = ctx.lang, fnum(extra or 0, ctx.lang)
+        if r == "incubate":
+            txt = (f"🥚 تخم در انکوباتور گذاشته شد؛ {n} اکتشاف دیگه تا بیرون اومدنش." if L == "fa"
+                   else f"🥚 The egg is incubating; {n} more explores until it hatches.")
+        else:
+            txt = (f"🥚 انکوباتور پر است؛ {n} اکتشاف دیگه مونده." if L == "fa"
+                   else f"🥚 The incubator is busy; {n} explores left.")
+        out = await bag(ctx, "0")
+        out.alert = txt
+        return out
     return Out(alert=ctx.t("us_" + r, n=extra or 0))
 
 

@@ -214,8 +214,18 @@ async def explore(ctx, arg):
     if not ok:
         return Out(alert=ctx.t("exp_no_energy", n=fnum(left, L), s=fnum(nxt // 60 + 1, L)))
     await on_action(ctx.uid, "explore", ch["location"])
+    # every successful explore moves the incubator on by one; an egg that finishes hatches here
+    from service_effects import tick_incubator
+    from service_economy import PETS
+    hatched = await tick_incubator(ctx.uid)
     from handlers_hunt import start as hunt_start
-    return await hunt_start(ctx, ch)
+    out = await hunt_start(ctx, ch)
+    if hatched and isinstance(out, Out):
+        nm_ = PETS[hatched["sp"] % len(PETS)][0 if L == "en" else 1]
+        note = (f"🐾 یک همراه ({nm_}) از تخم بیرون اومد!" if L == "fa" else f"🐾 A companion ({nm_}) hatched from the egg!")
+        out.alert = f"{note}\n{out.alert}" if out.alert else note
+    return out
+
 
 async def _claim_pending(uid: int, kind: str):
     """Atomically take the pending hunt event (one answer per event, expires after 10 minutes)."""
@@ -528,11 +538,9 @@ async def worn_panel(ctx, arg):
         parts.append(H("🐾 " + ("همراه" if fa else "Companion")))
         if pets:
             from service_economy import PETS
-            p = pets[0]
-            nmx = PETS[p.get("sp", 0) % len(PETS)][0 if L == "en" else 1]
-            role = p.get("role", "fang")
-            role_name = {"fang": ("نیش", "Fang"), "heal": ("درمان", "Heal"), "luck": ("شانس", "Luck")}.get(role, ("نیش", "Fang"))
-            parts.append(f"• <b>{nmx}</b> · T{fnum(p.get('tier', 0) + 1, L)} · {role_name[0 if fa else 1]}")
+            # same line as the companion list: the role comes from the species, which is what the bonus uses
+            from fmt import pet_line
+            parts.append("• " + pet_line(ctx, pets[0]))
             parts.append(f"   {'همراه‌ها' if fa else 'Companions'}: {fnum(len(pets), L)}/12")
         else:
             parts.append("—")
