@@ -6,7 +6,6 @@ import time
 
 from pymongo import ReturnDocument
 
-from data_crafting import get_recipe, plan
 from data_items import ALL
 from data_races import LEVEL_GATES, RACES
 from database import col, game_settings, try_cooldown
@@ -232,6 +231,12 @@ def craft_coins(recipe: dict, st: dict) -> int:
 
 
 async def craft(uid: int, rid: str):
+    # Legacy crafting path: the live one is service_crafting.craft. data_crafting no longer has get_recipe/plan, and the
+    # top-level import of them made this whole module (pets, eggs, incubator) fail to import.
+    try:
+        from data_crafting import get_recipe, plan
+    except ImportError:
+        return "norec", None
     st, ch = await game_settings(), await get_char(uid)
     rec = get_recipe(rid)
     if not rec:
