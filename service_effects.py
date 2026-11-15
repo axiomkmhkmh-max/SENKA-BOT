@@ -16,6 +16,13 @@ from service_player import add_coins, get_char, today
 PET_CAP = 12
 
 
+def _set(st: dict, key: str):
+    """Live setting with the effects.py default as fallback: these keys are not in config.GAME_DEFAULTS,
+    so st[key] raised KeyError (eggs, tomes and evolution all errored out)."""
+    from effects import DEFAULTS
+    return st[key] if key in st else DEFAULTS[key]
+
+
 async def passives(ch: dict, st: dict = None) -> dict:
     return passive_mods(ch, ALL, st or await game_settings())
 
@@ -124,7 +131,7 @@ async def use_tome(uid: int, item_id: str):
         return "stronger", int(cur)
     if not await inv_remove(uid, item_id, 1):
         return "missing", None
-    until = int(time.time()) + int(st["book_buff_minutes"]) * 60
+    until = int(time.time()) + int(_set(st, "book_buff_minutes")) * 60
     await col("characters").update_one({"user_id": uid}, {"$set": {f"buffs.{key}": {"pct": eff["pct"], "until": until}}})
     return "ok", int(eff["pct"])
 
@@ -133,7 +140,7 @@ async def use_egg(uid: int, item_id: str):
     eff, ch, st = ALL[item_id]["effect"], await get_char(uid), await game_settings()
     if len(ch.get("pets") or []) >= PET_CAP:
         return "petfull", None
-    explores = int(st["egg_hatch_explores"])
+    explores = int(_set(st, "egg_hatch_explores"))
     if explores > 0 and ch.get("incubator"):
         return "incubating", ch["incubator"]["left"]
     if not await inv_remove(uid, item_id, 1):
@@ -211,7 +218,7 @@ async def evolve(uid: int, item_id: str):
     ok, why = evo_can(ch, eff, LEVEL_GATES, max_stage, st)
     if not ok:
         return why, (LEVEL_GATES[eff["stage"]] if why == "level" else None)
-    cost = int(st["evo_coin_cost"]) * eff["stage"]
+    cost = int(_set(st, "evo_coin_cost")) * eff["stage"]
     if not await inv_remove(uid, item_id, 1):
         return "missing", None
     if not await add_coins(uid, -cost, "evolve"):
