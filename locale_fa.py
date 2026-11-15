@@ -100,7 +100,6 @@ TEXT = {
 
  # ---- Bleach-flavoured variants & release cries ----
  "lg_hit_atk_2": "🗡️ تیغه‌ی {a} روی {d} فرود آمد: {n}",
- "lg_hit_atk_3": "💢 {a} فاصله را بست و {d} را زد: {n}",
  "lg_hit_hvy_2": "💥 ضربه‌ی سنگین {a}، زمین را شکافت و {d} را برد: {n}",
  "lg_crit_2": "✨ نقطه‌ی ضعف!",
  "lg_crit_3": "✨ کریتیکال",

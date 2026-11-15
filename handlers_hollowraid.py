@@ -8,12 +8,23 @@ from database import col, try_cooldown
 from i18n import bar, esc, fnum
 from render import glang
 from security import allow
+from data_espada_raid import ESPADA
 from service_hollowraid import STRIKE_WORDS, raid_abort, raid_attach, raid_roll, raid_settle, raid_strike
 from service_world import group_doc
 
 log = logging.getLogger("senka.raid")
 
 NAME = {"hollow": ("هالوی سرگردان", "Wandering Hollow"), "menos": ("منوس گرانده", "Menos Grande")}
+
+
+def _kname(doc, lang):
+    """Display name of an incursion; an Espada shows its own name."""
+    if doc.get("kind") == "espada":
+        e = ESPADA.get(int(doc.get("esp") or 0))
+        if e:
+            return e["fa" if lang == "fa" else "en"]
+        return "اسپادا" if lang == "fa" else "Espada"
+    return NAME[doc["kind"]][0 if lang == "fa" else 1]
 T = {
     "spawn": ("🕳 <b>گارگانتا شکافت!</b>\n{icon} <b>{name}</b> وارد جامعه ارواح شد!\n❤️ {bar} {hp}/{mx}\n⏳ {mins} دقیقه فرصت داری.\nروی این پیام ریپلای کن: «حمله»",
               "🕳 <b>The Garganta tears open!</b>\n{icon} <b>{name}</b> has entered Soul Society!\n❤️ {bar} {hp}/{mx}\n⏳ {mins} minutes to purge it.\nReply to this message: “strike”"),
@@ -35,8 +46,8 @@ def _t(lang, key, **kw):
 
 
 def _view(lang, doc, key="live"):
-    nm = NAME[doc["kind"]][0 if lang == "fa" else 1]
-    icon = "👹" if doc["kind"] == "menos" else "👻"
+    nm = _kname(doc, lang)
+    icon = {"menos": "👹", "espada": "💀"}.get(doc["kind"], "👻")
     return _t(lang, key, icon=icon, name=nm, bar=bar(max(0, doc["hp"]), doc["max_hp"]), hp=fnum(max(0, doc["hp"]), lang),
               mx=fnum(doc["max_hp"], lang), n=len(doc.get("hits") or {}), mins=max(1, (doc["end_at"] - doc["created_at"]) // 60))
 
@@ -66,10 +77,18 @@ async def raid_hook(message, n: str) -> bool:
             for uid, iid in out.get("extra", []):
                 who = esc(str((doc.get("names") or {}).get(str(uid), uid)))
                 extra += _t(lang, "drop_more", item=esc(iname(iid, lang)), who=who)
-            text = _t(lang, "dead", name=NAME[doc["kind"]][0 if lang == "fa" else 1], top=top, paid=out["paid"], drop=extra)
+            text = _t(lang, "dead", name=_kname(doc, lang), top=top, paid=out["paid"], drop=extra)
             await message.reply(text)
             await _edit(message.bot, doc, text)
             return True
+        if doc.get("kind") == "espada":  # announce the Espada's second pattern the strike it begins
+            from data_espada_raid import phase
+            before = (doc["hp"] + dmg) / max(1, doc["max_hp"])  # heal is not returned by raid_strike; close enough for a banner
+            now_f = doc["hp"] / max(1, doc["max_hp"])
+            if phase(doc.get("esp"), before) != phase(doc.get("esp"), now_f):
+                p2 = (ESPADA.get(int(doc.get("esp") or 0)) or {}).get("phase2") or {}
+                if p2:
+                    await message.reply("⚠️ " + esc(p2["fa" if lang == "fa" else "en"]))
         await message.reply(_t(lang, "hit", who=nm, dmg=fnum(dmg, lang)))
         if not await try_cooldown(f"raid:edit:{doc['_id']}", 5):
             await _edit(message.bot, doc, _view(lang, doc))

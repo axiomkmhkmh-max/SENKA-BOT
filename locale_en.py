@@ -108,7 +108,6 @@ TEXT = {
 
  # ---- Bleach-flavoured variants & release cries ----
  "lg_hit_atk_2": "🗡️ {a}'s blade lands on {d}: {n}",
- "lg_hit_atk_3": "💢 {a} closes the gap and strikes {d}: {n}",
  "lg_hit_hvy_2": "💥 {a}'s heavy strike splits the ground and slams {d}: {n}",
  "lg_crit_2": "✨ Weak point!",
  "lg_crit_3": "✨ CRIT",

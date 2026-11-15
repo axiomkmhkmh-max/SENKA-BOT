@@ -48,7 +48,7 @@ class GaugeEngineTests(unittest.TestCase):
     def test_hits_fill_both_gauges(self):
         a, b = fighter("A"), fighter("B", race="hollow", ai=True)
         st = E.new_state(a, b, random.Random(3))
-        st["cur"], st["awaiting"] = "a", True
+        st["cur"], st["awaiting"], st["dist"] = "a", True, 0  # contact: a strike lands this turn (from mid-range it only closes in)
         E.do_action(st, "atk", random.Random(3))
         self.assertGreater(a["x"]["gauge"], 0, "the attacker's spirit grows by striking")
         self.assertGreater(b["x"]["gauge"], 0, "the target's spirit grows by being struck")

@@ -11,6 +11,7 @@ from data_items import ALL, EVO_BY_RARITY
 from data_races import DIFFICULTY, DUNGEONS, LOCATIONS, RACES, soft_stat
 from data_weapons import ELEMENTS, RARITIES
 from data_crafting import DIFFS
+from data_zanpakuto import BLADE_STAGES
 import engine as E
 from database import col, game_settings
 from service_log import log_event
@@ -110,9 +111,10 @@ async def build_player(ch: dict, name: str = None):
     zstate = ch.get("zanpakuto") or {}
     bond = max(int((ch.get("bond") or {}).get(wid, 0)), int(zstate.get("bond", 0)))
     # Release stages feed the existing weapon-skill multiplier; no parallel combat engine.
-    release_bonus = 0.10 if zstate.get("shikai") else 0.0
+    stage = BLADE_STAGES.get(zstate.get("blade_id"), {})
+    release_bonus = (0.10 + stage.get("shikai_bonus", 0.0)) if zstate.get("shikai") else 0.0
     if zstate.get("bankai"):
-        release_bonus += 0.12 + min(0.08, int(zstate.get("mastery", 0)) / 500)
+        release_bonus += 0.12 + min(0.08, int(zstate.get("mastery", 0)) / 500) + stage.get("bankai_bonus", 0.0)
     zmult = 1 + min(1.0, bond / 500) + release_bonus  # bond bonus caps at +100% (was +30%)
     # Distinct release identities alter battle style rather than granting identical flat power.
     blade_style = {

@@ -13,6 +13,7 @@ from service_economy import inv_add, roll_drop
 from service_bleach_systems import stance_mult
 from service_player import add_coins, add_xp, get_char, power
 from service_world import group_doc
+from data_espada_raid import ESPADA, ESPADA_CHANCE, effect as espada_effect
 
 STRIKE_WORDS = {"حمله", "ضربه", "بزن", "سرو", "attack", "strike", "hit", "cero", "slash"}
 
@@ -34,9 +35,15 @@ async def raid_roll(chat_id: int):
     if await col("hollow_raids").find_one({"chat_id": chat_id, "status": "active", "end_at": {"$gt": now}}):
         return None
     menos = random.random() < float(st["raid_menos_chance"])
+    esp = None if menos or random.random() >= ESPADA_CHANCE else random.choice(sorted(ESPADA))
     hp = int(st["raid_hp"]) * (int(st["raid_menos_mult"]) if menos else 1)
-    doc = {"_id": uuid.uuid4().hex[:10], "chat_id": chat_id, "kind": "menos" if menos else "hollow", "hp": hp, "max_hp": hp,
+    if esp is not None:
+        hp = int(hp * ESPADA[esp]["hp_mult"])
+    kind = "menos" if menos else ("espada" if esp is not None else "hollow")
+    doc = {"_id": uuid.uuid4().hex[:10], "chat_id": chat_id, "kind": kind, "hp": hp, "max_hp": hp,
            "status": "active", "created_at": now, "end_at": now + int(st["raid_ttl"]), "hits": {}, "names": {}, "lv": 0}
+    if esp is not None:
+        doc["esp"] = esp
     await col("hollow_raids").insert_one(doc)
     return doc
 
@@ -75,9 +82,12 @@ async def raid_strike(chat_id: int, uid: int, reply_msg_id=None):
     if sm == 0.0:
         return "rage", doc, 0
     dmg = max(20, int(power(ch) * random.uniform(0.85, 1.15) * float(st["raid_dmg_k"]) * sm))
+    heal = 0
+    if doc.get("kind") == "espada":  # the Espada's pattern: barrier and/or regen (released fighters ignore both)
+        dmg, heal = espada_effect(doc.get("esp"), doc["hp"] / max(1, doc["max_hp"]), sm > 1.0, dmg, doc["hp"], doc["max_hp"])
     after = await col("hollow_raids").find_one_and_update(
         {"_id": doc["_id"], "status": "active", "end_at": {"$gt": now}},
-        {"$inc": {"hp": -dmg, f"hits.{uid}": dmg}, "$set": {f"names.{uid}": ch["name"]}, "$max": {"lv": int(ch["level"])}},
+        {"$inc": {"hp": heal - dmg, f"hits.{uid}": dmg}, "$set": {f"names.{uid}": ch["name"]}, "$max": {"lv": int(ch["level"])}},
         return_document=ReturnDocument.AFTER)
     if not after:
         return "gone", doc, 0
@@ -99,7 +109,7 @@ async def raid_settle(doc: dict) -> dict:
     hits = {int(k): int(v) for k, v in (doc.get("hits") or {}).items()}
     total = max(1, sum(hits.values()))
     menos = doc["kind"] == "menos"
-    mult = {"menos": 3.0, "quincy": 4.0}.get(doc["kind"], 1.0)
+    mult = {"menos": 3.0, "quincy": 4.0, "espada": 3.5}.get(doc["kind"], 1.0)
     lv = max(1, int(doc.get("lv") or 1))
     paid = 0
     paid_uids = set()

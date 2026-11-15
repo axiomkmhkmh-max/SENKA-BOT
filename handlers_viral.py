@@ -333,10 +333,11 @@ async def bleach_status(ctx, arg):
     hog = await hogyoku_state()
     holds = bool(hog and hog["holder"] == ctx.uid)
     forms = []
+    from data_zanpakuto import stage_name
     if z.get("shikai"):
-        forms.append("Shikai")
+        forms.append(stage_name(z.get("blade_id"), "shikai", ctx.lang) or "Shikai")
     if z.get("bankai"):
-        forms.append("Bankai")
+        forms.append(stage_name(z.get("blade_id"), "bankai", ctx.lang) or "Bankai")
     blade = iname(z.get("blade_id") or "", ctx.lang) or "-"
     lines = [
         ("🔔 اسپادا: " + (f"شماره {rank}" if rank is not None else "—")) if fa else ("🔔 Espada: " + (f"#{rank}" if rank is not None else "—")),
