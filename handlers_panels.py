@@ -10,7 +10,7 @@ from data_items import ALL
 from data_races import LOCATIONS, RACES, STAT_ICON, STATS, soft_stat
 from database import col, game_settings, try_cooldown
 from render import pick
-from fmt import nm, race_name, stats_block, title_of
+from fmt import effect_text, nm, race_name, rarity_name, stats_block, title_of
 from handlers_world import bonus_line, world_line
 from service_interact import crowd_counts, find_trace
 from service_worldcore import mods_for
@@ -121,7 +121,8 @@ async def profile(ctx, arg):
         g = await col("guilds").find_one({"_id": ch["guild_id"]})
         if g:
             lines.append("🛡️ " + esc(g["name_fa" if L == "fa" else "name_en"]))
-    rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")], [(ctx.t("b_forge"), "frg", ""), (ctx.t("m_eqp"), "eqp", "")], nav(ctx)]
+    rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")], [(ctx.t("b_forge"), "frg", ""), (ctx.t("m_eqp"), "eqp", "")],
+            [("🧍 " + ("تن من" if L == "fa" else "What I wear"), "worn", "")], nav(ctx)]
     return Out("\n".join(lines), rows)
 
 
@@ -406,3 +407,124 @@ async def help_panel(ctx, arg):
         return Out(STATS_TOPIC[lang], [nav(ctx, ("hlp", ""))])
     topics = [[("📊 استت‌ها" if lang == "fa" else "📊 Stats", "hlp", "stats")]]
     return Out(head(ctx, "ttl_hlp") + ctx.t("help_body"), topics + [nav(ctx)])
+
+
+@action("worn")
+async def worn_panel(ctx, arg):
+    """Deep view of what the character wears: three pages.
+    Page 0: the four gear pieces with their full item cards (weapon forge level, armour tempering included).
+    Page 1: relics with real power, cosmetics, companion, artifact, evolution and the total bonuses."""
+    from fmt import item_card
+    from effects import RELIC_MAX_LVL, relic_level_mult, relic_slots
+    from handlers_world import bonus_line as _bl
+    ch = await need_char(ctx)
+    L, fa = ctx.lang, ctx.lang == "fa"
+    st = await game_settings()
+    page = int(arg) if str(arg or "0") in ("0", "1", "2") else 0
+    H = lambda t: f"\n<b>{t}</b>"  # noqa: E731
+
+    if page == 0:
+        parts = ["🧍 <b>" + ("تن من — جنگ‌افزار و پوشش" if fa else "What I wear — gear") + "</b>  (1/3)"]
+        for field, label in (("weapon_id", "⚔️"), ("armor_id", "🛡️"), ("acc_id", "💍"), ("charm_id", "📿")):
+            iid = ch.get(field)
+            if not iid or iid not in ALL:
+                parts.append(H(f"{label} " + ("خالی" if fa else "empty")))
+                continue
+            extra = []
+            if field == "weapon_id":
+                plus = int((ch.get("weapon_plus") or {}).get(iid, 0))
+                if plus:
+                    extra.append(f"🔨 +{fnum(plus, L)}")
+            if field == "armor_id":
+                plus = int((ch.get("armor_plus") or {}).get(iid, 0))
+                if plus:
+                    extra.append(f"🔨 +{fnum(plus, L)}")
+            parts.append(H(f"{label} " + ("" if not extra else " ".join(extra))) + "\n" + item_card(ctx, iid))
+        bn = player_bonus(ch, ALL, st)
+        parts.append(H("🧿 " + ("بونوس کل" if fa else "Total bonuses")) + "\n" + _bl(ctx, bn))
+        rows = [[("➡️ " + ("ادامه" if fa else "Next"), "worn", "1")], nav(ctx, ("prof", ""))]
+    elif page == 2:
+        parts = ["🧍 <b>" + ("تن من — تحلیل عددی" if fa else "What I wear — numbers") + "</b>  (3/3)"]
+        # real combat numbers
+        wid = ch.get("weapon_id")
+        w = ALL.get(wid) or {}
+        wplus = int((ch.get("weapon_plus") or {}).get(wid, 0))
+        if w:
+            atk = float(w.get("attack", 0)) * (1 + 0.06 * wplus)
+            parts.append(H("⚔️ " + ("جنگ‌افزار در مبارزه" if fa else "Weapon in combat")))
+            parts.append(f"• {'قدرت' if fa else 'attack'}: {fnum(int(atk), L)} (پایه {fnum(int(w.get('attack', 0)), L)} · فورج +{fnum(wplus, L)} ×{round(1 + 0.06 * wplus, 2)})")
+            parts.append(f"• {'شانس کریتیکال' if fa else 'crit'}: {round(float(w.get('crit', 0)) * 100, 1)}%")
+        bond = int((ch.get("bond") or {}).get(wid, 0))
+        zst = ch.get("zanpakuto") or {}
+        parts.append(H("🔗 " + ("زانپاکتو" if fa else "Zanpakuto")))
+        parts.append(f"• {'پیوند' if fa else 'bond'}: {fnum(bond, L)} → ×{round(1 + min(1.0, bond / 500), 2)} "
+                     f"({'سقف پیوند ۵۰۰' if fa else 'cap 500'})")
+        parts.append(f"• {'شکل' if fa else 'form'}: " + (("بانکای" if fa else "Bankai") if zst.get("bankai") else ("شیکای" if zst.get("shikai") else ("عادی" if fa else "normal"))))
+        if zst.get("mastery") is not None:
+            parts.append(f"• {'تسلط' if fa else 'mastery'}: {fnum(int(zst.get('mastery', 0)), L)}")
+        # where the bonus comes from: remove one source at a time and see what it was worth
+        full = player_bonus(ch, ALL, st)
+        sources = [
+            ("🗿 " + ("یادگارها" if fa else "Relics"), {"relics": []}),
+            ("🐾 " + ("همراه" if fa else "Companion"), {"pets": []}),
+            ("🔱 " + ("آرتیفکت" if fa else "Artifact"), {"artifact": None}),
+            ("🔮 " + ("هوگیوکو" if fa else "Hōgyoku"), {"hogyoku": False}),
+            ("⬆️ " + ("تکامل" if fa else "Evolution"), {"evo": 0}),
+            ("🎲 " + ("باف موقت" if fa else "Temporary buffs"), {"buffs": {}}),
+        ]
+        parts.append(H("📊 " + ("سهم هر منبع از بونوس" if fa else "Where the bonus comes from")))
+        keys = [k for k in ("dmg", "def", "crit", "xp", "drop", "coin") if full.get(k)]
+        if not keys:
+            parts.append("—")
+        for label, patch in sources:
+            alt = dict(ch, **patch)
+            without = player_bonus(alt, ALL, st)
+            diff = {k: full[k] - without.get(k, 0) for k in keys if abs(full[k] - without.get(k, 0)) > 1e-9}
+            if diff:
+                parts.append(f"• {label}: " + " ".join(f"{k} +{round(v * 100, 1)}%" for k, v in diff.items()))
+            else:
+                parts.append(f"• {label}: —")
+        parts.append(f"<i>{'جمع با سقف بازی، پس ممکن است کمتر از مجموع باشد.' if fa else 'Totals are capped by the game, so the sum may be lower.'}</i>")
+        rows = [[("⬅️ " + ("قبلی" if fa else "Back"), "worn", "1")], nav(ctx, ("prof", ""))]
+    else:
+        parts = ["🧍 <b>" + ("تن من — یادگار و ظاهر" if fa else "What I wear — relics & look") + "</b>  (2/3)"]
+        slots = relic_slots(int(ch.get("level", 1)), st)
+        rel = list(dict.fromkeys(ch.get("relics") or []))
+        parts.append(H(("🗿 یادگارها" if fa else "🗿 Relics") + f" ({fnum(min(len(rel), slots), L)}/{fnum(slots, L)})"))
+        if not rel:
+            parts.append("—")
+        for iid in rel[:slots]:
+            lvl = int((ch.get("relic_lvl") or {}).get(iid, 1))
+            mult = relic_level_mult(ch, iid)
+            parts.append(f"• <b>{nm(iid, L)}</b> — {'سطح' if fa else 'Lv.'} {fnum(lvl, L)}/{fnum(RELIC_MAX_LVL, L)} · "
+                         f"{'قدرت' if fa else 'power'} ×{round(mult, 2)}"
+                         + (f"\n   <i>{effect_text(ctx, ALL[iid])}</i>" if iid in ALL else ""))
+        cs = ch.get("cosmetic") or {}
+        parts.append(H("✨ " + ("ظاهر" if fa else "Look")))
+        shown = [f"• <b>{nm(cs[k], L)}</b>" + (f"\n   <i>{effect_text(ctx, ALL[cs[k]])}</i>" if cs[k] in ALL else "") for k in ("aura", "trail", "banner") if cs.get(k)]
+        parts.append("\n".join(shown) or "—")
+        pets = ch.get("pets") or []
+        parts.append(H("🐾 " + ("همراه" if fa else "Companion")))
+        if pets:
+            from service_economy import PETS
+            p = pets[0]
+            nmx = PETS[p.get("sp", 0) % len(PETS)][0 if L == "en" else 1]
+            role = p.get("role", "fang")
+            role_name = {"fang": ("نیش", "Fang"), "heal": ("درمان", "Heal"), "luck": ("شانس", "Luck")}.get(role, ("نیش", "Fang"))
+            parts.append(f"• <b>{nmx}</b> · T{fnum(p.get('tier', 0) + 1, L)} · {role_name[0 if fa else 1]}")
+            parts.append(f"   {'همراه‌ها' if fa else 'Companions'}: {fnum(len(pets), L)}/12")
+        else:
+            parts.append("—")
+        if ch.get("artifact"):
+            from data_artifacts import art_name
+            parts.append(H("🔱 " + ("آرتیفکت" if fa else "Artifact")) + "\n• " + art_name(ch["artifact"], L))
+        if ch.get("hogyoku"):
+            parts.append(H("🔮 " + ("هوگیوکو" if fa else "Hōgyoku")))
+        stage = int(ch.get("evo", 0) or 0)
+        if stage:
+            parts.append(H("⬆️ " + ("تکامل" if fa else "Evolution")) + f" {fnum(stage, L)}")
+        rows = [[("⬅️ " + ("قبلی" if fa else "Back"), "worn", "0"), ("➡️ " + ("ادامه" if fa else "Next"), "worn", "2")], nav(ctx, ("prof", ""))]
+    text = "\n".join(parts)
+    if len(text) > 3900:
+        text = text[:3900] + "…"
+    return Out(text, rows)
