@@ -53,7 +53,31 @@ async def kido_panel(ctx,arg):
         name=data["fa"] if ctx.lang=="fa" else data["name"]
         lines.append(("✅ " if learned else "▫️ ")+f"{name} · {data['type']} · {data['cost']} RE")
         if not learned:rows.append([(ctx.t("b_kido_learn",name=name),"kidol",key)])
+    rows.append([(("🃏 کارت‌های کیدو" if ctx.lang=="fa" else "🃏 Kidō cards"),"kidoc","")])
     rows.append(nav(ctx))
+    return Out(head(ctx,"ttl_kido")+"\n".join(lines),rows)
+
+@action("kidoc")
+async def kido_cards(ctx,arg):
+    """Kidō cards: one per spell. A card opens when the spell is learned; locked cards show only the level needed."""
+    from service_bleach_systems import KIDO
+    s=await kido_state(ctx.uid)
+    if not s:return Out(ctx.t("not_registered"))
+    L=ctx.lang
+    learned=s["learned"]
+    total=len(KIDO)
+    got=sum(1 for k in KIDO if k in learned)
+    head_line=(f"🃏 کارت‌های کیدو: {got}/{total}" if L=="fa" else f"🃏 Kidō cards: {got}/{total}")
+    lines=[head_line,""]
+    for key,d in KIDO.items():
+        if key in learned:
+            name=d["name"]
+            desc=d.get("fa","") if L=="fa" else ""
+            lines.append(f"✅ <b>{name}</b> · {d['type']} · Lv.{d['level']} · {d['cost']} RE")
+            if desc: lines.append(f"<i>{desc}</i>")
+        else:
+            lines.append(("🔒 ??? · " if L=="fa" else "🔒 ??? · ")+f"{d['type']} · Lv.{d['level']}")
+    rows=[nav(ctx,("kidop",""))]
     return Out(head(ctx,"ttl_kido")+"\n".join(lines),rows)
 
 @action("kidol")
