@@ -189,6 +189,17 @@ async def set_active_pet(uid: int, idx: int) -> str:
     return "ok" if r.modified_count else "retry"
 
 
+async def pet_release(uid: int, idx: int) -> str:
+    """Let a companion go so a slot frees up for new eggs (the cap is PET_CAP). Conditional on the list not changing."""
+    ch = await get_char(uid)
+    pets = list(ch.get("pets") or [])
+    if not 0 <= idx < len(pets):
+        return "bad"
+    new = pets[:idx] + pets[idx + 1:]
+    r = await col("characters").update_one({"user_id": uid, "pets": pets}, {"$set": {"pets": new}})
+    return "ok" if r.modified_count else "retry"
+
+
 # ---- evolution ----------------------------------------------------------------------------------------------------
 async def evolve(uid: int, item_id: str):
     st, ch = await game_settings(), await get_char(uid)

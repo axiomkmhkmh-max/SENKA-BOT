@@ -9,7 +9,7 @@ from effects import active_buffs, passive_mods, relic_slots
 from fmt import item_card, nm, pctf, title_of
 from i18n import esc, fnum
 from service_economy import PETS, inv_get
-from service_effects import (craft, craft_coins, evolve, set_active_pet, unequip_cosmetic, unequip_relic)
+from service_effects import (craft, craft_coins, evolve, pet_release, set_active_pet, unequip_cosmetic, unequip_relic)
 from service_player import get_char
 from ui import Out, action, head, nav
 
@@ -115,6 +115,7 @@ async def pets_panel(ctx, arg):
         nmx = PETS[p.get("sp", 0) % len(PETS)][0 if L == "en" else 1]
         mark = "✅ " if i == 0 else ""
         rows.append([(f"{mark}{ROLE_ICON[p.get('role', 'fang')]} {nmx} · T{p.get('tier', 0) + 1}", "pta", f"{i}.{page}")])
+        rows.append([("🗑 رها کردن" if L == "fa" else "🗑 Release", "prl", f"{i}.{page}", False, "danger")])
     pg_row = []
     if page > 0:
         pg_row.append(("◀️", "pet", str(page - 1), False, "none"))
@@ -128,6 +129,15 @@ async def pets_panel(ctx, arg):
     if inc:
         lines.append(ctx.t("pet_incubating", n=fnum(max(0, inc["left"]), L), role=ctx.t("role_" + inc["role"])))
     return Out(head(ctx, "ttl_pet") + "\n".join(lines), rows)
+
+
+@action("prl")
+async def pet_release_act(ctx, arg):
+    i, _, page = arg.partition(".")
+    r = await pet_release(ctx.uid, int(i))
+    if r != "ok":
+        return Out(alert=ctx.t("pet_e_" + r))
+    return await pets_panel(ctx, page or "0")
 
 
 @action("pta")

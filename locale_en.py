@@ -58,7 +58,7 @@ TEXT = {
  "flt_a": "All", "flt_w": "Blades", "flt_e": "Gear", "flt_u": "Usable",
  "bag_body": "🎒 Slots {cap} | Items shown: {n}\n{eq}", "eq_ok": "✅ Ready for battle!", "eq_noequip": "That can't be equipped.", "eq_level": "Your level is too low.", "eq_already": "Already equipped.", "eq_missing": "You don't have it.", "eq_retry": "Try again.",
  "ueq_empty": "Nothing equipped.", "ueq_full": "Bag is full.", "ueq_retry": "Try again.",
- "us_ok": "Used! ({n})", "us_nouse": "Use this in battle or it has no direct use.", "us_level": "Needs level {n}.", "us_known": "You already know it.", "us_busy": "You can't rebirth your zanpakuto during a battle.", "us_noweapon": "Equip the blade you want first, then use the seal.", "us_missing": "You don't have it.", "us_petfull": "Too many companions.",
+ "us_ok": "Used! ({n})", "us_nouse": "Use this in battle or it has no direct use.", "us_level": "Needs level {n}.", "us_known": "You already know it.", "us_busy": "You can't rebirth your zanpakuto during a battle.", "us_noweapon": "Equip the blade you want first, then use the seal.", "us_missing": "You don't have it.", "us_petfull": "Your companions are full (12). Release one in the companion panel to make room.",
  "sell_ok": "Sold for {n} 🪙", "sell_fail": "Couldn't sell.",
  "mkt_body": "Urahara's shop is open; everything has a price.\nBrowse player listings and auctions too. Fees: seller 5%, buyer 2%. Epic+ items are auction only.",
  "mk_shop": "🏪 Urahara shop", "mk_fixed": "🏷️ Listings", "mk_auction": "🔨 Auctions", "mk_mine": "📦 My listings", "mk_empty": "Nothing listed.", "mk_page": "Page {p}/{n}",
