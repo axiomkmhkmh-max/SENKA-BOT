@@ -400,4 +400,9 @@ async def commands_panel(ctx, arg):
 
 @action("hlp")
 async def help_panel(ctx, arg):
-    return Out(head(ctx, "ttl_hlp") + ctx.t("help_body"), [nav(ctx)])
+    from data_help import STATS_TOPIC
+    lang = "fa" if ctx.lang == "fa" else "en"
+    if arg == "stats":
+        return Out(STATS_TOPIC[lang], [nav(ctx, ("hlp", ""))])
+    topics = [[("📊 استت‌ها" if lang == "fa" else "📊 Stats", "hlp", "stats")]]
+    return Out(head(ctx, "ttl_hlp") + ctx.t("help_body"), topics + [nav(ctx)])
