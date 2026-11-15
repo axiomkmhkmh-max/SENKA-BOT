@@ -488,8 +488,10 @@ async def relic_panel(ctx, arg):
         rows.append([(f"⬇️ {nm(rid, L)}".replace("<", "").replace(">", ""), "rlr", str(idx))])
     bag = [i for i, q in inv["items"].items() if q > 0 and (ALL.get(i, {}).get("effect") or {}).get("type") == "relic"]
     bag.sort(key=lambda i: -RARITIES.index(ALL[i]["rarity"]))
-    for i in bag[:6]:
-        rows.append([(f"⬆️ {nm(i, L)}".replace("<", "").replace(">", ""), "rla", i)])
+    # every relic in the bag is listed (two per row, with the count of copies), not just the first six
+    btns = [(f"⬆️ {nm(i, L)}{' ×' + fnum(inv['items'][i], L) if inv['items'][i] > 1 else ''}".replace("<", "").replace(">", ""), "rla", i)
+            for i in bag[:60]]
+    rows += [btns[k:k + 2] for k in range(0, len(btns), 2)]
     return Out("\n".join(lines), rows + [nav(ctx, ("eqp", ""))])
 
 

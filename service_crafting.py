@@ -119,7 +119,20 @@ async def relic_attune(uid: int, item_id: str) -> str:
     if not r.modified_count:
         await inv_add(uid, item_id, 1, force=True)
         return "slots"
+    await _merge_bag_duplicates(uid, item_id)
     return "ok"
+
+
+async def _merge_bag_duplicates(uid: int, item_id: str) -> None:
+    """Spare copies of a just-attuned idol still in the bag fold into its level (max RELIC_MAX_LVL),
+    so two idols in the bag become one relic of level 2 with a single tap."""
+    from service_effects import _relic_level_up
+    for _ in range(10):
+        ch = await get_char(uid)
+        if (await inv_get(uid))["items"].get(item_id, 0) <= 0:
+            return
+        if await _relic_level_up(uid, ch, item_id) != "leveled":
+            return
 
 
 async def relic_release(uid: int, idx: int) -> str:

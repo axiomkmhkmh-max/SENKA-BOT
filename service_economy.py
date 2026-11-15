@@ -183,10 +183,11 @@ async def use_item(uid: int, item_id: str):
 
 # ---- drops & pity --------------------------------------------------------------
 # Drop caps. Each one limits one stacking source; the stacked total is what made rare drops too common.
-DROP_BONUS_CAP = 0.25   # faction, division, artifact, relic and pet drop bonuses, summed, count at most this much
+DROP_BONUS_CAP = 0.15   # faction, division, artifact, relic and pet drop bonuses, summed, count at most this much
 WORLD_DROP_CAP = 1.5    # location (reishi) and event drop factor ceiling
 LUCK_BOOST_CAP = 0.2    # luck from level and accessories: at most +20% on rare-and-up weights
-RARE_MULT_CAP = 2.5     # rare, epic, legendary and mythic weights never get more than this multiplier
+RARE_MULT_CAP = 2.5     # rare and epic weights never get more than this multiplier
+TOP_MULT_CAP = 1.5      # legendary and mythic get a gentler cap: the drop buff was lifting them too much
 
 
 async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0.1, floor_idx: int = 0, rng=random):
@@ -206,7 +207,8 @@ async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0
     # Before this cap, boss/elite x2 * faction + artifact drop bonus * world factor * luck could reach ~10x,
     # which is why Legendary and Mythic showed up almost every time.
     rare_mult = min(RARE_MULT_CAP, boost * mult)
-    weights = [w * (rare_mult if i >= 2 else 1.0) for i, w in enumerate(DROP_W)]
+    top_mult = min(TOP_MULT_CAP, rare_mult)
+    weights = [w * (top_mult if i >= 4 else rare_mult if i >= 2 else 1.0) for i, w in enumerate(DROP_W)]
     idx = rng.choices(range(6), weights)[0]
     idx = max(idx, floor_idx)
     pity = dict(ch.get("pity") or {"rare": 0, "epic": 0, "legendary": 0})
