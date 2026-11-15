@@ -490,12 +490,10 @@ def _signature(state, side, rng, ev):
         if o["hp"] > 0 and rng.random() < c["bleed"]:
             add_fx(o, "bleed", DOT_TURNS["bleed"])
             ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "bleed"})
-    elif sg == "guts":
-        h = max(1, int(f["max_hp"] * c["heal"]))
-        f["hp"] = min(f["max_hp"], f["hp"] + h)
-        f["fx"] = [e for e in f["fx"] if e["k"] not in DOT and e["k"] not in ("fear", "weaken", "shock")]
-        x["buff_t"], x["buff_m"] = c["turns"] + 1, c["dmg"]
-        ev.append({"k": "guts", "a": f["name"], "n": h})
+    elif sg == "guts":  # Santen Kesshun: a shield that soaks the next hits
+        n = max(1, int(f["max_hp"] * c["shield"]))
+        f["shield"] += n
+        ev.append({"k": "guts", "a": f["name"], "n": n})
 
 
 def _do_action(state, action, rng, max_turns=30):
@@ -647,7 +645,7 @@ def ai_choose(state, side, rng):
         return "sg"
     if f["hp"] < f["max_hp"] * 0.3 and r < 0.3:
         return "df"
-    if sg and sg != "cero" and r < 0.22 and can(f, "sg") and not (sg == "guts" and f["hp"] > f["max_hp"] * 0.7):
+    if sg and sg != "cero" and r < 0.22 and can(f, "sg") and not (sg == "guts" and f["shield"] > 0):
         return "sg"
     if sg == "cero" and r < 0.20 and can(f, "sg"):
         return "sg"

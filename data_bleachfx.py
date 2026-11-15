@@ -21,7 +21,7 @@ SIG = {
     # Cero: charge one turn (telegraphed), fire the next. Wild enemies fire a weaker one (ai_*) so it stays answerable.
     "cero": {"cost": 0.12, "cd": 2, "mult": 2.8, "pierce": 0.30, "ai_mult": 2.0, "ai_pierce": 0.15},
     "bring": {"cost": 0.10, "cd": 4, "mult": 1.25, "bleed": 0.4},
-    "guts": {"cost": 0.10, "cd": 5, "heal": 0.15, "turns": 2, "dmg": 1.15},
+    "guts": {"cost": 0.10, "cd": 5, "shield": 0.20},  # Orihime: Santen Kesshun, a three-layer shield
 }
 # a single hit of at least this share of the charger's max HP breaks a gathered Cero (interrupt it!). Wild enemies break
 # more easily than players, so a player's own Cero is a real gamble but not a coin-flip against every normal hit.
