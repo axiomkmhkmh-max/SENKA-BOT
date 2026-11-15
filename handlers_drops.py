@@ -252,6 +252,12 @@ async def send_drop(bot, chat_id: int, doc: dict):
     what = art_name(doc["ref"], "fa") if doc["kind"] == "art" else nm(doc["ref"], "fa").replace("<", "").replace(">", "")
     log_event("drop", doc.get("dropper", 0), f"دراپ «{what}» در گروه «{g.get('title', chat_id)}»" + (" 🔱 (آرتیفکت یکتا)" if doc["kind"] == "art" else ""),
               chat=chat_id, kind=doc["kind"], ref=doc["ref"])
+    from html import escape as _h
+    from service_notify import alert_group_members
+    title = _h(g.get("title") or "")
+    alert_group_members(bot, chat_id,
+                        f"🎁 دراپ جدید در «{title}»: {_h(what)}\nبه گروه برو و زودتر بگیر.",
+                        f"🎁 New drop in «{title}»: {_h(what)}\nGo to the group and grab it first.")
     return msg
 
 

@@ -244,6 +244,10 @@ async def on_group_text(message: Message, text: str):
     if allow(chat.id, "note", 60):
         ch = await get_char(user.id)
         await note_group(chat.id, chat.title or "", ch["level"] if ch else None, "fa" if (user.language_code or "").startswith("fa") else "en")
+        if ch:  # who plays in this group, for group alerts (boss / drop private messages)
+            await col("group_members").update_one({"chat_id": chat.id, "uid": user.id},
+                                                  {"$set": {"last_seen": int(time.time()), "lang": "fa" if (user.language_code or "").startswith("fa") else "en"}},
+                                                  upsert=True)
     m = GROUP_LANG.match(n)
     if m:
         member = await message.bot.get_chat_member(chat.id, user.id)

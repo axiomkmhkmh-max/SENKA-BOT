@@ -630,6 +630,14 @@ async def post_global_boss(bot, doc):
     st = await game_settings()
     ids = await _send_groups(bot, lambda L: boss_text(L, doc), (lambda m, _s=doc["_id"]: boss_kb(_s, m)), int(st["boss_broadcast_cap"]))
     await col("boss_sessions").update_one({"_id": doc["_id"]}, {"$set": {"msgs": {k: v[0] for k, v in ids.items()}, "refresh_at": int(time.time())}})
+    # private, sound-on alert to the players who play in each announced group
+    from html import escape as _h
+    from service_notify import alert_group_members
+    fa_name, en_name = _h(doc.get("name_fa") or ""), _h(doc.get("name_en") or "")
+    for cid in ids:
+        alert_group_members(bot, int(cid),
+                            f"👹 باس جهانی «{fa_name}» ظاهر شد! برو توی گروه و بزن.",
+                            f"👹 World boss «{en_name}» has appeared! Head to the group and strike.")
 
 
 async def _edit_all(bot, doc, text_fn, kb):

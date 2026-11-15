@@ -103,3 +103,41 @@ async def run(bot, stop: asyncio.Event):
         log_event("sys", 0, f"پیام آپدیت (نسخه {ver}) فرستاده شد: {sent} موفق، {failed} ناموفق")
     except Exception:
         log.exception("update notice failed")
+
+
+# ---- group alerts: a private message with sound to the players who were active in that group -----------
+GROUP_MEMBER_DAYS = 7    # a player counts as "in the group" if they wrote there in the last 7 days
+GROUP_ALERT_CAP = 300    # at most this many private alerts per event, so one drop cannot flood the bot
+
+
+async def dm_group_members(bot, chat_id: int, text_fa: str, text_en: str) -> int:
+    """Send `text` as a normal (sound-on) private message to each recent member of `chat_id`. -> sent count."""
+    since = int(time.time()) - GROUP_MEMBER_DAYS * 86400
+    rows = await col("group_members").find({"chat_id": chat_id, "last_seen": {"$gte": since}},
+                                          {"uid": 1, "lang": 1}).sort("last_seen", -1).limit(GROUP_ALERT_CAP).to_list(GROUP_ALERT_CAP)
+    sent = 0
+    for r in rows:
+        text = text_fa if r.get("lang") == "fa" else text_en
+        for _ in range(2):
+            try:
+                await bot.send_message(r["uid"], text, disable_notification=False)
+                sent += 1
+                break
+            except TelegramRetryAfter as e:
+                await asyncio.sleep(min(30, e.retry_after + 1))
+            except (TelegramForbiddenError, TelegramAPIError):
+                break
+        await asyncio.sleep(0.06)
+    return sent
+
+
+def alert_group_members(bot, chat_id: int, text_fa: str, text_en: str) -> None:
+    """Fire-and-forget wrapper so the game loop never waits on the alert fan-out."""
+    asyncio.create_task(_safe_dm(bot, chat_id, text_fa, text_en))
+
+
+async def _safe_dm(bot, chat_id, text_fa, text_en):
+    try:
+        await dm_group_members(bot, chat_id, text_fa, text_en)
+    except Exception:
+        log.exception("group alert failed for %s", chat_id)
