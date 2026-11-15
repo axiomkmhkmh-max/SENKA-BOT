@@ -512,12 +512,13 @@ def _do_action(state, action, rng, max_turns=30):
         n = best_kido(f, "had")
         f["re"] -= int(n * 2.5)
         o = state["b" if side == "a" else "a"]
-        raw = eff(f, "kido") * (n / 10) * 1.8 * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1)
+        # hadō power: kidō stat and level set the base, the spell number scales it (was ~1-8 damage at low stats)
+        raw = (eff(f, "kido") * 0.9 + f["level"] * 1.0) * (0.7 + 0.3 * n) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1)
         chanted = bool(_x(f)["chant"])
         if chanted:  # the incantation is spent: full-power spell
             raw *= CHANT_HADO
             _x(f)["chant"] = 0
-        dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.15))
+        dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.6))  # same armour weight as melee
         _apply(state, side, dmg, False, rng, ev, "hado", False)
         ev[-1]["chant"] = chanted
         ev[-1]["num"] = n
