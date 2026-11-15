@@ -676,6 +676,26 @@ async def c_znplock(e: Env):
     await e.say(e.t(f"🔒 {bid} {'فقط برای مالک' if on else 'برای همه باز شد'}", f"🔒 {bid} is {'owner-only' if on else 'open to all'}"))
 
 
+@acmd("znpremove", 100, "/znpremove <id|@user|reply> [blade_id]", "حذف تیغه از بازیکن", "Remove a blade from a player")
+async def c_znpremove(e: Env):
+    """Takes a player's blade away: the blade is cleared, Shikai/Bankai are switched off, and its bond is reset for
+    the weapon in hand. The player can pick another blade afterwards (if it is not owner-only)."""
+    tid = await target(e)
+    if tid is None:
+        return
+    ch = await get_char(tid)
+    z = dict(ch.get("zanpakuto") or {})
+    cur = z.get("blade_id")
+    want = e.args[0] if e.args else cur
+    if not cur or (want and want != cur):
+        return await e.say(e.t(f"این بازیکن تیغه‌ی {cur or 'ندارد'} را دارد، نه {want}.",
+                               f"This player has {cur or 'no blade'}, not {want}."))
+    await col("characters").update_one({"user_id": tid}, {"$unset": {"zanpakuto.blade_id": ""},
+                                                          "$set": {"zanpakuto.shikai": False, "zanpakuto.bankai": False}})
+    await alog(e.uid, "znpremove", tid, cur, None, "cmd")
+    await e.say(e.t(f"✅ تیغه‌ی {cur} از <code>{tid}</code> گرفته شد.", f"✅ Blade {cur} removed from <code>{tid}</code>."))
+
+
 # ---- admins (owner only) ---------------------------------------------------------------------------------------------------
 @acmd("addadmin", 100, "/addadmin <id|@user|reply> [admin|super|moderator|support]", "افزودن ادمین", "Add an admin")
 async def c_addadmin(e: Env):
