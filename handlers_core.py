@@ -156,9 +156,6 @@ async def on_command(message: Message, command: CommandObject):
     intent = COMMANDS.get((command.command or "").lower())
     if not intent:
         return
-    if message.chat.type != "private" and intent not in GROUP_OK:
-        ctx = await make_ctx(message.from_user, message.chat, message.bot, message)
-        return await message.reply(ctx.t("cmd_private"))
     await handle_text(message, word_for(intent))
 
 
@@ -183,6 +180,11 @@ async def _ensure_admin_menu(bot, uid: int):
         log.exception("admin menu refresh failed")
 
 
+async def _is_player_phrase(text: str) -> bool:
+    """True when a multi-word text is a player command (so admin shortcuts must not take it)."""
+    return len(text.split()) >= 2 and await resolve(text) is not None
+
+
 async def handle_text(message: Message, text: str):
     user = message.from_user
     if user is None or user.is_bot:
@@ -205,8 +207,8 @@ async def handle_text(message: Message, text: str):
         if r and r.get("step") == "name":
             return await send_out(message, ctx, await reg.handle_name_text(ctx, text))
         return await send_out(message, ctx, await reg.reg_panel(ctx, r))
-    # admin text commands
-    if await handlers_admin.admin_level(user.id) >= 20 and not await col("inputs").find_one({"user_id": user.id, "kind": {"$regex": "^ad_"}, "at": {"$gte": time.time() - 300}}):
+    # admin text commands (a multi-word player phrase wins over an admin shortcut with the same first word)
+    if await handlers_admin.admin_level(user.id) >= 20 and not await _is_player_phrase(text) and not await col("inputs").find_one({"user_id": user.id, "kind": {"$regex": "^ad_"}, "at": {"$gte": time.time() - 300}}):
         out = await handlers_admin.handle_admin_text(ctx, text)
         if out is not None:
             return await send_out(message, ctx, out)
@@ -260,6 +262,11 @@ async def on_group_text(message: Message, text: str):
         text = n = "دوئل"
     if not allow(user.id, "grp", 1.5):
         return
+    if not await _is_player_phrase(text):
+        ctx = await make_ctx(user, chat, message.bot, message)
+        out = await handlers_admin.handle_admin_text(ctx, text)
+        if out is not None and out.text:
+            return await message.reply(out.text, reply_markup=markup(ctx, out.rows))
     if n in ("spawn boss", "ظهور باس"):
         if await handlers_admin.admin_level(user.id) >= 60:
             doc = await spawn_boss()
@@ -270,8 +277,8 @@ async def on_group_text(message: Message, text: str):
     if not hit:
         return
     name, code, arg = hit
-    if name not in GROUP_OK:
-        return
+    if code.startswith("ad") and len(code) == 3 and await handlers_admin.admin_level(user.id) < 20:
+        return  # admin-only panels stay invisible to everyone else, in groups too
     log_text(user.id, name, chat.type)
     await touch_user(user)
     ctx = await make_ctx(user, chat, message.bot, message)
@@ -290,6 +297,8 @@ async def on_group_text(message: Message, text: str):
         return
     if code == "hlp":
         return await message.reply(ctx.t("group_help"))
+    if not await get_char(user.id) and code not in ("home", "commands", "chronicle", "event", "boss", "battle", "duel"):
+        return await message.reply(ctx.t("cmd_private"))  # registration is private-chat only
     out = await REGISTRY[code](ctx, arg)
     out.new = True
     await message.answer(out.text, reply_markup=markup(ctx, out.rows))

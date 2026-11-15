@@ -10,26 +10,42 @@ def _r(fa, en, st, home, mods, evo, locked=False):
 
 
 RACES = {
-    "shinigami": _r("شینیگامی", "Shinigami", (10, 8, 7, 8, 8), "soul_society", {"dmg": 1.05},
+    "shinigami": _r("شینیگامی", "Shinigami", (10, 9, 6, 8, 7), "soul_society", {"kido": 1.05},
                     [("دانشجو", "Academy Student"), ("عضو رسمی", "Officer Seat"), ("افسر", "Lieutenant Rank"),
                      ("ستوان", "Vice Captain"), ("کاپیتان", "Captain")]),
-    "quincy": _r("کوئینسی", "Quincy", (6, 10, 5, 7, 6), "wandenreich", {"pierce": 0.15},
+    "quincy": _r("کوئینسی", "Quincy", (6, 3, 7, 9, 15), "wandenreich", {"pierce": 0.10},
                  [("شاگرد", "Apprentice"), ("کوئینسی", "Quincy"), ("استرنریتر", "Sternritter"),
                   ("استرنریتر نخبه", "Elite Sternritter")]),
-    "hollow": _r("هالو", "Hollow", (8, 4, 9, 7, 8), "hueco_mundo", {"hp": 1.10},
+    "hollow": _r("هالو", "Hollow", (7, 2, 12, 8, 11), "hueco_mundo", {"hp": 1.08},
                  [("هالو", "Hollow"), ("گیلیان", "Gillian"), ("آجوکاس", "Adjuchas"),
                   ("واستو لورد", "Vasto Lorde"), ("آرانکار", "Arrancar Ascendant")]),
-    "arrancar": _r("آرانکار", "Arrancar", (9, 4, 10, 9, 9), "las_noches", {"def": 1.08},
+    "arrancar": _r("آرانکار", "Arrancar", (10, 2, 8, 10, 10), "las_noches", {"def": 1.06},
                    [("پایه", "Base Arrancar"), ("فراسیون", "Fracción"), ("کاندیدای اسپادا", "Espada Candidate"),
                     ("اسپادا", "Espada")]),
-    "fullbringer": _r("فول‌برینگر", "Fullbringer", (7, 7, 7, 8, 7), "karakura", {"crit": 0.05},
+    "fullbringer": _r("فول‌برینگر", "Fullbringer", (8, 2, 8, 9, 13), "karakura", {"crit": 0.04},
                       [("بیدار", "Awakened"), ("ماهر", "Skilled"), ("استاد", "Master")]),
-    "human": _r("انسان / روح", "Human / Soul", (7, 7, 7, 7, 7), "karakura", {"xp": 1.10},
+    "human": _r("انسان / روح", "Human / Soul", (8, 3, 9, 10, 10), "karakura", {"xp": 1.10, "crit": 0.03},
                 [("روح سرگردان", "Wandering Soul"), ("روح بیدار", "Awakened Soul"), ("روح قدرتمند", "Potent Soul")]),
-    "visored": _r("ویزورد", "Visored", (9, 9, 8, 9, 10), "karakura", {"dmg": 1.03, "def": 1.03, "crit": 0.02},
+    "visored": _r("ویزورد", "Visored", (8, 7, 8, 8, 9), "karakura", {"dmg": 1.03, "def": 1.03},
                   [("هولوفیکیشن", "Hollowfication"), ("ماسک کنترل‌شده", "Controlled Mask"), ("پیشرفته", "Advanced")],
                   locked=True),
 }
+
+
+# Base stats before the balance pass. Characters store absolute stats, so a one-time migration moves each
+# character onto the new base while keeping every point they put in (see rebased_stats).
+OLD_RACE_BASE = {
+    "shinigami": (10, 8, 7, 8, 8), "quincy": (6, 10, 5, 7, 6), "hollow": (8, 4, 9, 7, 8),
+    "arrancar": (9, 4, 10, 9, 9), "fullbringer": (7, 7, 7, 8, 7), "human": (7, 7, 7, 7, 7),
+    "visored": (9, 9, 8, 9, 10),
+}
+
+
+def rebased_stats(race: str, stats: dict) -> dict:
+    """New absolute stats for a character of `race`: new base + the points allocated over the old base."""
+    old = dict(zip(STATS, OLD_RACE_BASE[race]))
+    new = RACES[race]["stats"]
+    return {k: int(new[k]) + max(0, int(stats.get(k, 0)) - old[k]) for k in STATS}
 
 
 def race_title(race: str, level: int, lang: str) -> str:

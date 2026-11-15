@@ -93,6 +93,11 @@ async def main():
     validate_settings()
     await connect_db()
     await seed()
+    from service_respec import rebase_race_stats_once
+    try:
+        log.info("race rebase: %s character(s) moved", await rebase_race_stats_once())
+    except Exception:
+        log.exception("race rebase failed; it will retry on next start")
     runner = await health_server()
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True))
     from handlers_core import router

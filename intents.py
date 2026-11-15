@@ -96,6 +96,11 @@ RAW.update({
     "wanted_list": ("wnt", "", ["لیست تحت تعقیب", "تحت تعقیب", "wanted list"]),
     "espada_board": ("esp", "", ["جدول اسپادا", "اسپادا ۰ تا ۹", "espada board"]),
 })
+# Respec / race change and the trade hub: /respec and /trade used to crash because these keys were missing.
+RAW.update({
+    "resp": ("resp", "", ["ریست استت", "تغییر نژاد", "respec", "change race", "reset stats"]),
+    "trdhub": ("trdhub", "", ["ترید", "هاب ترید", "trade hub", "trading hub"]),
+})
 GROUP_OK = {"duel", "duel_friendly", "boss", "battle", "kido", "help", "home", "chronicle", "commands", "event",
             "bankai_word", "shikai_word", "mask_word", "bleach_status", "steal_hogyoku", "wanted_list", "espada_board"}
 _map: dict = {}

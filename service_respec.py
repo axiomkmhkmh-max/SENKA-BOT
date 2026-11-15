@@ -24,6 +24,26 @@ RACE_CHANGE_COOLDOWN = 30 * 24 * 3600
 KIDO_RACES = ("shinigami", "visored")
 
 
+# ---- one-time rebase after the race balance pass ----------------------------------------------------------
+REBASE_ID = "race_base_v2"
+
+
+async def rebase_race_stats_once() -> int:
+    """Move existing characters onto the rebalanced race bases. Runs once (marker in `migrations`).
+    Characters created after the marker are already on the new base, so they are never touched again."""
+    from data_races import OLD_RACE_BASE, rebased_stats
+    if await col("migrations").find_one({"_id": REBASE_ID}):
+        return 0
+    moved, failed = 0, 0
+    async for ch in col("characters").find({"race": {"$in": list(OLD_RACE_BASE)}}, {"user_id": 1, "race": 1, "stats": 1}):
+        new = rebased_stats(ch["race"], ch.get("stats") or {})
+        r = await col("characters").update_one({"_id": ch["_id"], "stats": ch.get("stats") or {}}, {"$set": {"stats": new}})
+        moved += int(bool(r.modified_count))
+        failed += int(not r.modified_count)
+    await col("migrations").update_one({"_id": REBASE_ID}, {"$set": {"moved": moved, "failed": failed, "at": int(time.time())}}, upsert=True)
+    return moved
+
+
 def _allocated(ch):
     base = RACES[ch["race"]]["stats"]
     return {k: max(0, int((ch.get("stats") or {}).get(k, 0)) - int(base.get(k, 0))) for k in STATS}
