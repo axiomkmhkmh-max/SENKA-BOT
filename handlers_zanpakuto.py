@@ -100,6 +100,14 @@ async def zanpakuto_panel(ctx, arg):
               mastery=fnum(z["mastery"], ctx.lang), cap=fnum(int(gs["znp_mastery_cap"]), ctx.lang), f1=f1, s1=s1, f2=f2, s2=s2,
               left=left, daily=int(gs["znp_train_daily"]), gain=int(gs["znp_train_gain"]), cost=int(gs["znp_train_energy"]))
     body += "\n" + _pressure(z["mastery"], ctx.lang)
+    # Your zanpakutō is bound to the blade it was first born with. Say so when the blade in hand is different,
+    # so the panel never looks like it is showing the sword you are holding.
+    wid = ch.get("weapon_id") or ""
+    if wid and z.get("blade_id") and wid != z["blade_id"]:
+        held = iname(wid, ctx.lang) or "-"
+        body += ("\n🗡 تیغه‌ی فعلی: " + held + "\n<i>زانپاکتوی تو به تیغه‌ی اولت پیوند خورده؛ پیوند و شیکا/بانکا همان‌جا می‌مانند.</i>"
+                 if ctx.lang == "fa" else
+                 "\n🗡 Blade in hand: " + held + "\n<i>Your zanpakutō is bound to your first blade; bond and release stay with it.</i>")
     rows = [[(_t(ctx.lang, "b_train"), "ztrn", "")]]
     if not z.get("shikai") and lv >= n1[0] and bond >= n1[1]:
         rows.append([(_t(ctx.lang, "b_rel1", f=f1), "zrel", "1")])
