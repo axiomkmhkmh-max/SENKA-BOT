@@ -99,6 +99,9 @@ GAME_DEFAULTS = {
     "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 12, "chain_bonus_every": 5,
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,
     "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,
+    # ---- 100 wheels (Soul Core) ----------------------------------------------------------------
+    "wheel2_enabled": True, "wheel_free_daily": 1, "pity_leg": 30, "pity_myth": 90,
+    "core_quest_chance": 0.03, "core_dungeon_chance": 0.03, "core_day_cap": 1,
     # ---- group drops, Soul Artifacts, Artifact Exchange, log channel -------------------------------
     "drop_enabled": True, "drop_min_msgs": 30, "drop_min_users": 3, "drop_chance": 0.6, "drop_cooldown_minutes": 60,
     "drop_ttl_seconds": 180, "drop_daily_per_user": 6, "drop_min_level": 3, "drop_artifact_chance": 0.12, "drop_art_pity_hours": 6,

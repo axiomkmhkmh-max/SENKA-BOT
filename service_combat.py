@@ -340,6 +340,8 @@ async def pve_settle(doc: dict):
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)
+            from service_cores import on_dungeon_clear  # rare Soul Core, abyss/legendary clears only
+            await on_dungeon_clear(uid, d.get("diff", "normal"), d.get("id", ""))
             from data_races import unlocks_visored
             dch = await get_char(uid)
             if dch and unlocks_visored(dch.get("race"), d.get("id")):

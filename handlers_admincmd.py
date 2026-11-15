@@ -226,6 +226,8 @@ async def c_uinfo(e: Env):
         rn = RACES.get(ch["race"], {}).get("name_fa" if e.lang == "fa" else "name_en", ch["race"])
         lines.append(f"<b>{esc(ch['name'])}</b> | {rn} | {e.t('سطح', 'Lv')} {ch['level']} | ⭐ {ch['rating']}")
         lines.append(f"🪙 {fnum(ch['coins'], e.lang)} | 🎟 {fnum(ch.get('tokens', 0), e.lang)} | ⚡ {ch.get('energy', 0)}")
+        from service_cores import get_cores
+        lines.append(f"🔮 {fnum(await get_cores(tid), e.lang)} {e.t('هسته‌ی روح', 'Soul Cores')}")
         if ch.get("weapon_id"):
             lines.append(f"⚔️ {esc(iname(ch['weapon_id'], e.lang))}")
         if ch.get("artifact") in ART_BY_ID:
@@ -325,6 +327,35 @@ async def c_give_token(e: Env):
 @acmd("take_token", 60, "/take_token <id|@user|reply> <amount>", "گرفتن توکن", "Take tokens")
 async def c_take_token(e: Env):
     await _amount_cmd(e, "tokens", -1)
+
+
+async def _cores_cmd(e: Env, sign: int):
+    from service_cores import get_cores, grant_cores, spend_cores
+    tid = await target(e)
+    if tid is None:
+        return
+    n = parse_amount(e.args[0]) if e.args else None
+    if not n or n > 10_000:
+        return await e.usage()
+    before = await get_cores(tid)
+    if sign > 0:
+        await grant_cores(tid, n, f"admin:{e.uid}")
+    elif not await spend_cores(tid, n, f"admin_take:{e.uid}"):
+        return await e.say(e.t("❌ هسته‌ی روح کافی نیست.", "❌ Not enough Soul Cores."))
+    await alog(e.uid, f"{'give' if sign > 0 else 'take'}_cores", tid, before, before + sign * n, "cmd")
+    if sign > 0:
+        await _dm(e.bot, tid, f"🎁 ادمین 🔮 {n:,} هسته‌ی روح به تو داد!", f"🎁 An admin gave you 🔮 {n:,} Soul Cores!")
+    await e.say(f"{'✅' if sign > 0 else '➖'} 🔮 {n:,} → " + await _name(tid))
+
+
+@acmd("give_cores", 60, "/give_cores <id|@user|reply> <amount>", "دادن هسته‌ی روح", "Give Soul Cores")
+async def c_give_cores(e: Env):
+    await _cores_cmd(e, 1)
+
+
+@acmd("take_cores", 60, "/take_cores <id|@user|reply> <amount>", "گرفتن هسته‌ی روح", "Take Soul Cores")
+async def c_take_cores(e: Env):
+    await _cores_cmd(e, -1)
 
 
 @acmd("set_token", 80, "/set_token <id|@user|reply> <amount>", "تنظیم دقیق توکن", "Set token balance")

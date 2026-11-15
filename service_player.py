@@ -294,4 +294,6 @@ async def claim_quest(uid: int, qid: str):
         return None
     await add_coins(uid, d["coins"], "quest")
     await add_xp(uid, d["xp"], "quest", apply_rate=False)
+    from service_cores import on_quest_claim  # rare Soul Core, hardest quests only
+    await on_quest_claim(uid, qid)
     return d
