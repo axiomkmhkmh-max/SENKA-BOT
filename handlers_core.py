@@ -28,6 +28,7 @@ import handlers_extras  # noqa: F401  (player extras: stats, quiz, coinflip, tra
 import handlers_wheel  # noqa: F401  (Urahara's wheel: panel + animated spin)
 import handlers_inner  # noqa: F401  (Inner World: weekly scene panel + choices)
 import handlers_trade  # noqa: F401  (player trading: hub, shared view, group offers)
+import handlers_respec  # noqa: F401  (stat reset and race change)
 import handlers_items
 import handlers_panels
 import handlers_world
@@ -126,7 +127,7 @@ async def on_start(message: Message, command: CommandObject):
 COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle": "battle", "bag": "bag", "market": "market",
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
-            "party": "party", "trade": "trdhub", "ترید": "trdhub", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
+            "party": "party", "trade": "trdhub", "ترید": "trdhub", "respec": "resp", "ریست استت": "resp", "تغییر نژاد": "resp", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
             "zanpakuto": "zanpakuto", "znp": "zanpakuto", "kido": "kido", "racepath": "racepath", "faction": "faction", "bleach": "bleach_hub", "senkaimon": "senkaimon", "portal": "senkaimon", "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
             "upgrade": "upgrade", "weapon": "sword", "division": "division", "hollow": "hollow", "event": "event",
             "chronicle": "chronicle", "territory": "territory", "bounty": "bounty", "relics": "gear", "evolve": "evolution",

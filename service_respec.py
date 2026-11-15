@@ -1,0 +1,119 @@
+"""Respec and race change.
+
+Stat reset: every point you put into a stat comes back to your spendable points (race base stays). Costs coins
+that grow with level, and can be done once per RESPEC_COOLDOWN.
+
+Race change: move to another unlocked race. Your allocated stat points are kept and laid on top of the new race's
+base, so a build survives the change. The new race brings its own base, home location and evolution gate, and
+race progression starts over. Kidō and Zanpakutō follow the race rules: a race that cannot use them loses its
+Kidō spells (and gets no refund for them). Costs a lot of coins and has a long cooldown.
+
+Both are refused while you are in a fight (PvE, duel, trade) so nothing changes mid-battle.
+"""
+import time
+
+from data_crafting import evo_gate_stage
+from data_races import RACES, STATS
+from database import col, game_settings
+from service_player import add_coins, get_char
+
+RESPEC_COST_PER_LEVEL = 150
+RESPEC_COOLDOWN = 24 * 3600
+RACE_CHANGE_COST_PER_LEVEL = 2000
+RACE_CHANGE_COOLDOWN = 30 * 24 * 3600
+KIDO_RACES = ("shinigami", "visored")
+
+
+def _allocated(ch):
+    base = RACES[ch["race"]]["stats"]
+    return {k: max(0, int((ch.get("stats") or {}).get(k, 0)) - int(base.get(k, 0))) for k in STATS}
+
+
+def respec_quote(ch):
+    alloc = _allocated(ch)
+    return {"points": sum(alloc.values()), "coins": RESPEC_COST_PER_LEVEL * max(1, int(ch["level"]))}
+
+
+def race_change_quote(ch):
+    return {"coins": RACE_CHANGE_COST_PER_LEVEL * max(1, int(ch["level"]))}
+
+
+async def _busy(uid):
+    from service_combat import active_pve, duel_busy
+    from service_trade import busy_session
+    if await active_pve(uid):
+        return "fighting"
+    if await duel_busy(uid):
+        return "fighting"
+    if await busy_session(uid):
+        return "trading"
+    return None
+
+
+def _cooldown_left(ch, key, span):
+    last = int((ch.get(key) or 0))
+    return max(0, last + span - int(time.time()))
+
+
+async def respec_stats(uid: int):
+    ch = await get_char(uid)
+    if not ch:
+        return "noreg", None
+    busy = await _busy(uid)
+    if busy:
+        return busy, None
+    left = _cooldown_left(ch, "respec_at", RESPEC_COOLDOWN)
+    if left:
+        return "cooldown", left
+    q = respec_quote(ch)
+    if q["points"] <= 0:
+        return "nothing", None
+    if int(ch.get("coins", 0)) < q["coins"]:
+        return "funds", q["coins"]
+    if not await add_coins(uid, -q["coins"], "respec"):
+        return "funds", q["coins"]
+    base = RACES[ch["race"]]["stats"]
+    r = await col("characters").update_one(
+        {"user_id": uid, "stats": ch["stats"]},
+        {"$set": {"stats": {k: int(base.get(k, 0)) for k in STATS}, "respec_at": int(time.time())},
+         "$inc": {"points": q["points"]}})
+    if not r.modified_count:
+        await add_coins(uid, q["coins"], "respec_refund")  # someone else changed stats meanwhile
+        return "retry", None
+    return "ok", q
+
+
+async def change_race(uid: int, new_race: str):
+    ch = await get_char(uid)
+    if not ch:
+        return "noreg", None
+    if new_race == ch["race"] or new_race not in RACES:
+        return "invalid", None
+    if RACES[new_race].get("locked"):
+        return "locked", None
+    busy = await _busy(uid)
+    if busy:
+        return busy, None
+    left = _cooldown_left(ch, "race_changed_at", RACE_CHANGE_COOLDOWN)
+    if left:
+        return "cooldown", left
+    q = race_change_quote(ch)
+    if int(ch.get("coins", 0)) < q["coins"]:
+        return "funds", q["coins"]
+    old = ch["race"]
+    alloc = _allocated(ch)
+    new_base = RACES[new_race]["stats"]
+    stats = {k: int(new_base.get(k, 0)) + alloc.get(k, 0) for k in STATS}
+    level = int(ch["level"])
+    upd = {"race": new_race, "stats": stats, "location": RACES[new_race]["home"],
+           "evo": evo_gate_stage(new_race, level), "race_progress": {"wins": 0, "hunts": 0, "stage": 0},
+           "race_changed_at": int(time.time()), "race_from": old}
+    if new_race not in KIDO_RACES:  # no Kidō without the Shinigami/Visored path: clear the spells
+        upd.update({"kido_learned": [], "kido": {"had": [], "bak": []}})
+    if not await add_coins(uid, -q["coins"], "race_change"):
+        return "funds", q["coins"]
+    r = await col("characters").update_one({"user_id": uid, "race": old}, {"$set": upd})
+    if not r.modified_count:
+        await add_coins(uid, q["coins"], "race_change_refund")
+        return "retry", None
+    return "ok", q
