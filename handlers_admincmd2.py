@@ -14,7 +14,7 @@ from aiogram.types import BufferedInputFile
 from database import col, game_settings, ping, set_game_setting
 from handlers_admin import alog
 from handlers_admincmd import Env, _name, acmd, target
-from handlers_adminpro import BOOT
+from handlers_adminpanel import BOOT
 from i18n import bar, esc, fnum
 
 DAY = 86400

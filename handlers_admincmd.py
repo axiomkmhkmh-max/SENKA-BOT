@@ -871,13 +871,13 @@ async def gifts_panel(ctx, arg):
         return out
     if op == "pa" and lvl >= 80:
         items = [(f"{a['icon']} {a['name_fa' if ctx.lang == 'fa' else 'name_en']}"[:30], "adg", f"ga.{tid}.{i}") for i, a in enumerate(ARTIFACTS)]
-        rows = chunk(items, 2) + [nav(ctx, ("adb", f"v.{tid}"))]
+        rows = chunk(items, 2) + [nav(ctx, ("adp", str(tid)))]
         return Out(head(ctx, "ttl_adm") + _T(ctx, "کدام آرتیفکت داده شود؟", "Which artifact?"), rows)
     if op == "ga" and lvl >= 80 and len(parts) == 2 and parts[1].isdigit() and int(parts[1]) < len(ARTIFACTS):
         a = ARTIFACTS[int(parts[1])]
         return Out(head(ctx, "ttl_adm") + _T(ctx, f"{a['icon']} «{esc(a['name_fa'])}» به <code>{tid}</code> داده شود؟\n(اگر کسی دارد، از او گرفته می‌شود؛ آرتیفکت فعلی گیرنده آزاد می‌شود.)",
                                               f"Give {a['icon']} {esc(a['name_en'])} to <code>{tid}</code>?\n(If someone holds it, it is taken from them; the receiver's current artifact is freed.)"),
-                   [[(_T(ctx, "✅ بله", "✅ Yes"), "adg", f"gy.{tid}.{parts[1]}"), (_T(ctx, "❌ نه", "❌ No"), "adb", f"v.{tid}")]])
+                   [[(_T(ctx, "✅ بله", "✅ Yes"), "adg", f"gy.{tid}.{parts[1]}"), (_T(ctx, "❌ نه", "❌ No"), "adp", str(tid))]])
     if op == "gy" and lvl >= 80 and len(parts) == 2 and parts[1].isdigit() and int(parts[1]) < len(ARTIFACTS):
         aid = ARTIFACTS[int(parts[1])]["_id"]
         st, prev = await artifact_give(aid, tid, replace=True)
@@ -891,7 +891,7 @@ async def gifts_panel(ctx, arg):
         return out
     if op == "hq" and lvl >= 80:
         return Out(head(ctx, "ttl_adm") + _T(ctx, f"🔮 هوگیوکو به <code>{tid}</code> داده شود؟", f"🔮 Give the Hōgyoku to <code>{tid}</code>?"),
-                   [[(_T(ctx, "✅ بله", "✅ Yes"), "adg", f"hy.{tid}"), (_T(ctx, "❌ نه", "❌ No"), "adb", f"v.{tid}")]])
+                   [[(_T(ctx, "✅ بله", "✅ Yes"), "adg", f"hy.{tid}"), (_T(ctx, "❌ نه", "❌ No"), "adp", str(tid))]])
     if op == "hy" and lvl >= 80:
         st, old = await hogyoku_give(tid)
         if st == "ok":
