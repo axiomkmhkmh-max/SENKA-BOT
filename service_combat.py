@@ -128,13 +128,13 @@ async def build_player(ch: dict, name: str = None):
         plus = (ch.get("weapon_plus") or {}).get(wid, 0)
         w = dict(w, attack=w["attack"] * (1 + 0.06 * plus))
     zstate = ch.get("zanpakuto") or {}
-    bond = max(int((ch.get("bond") or {}).get(wid, 0)), int(zstate.get("bond", 0)))
+    bond = int((ch.get("bond") or {}).get(wid, 0))  # per blade: the bond of the weapon in hand
     # Release stages feed the existing weapon-skill multiplier; no parallel combat engine.
     stage = BLADE_STAGES.get(zstate.get("blade_id"), {})
     release_bonus = (0.10 + stage.get("shikai_bonus", 0.0)) if zstate.get("shikai") else 0.0
     if zstate.get("bankai"):
         release_bonus += 0.12 + min(0.08, int(zstate.get("mastery", 0)) / 500) + stage.get("bankai_bonus", 0.0)
-    zmult = 1 + min(1.0, bond / 500) + release_bonus  # bond bonus caps at +100% (was +30%)
+    zmult = 1 + min(1.0, bond / 500) + release_bonus  # bond adds up to +100% (500 bond); no 30 ceiling
     # Distinct release identities alter battle style rather than granting identical flat power.
     blade_style = {
         "zangetsu": {"dmg": 1.08}, "senbonzakura": {"crit": 0.05},

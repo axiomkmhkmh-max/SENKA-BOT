@@ -7,6 +7,7 @@ import random
 
 from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
 from data_races import soft_stat
+from data_race_rules import race_allows
 from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
@@ -338,6 +339,8 @@ def _range_move(state, side, action):
 def can(f, action):
     if action in ("atk", "df"):
         return True
+    if not race_allows(f.get("race"), action):  # e.g. Arrancar cannot cast Kidō or release Bankai
+        return False
     if action == "hvy":
         return f["re"] >= f["max_re"] * 0.10 and not _x(f).get("hv_last")
     if action == "kd":

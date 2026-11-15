@@ -107,7 +107,7 @@ async def profile(ctx, arg):
     vitals = f"<code>{bar(ch['xp'], need)}</code> ⭐ {fnum(ch['xp'], L)}/{fnum(need, L)}   ❤️ {fnum(hp, L)}   🔵 {fnum(re_max, L)}"
     lines = [head(ctx, "ttl_prof"), vitals,
              ctx.t("prof_body", name=esc(ch["name"]), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
-                   rank=rank_label(ch["rating"], L), rating=fnum(ch["rating"], L), bond=fnum(min(30, (ch.get("bond") or {}).get(ch.get("weapon_id"), 0) // 5), L), plus=fnum((ch.get("weapon_plus") or {}).get(ch.get("weapon_id"), 0), L), w=fnum(ch["wins"], L), l=fnum(ch["losses"], L),
+                   rank=rank_label(ch["rating"], L), rating=fnum(ch["rating"], L), bond=fnum(int((ch.get("bond") or {}).get(ch.get("weapon_id"), 0)), L), plus=fnum((ch.get("weapon_plus") or {}).get(ch.get("weapon_id"), 0), L), w=fnum(ch["wins"], L), l=fnum(ch["losses"], L),
                    pw=fnum(ch["pvp_w"], L), pl=fnum(ch["pvp_l"], L), power=fnum(power(ch), L)),
              stats_block(ctx, ch["stats"]),
              "🧿 " + bonus_line(ctx, player_bonus(ch, ALL, await game_settings())),

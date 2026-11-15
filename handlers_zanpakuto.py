@@ -77,7 +77,8 @@ async def _state(uid):
     if wid and not z.get("blade_id"):
         await col("characters").update_one({"user_id": uid, "zanpakuto.blade_id": {"$exists": False}}, {"$set": {"zanpakuto.blade_id": wid}})
         z["blade_id"] = wid
-    z["bond"] = max(int((ch.get("bond") or {}).get(wid, 0)), int(z.get("bond", 0)))
+    # Bond is per blade: it belongs to the weapon in hand, so switching blades starts that blade's bond from its own count.
+    z["bond"] = int((ch.get("bond") or {}).get(wid, 0))
     z["mastery"] = int(z.get("mastery", 0))
     return ch, z
 
@@ -85,6 +86,8 @@ async def _state(uid):
 @action("znp")
 async def zanpakuto_panel(ctx, arg):
     ch, z = await _state(ctx.uid)
+    if ch and ch.get("race") not in ("shinigami", "visored"):  # zanpakutō is a Shinigami / Visored path
+        return Out("این بخش فقط برای شینیگامی و ویزورد است." if ctx.lang == "fa" else "This path is for Shinigami and Visored only.")
     if not ch:
         return Out(ctx.t("not_registered"))
     gs = await game_settings()
@@ -120,6 +123,8 @@ async def zanpakuto_panel(ctx, arg):
 @action("ztrn")
 async def zanpakuto_train(ctx, arg):
     ch, z = await _state(ctx.uid)
+    if ch and ch.get("race") not in ("shinigami", "visored"):  # zanpakutō is a Shinigami / Visored path
+        return Out("این بخش فقط برای شینیگامی و ویزورد است." if ctx.lang == "fa" else "This path is for Shinigami and Visored only.")
     if not ch:
         return Out(alert=_t(ctx.lang, "noreg"))
     gs = await game_settings()
@@ -149,6 +154,8 @@ async def zanpakuto_train(ctx, arg):
 @action("zrel")
 async def zanpakuto_release(ctx, arg):
     ch, z = await _state(ctx.uid)
+    if ch and ch.get("race") not in ("shinigami", "visored"):  # zanpakutō is a Shinigami / Visored path
+        return Out("این بخش فقط برای شینیگامی و ویزورد است." if ctx.lang == "fa" else "This path is for Shinigami and Visored only.")
     if not ch:
         return Out(alert=_t(ctx.lang, "noreg"))
     gs = await game_settings()
