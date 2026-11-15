@@ -99,8 +99,10 @@ async def boss_hit(uid: int, sid: str):
     if ch["level"] < int(st["boss_min_level"]):
         return "level", int(st["boss_min_level"])
     sess = await col("boss_sessions").find_one({"_id": sid, "active": True})
-    if not sess or sess["expires_at"] <= time.time() or sess["hp"] <= 0:
-        return "gone", None
+    if not sess or sess["expires_at"] <= time.time():
+        return "gone", None  # escaped: the timer ran out
+    if sess["hp"] <= 0:
+        return "dead", None  # already killed: its payout belongs to the killing blow (or the expiry), not to this hit
     trait = sess.get("trait")
     wait = await try_cooldown(f"bosshit:{uid}", int(int(st["boss_hit_cooldown"]) * (1.5 if trait == "burn" else 1)))
     if wait:
@@ -149,8 +151,9 @@ async def boss_hit(uid: int, sid: str):
          "$set": {"last_hitter": uid, f"nm.{uid}": pname, "combo": combo, "last_at": now},
          "$push": {"feed": {"$each": [entry], "$slice": -4}}},
         return_document=ReturnDocument.AFTER)
-    if not doc:
-        return "gone", None
+    if not doc:  # someone else's blow took it to 0 while this one was in flight
+        dead = await col("boss_sessions").find_one({"_id": sid, "active": True, "hp": {"$lte": 0}})
+        return ("dead" if dead else "gone"), None
     phase_up = phase(doc) if phase(doc) > phase(sess) else 0
     await bump_quest(uid, "boss_hit", 1)
     from service_worldstate import on_action

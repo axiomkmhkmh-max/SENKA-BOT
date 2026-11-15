@@ -4,9 +4,10 @@ Actions: xgn (panel), xgj (join), xgl (leave).
 """
 import time
 
-from data_gangs import XCUTION_LOC, XCUTION_RANK_POINTS, XCUTION_REJOIN_SECONDS, can_join_xcution, xcution_rank, xcution_rank_name
+from data_gangs import (BOSS_NAME, XCUTION_BOSS_PHASES, XCUTION_LOC, XCUTION_RANK_POINTS,
+                        XCUTION_REJOIN_SECONDS, can_join_xcution, xcution_rank, xcution_rank_name)
 from database import col
-from service_gangs_hook import boss_state
+from service_gangs_hook import boss_state, current_boss_buff
 from service_player import get_char
 from ui import Out, action, nav
 
@@ -37,10 +38,21 @@ async def gang_panel(ctx, arg):
                     "Earn siphon points by winning at the Xcution hideout.")]
         b = await boss_state()
         if b["defeated"]:
-            lines.append(_t(ctx.lang, "👹 باس این هفته شکست خورده. پاداش گرفتی.", "👹 This week's boss is defeated. Rewards paid."))
+            lines.append(_t(ctx.lang, f"👹 <b>{BOSS_NAME[0]}</b> این هفته شکست خورده. پاداش گرفتی.",
+                            f"👹 <b>{BOSS_NAME[1]}</b> is defeated this week. Rewards paid."))
         else:
-            lines.append(_t(ctx.lang, f"👹 باس هفتگی: {b['wins']}/{b['target']} برد در هالوگاه",
-                            f"👹 Weekly boss: {b['wins']}/{b['target']} wins at the hideout"))
+            nxt_need = next((n for n in XCUTION_BOSS_PHASES if n > b["wins"]), None)
+            lines.append(_t(ctx.lang, f"👹 <b>{BOSS_NAME[0]}</b>: {b['wins']}/{b['target']} برد در هالوگاه",
+                            f"👹 <b>{BOSS_NAME[1]}</b>: {b['wins']}/{b['target']} wins at the hideout"))
+            bonus = round(b["dmg"] * 100)
+            if bonus:
+                lines.append(_t(ctx.lang, f"🔥 فاز {b['phase']}: آسیب همه‌ی اعضا +{bonus}%",
+                                f"🔥 Phase {b['phase']}: all members deal +{bonus}% damage"))
+            if nxt_need:
+                lines.append(_t(ctx.lang, f"⏭️ فاز بعدی در {nxt_need} برد", f"⏭️ Next phase at {nxt_need} wins"))
+        if int(x.get("surge_until", 0) or 0) > now:
+            mins = max(1, (int(x["surge_until"]) - now) // 60)
+            lines.append(_t(ctx.lang, f"⚡ موج Xcution فعال است: {mins} دقیقه مانده", f"⚡ Xcution surge active: {mins} min left"))
         rows = [[(_t(ctx.lang, "🚪 ترک گروه", "🚪 Leave"), "xgl", "")], nav(ctx)]
         return Out("\n".join(lines), rows)
     rows = [nav(ctx)]
@@ -65,8 +77,11 @@ async def gang_join(ctx, arg):
         return Out(ctx.t("not_registered"), [nav(ctx)])
     if not can_join_xcution(ch, ch.get("location"), int(time.time())):
         return Out(alert=_t(ctx.lang, "الان نمی‌تونی بپیوندی.", "You cannot join right now."))
+    boss_dmg, boss_until = await current_boss_buff()  # a newcomer gets the phase bonus the group already unlocked
     await col("characters").update_one({"user_id": ctx.uid, "xcution.joined": {"$ne": True}},
-                                       {"$set": {"xcution.joined": True, "xcution.points": int((ch.get("xcution") or {}).get("points", 0))}})
+                                       {"$set": {"xcution.joined": True,
+                                                 "xcution.points": int((ch.get("xcution") or {}).get("points", 0)),
+                                                 "xcution.boss_dmg": boss_dmg, "xcution.boss_until": boss_until}})
     return await gang_panel(ctx, "")
 
 

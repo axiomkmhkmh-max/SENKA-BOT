@@ -1,27 +1,19 @@
-# Design: Bount (started, not yet built)
+# Design: Bount (filler arc, optional, slice 2)
 
 ## What the arc is (sources in CANON_AUDIT.md)
-- In the anime, the Bount arc (episodes 64 to 109) is filler. The Bounts are immortal humans who absorb
-  human souls to gain power. Their powers include soul absorption, Bount seals, and space manipulation.
-- The filler is not canon, so this is an optional design.
+- In the anime, the Bount arc (episodes 64 to 109) is filler. The Bounts are immortal humans who absorb human souls to
+  gain power. The filler is not canon, so this is an optional design. No invented items or names are used.
 
-## What the game already has
-- Locations: bount_mansion (level 21), with a dungeon: bount_labyrinth (level 22).
-- Enemies in the mansion: Animated Doll, Mansion Retainer, Clockwork Wraith. No Bount mechanic.
+## Built
+- Soul absorption: every race gets 10 + 2 x enemy level coins for a win in the mansion, daily cap 500. Each soul stack
+  held adds +10% to these coins.
+- Soul stacks: each win in the mansion adds one stack (max 5). Stacks are stored on the character and only grow in the
+  mansion. They also persist after a battle, including a loss.
+- Bount Seal (action "bnt", shown as "مهر Bount" / "Bount Seal"): spends 3 stacks and 20% reiatsu to bind the foe, who
+  loses its next turn. Cooldown 3 turns. Only available in PvE, so the seal cannot be farmed in duels.
 
-## Proposed slice 1
-1. Soul absorption: after a won dungeon stage in the mansion, the player may absorb a share of the enemy's
-   HP as healing, capped per stage. This works like the existing heal and drain effects.
-2. Bount seal: a one-time seal that holds one enemy for a few turns (a stun-like effect, shared cooldown).
+## Design values (not canon)
+- Stack cap, coin bonus, seal cost, cooldown. These are balance choices.
 
-## Open questions for you
-- Is Bount worth building at all, given it is filler and not canon?
-- Should absorption be a player action or an automatic effect?
-
-## Not in this slice
+## Not built
 - Bount as a race, Bount PvP, the Bount assault on Soul Society.
-
-## Decisions (made by Claude, built as slice 1)
-- Soul absorption: every race, after a win in the mansion, gets 10 + 2 x enemy level coins.
-  Daily cap 500 coins. Built as coins only, not as a battle action.
-- Bount seal (the stun-like slice) is not built. Only absorption is in this version.

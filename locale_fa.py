@@ -84,7 +84,7 @@ TEXT = {
  "duel_note_pair_cap": "ℹ️ سقف روزانه‌ی امتیاز با این حریف پر شد: تغییر رتبه ندارد.", "duel_note_level_gap": "ℹ️ اختلاف سطح زیاد است: بدون امتیاز.", "duel_note_new_account": "ℹ️ حساب‌های تازه هنوز امتیاز نمی‌گیرند.",
  "boss_title": "باس جهانی", "boss_phase_1": "فاز ۱: بیداری", "boss_phase_2": "⚠️ فاز ۲: ریاتسو می‌لرزد", "boss_phase_3": "🔥 فاز ۳: خشم (+۳۰٪ تجربه)", "boss_left": "⏳ حدود {m} دقیقه مانده", "boss_hits": "⚔️ مجموع ضربه‌ها: {n}",
  "boss_dead": "💀 باس سقوط کرد! جهان لحظه‌ای نفس کشید.", "boss_escaped": "🏃 باس به شکاف بازشکار…", "boss_enrage_bonus": "🔥 پاداش خشم +۳۰٪ تجربه", "boss_hit_ok": "💥 {n} آسیب!", "boss_none": "الان باس فعالی نیست؛ شکاف‌ها آرامند.", "boss_private": "باس‌ها از شکاف‌های گروه می‌آیند.",
- "boss_e_level": "نیاز به سطح {n}.", "boss_e_noreg": "اول کاراکتر بساز.", "boss_e_gone": "باس رفته است.", "boss_e_evade": "💨 باس از ضربه‌ات گذشت!", "boss_e_miss": "💨 ضربه‌ات هوا را شکافت!",
+ "boss_e_level": "نیاز به سطح {n}.", "boss_e_noreg": "اول کاراکتر بساز.", "boss_e_gone": "باس رفته است (فرار کرد).", "boss_e_dead": "☠️ باس قبلاً شکست خورده است.", "boss_e_evade": "💨 باس از ضربه‌ات گذشت!", "boss_e_miss": "💨 ضربه‌ات هوا را شکافت!",
  "adm_noperm": "اجازه نداری.", "adm_done": "✅ انجام شد.", "adm_fail": "❌ ناموفق.", "adm_nouser": "کاربر پیدا نشد.", "adm_spawn_group": "«spawn boss» را داخل گروه بفرست.", "adm_broadcast_started": "📣 ارسال همگانی شروع شد.",
  "adm_confirm_ask": "⚠️ ریست بازیکن {tid}؟ بفرست: confirm {code} (۲ دقیقه اعتبار)",
  "adm_usage_ban": "ban <id> [reason]", "adm_usage_unban": "unban <id>", "adm_usage_warn": "warn <id> [reason]", "adm_usage_mute": "mute <id>", "adm_usage_user": "user <id>", "adm_usage_give": "give|take <id> coins|xp <n>  یا  give|take <id> item <item_id> [n]",

@@ -1,33 +1,23 @@
-# Design: Xcution and the Lost Substitute Shinigami arc (started, not yet built)
+# Design: Xcution and the Lost Substitute Shinigami arc (built, slice 2)
 
 ## What the arc is (sources in CANON_AUDIT.md)
 - Anime episodes 343 to 366 (manga chapters 424 to 479). Ichigo lost his powers after the Arrancar arc and
   regained a new strength through Fullbring.
-- Xcution is a gang of Fullbringers (Kugo Ginjō and others) who use people's power to get stronger.
-  They siphon Fullbring power from others.
+- Xcution is a gang of Fullbringers led by Kugo Ginjō. They siphon Fullbring power from others to get stronger.
 
-## What the game already has
-- Fullbringer race, with the Fullbring signature (bring) and a progression ladder: awakened, fullbring, complete.
-- Location: xcution_hideout (level 27), with an enemy list.
-- Fullbringer Kugo Ginjō and Xcution characters in the roster.
-
-## Proposed slice 1 (smallest useful version)
-1. Xcution membership: a Fullbringer character can join Xcution from the hideout. One gang at a time.
-2. Siphon: after a won battle at the hideout, a member takes a share of the defeated enemy's reiatsu
-   (a bounded amount, capped per day). Siphoned reiatsu gives temporary buffs, like the existing buff system.
-3. Rank: Xcution rank rises with siphon points, and each rank gives a small bonus to Fullbring damage.
-
-## Open questions for you (I will not guess these)
-- Should Xcution be joinable by other races too, or Fullbringers only?
-- How much reiatsu can one siphon take, and how often? (economy and balance)
-- Should leaving Xcution cost something?
-
-## Not in this slice
-- Gang wars, PvP between gangs, the Xcution boss fight.
-
-## Decisions (made by Claude, built as slice 1)
-- Fullbringers only. Join only at xcution_hideout. Leaving is free; rejoining waits 24 hours.
+## Built
+- Membership: Fullbringers join at xcution_hideout (panel "اکسکیوشن" / "xcution"). Leaving is free; rejoining waits 24 hours.
 - Siphon: each win at the hideout gives 3 + enemy level / 5 points (doubled for elites), daily cap 60.
 - Ranks at 0, 40, 120, 300, 700 points. Each rank adds 2% damage for members.
-- Built: data_gangs.py, handlers_gangs.py (panel xgn, actions xgj and xgl), service_gangs_hook.py. Tests: test_xcution_bount.py.
-- Not built: gang wars, the Xcution boss.
+- Siphon Surge: a siphon win opens a 30 minute surge, +6% damage for members.
+- Weekly boss, Kugo Ginjō: every member win at the hideout is one tally (reset each week, Monday to Monday, UTC).
+  Phases open at 10 and 20 tallies: member damage +3%, then +6% in total. Reaching 30 defeats him, pays every member
+  80 points, and pays the top contributor a further 40 points. Damage bonuses are stored on each member's character,
+  and a player who joins late gets the bonus the group already unlocked.
+- Each battle result shows the rewards: absorption, siphon, rank up, surge, boss phase or defeat, and soul stacks.
+
+## Design values (not canon)
+- Every number above is a balance choice. Canon has no numeric values.
+
+## Not built
+- Gang wars between gangs, a PvP fight against Kugo, Xcution boss phases with their own moves.

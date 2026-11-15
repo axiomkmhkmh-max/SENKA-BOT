@@ -2,6 +2,9 @@
 Variants use the key / key_2 / key_3 convention read by render.pick(). All incantations are original wording."""
 
 FA = {
+    "a_bnt": "🕯️ مهر Bount",
+    "lg_bount_seal": "🕯️ <b>{a}</b> با روح‌های جذب‌شده‌اش {d} را بست: {d} نوبت بعدی‌اش را از دست می‌دهد!",
+    "lg_bount_seal_2": "🕯️ مهر Bount روی {d} بسته شد؛ یک نوبت بی‌حرکت می‌ماند.",
     # ---- spirit gauge: Bankai / Resurrección ----
     "a_gx": "👑 بانکای!", "a_gx_hollow": "👑 رسورکسیون!",
     "wr_locked": "🔒 تیغه‌ات هنوز آزاد نشده. اول شیکای را بیدار کن (بخش زانپاکتو).",
@@ -66,6 +69,9 @@ FA = {
 }
 
 EN = {
+    "a_bnt": "🕯️ Bount Seal",
+    "lg_bount_seal": "🕯️ <b>{a}</b> binds {d} with absorbed souls: {d} loses the next turn!",
+    "lg_bount_seal_2": "🕯️ A Bount seal locks {d} in place for one turn.",
     # ---- spirit gauge: Bankai / Resurrección ----
     "a_gx": "👑 Bankai!", "a_gx_hollow": "👑 Resurrección!",
     "wr_locked": "🔒 Your blade isn't released yet. Awaken its Shikai first (Zanpakutō panel).",

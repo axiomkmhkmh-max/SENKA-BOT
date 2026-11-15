@@ -91,7 +91,7 @@ TEXT = {
  # boss
  "boss_title": "World Boss", "boss_phase_1": "Phase 1: awakening", "boss_phase_2": "⚠️ Phase 2: reiatsu trembles", "boss_phase_3": "🔥 Phase 3: ENRAGE (+30% XP)", "boss_left": "⏳ About {m} min left", "boss_hits": "⚔️ Total hits: {n}",
  "boss_dead": "💀 The boss has fallen! The world drew a breath.", "boss_escaped": "🏃 The boss slipped back into the rift…", "boss_enrage_bonus": "🔥 Enrage bonus +30% XP", "boss_hit_ok": "💥 {n} damage!", "boss_none": "No boss is active; the rifts are quiet.", "boss_private": "Bosses tear out of group rifts.",
- "boss_e_level": "Needs level {n}.", "boss_e_noreg": "Create a character first.", "boss_e_gone": "The boss is gone.", "boss_e_evade": "💨 The boss slipped past your strike!", "boss_e_miss": "💨 Your strike cut only air!",
+ "boss_e_level": "Needs level {n}.", "boss_e_noreg": "Create a character first.", "boss_e_gone": "The boss escaped.", "boss_e_dead": "☠️ The boss has already been defeated.", "boss_e_evade": "💨 The boss slipped past your strike!", "boss_e_miss": "💨 Your strike cut only air!",
  # admin
  "adm_noperm": "Not allowed.", "adm_done": "✅ Done.", "adm_fail": "❌ Failed.", "adm_nouser": "User not found.", "adm_spawn_group": "Use «spawn boss» inside a group.", "adm_broadcast_started": "📣 Broadcast started.",
  "adm_confirm_ask": "⚠️ Reset player {tid}? Send: confirm {code} (valid 2 min)",

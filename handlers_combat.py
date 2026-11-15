@@ -61,6 +61,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False):
         canon_row.append(mk(ctx.t("a_neg"), "neg"))
     if E.can(f, "gar"):
         canon_row.append(mk(ctx.t("a_gar"), "gar"))
+    if E.can(f, "bnt"):
+        canon_row.append(mk(ctx.t("a_bnt"), "bnt"))
     if canon_row:
         rows.append(canon_row[:2])
         if canon_row[2:]:
@@ -187,6 +189,8 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
     if o.get("evo"):
         lines.append(ctx.t("evo_done", title=o["evo"]["title_fa" if L == "fa" else "title_en"]))
+    from data_gangs import gang_result_lines  # Xcution siphon, rank, surge, boss and Bount stacks
+    lines.extend(gang_result_lines(o, L))
     terr = o.get("terr")
     if terr:
         lines.append(ctx.t("ter_got_mine", c=fnum(terr["coins"], L), x=fnum(terr["xp"], L)) if terr.get("mine") else ctx.t("ter_got_tax", n=fnum(terr["tax"], L)))
@@ -471,17 +475,9 @@ async def boss_hit_cb(ctx, arg):
         return Out(alert=ctx.t("wait_s", n=data))
     if status == "level":
         return Out(alert=ctx.t("boss_e_level", n=data))
-    if status == "gone":
-        # self-heal: a boss at 0 HP that was never paid out (earlier crash) gets settled now
-        summary = await settle_boss(arg)
-        if summary:
-            import handlers_world
-            d = await col("boss_sessions").find_one({"_id": arg})
-            if d:
-                try:
-                    await handlers_world.end_global_boss(ctx.bot, d, summary)
-                except Exception:
-                    pass
+    # "dead" and "gone" are only answers, never a settlement: the killing blow settles its own kill, and the
+    # scheduler's expiry settles anything left over (a crash). A second settle here used to steal the payout
+    # from the killer, who then saw no result and no drop.
     return Out(alert=ctx.t("boss_e_" + status))
 
 

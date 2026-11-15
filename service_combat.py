@@ -229,6 +229,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     elif not tower:
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
+    player["x"]["bstack"] = int((ch.get("bount") or {}).get("stacks", 0))  # soul stacks: PvE only, settled in pve_settle
     if float(ch.get("almighty_until", 0) or 0) > time.time():  # Yhwach's Eye: one fatal blow is survived
         player["almighty"] = True
         player["lives"] = 1
@@ -290,6 +291,8 @@ async def pve_settle(doc: dict):
     win = st["winner"] == "a"
     out = {"win": win, "xp": 0, "coins": 0, "drop": None, "levels": 0, "next": None, "dungeon_done": False}
     now = int(time.time())
+    from service_gangs_hook import bount_settle  # soul stacks left after the fight, +1 for a mansion win
+    out["bstacks"] = await bount_settle(uid, doc, st)
     if (doc.get("dungeon") or {}).get("tower"):
         from service_extras import tower_settle
         out = await tower_settle(doc, win)

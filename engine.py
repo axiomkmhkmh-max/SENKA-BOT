@@ -47,7 +47,7 @@ def has_fx(f, k):
 def _new_x():
     """Bleach combat-feel state (see data_bleachfx). Plain ints only, so it is stored as-is in MongoDB."""
     return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
-            "gauge": 0, "awake": 0, "slash": 0}
+            "gauge": 0, "awake": 0, "slash": 0, "bstack": 0, "bseal": 0}
 
 
 def _x(f):
@@ -369,6 +369,10 @@ def can(f, action):
         from data_bleachfx import BALA, BLUT
         c = BLUT["blut_vene"] if action == "blv" else BLUT["blut_arterie"] if action == "bla" else BALA
         return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
+    if action == "bnt":  # Bount Seal: spend soul stacks (set by PvE only) to hold the foe, own cooldown and cost
+        from data_gangs import BOUNT_SEAL
+        x = _x(f)
+        return x["cd"] <= 0 and x["bstack"] >= BOUNT_SEAL["stacks"] and f["re"] >= f["max_re"] * BOUNT_SEAL["re"]
     if action == "gx":  # Bankai / Resurrección: a full spirit gauge, and not already released
         x = _x(f)
         return x["gauge"] >= GAUGE["full"] and x["awake"] <= 0 and f["re"] >= f["max_re"] * GAUGE["cost"]
@@ -546,6 +550,16 @@ def _do_action(state, action, rng, max_turns=30):
         _x(f)["cd"] = GARGANTA["cd"]
         state["dist"] = ZONE_MAX
         ev.append({"k": "garganta", "a": f["name"]})
+    elif action == "bnt":  # Bount Seal: the souls bind the foe, who loses its next turn
+        from data_gangs import BOUNT_SEAL
+        foe = state["b" if side == "a" else "a"]
+        f["re"] -= int(f["max_re"] * BOUNT_SEAL["re"])
+        x = _x(f)
+        x["cd"] = BOUNT_SEAL["cd"]
+        x["bstack"] -= BOUNT_SEAL["stacks"]
+        x["bseal"] += 1
+        add_fx(foe, "skip", 1)
+        ev.append({"k": "bount_seal", "a": f["name"], "d": foe["name"]})
     elif action == "bal":  # Bala: a hardened reiatsu bullet, piercing armour
         from data_bleachfx import BALA
         f["re"] -= int(f["max_re"] * BALA["cost"])
