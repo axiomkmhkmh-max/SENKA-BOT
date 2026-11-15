@@ -127,7 +127,8 @@ async def tower_settle(doc: dict, win: bool) -> dict:
     f = state["a"]
     heal = float(gs["tower_heal"])
     nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": floor + 1},
-                          carry={"hp": min(1.0, f["hp"] / f["max_hp"] + heal), "re": min(1.0, f["re"] / f["max_re"] + heal)})
+                          carry={"hp": min(1.0, f["hp"] / f["max_hp"] + heal), "re": min(1.0, f["re"] / f["max_re"] + heal),
+                                 "gauge": int((f.get("x") or {}).get("gauge", 0))})
     out["next"] = nxt["sid"]
     return out
 

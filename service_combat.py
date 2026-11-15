@@ -217,6 +217,8 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     if carry:
         player["hp"] = max(1, int(player["max_hp"] * carry["hp"]))
         player["re"] = max(0, int(player["max_re"] * carry["re"]))
+        if "gauge" in carry:  # the spirit gauge is the same fighter's courage: it does not reset between stages
+            player["x"]["gauge"] = max(0, int(carry["gauge"]))
     from data_bleachfx import enemy_sig
     state = E.new_state(player, make_enemy(lvl, scale, name, rng, sig=enemy_sig(loc.get("race"), pick)), rng)
     E.run_ai(state, rng)
@@ -303,7 +305,8 @@ async def pve_settle(doc: dict):
         if d and d["stage"] < d["total"]:
             f = st["a"]
             nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": d["stage"] + 1},
-                                  carry={"hp": f["hp"] / f["max_hp"], "re": f["re"] / f["max_re"]})
+                                  carry={"hp": f["hp"] / f["max_hp"], "re": f["re"] / f["max_re"],
+                                         "gauge": int((f.get("x") or {}).get("gauge", 0))})  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
         elif d:
             out["dungeon_done"] = True
