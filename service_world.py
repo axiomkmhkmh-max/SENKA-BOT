@@ -214,7 +214,8 @@ async def _pay(doc: dict, killed: bool):
         if not ch:
             continue
         share = dmg / total
-        paid = (not is_new_account(ch, st)) and await bump_counter(f"bosspaid:{uid}:{day}", 1, int(st["boss_daily_paid"]))
+        eligible = not is_new_account(ch, st)
+        paid = eligible and await bump_counter(f"bosspaid:{uid}:{day}", 1, int(st["boss_daily_paid"]))
         main = dmg >= float(st["boss_main_share"]) * doc["max_hp"]
         xp = (xp_pool * share if main else xp_pool * 0.01) if paid else 0
         coins = (coin_pool * share if main else 0) if paid else 0
@@ -229,11 +230,11 @@ async def _pay(doc: dict, killed: bool):
         # boss loot is a reward for the kill: never silently lost to a full bag (force), and a failure for one
         # player must not abort the payout of everyone else
         try:
-            if killed and paid and (last or rank < 3):
+            if killed and eligible and (last or rank < 3):  # loot is not part of the daily XP/coin cap
                 iid = await roll_drop(uid, source_mult=2.0, weapon_chance=0.2)
                 if await inv_add(uid, iid, 1, force=True):
                     drops[uid] = iid
-            if killed and paid and rank < 5 and random.random() < 0.30:
+            if killed and eligible and rank < 5 and random.random() < 0.30:
                 pool = EVO_BY_RARITY[RARITIES[min(3, lvl // 25)]] or EVO_BY_RARITY["Common"]
                 eid = random.choice(pool)
                 if await inv_add(uid, eid, 1, force=True):

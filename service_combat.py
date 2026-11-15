@@ -113,7 +113,7 @@ async def build_player(ch: dict, name: str = None):
     release_bonus = 0.10 if zstate.get("shikai") else 0.0
     if zstate.get("bankai"):
         release_bonus += 0.12 + min(0.08, int(zstate.get("mastery", 0)) / 500)
-    zmult = 1 + min(0.30, bond / 500) + release_bonus
+    zmult = 1 + min(1.0, bond / 500) + release_bonus  # bond bonus caps at +100% (was +30%)
     # Distinct release identities alter battle style rather than granting identical flat power.
     blade_style = {
         "zangetsu": {"dmg": 1.08}, "senbonzakura": {"crit": 0.05},
