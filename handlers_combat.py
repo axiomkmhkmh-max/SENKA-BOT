@@ -210,15 +210,34 @@ async def next_stage(ctx, arg):
     return await battle_panel(ctx, doc, [])
 
 
+async def _potion_picker(ctx, sid: str):
+    """The Potion button no longer drinks the strongest potion by itself: it lists every healing potion in the bag
+    so the player picks which one to use (with its heal %)."""
+    inv = await inv_get(ctx.uid)
+    pots = [(i, q) for i, q in inv["items"].items() if q > 0 and ((ALL.get(i) or {}).get("effect") or {}).get("type") == "hp"]
+    pots.sort(key=lambda x: -ALL[x[0]]["effect"]["pct"])
+    fa = ctx.lang == "fa"
+    if not pots:
+        return Out(alert=ctx.t("bt_no_potion"))
+    rows = [[(f"{nm(i, ctx.lang)} ×{q} · +{ALL[i]['effect']['pct']}%", "ba", f"{sid}.pot:{i}")] for i, q in pots]
+    rows.append([("⬅️ برگشت" if fa else "⬅️ Back", "ba", f"{sid}.potb")])
+    return Out(("🧪 کدام معجون را بخوری؟" if fa else "🧪 Which potion do you drink?"), rows)
+
+
 @action("ba")
 async def battle_action(ctx, arg):
     sid, _, act = arg.partition(".")
     potion = None
     if act == "pot":
-        potion = await _has_potion(ctx.uid)
-        if not potion or not await inv_remove(ctx.uid, potion, 1):
+        return await _potion_picker(ctx, sid)
+    if act == "potb":  # back from the picker: nothing is used
+        return await battle_menu(ctx, "")
+    if act.startswith("pot:"):
+        iid = act[4:]
+        if ((ALL.get(iid) or {}).get("effect") or {}).get("type") != "hp" or not await inv_remove(ctx.uid, iid, 1):
             return Out(alert=ctx.t("bt_no_potion"))
-        potion = {"type": "hp", "pct": ALL[potion]["effect"]["pct"], "id": potion}
+        potion = {"type": "hp", "pct": ALL[iid]["effect"]["pct"], "id": iid}
+        act = "pot"
     status, doc, data = await pve_act(ctx.uid, sid, act, potion)
     if status != "ok":
         if potion:
