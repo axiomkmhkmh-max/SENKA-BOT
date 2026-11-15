@@ -1,4 +1,6 @@
 TEXT = {
+    "rlc_e_relic_max": "This relic has reached its maximum level.",
+    "ttl_trade": "🤝 Trade",
  # navigation / generic
  "b_back": "⬅️ Back", "b_home": "🏠 Home", "b_more": "➕ More", "b_begin": "⚔️ Begin journey", "b_confirm": "✅ Confirm",
  "b_male": "♂️ Male", "b_female": "♀️ Female", "b_unspec": "⚧ Unspecified", "b_go": "🧭 Go", "b_again": "🔁 Again",

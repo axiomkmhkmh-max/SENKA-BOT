@@ -8,6 +8,7 @@ import time
 from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
 from aiogram.types import InlineKeyboardMarkup
 
+from effects import RELIC_MAX_LVL, relic_level_mult
 from data_crafting import (GROUPS, PET_ROLES, evo_next, evo_stage, player_bonus, plan_inputs, race_title_ev, tagged_name, temper_recipe, _fits)
 from data_items import ALL
 from data_races import LOCATIONS, RACES
@@ -463,6 +464,12 @@ def bonus_line(ctx, bn: dict) -> str:
 
 
 @action("rlc")
+def _dec(x, lang: str) -> str:
+    """Decimal for display (fnum is for whole numbers only): 1.5 stays 1.5, Persian digits in fa."""
+    s = f"{x:g}"
+    return s.translate(str.maketrans("0123456789.", "۰۱۲۳۴۵۶۷۸۹٫")) if lang == "fa" else s
+
+
 async def relic_panel(ctx, arg):
     ch = await get_char(ctx.uid)
     inv = await inv_get(ctx.uid)
@@ -472,7 +479,12 @@ async def relic_panel(ctx, arg):
     lines = [head(ctx, "ttl_rlc"), ctx.t("rlc_body", n=fnum(len(ch.get("relics") or []), L), slots=fnum(st["relic_slots"], L))]
     rows = []
     for idx, rid in enumerate(ch.get("relics") or []):
-        lines.append(f"{idx + 1}. {nm(rid, L)}\n   {effect_text(ctx, ALL[rid])}")
+        # the level is shown with the power it gives, so a duplicate idol visibly makes the relic stronger
+        lvl = int((ch.get("relic_lvl") or {}).get(rid, 1))
+        power = relic_level_mult(ch, rid)
+        power_txt = (f"⭐ سطح {fnum(lvl, L)}/{fnum(RELIC_MAX_LVL, L)} · قدرت ×{_dec(round(power, 2), L)}" if L == "fa"
+                     else f"⭐ Level {lvl}/{RELIC_MAX_LVL} · power ×{round(power, 2)}")
+        lines.append(f"{idx + 1}. {nm(rid, L)}\n   {effect_text(ctx, ALL[rid])}\n   {power_txt}")
         rows.append([(f"⬇️ {nm(rid, L)}".replace("<", "").replace(">", ""), "rlr", str(idx))])
     bag = [i for i, q in inv["items"].items() if q > 0 and (ALL.get(i, {}).get("effect") or {}).get("type") == "relic"]
     bag.sort(key=lambda i: -RARITIES.index(ALL[i]["rarity"]))
@@ -485,7 +497,13 @@ async def relic_panel(ctx, arg):
 async def relic_attune_cb(ctx, arg):
     r = await relic_attune(ctx.uid, arg)
     if r == "leveled":
-        alert = "⬆️ تندیس تکراری: یادگار سطح بالاتر شد!" if ctx.lang == "fa" else "⬆️ Duplicate idol: the relic levelled up!"
+        ch = await get_char(ctx.uid)
+        lvl = int(((ch or {}).get("relic_lvl") or {}).get(arg, 1))
+        power = relic_level_mult(ch or {}, arg)
+        if ctx.lang == "fa":
+            alert = f"⬆️ {nm(arg, 'fa')} سطح {fnum(lvl, 'fa')} شد (قدرت ×{_dec(round(power, 2), 'fa')}). تندیس تکراری مصرف شد."
+        else:
+            alert = f"⬆️ {nm(arg, 'en')} is now level {lvl} (power ×{round(power, 2)}). The duplicate idol was used up."
         return Out(alert=alert)
     if r != "ok":
         return Out(alert=ctx.t("rlc_e_" + r))

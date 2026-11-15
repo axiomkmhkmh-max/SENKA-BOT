@@ -1,4 +1,6 @@
 TEXT = {
+    "rlc_e_relic_max": "این یادگار به بالاترین سطح رسیده است.",
+    "ttl_trade": "🤝 ترید",
  "b_back": "⬅️ بازشکار", "b_home": "🏠 خانه", "b_more": "➕ بیشتر", "b_begin": "⚔️ شروع سفر", "b_confirm": "✅ تأیید",
  "b_male": "♂️ مرد", "b_female": "♀️ زن", "b_unspec": "⚧ نامشخص", "b_go": "🧭 برو", "b_again": "🔁 دوباره",
  "b_fight": "⚔️ نبرد", "b_attack": "⚔️ حمله", "b_accept": "✅ قبول", "b_decline": "❌ رد", "b_buy": "🟢 خرید",
