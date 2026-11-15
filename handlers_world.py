@@ -484,6 +484,9 @@ async def relic_panel(ctx, arg):
 @action("rla")
 async def relic_attune_cb(ctx, arg):
     r = await relic_attune(ctx.uid, arg)
+    if r == "leveled":
+        alert = "⬆️ تندیس تکراری: یادگار سطح بالاتر شد!" if ctx.lang == "fa" else "⬆️ Duplicate idol: the relic levelled up!"
+        return Out(alert=alert)
     if r != "ok":
         return Out(alert=ctx.t("rlc_e_" + r))
     return await relic_panel(ctx, "")

@@ -109,6 +109,10 @@ async def relic_attune(uid: int, item_id: str) -> str:
     if not it or (it.get("effect") or {}).get("type") != "relic":
         return "norelic"
     slots = max(1, int(st["relic_slots"]))
+    ch = await get_char(uid)
+    if item_id in (ch.get("relics") or []):  # duplicate idol: level the relic up, no extra slot
+        from service_effects import _relic_level_up
+        return await _relic_level_up(uid, ch, item_id)
     if not await inv_remove(uid, item_id, 1):
         return "missing"
     r = await col("characters").update_one({"user_id": uid, f"relics.{slots - 1}": {"$exists": False}}, {"$push": {"relics": item_id}})

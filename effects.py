@@ -73,16 +73,25 @@ def active_buffs(ch: dict, now: int = None) -> dict:
     return out
 
 
+RELIC_MAX_LVL = 5      # a duplicate idol raises its relic's level instead of taking a second slot
+RELIC_STEP = 0.5       # +50% of the relic's base effect per level above 1
+
+
+def relic_level_mult(ch: dict, iid: str) -> float:
+    lvl = int((ch.get("relic_lvl") or {}).get(iid, 1))
+    return 1.0 + RELIC_STEP * max(0, lvl - 1)
+
+
 def passive_mods(ch: dict, items: dict, st=None, now: int = None) -> dict:
     """Numeric bonuses from equipped relics, cosmetics and temporary buffs. Percent values."""
     mods = {"xp_pct": 0.0, "coin_pct": 0.0, "drop_pct": 0.0, "fame": 0, "luck": 0.0}
     mult = float(_g(st, "relic_effect_mult"))
     slots = relic_slots(int(ch.get("level", 1)), st)
-    for iid in list(ch.get("relics") or [])[:slots]:
+    for iid in list(dict.fromkeys(ch.get("relics") or []))[:slots]:  # distinct relics; levels scale them
         e = (items.get(iid) or {}).get("effect") or {}
         if e.get("type") != "relic":
             continue
-        k, pct = e["kind"], float(e["pct"]) * mult
+        k, pct = e["kind"], float(e["pct"]) * mult * relic_level_mult(ch, iid)
         if k == "xp_loc":
             if e.get("loc") == ch.get("location"):
                 mods["xp_pct"] += pct

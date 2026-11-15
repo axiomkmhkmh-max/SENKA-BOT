@@ -22,13 +22,28 @@ async def passives(ch: dict, st: dict = None) -> dict:
 
 
 # ---- relics ---------------------------------------------------------------------------------------------------
+async def _relic_level_up(uid: int, ch: dict, item_id: str) -> str:
+    from effects import RELIC_MAX_LVL
+    lvl = int((ch.get("relic_lvl") or {}).get(item_id, 1))
+    if lvl >= RELIC_MAX_LVL:
+        return "relic_max"
+    if not await inv_remove(uid, item_id, 1):
+        return "missing"
+    r = await col("characters").update_one({"user_id": uid, f"relic_lvl.{item_id}": {"$exists": False} if lvl == 1 else lvl},
+                                           {"$set": {f"relic_lvl.{item_id}": lvl + 1}})
+    if not r.modified_count:
+        await inv_add(uid, item_id, 1, force=True)
+        return "retry"
+    return "leveled"
+
+
 async def equip_relic(uid: int, item_id: str) -> str:
     st, ch = await game_settings(), await get_char(uid)
     slots = relic_slots(ch["level"], st)
     if slots <= 0:
         return "relic_level"
-    if item_id in (ch.get("relics") or []):
-        return "already"
+    if item_id in (ch.get("relics") or []):  # a duplicate idol levels its relic up instead of taking a slot
+        return await _relic_level_up(uid, ch, item_id)
     if len(ch.get("relics") or []) >= slots:
         return "relic_full"
     if not await inv_remove(uid, item_id, 1):

@@ -213,11 +213,12 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     if pets:
         role, per = PET_ROLES.get(pets[0]["sp"] % len(PET_ROLES), ("dmg", 0.01))
         b[{"luck": "drop"}.get(role, role)] += per * (pets[0]["tier"] + 1) * k_p
-    for rid in (ch.get("relics") or [])[: int(st["relic_slots"])]:
+    for rid in list(dict.fromkeys(ch.get("relics") or []))[: int(st["relic_slots"])]:  # distinct; levels scale
         e = (catalog.get(rid) or {}).get("effect") or {}
         if e.get("type") != "relic":
             continue
-        kind, v = e["kind"], e["v"] * k_r
+        lvl = int((ch.get("relic_lvl") or {}).get(rid, 1))
+        kind, v = e["kind"], e["v"] * k_r * (1.0 + 0.5 * max(0, lvl - 1))
         if kind == "xp_loc":
             if ch.get("location") == e.get("loc"):
                 b["xp"] += v
