@@ -129,7 +129,9 @@ async def blade_choose(ctx, arg):
     ch, z = await _state(ctx.uid)
     if not ch:
         return Out(ctx.t("not_registered"), [nav(ctx)])
-    rows = [[(BLADE_STAGES[b]["shikai"][0 if ctx.lang == "fa" else 1], "znpc", b)] for b in unlocked_blades(ch["level"])]
+    from znp_lock import blade_allowed
+    picks = [b for b in unlocked_blades(ch["level"]) if await blade_allowed(ctx.uid, b)]
+    rows = [[(BLADE_STAGES[b]["shikai"][0 if ctx.lang == "fa" else 1], "znpc", b)] for b in picks]
     rows = [r for r in rows]
     rows.append(nav(ctx, ("znp", "")))
     text = ("🗡 تیغه‌ای که می‌خوای بگیری را انتخاب کن. هر تیغه با رسیدن به لول خودش باز میشه." if ctx.lang == "fa"
@@ -144,6 +146,9 @@ async def blade_set(ctx, arg):
         return Out(ctx.t("not_registered"), [nav(ctx)])
     if not blade_valid(arg, ch["level"]):
         return Out(alert=("این تیغه هنوز باز نشده." if ctx.lang == "fa" else "That blade is still locked."))
+    from znp_lock import blade_allowed
+    if not await blade_allowed(ctx.uid, arg):
+        return Out(alert=("این تیغه فقط برای مالک بازی است." if ctx.lang == "fa" else "This blade is reserved for the owner."))
     await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"zanpakuto.blade_id": arg}})
     return await zanpakuto_panel(ctx, "")
 

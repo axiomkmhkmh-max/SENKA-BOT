@@ -12,7 +12,7 @@ BLADE_STAGES = {
                      "bankai": ("سنبون‌زاکورا کاگیوشی (بانکای)", "Senbonzakura Kageyoshi (Bankai)"),
                      "shikai_bonus": 0.02, "bankai_bonus": 0.05},
     "hyorinmaru": {"shikai": ("هیورین‌مارو", "Hyōrinmaru"), "bankai": ("دایگورن هیورین‌مارو", "Daiguren Hyōrinmaru"),
-                   "shikai_bonus": 0.02, "bankai_bonus": 0.04},
+                   "shikai_bonus": 0.04, "bankai_bonus": 0.07},  # Daiguren: among the strongest Bankai
     "kyoka_suigetsu": {"shikai": ("کیوکا سویگتسو", "Kyōka Suigetsu"), "bankai": ("کیوکا سویگتسو (بانکای)", "Kyōka Suigetsu (Bankai)"),
                        "shikai_bonus": 0.03, "bankai_bonus": 0.05},
     "zanka_no_tachi": {"shikai": ("زانکا نو تاچی", "Zanka no Tachi"), "bankai": ("زانکا نو تاچی (بانکای)", "Zanka no Tachi (Bankai)"),
@@ -60,7 +60,7 @@ BLADE_UNLOCK = {
 # Combat style per blade (moved from service_combat.build_player; design values, applied on release only).
 BLADE_STYLE = {
     "zangetsu": {"dmg": 1.08}, "senbonzakura": {"crit": 0.05},
-    "hyorinmaru": {"def": 1.08}, "kyoka_suigetsu": {"crit": 0.04, "dmg": 1.03},
+    "hyorinmaru": {"def": 1.12, "dmg": 1.10}, "kyoka_suigetsu": {"crit": 0.04, "dmg": 1.03},
     "zanka_no_tachi": {"dmg": 1.12}, "sode_no_shirayuki": {"def": 1.05, "kido": 1.08},
     "zabimaru": {"dmg": 1.07}, "wabisuke": {"def": 1.10},
     "minazuki": {"def": 1.06}, "ruri_iro_kujaku": {"crit": 0.04}, "haineko": {"dmg": 1.06},

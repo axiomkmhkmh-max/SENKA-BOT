@@ -130,6 +130,9 @@ async def build_player(ch: dict, name: str = None):
         plus = (ch.get("weapon_plus") or {}).get(wid, 0)
         w = dict(w, attack=w["attack"] * (1 + 0.06 * plus))
     zstate = ch.get("zanpakuto") or {}
+    from znp_lock import blade_allowed  # owner-only blades give nothing to other players
+    if zstate.get("blade_id") and not await blade_allowed(ch.get("user_id"), zstate["blade_id"]):
+        zstate = dict(zstate, blade_id=None)
     bond = int((ch.get("bond") or {}).get(wid, 0))  # per blade: the bond of the weapon in hand
     # Release stages feed the existing weapon-skill multiplier; no parallel combat engine.
     stage = BLADE_STAGES.get(zstate.get("blade_id"), {})

@@ -662,6 +662,20 @@ async def c_gift_yes(e: Env):
     asyncio.create_task(run())
 
 
+@acmd("znplock", 100, "/znplock [blade_id on|off]", "قفل تیغه برای مالک", "Owner-only blade lock")
+async def c_znplock(e: Env):
+    from znp_lock import owner_only_blades, set_owner_only
+    from data_zanpakuto import BLADE_STAGES
+    if len(e.args) < 2 or e.args[1] not in ("on", "off") or e.args[0] not in BLADE_STAGES:
+        locked = sorted(await owner_only_blades())
+        return await e.say(e.t("قفل‌شده‌ها: " + (", ".join(locked) or "هیچ") + "\nاستفاده: /znplock <blade_id> on|off",
+                               "Locked: " + (", ".join(locked) or "none") + "\nUsage: /znplock <blade_id> on|off"))
+    bid, on = e.args[0], e.args[1] == "on"
+    await set_owner_only(bid, on)
+    await alog(e.uid, "znplock", None, None, bid if on else None, "on" if on else "off")
+    await e.say(e.t(f"🔒 {bid} {'فقط برای مالک' if on else 'برای همه باز شد'}", f"🔒 {bid} is {'owner-only' if on else 'open to all'}"))
+
+
 # ---- admins (owner only) ---------------------------------------------------------------------------------------------------
 @acmd("addadmin", 100, "/addadmin <id|@user|reply> [admin|super|moderator|support]", "افزودن ادمین", "Add an admin")
 async def c_addadmin(e: Env):
