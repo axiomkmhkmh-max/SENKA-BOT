@@ -142,7 +142,7 @@ async def tower_board(limit: int = 10):
 # 2. Win chain (plain PvE fights only)
 # ===================================================================================================
 async def chain_win(uid: int):
-    """Returns (n, multiplier, bonus_item_id|None)."""
+    """Returns (n, multiplier, bonus_item_id|None, item_that_did_not_fit|None)."""
     st = await game_settings()
     ch = await get_char(uid)
     c = ch.get("chain") or {}
@@ -156,8 +156,8 @@ async def chain_win(uid: int):
     if every > 0 and n % every == 0:
         item = await roll_drop(uid, source_mult=1.3, floor_idx=1)
         if not await inv_add(uid, item, 1):
-            item = None
-    return n, mult, item
+            return n, mult, None, item  # bag full: the caller tells the player instead of losing it silently
+    return n, mult, item, None
 
 
 async def chain_break(uid: int) -> int:

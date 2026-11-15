@@ -307,9 +307,11 @@ async def pve_settle(doc: dict):
         plain = not d and not doc.get("trial")
         if plain:  # win chain: consecutive plain victories raise coin/XP rewards
             from service_extras import chain_win
-            cn, cm, cdrop = await chain_win(uid)
+            cn, cm, cdrop, cfull = await chain_win(uid)
             xp, coins = int(xp * cm), int(coins * cm)
             out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop}
+            if cfull:
+                out["drop_full"] = out.get("drop_full") or cfull
         if d and d["stage"] == d["total"]:
             xp, coins = xp * 3, coins * 3
         wm = await mods_for(doc["loc"])
@@ -331,6 +333,8 @@ async def pve_settle(doc: dict):
             iid = await roll_drop(uid, source_mult=2.0 if doc["elite"] else 1.0, floor_idx=2 if (d and d["stage"] == d["total"]) else 0)
             if await inv_add(uid, iid, 1):
                 out["drop"] = iid
+            else:
+                out["drop_full"] = iid  # bag full: shown to the player (it used to vanish silently)
         if d and d["stage"] < d["total"]:
             f = st["a"]
             nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": d["stage"] + 1},

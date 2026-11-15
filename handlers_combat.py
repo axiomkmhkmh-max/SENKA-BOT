@@ -185,6 +185,9 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("bt_drop", item=nm(o["drop"], L)))
     if o.get("bonus_drop"):
         lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
+    if o.get("drop_full"):
+        lines.append(f"🎒 کیفت پره! «{nm(o['drop_full'], L)}» دراپ شد ولی جا نداشت. کیف رو خالی کن." if L == "fa"
+                     else f"🎒 Bag full! «{nm(o['drop_full'], L)}» dropped but there was no room. Free some slots.")
     if o.get("evo"):
         lines.append(ctx.t("evo_done", title=o["evo"]["title_fa" if L == "fa" else "title_en"]))
     terr = o.get("terr")
@@ -381,6 +384,8 @@ async def duel_accept_cb(ctx, arg):
     g = await group_doc(doc["chat_id"])
     text, kb = await _pvp_panel(glang(g), ctx, doc, [])
     await _edit(ctx, text, kb)
+    if ctx.message is not None:  # the scheduler needs the panel's message id to refresh the buttons after a turn timeout
+        await col("battles").update_one({"sid": arg, "mode": "pvp"}, {"$set": {"msg_id": ctx.message.message_id}})
     return Out()
 
 

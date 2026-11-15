@@ -188,7 +188,7 @@ async def user_card(ctx, tid: int):
         rows.append([(T(ctx, "🔮 +۱ هسته", "🔮 +1 core"), "adx", f"k1:{tid}")])
     if lvl >= 80:
         rows.append([(T(ctx, "🔄 ریست پلیر", "🔄 Reset player"), "adx", f"rs:{tid}")])
-    rows.append([_back(ctx, "adu", "")])
+    rows.append(_back(ctx, "adu", ""))
     return Out(head(ctx, "ttl_adm") + body, rows)
 
 
@@ -199,7 +199,7 @@ async def users_panel(ctx, arg):
     rows = [[(T(ctx, "🔍 جستجو", "🔍 Search"), "adq", "find"), (T(ctx, "🆕 جدیدترین‌ها", "🆕 Newest"), "adn", "new:0")],
             [(T(ctx, "💰 ثروتمندترین‌ها", "💰 Richest"), "adn", "rich:0"),
              (T(ctx, "🔝 بالاترین سطح", "🔝 Top level"), "adn", "lvl:0")],
-            [_back(ctx)]]
+            _back(ctx)]
     return Out(head(ctx, "ttl_adm") + T(ctx, "یک کاربر را جستجو کن یا از لیست‌ها انتخاب کن.",
                                           "Search a user or pick a list."), rows)
 
@@ -228,7 +228,7 @@ async def users_list(ctx, arg):
         nav_row.append(("▶️", "adn", f"{mode}:{page + 1}"))
     if nav_row:
         rows.append(nav_row)
-    rows.append([_back(ctx, "adu", "")])
+    rows.append(_back(ctx, "adu", ""))
     return Out(head(ctx, "ttl_adm") + f"<b>{label}</b> ({page + 1}/{pages})", rows)
 
 
@@ -253,7 +253,7 @@ async def moderation_panel(ctx, arg):
             [(T(ctx, "⚠️ اخطار", "⚠️ Warn"), "adq", "warn")]]
     if await _need(ctx, 80):
         rows.append([(T(ctx, "🔄 ریست پلیر", "🔄 Reset player"), "adq", "reset")])
-    rows.append([_back(ctx)])
+    rows.append(_back(ctx))
     return Out(head(ctx, "ttl_adm") + T(ctx, "مدیریت کاربران", "Moderation") + "\n" + "\n".join(lines), rows)
 
 
@@ -323,7 +323,7 @@ async def user_quick(ctx, arg):
             f"⚠️ ریست کامل پلیر <code>{tid}</code>: کاراکتر، ایتم‌ها، کوئست‌ها و گاچا پاک می‌شوند. مطمئنی؟",
             f"⚠️ Full reset of <code>{tid}</code>: character, items, quests and gacha are deleted. Sure?")
         return Out(text, [[(T(ctx, "⚠️ بله، ریست کن", "⚠️ Yes, reset"), "adx", f"rk:{tid}")],
-                          [_back(ctx, "adu", "")]])
+                          _back(ctx, "adu", "")])
     elif op == "rk":
         before = await get_char(tid)
         for c in RESET_COLLECTIONS:
@@ -349,7 +349,7 @@ async def economy_panel(ctx, arg):
              (T(ctx, "🔮 گرفتن هسته", "🔮 Take cores"), "adq", "take_cores")],
             [(T(ctx, "🎒 دادن آیتم", "🎒 Give item"), "adq", "give_item"),
              (T(ctx, "🎒 گرفتن آیتم", "🎒 Take item"), "adq", "take_item")],
-            [_back(ctx)]]
+            _back(ctx)]
     return Out(head(ctx, "ttl_adm") + T(ctx, "یک عملیات اقتصادی را انتخاب کن. هر کار در لاگ ثبت می‌شود.",
                                           "Pick an economy action. Every change is logged."), rows)
 
@@ -368,7 +368,7 @@ async def world_panel(ctx, arg):
         rows.append([(T(ctx, "🎯 تنظیم تهدید/ثبات", "🎯 Set threat/stability"), "adq", "worldset")])
     if lvl >= 80:
         rows.append([(T(ctx, "♻️ ریست دنیا", "♻️ Reset world"), "adw_do", "reset")])
-    rows.append([_back(ctx)])
+    rows.append(_back(ctx))
     return Out(head(ctx, "ttl_adm") + text, rows)
 
 
@@ -392,7 +392,7 @@ async def broadcast_panel(ctx, arg):
         return _deny(ctx)
     return Out(head(ctx, "ttl_adm") + T(ctx, "اول متن پیام را بنویس، بعد گیرنده را انتخاب کن.",
                                           "Write the text first, then pick the audience."),
-               [[(T(ctx, "✏️ نوشتن پیام", "✏️ Write message"), "adq", "bcast")], [_back(ctx)]])
+               [[(T(ctx, "✏️ نوشتن پیام", "✏️ Write message"), "adq", "bcast")], _back(ctx)])
 
 
 @action("adcs")
@@ -431,7 +431,7 @@ async def settings_list(ctx, arg):
         nav_row.append(("▶️", "ads", str(page + 1)))
     if nav_row:
         rows.append(nav_row)
-    rows.append([_back(ctx)])
+    rows.append(_back(ctx))
     return Out(head(ctx, "ttl_adm") + T(ctx, f"تنظیمات زنده ({page + 1}/{pages}) — روی هر کدام بزن.",
                                           f"Live settings ({page + 1}/{pages}) — tap one."), rows)
 
@@ -460,7 +460,7 @@ async def setting_edit(ctx, arg):
                     [("−1", "adk", f"{idx}:d1"), ("+1", "adk", f"{idx}:u1")]]
     controls.append([(T(ctx, "✏️ مقدار دقیق", "✏️ Exact value"), "adq", f"setkey:{key}")])
     controls.append([(T(ctx, "↩️ پیش‌فرض", "↩️ Default"), "adk", f"{idx}:r")])
-    controls.append([_back(ctx, "ads", str(int(idx) // PAGE))])
+    controls.append(_back(ctx, "ads", str(int(idx) // PAGE)))
     text = (head(ctx, "ttl_adm") + f"<b>{esc(setting_label(key, ctx.lang == 'fa'))}</b>\n<code>{key}</code>\n"
             + T(ctx, f"الان: <b>{old}</b> | پیش‌فرض: {default}", f"Now: <b>{old}</b> | default: {default}"))
     return Out(text, controls)
@@ -502,7 +502,7 @@ async def admin_log(ctx, arg):
         nav_row.append(("▶️", "adl", str(page + 1)))
     if nav_row:
         rows.append(nav_row)
-    rows.append([_back(ctx)])
+    rows.append(_back(ctx))
     return Out(head(ctx, "ttl_adm") + f"<i>{page + 1}/{pages}</i>\n" + body, rows)
 
 
@@ -517,7 +517,7 @@ async def admins_panel(ctx, arg):
         lines.append(f"<code>{d['user_id']}</code> — {ROLE_FA.get(role, role) if ctx.lang == 'fa' else role}")
     rows = [[(T(ctx, "➕ افزودن ادمین", "➕ Add admin"), "adq", "addadmin"),
              (T(ctx, "➖ برداشتن ادمین", "➖ Remove admin"), "adq", "rmadmin")],
-            [_back(ctx)]]
+            _back(ctx)]
     return Out(head(ctx, "ttl_adm") + "\n".join(lines), rows)
 
 
@@ -657,7 +657,7 @@ async def _run_input(ctx, name, pend, raw):
             f"⚠️ ریست کامل پلیر <code>{tid}</code>: کاراکتر، ایتم‌ها، کوئست‌ها و گاچا پاک می‌شوند. مطمئنی؟",
             f"⚠️ Full reset of <code>{tid}</code>: character, items, quests and gacha are deleted. Sure?")
         return Out(text, [[(T(ctx, "⚠️ بله، ریست کن", "⚠️ Yes, reset"), "adx", f"rk:{tid}")],
-                          [_back(ctx, "admo", "")]])
+                          _back(ctx, "admo", "")])
 
     if name == "addadmin":
         tid, rest = split_id_rest(raw)
@@ -691,7 +691,7 @@ async def _run_input(ctx, name, pend, raw):
                    + T(ctx, "گیرنده را انتخاب کن:", "Pick the audience:"),
                    [[(T(ctx, "همه", "All"), "adcs", "all"), (T(ctx, "فارسی", "Persian"), "adcs", "fa"),
                      (T(ctx, "انگلیسی", "English"), "adcs", "en")],
-                    [_back(ctx, "adc", "")]])
+                    _back(ctx, "adc", "")])
 
     if name == "worldset":
         bits = raw.split()
