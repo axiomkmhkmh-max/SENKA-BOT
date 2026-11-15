@@ -91,12 +91,14 @@ def passive_mods(ch: dict, items: dict, st=None, now: int = None) -> dict:
         e = (items.get(iid) or {}).get("effect") or {}
         if e.get("type") != "relic":
             continue
-        k, pct = e["kind"], float(e["pct"]) * mult * relic_level_mult(ch, iid)
+        # relic effects are stored as "v" (see data_crafting.relic_effect); "pct" was an old name and crashed here
+        k, pct = e["kind"], float(e.get("v", e.get("pct", 0))) * mult * relic_level_mult(ch, iid)
         if k == "xp_loc":
             if e.get("loc") == ch.get("location"):
                 mods["xp_pct"] += pct
-        else:
-            mods[k] += pct
+        elif k in ("drop", "coin"):
+            mods[k + "_pct"] += pct
+        # calm / stab are applied in data_crafting.player_bonus, not in this panel summary
     for slot in COSM_SLOTS:
         iid = (ch.get("cosmetic") or {}).get(slot)
         e = (items.get(iid) or {}).get("effect") or {} if iid else {}

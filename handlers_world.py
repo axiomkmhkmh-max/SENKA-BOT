@@ -463,13 +463,13 @@ def bonus_line(ctx, bn: dict) -> str:
     return " ".join(parts) if parts else ctx.t("bonus_none")
 
 
-@action("rlc")
 def _dec(x, lang: str) -> str:
     """Decimal for display (fnum is for whole numbers only): 1.5 stays 1.5, Persian digits in fa."""
     s = f"{x:g}"
     return s.translate(str.maketrans("0123456789.", "۰۱۲۳۴۵۶۷۸۹٫")) if lang == "fa" else s
 
 
+@action("rlc")
 async def relic_panel(ctx, arg):
     ch = await get_char(ctx.uid)
     inv = await inv_get(ctx.uid)

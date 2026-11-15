@@ -424,6 +424,34 @@ async def gacha_doc(uid: int) -> dict:
     return await col("gacha").find_one({"user_id": uid}) or {"user_id": uid, "since_rare": 0, "since_leg": 0, "chars": {}, "total": 0}
 
 
+# Selling summoned characters: the whole stack (every copy) goes for this much per copy, by rarity.
+# Kept well under the price of a pull (gacha_cost), so selling never beats summoning. Coins only, never premium.
+CHAR_SELL_PER_COPY = {"Common": 100, "Uncommon": 200, "Rare": 400, "Epic": 800, "Legendary": 1600, "Mythic": 3000}
+
+
+def char_sell_value(cid: str, copies: int, coin_rate: float = 1.0) -> int:
+    base = CHAR_SELL_PER_COPY.get(CHAR_BY_ID[cid]["rarity"], 100)
+    return max(1, int(base * max(1, int(copies)) * float(coin_rate)))
+
+
+async def sell_character(uid: int, cid: str) -> tuple:
+    """Sell a summoned character (all copies). Removes it from the party. Returns (status, coins)."""
+    g = await gacha_doc(uid)
+    copies = int(g["chars"].get(cid, 0) or 0)
+    if copies <= 0:
+        return "notowned", 0
+    st = await game_settings()
+    pay = char_sell_value(cid, copies, float(st.get("coin_rate", 1.0)))
+    # one atomic claim on the exact copy count: a double tap or a second window cannot sell it twice
+    r = await col("gacha").update_one({"user_id": uid, f"chars.{cid}": copies}, {"$unset": {f"chars.{cid}": ""}})
+    if not r.modified_count:
+        return "retry", 0
+    await col("characters").update_one({"user_id": uid}, {"$pull": {"party": cid}})
+    await add_coins(uid, pay, "char_sell")
+    log_event("gacha", uid, f"فروش احضار {CHAR_BY_ID[cid]['name_fa']} ×{copies} → {pay:,} 🪙", char=cid, copies=copies)
+    return "ok", pay
+
+
 async def toggle_party(uid: int, cid: str) -> str:
     g = await gacha_doc(uid)
     ch = await get_char(uid)
