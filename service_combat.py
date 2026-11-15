@@ -56,7 +56,26 @@ def _exp():
     return datetime.now(timezone.utc) + timedelta(hours=2)
 
 
+KIDO_RACES = ("shinigami", "visored")  # only these learn Hadō / Bakudō (same rule as the Kidō learning path)
+
+
+async def refund_kido_points(ch: dict) -> dict:
+    """One-time fix for characters of other races who put points into Kidō: give the points back to spend.
+    Runs once per character (kido_refunded) and only moves points above the race's base Kidō."""
+    if ch.get("race") in KIDO_RACES or ch.get("kido_refunded"):
+        return ch
+    base = int(RACES[ch["race"]]["stats"].get("kido", 0))
+    extra = max(0, int(ch["stats"].get("kido", 0)) - base)
+    ch["stats"] = {**ch["stats"], "kido": base}
+    ch["points"] = int(ch.get("points", 0)) + extra
+    ch["kido_refunded"] = True
+    await col("characters").update_one({"user_id": ch["user_id"]},
+                                       {"$set": {"stats.kido": base, "points": ch["points"], "kido_refunded": True}})
+    return ch
+
+
 async def build_player(ch: dict, name: str = None):
+    ch = await refund_kido_points(ch)
     race = RACES[ch["race"]]
     gs = await game_settings()
     stats = dict(ch["stats"])
@@ -135,6 +154,8 @@ async def build_player(ch: dict, name: str = None):
     from service_bleach_systems import KIDO
     legacy = ch.get("kido") or {}
     had, bak, kaido = set(legacy.get("had") or [1]), set(legacy.get("bak") or [1]), set()
+    if ch.get("race") not in KIDO_RACES:  # Arrancar, Hollow, Quincy and the rest have no Hadō or Bakudō
+        had, bak, kaido = set(), set(), set()
     for spell_id in set(ch.get("kido_learned") or []):
         spell = KIDO.get(spell_id)
         if not spell:

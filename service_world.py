@@ -177,19 +177,30 @@ async def settle_boss(sid: str):
 
 
 async def expire_bosses():
+    """Close every boss whose timer ran out. A boss at 0 HP is a kill: pay it as one (the killing hit's
+    settle_boss may never have run, e.g. after a crash or restart). Otherwise it escaped.
+    Deactivating and reading the HP happen in one atomic step, so a hit can no longer land after this,
+    and whichever of settle_boss / this path wins the claim pays exactly once."""
     out = []
     now = int(time.time())
     while True:
-        # a boss already at 0 HP is a kill waiting for settle_boss (the hit that landed it), not an escape:
-        # never let the timer claim it, or the kill is paid as a flee and the killer gets nothing
         doc = await col("boss_sessions").find_one_and_update(
-            {"active": True, "expires_at": {"$lte": now}, "hp": {"$gt": 0}},
-            {"$set": {"active": False, "escaped": True, "ended_at": now}},
+            {"active": True, "expires_at": {"$lte": now}},
+            {"$set": {"active": False, "ended_at": now}},
             return_document=ReturnDocument.AFTER)
         if not doc:
             break
-        summary = await _pay(doc, killed=False)
-        await _end_global(doc)
+        killed = doc.get("hp", 1) <= 0
+        await col("boss_sessions").update_one({"_id": doc["_id"]}, {"$set": {"killed": killed, "escaped": not killed}})
+        doc["killed"], doc["escaped"] = killed, not killed
+        try:
+            summary = await _pay(doc, killed=killed)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("boss expiry payout failed: %s", doc.get("_id"))
+            summary = {"rows": [], "drops": {}, "evo_drops": {}, "killed": killed, "enraged": False, "n": 0}
+        finally:
+            await _end_global(doc)  # always free the slot, otherwise no new world boss spawns
         out.append((doc, summary))
     return out
 

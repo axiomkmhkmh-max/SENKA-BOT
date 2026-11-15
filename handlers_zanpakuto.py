@@ -96,18 +96,18 @@ async def zanpakuto_panel(ctx, arg):
     s1 = _t(ctx.lang, "on") if z.get("shikai") else _t(ctx.lang, "off", need=_t(ctx.lang, "need_s", lv=n1[0], bond=n1[1]))
     s2 = _t(ctx.lang, "on") if z.get("bankai") else _t(ctx.lang, "off", need=_t(ctx.lang, "need_b", lv=n2[0], m=n2[1]))
     left = max(0, int(gs["znp_train_daily"]) - await counter_get(f"znp:train:{ctx.uid}:{day_id()}"))
-    body = _t(ctx.lang, "body", blade=iname(z.get("blade_id") or "", ctx.lang) or "-", bond=fnum(bond, ctx.lang),
+    held_id = (ch.get("weapon_id") or z.get("blade_id") or "")  # the name shown is the blade you hold now
+    body = _t(ctx.lang, "body", blade=iname(held_id, ctx.lang) or "-", bond=fnum(bond, ctx.lang),
               mastery=fnum(z["mastery"], ctx.lang), cap=fnum(int(gs["znp_mastery_cap"]), ctx.lang), f1=f1, s1=s1, f2=f2, s2=s2,
               left=left, daily=int(gs["znp_train_daily"]), gain=int(gs["znp_train_gain"]), cost=int(gs["znp_train_energy"]))
     body += "\n" + _pressure(z["mastery"], ctx.lang)
-    # Your zanpakutō is bound to the blade it was first born with. Say so when the blade in hand is different,
-    # so the panel never looks like it is showing the sword you are holding.
-    wid = ch.get("weapon_id") or ""
-    if wid and z.get("blade_id") and wid != z["blade_id"]:
-        held = iname(wid, ctx.lang) or "-"
-        body += ("\n🗡 تیغه‌ی فعلی: " + held + "\n<i>زانپاکتوی تو به تیغه‌ی اولت پیوند خورده؛ پیوند و شیکا/بانکا همان‌جا می‌مانند.</i>"
+    # Progress (bond, mastery, Shikai/Bankai) stays with the blade the zanpakutō was first bound to.
+    bound = z.get("blade_id") or ""
+    if bound and held_id and bound != held_id:
+        bound_name = iname(bound, ctx.lang) or "-"
+        body += ("\n<i>پیوند، تسلط و شیکا/بانکا متعلق به تیغه‌ی اولت است: " + bound_name + "</i>"
                  if ctx.lang == "fa" else
-                 "\n🗡 Blade in hand: " + held + "\n<i>Your zanpakutō is bound to your first blade; bond and release stay with it.</i>")
+                 "\n<i>Bond, mastery and release belong to your first blade: " + bound_name + "</i>")
     rows = [[(_t(ctx.lang, "b_train"), "ztrn", "")]]
     if not z.get("shikai") and lv >= n1[0] and bond >= n1[1]:
         rows.append([(_t(ctx.lang, "b_rel1", f=f1), "zrel", "1")])
