@@ -276,7 +276,7 @@ async def ask_action(ctx, arg):
                    [_back(ctx, back_code, back_arg)])
     await _pending_set(ctx.uid, name)
     return Out(head(ctx, "ttl_adm") + esc(T(ctx, fa, en)) + "\n\n"
-               + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel»."))
+               + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")),
                [_back(ctx, back_code, back_arg)])
 
 
