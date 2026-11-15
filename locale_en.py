@@ -97,8 +97,8 @@ TEXT = {
  # admin
  "adm_noperm": "Not allowed.", "adm_done": "✅ Done.", "adm_fail": "❌ Failed.", "adm_nouser": "User not found.", "adm_spawn_group": "Use «spawn boss» inside a group.", "adm_broadcast_started": "📣 Broadcast started.",
  "adm_confirm_ask": "⚠️ Reset player {tid}? Send: confirm {code} (valid 2 min)",
- "adm_usage_ban": "ban <id> [reason]", "adm_usage_unban": "unban <id>", "adm_usage_warn": "warn <id> [reason]", "adm_usage_mute": "mute <id>", "adm_usage_user": "user <id>", "adm_usage_give": "give|take <id> coins|xp <n>  or  give|take <id> item <item_id> [n]",
- "adm_usage_take": "take <id> coins <n>", "adm_usage_reset": "reset <id>", "adm_usage_set": "set <key> <value>", "adm_usage_item": "item <id> base_price|sell_price|attack|level_req <n>", "adm_usage_addadmin": "addadmin <id> [role]", "adm_usage_broadcast": "broadcast fa|en|all <text>",
+ "adm_usage_ban": "ban &lt;id&gt; [reason]", "adm_usage_unban": "unban &lt;id&gt;", "adm_usage_warn": "warn &lt;id&gt; [reason]", "adm_usage_mute": "mute &lt;id&gt;", "adm_usage_user": "user &lt;id&gt;", "adm_usage_give": "give|take &lt;id&gt; coins|xp &lt;n&gt;  or  give|take &lt;id&gt; item &lt;item_id&gt; [n]",
+ "adm_usage_take": "take &lt;id&gt; coins &lt;n&gt;", "adm_usage_reset": "reset &lt;id&gt;", "adm_usage_set": "set &lt;key&gt; &lt;value&gt;", "adm_usage_item": "item &lt;id&gt; base_price|sell_price|attack|level_req &lt;n&gt;", "adm_usage_addadmin": "addadmin &lt;id&gt; [role]", "adm_usage_broadcast": "broadcast fa|en|all &lt;text&gt;",
  "adm_dash": "👥 Users {users} (new 24h {new}, active {active}, online {online})\n🧙 Characters {chars}\n⚔️ Fights 24h {fights} | 👹 Boss kills 24h {kills}\n🪙 Coins in economy {coins}\n🌐 FA {fa} / EN {en}\n🏷️ Active listings {listings}",
  "adm_help": "Commands: stats, user, ban, unban, warn, give, take, item, set, maintenance on|off, broadcast, reset + confirm, addadmin/rmadmin (owner), spawn boss (in group).",
  "b_forge": "🔨 Forge", "b_forge_go": "🔨 Strike the blade!", "ttl_frg": "Soul Forge",
@@ -214,7 +214,7 @@ TEXT.update({
  "ef_key": "Opens dungeons, or offered to a world event: +{pts} points.", "ef_armor": "Can be tempered at the workshop for more defense.", "ef_luck": "Luck +{n}: better rare drops.", "ef_almighty": "Yhwach's Eye: for {m} minutes, the first fatal blow of each battle leaves you with a sliver of life.", "ef_konpaku": "Duel charm: one extra Konpaku life for {m} minutes.",
  # ---- admin ----
  "adm_world": "🌍 Threat {threat} | Stability {stab}\nReishi: {rei}\nEvent: {ev}\nBoss: {boss}\nSeason: {season}",
- "adm_usage_world": "world | world set threat|stability <0-100> | world set reishi <loc> <0-100> | world reset | world event garganta|siege|wandenreich|end | world boss spawn|end | world season end | world territory reset <loc>",
+ "adm_usage_world": "world | world set threat|stability &lt;0-100&gt; | world set reishi &lt;loc&gt; &lt;0-100&gt; | world reset | world event garganta|siege|wandenreich|end | world boss spawn|end | world season end | world territory reset &lt;loc&gt;",
 })
 
 # ---- Bleach voice pass: deeper lore, epigraphs and flavour variants ----

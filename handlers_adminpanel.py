@@ -271,12 +271,12 @@ async def ask_action(ctx, arg):
         if key not in GAME_DEFAULTS:
             return Out(alert="?")
         await _pending_set(ctx.uid, "setkey", target=key)
-        return Out(head(ctx, "ttl_adm") + f"<code>{key}</code>\n" + T(ctx, fa, en)
-                   + "\n\n" + T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel»."),
+        return Out(head(ctx, "ttl_adm") + f"<code>{key}</code>\n" + esc(T(ctx, fa, en))
+                   + "\n\n" + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")),
                    [_back(ctx, back_code, back_arg)])
     await _pending_set(ctx.uid, name)
-    return Out(head(ctx, "ttl_adm") + T(ctx, fa, en) + "\n\n"
-               + T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel»."),
+    return Out(head(ctx, "ttl_adm") + esc(T(ctx, fa, en)) + "\n\n"
+               + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel»."))
                [_back(ctx, back_code, back_arg)])
 
 

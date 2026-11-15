@@ -48,13 +48,16 @@ async def ping() -> bool:
 async def ensure_indexes():
     U = {"unique": True}
     specs = {
-        "users": [([("telegram_id", ASCENDING)], U), ([("last_seen", DESCENDING)], {})],
-        "characters": [([("user_id", ASCENDING)], U), ([("name_key", ASCENDING)], U), ([("location", ASCENDING), ("seen_at", DESCENDING)], {}),
+        "users": [([("telegram_id", ASCENDING)], U), ([("last_seen", DESCENDING)], {}),
+                  ([("banned", ASCENDING)], {}), ([("created_at", DESCENDING)], {})],
+        "characters": [([("user_id", ASCENDING)], U), ([("name_key", ASCENDING)], U), ([("coins", DESCENDING)], {}), ([("location", ASCENDING), ("seen_at", DESCENDING)], {}),
                        ([("level", DESCENDING), ("xp", DESCENDING)], {}),
                        ([("rating", DESCENDING)], {}), ([("guild_id", ASCENDING)], {}),
                        ([("tower.wk", ASCENDING), ("tower.wk_best", DESCENDING)], {})],
         "inventories": [([("user_id", ASCENDING)], U)],
         "registration": [([("user_id", ASCENDING)], U)],
+        "inputs": [([("user_id", ASCENDING)], {})],
+        "admin_pending": [],
         "cooldowns": [([("key", ASCENDING)], U), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
         "daily_claims": [([("user_id", ASCENDING), ("day", ASCENDING)], U)],
         "transactions": [([("tx_key", ASCENDING)], U), ([("user_id", ASCENDING), ("at", DESCENDING)], {})],

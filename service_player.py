@@ -47,13 +47,23 @@ async def get_user(uid: int):
     return await col("users").find_one({"telegram_id": uid})
 
 
+_touch_cache: dict = {}  # uid -> (monotonic time of last write, (username, first_name)): skips a write per message
+
+
 async def touch_user(tg_user, ref=None):
+    key = (tg_user.username, (tg_user.first_name or "")[:40])
+    hit = _touch_cache.get(tg_user.id)
+    if hit and hit[1] == key and time.monotonic() - hit[0] < 60:
+        return False
     now = int(time.time())
     res = await col("users").update_one(
         {"telegram_id": tg_user.id},
         {"$setOnInsert": {"telegram_id": tg_user.id, "created_at": now, "referred_by": ref},
          "$set": {"username": tg_user.username, "first_name": (tg_user.first_name or "")[:40], "last_seen": now}},
         upsert=True)
+    if len(_touch_cache) > 20000:
+        _touch_cache.clear()
+    _touch_cache[tg_user.id] = (time.monotonic(), key)
     return res.upserted_id is not None
 
 

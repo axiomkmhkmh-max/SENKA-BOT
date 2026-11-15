@@ -89,8 +89,8 @@ TEXT = {
  "boss_e_level": "نیاز به سطح {n}.", "boss_e_noreg": "اول کاراکتر بساز.", "boss_e_gone": "باس رفته است (فرار کرد).", "boss_e_dead": "☠️ باس قبلاً شکست خورده است.", "boss_e_evade": "💨 باس از ضربه‌ات گذشت!", "boss_e_miss": "💨 ضربه‌ات هوا را شکافت!",
  "adm_noperm": "اجازه نداری.", "adm_done": "✅ انجام شد.", "adm_fail": "❌ ناموفق.", "adm_nouser": "کاربر پیدا نشد.", "adm_spawn_group": "«spawn boss» را داخل گروه بفرست.", "adm_broadcast_started": "📣 ارسال همگانی شروع شد.",
  "adm_confirm_ask": "⚠️ ریست بازیکن {tid}؟ بفرست: confirm {code} (۲ دقیقه اعتبار)",
- "adm_usage_ban": "ban <id> [reason]", "adm_usage_unban": "unban <id>", "adm_usage_warn": "warn <id> [reason]", "adm_usage_mute": "mute <id>", "adm_usage_user": "user <id>", "adm_usage_give": "give|take <id> coins|xp <n>  یا  give|take <id> item <item_id> [n]",
- "adm_usage_take": "take <id> coins <n>", "adm_usage_reset": "reset <id>", "adm_usage_set": "set <key> <value>", "adm_usage_item": "item <id> base_price|sell_price|attack|level_req <n>", "adm_usage_addadmin": "addadmin <id> [role]", "adm_usage_broadcast": "broadcast fa|en|all <متن>",
+ "adm_usage_ban": "ban &lt;id&gt; [reason]", "adm_usage_unban": "unban &lt;id&gt;", "adm_usage_warn": "warn &lt;id&gt; [reason]", "adm_usage_mute": "mute &lt;id&gt;", "adm_usage_user": "user &lt;id&gt;", "adm_usage_give": "give|take &lt;id&gt; coins|xp &lt;n&gt;  یا  give|take &lt;id&gt; item &lt;item_id&gt; [n]",
+ "adm_usage_take": "take &lt;id&gt; coins &lt;n&gt;", "adm_usage_reset": "reset &lt;id&gt;", "adm_usage_set": "set &lt;key&gt; &lt;value&gt;", "adm_usage_item": "item &lt;id&gt; base_price|sell_price|attack|level_req &lt;n&gt;", "adm_usage_addadmin": "addadmin &lt;id&gt; [role]", "adm_usage_broadcast": "broadcast fa|en|all &lt;متن&gt;",
  "adm_dash": "👥 کاربران {users} (جدید ۲۴ساعت {new}، فعال {active}، آنلاین {online})\n🧙 کاراکترها {chars}\n⚔️ نبردها ۲۴ساعت {fights} | 👹 باس‌کشی {kills}\n🪙 سکه‌ی موجود در اقتصاد {coins}\n🌐 فارسی {fa} / انگلیسی {en}\n🏷️ آگهی فعال {listings}",
  "adm_help": "دستورها: stats, user, ban, unban, warn, give, take, item, set, maintenance on|off, broadcast, reset + confirm, addadmin/rmadmin (مالک), spawn boss (در گروه).",
  "b_forge": "🔨 آهنگری", "b_forge_go": "🔨 ضربه به تیغه!", "ttl_frg": "آهنگری روح",
@@ -194,7 +194,7 @@ TEXT.update({
  "ef_cosmetic": "{icon} {slot} کنار نامت · شهرت +{fame}", "ef_evo": "با پیروزی در آزمون تکامل نژاد مصرف می‌شود.", "ef_egg": "همراهی با نقش واقعی در نبرد یا شکار از آن بیرون می‌آید.",
  "ef_key": "دانجن را باز می‌کند، یا به رویداد دنیا هدیه می‌شود: +{pts} امتیاز.", "ef_armor": "در کارگاه می‌توان آن را برای دفاع بیشتر آبدیده کرد.", "ef_luck": "شانس +{n}: دراپ نایاب‌تر.", "ef_almighty": "چشم یوهاباخ: تا {m} دقیقه، اولین ضربه‌ی کشنده‌ی هر نبرد فقط یک تکه جان از تو می‌گیرد.", "ef_konpaku": "طلسم دوئل: یک جان کونپاکوی اضافه برای {m} دقیقه.",
  "adm_world": "🌍 تهدید {threat} | ثبات {stab}\nریشی: {rei}\nرویداد: {ev}\nباس: {boss}\nفصل: {season}",
- "adm_usage_world": "world | world set threat|stability <0-100> | world set reishi <loc> <0-100> | world reset | world event garganta|siege|wandenreich|end | world boss spawn|end | world season end | world territory reset <loc>",
+ "adm_usage_world": "world | world set threat|stability &lt;0-100&gt; | world set reishi &lt;loc&gt; &lt;0-100&gt; | world reset | world event garganta|siege|wandenreich|end | world boss spawn|end | world season end | world territory reset &lt;loc&gt;",
 })
 
 # ---- پاس لحن بلیچی: لور عمیق‌تر، جمله‌ی سرفصل و نسخه‌های متنوع ----
@@ -305,12 +305,12 @@ TEXT.update({'ttl_home':'جامعه ارواح','m_home':'🏯 جامعه ارو
  'error_garganta':'⚠️ گارگانتا لرزید. دوباره تلاش کن.',
  'lg_mask_lost':'🎭 {a} کنترل را از دست داد؛ هالوی درونش حرکت را می‌بلعد!','lg_mask_lost_2':'🎭 ماسکِ {a} غرید و نوبت را بلعید!'})
 TEXT.update({
- 'adm_usage_ban':'بن <آیدی> [دلیل]','adm_usage_unban':'آنبن <آیدی>','adm_usage_warn':'اخطار <آیدی> [دلیل]','adm_usage_mute':'سکوت <آیدی>','adm_usage_user':'کاربر <آیدی>',
- 'adm_usage_give':'بده|بگیر <آیدی> سکه|تجربه <تعداد>  یا  بده|بگیر <آیدی> آیتم <شناسه‌ی آیتم> [تعداد]','adm_usage_take':'بگیر <آیدی> سکه <تعداد>',
- 'adm_usage_reset':'ریست <آیدی>','adm_usage_set':'تنظیم <کلید> <مقدار>\n(کلیدها انگلیسی‌اند؛ نام فارسی هرکدام در «تنظیمات بازی» داخل پنل هست)',
- 'adm_usage_item':'آیتم <شناسه> قیمت_پایه|قیمت_فروش|حمله|سطح_لازم <عدد>','adm_usage_addadmin':'افزودن ادمین <آیدی> [نقش]  (نقش: ادمین، ناظر، پشتیبان، سوپر)\nحذف ادمین <آیدی>',
- 'adm_usage_broadcast':'پیام همگانی فارسی|انگلیسی|همه <متن>',
- 'adm_usage_world':'دنیا\nدنیا تنظیم تهدید|ثبات <۰-۱۰۰>\nدنیا تنظیم ریشی <منطقه> <۰-۱۰۰>  (شناسه‌ی منطقه انگلیسی است)\nدنیا ریست\nدنیا رویداد گارگانتا|محاصره|وندن‌رایش|جنگ_زمستانی|دانگای|پایان\nدنیا باس ظهور|پایان\nدنیا فصل پایان\nدنیا قلمرو ریست <منطقه>',
+ 'adm_usage_ban':'بن &lt;آیدی&gt; [دلیل]','adm_usage_unban':'آنبن &lt;آیدی&gt;','adm_usage_warn':'اخطار &lt;آیدی&gt; [دلیل]','adm_usage_mute':'سکوت &lt;آیدی&gt;','adm_usage_user':'کاربر &lt;آیدی&gt;',
+ 'adm_usage_give':'بده|بگیر &lt;آیدی&gt; سکه|تجربه &lt;تعداد&gt;  یا  بده|بگیر &lt;آیدی&gt; آیتم &lt;شناسه‌ی آیتم&gt; [تعداد]','adm_usage_take':'بگیر &lt;آیدی&gt; سکه &lt;تعداد&gt;',
+ 'adm_usage_reset':'ریست &lt;آیدی&gt;','adm_usage_set':'تنظیم &lt;کلید&gt; &lt;مقدار&gt;\n(کلیدها انگلیسی‌اند؛ نام فارسی هرکدام در «تنظیمات بازی» داخل پنل هست)',
+ 'adm_usage_item':'آیتم &lt;شناسه&gt; قیمت_پایه|قیمت_فروش|حمله|سطح_لازم &lt;عدد&gt;','adm_usage_addadmin':'افزودن ادمین &lt;آیدی&gt; [نقش]  (نقش: ادمین، ناظر، پشتیبان، سوپر)\nحذف ادمین &lt;آیدی&gt;',
+ 'adm_usage_broadcast':'پیام همگانی فارسی|انگلیسی|همه &lt;متن&gt;',
+ 'adm_usage_world':'دنیا\nدنیا تنظیم تهدید|ثبات &lt;۰-۱۰۰&gt;\nدنیا تنظیم ریشی &lt;منطقه&gt; &lt;۰-۱۰۰&gt;  (شناسه‌ی منطقه انگلیسی است)\nدنیا ریست\nدنیا رویداد گارگانتا|محاصره|وندن‌رایش|جنگ_زمستانی|دانگای|پایان\nدنیا باس ظهور|پایان\nدنیا فصل پایان\nدنیا قلمرو ریست &lt;منطقه&gt;',
  'adm_confirm_ask':'⚠️ ریست بازیکن {tid}؟ بفرست: تایید {code} (۲ دقیقه اعتبار)',
  'adm_spawn_group':'«ظهور باس» را داخل گروه بفرست.',
  'adm_help':'دستورها: آمار، کاربر، بن، آنبن، اخطار، سکوت، بده، بگیر، آیتم، تنظیم، تعمیرات روشن|خاموش، پیام همگانی، ریست + تایید، افزودن ادمین / حذف ادمین (مالک)، دنیا، ظهور باس (در گروه).',
