@@ -349,6 +349,8 @@ async def economy_panel(ctx, arg):
              (T(ctx, "🔮 گرفتن هسته", "🔮 Take cores"), "adq", "take_cores")],
             [(T(ctx, "🎒 دادن آیتم", "🎒 Give item"), "adq", "give_item"),
              (T(ctx, "🎒 گرفتن آیتم", "🎒 Take item"), "adq", "take_item")],
+            [(T(ctx, "📋 انتخاب آیتم از لیست", "📋 Pick item from list"), "adi", ""),
+             (T(ctx, "🎴 دادن احضار", "🎴 Give summon"), "adz", "")],
             _back(ctx)]
     return Out(head(ctx, "ttl_adm") + T(ctx, "یک عملیات اقتصادی را انتخاب کن. هر کار در لاگ ثبت می‌شود.",
                                           "Pick an economy action. Every change is logged."), rows)
@@ -365,6 +367,8 @@ async def world_panel(ctx, arg):
     if lvl >= 60:
         rows.append([(T(ctx, "👹 اسپان باس جهانی", "👹 Spawn world boss"), "adw_do", "boss_spawn"),
                      (T(ctx, "🛑 پایان باس", "🛑 End boss"), "adw_do", "boss_end")])
+        rows.append([(T(ctx, "👹 انتخاب باس از لیست", "👹 Pick a boss"), "adbs", "0"),
+                     (T(ctx, "🌀 انتخاب رویداد", "🌀 Pick an event"), "adev", "")])
         rows.append([(T(ctx, "🎯 تنظیم تهدید/ثبات", "🎯 Set threat/stability"), "adq", "worldset")])
     if lvl >= 80:
         rows.append([(T(ctx, "♻️ ریست دنیا", "♻️ Reset world"), "adw_do", "reset")])
@@ -713,6 +717,10 @@ async def _run_input(ctx, name, pend, raw):
         await alog(ctx.uid, "set", key, old, new, "panel")
         return Out(head(ctx, "ttl_adm") + f"✅ {key} = {new}", [_back(ctx, "ads", "0")])
 
+    from handlers_adminplus import run_input as _plus_input  # picker steps (item / summon): own module
+    res = await _plus_input(ctx, name, pend, raw)
+    if res is not None:
+        return res
     raise ValueError(raw)
 
 
