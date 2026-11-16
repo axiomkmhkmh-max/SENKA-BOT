@@ -5,7 +5,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from data_races import OLD_RACE_BASE, RACES, STATS, rebased_stats  # noqa: E402
+from data_races import OLD_RACE_BASE, PREV_RACE_BASE, RACES, STATS, rebased_stats  # noqa: E402
 from data_race_rules import RACE_ABILITIES  # noqa: E402
 
 
@@ -29,8 +29,9 @@ class RaceBalanceTests(unittest.TestCase):
                 elif mod == "xp":
                     self.assertLessEqual(val, 1.15, key)
                 else:
-                    self.assertLessEqual(val, 1.10, key)
-                    self.assertGreaterEqual(val, 1.0, key)
+                    # hp / dmg / def / kido: small in either direction (second balance pass, no race is far above or below 1.0)
+                    self.assertLessEqual(val, 1.12 + 1e-9, key)
+                    self.assertGreaterEqual(val, 0.88 - 1e-9, key)
 
     def test_shinigami_and_visored_keep_kido_and_bankai_paths(self):
         self.assertTrue({"shinigami", "visored"} <= set(RACE_ABILITIES["bk"]))
@@ -57,6 +58,25 @@ class RebaseTests(unittest.TestCase):
         for race, old in OLD_RACE_BASE.items():
             stats = dict(zip(STATS, old))
             self.assertEqual(rebased_stats(race, stats), {k: RACES[race]["stats"][k] for k in STATS})
+
+    def test_second_pass_keeps_allocated_points(self):
+        for race, prev in PREV_RACE_BASE.items():
+            spent = {"zanjutsu": 4, "kido": 1, "hakuda": 6, "hoho": 0, "reiatsu": 3}
+            stats = {k: prev[i] + spent[k] for i, k in enumerate(STATS)}
+            new = rebased_stats(race, stats, old_base=prev)
+            for k in STATS:
+                self.assertEqual(new[k], RACES[race]["stats"][k] + spent[k], (race, k))
+
+    def test_first_pass_now_targets_the_previous_base(self):
+        for race, old in OLD_RACE_BASE.items():
+            stats = dict(zip(STATS, old))
+            self.assertEqual(rebased_stats(race, stats, new_base=PREV_RACE_BASE[race]), dict(zip(STATS, PREV_RACE_BASE[race])))
+
+    def test_context_multipliers_stay_near_one(self):
+        from data_race_rules import RACE_CONTEXT_DMG
+        for race, ctxs in RACE_CONTEXT_DMG.items():
+            for c, v in ctxs.items():
+                self.assertTrue(0.92 - 1e-9 <= v <= 1.08 + 1e-9, (race, c, v))
 
     def test_rebase_is_never_negative(self):
         new = rebased_stats("human", {"zanjutsu": 0, "kido": 0, "hakuda": 0, "hoho": 0, "reiatsu": 0})

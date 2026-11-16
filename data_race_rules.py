@@ -34,16 +34,18 @@ def race_allows(race, action):
 # Damage multiplier a race deals in each fight context. Race strength is meant to show up differently in each
 # kind of fight (PvP duel, Hollow foe, Boss), while every race ends up with about the same win rate.
 # Contexts: "pvp" = duel against a player, "hollow" = wild Hollow foe, "boss" = dungeon / tower boss,
-# "pve" = other wild enemies, "world_boss" = shared-HP world boss (each hit counts). Tuned with balance_sim.py at level ~40 (equal allocated points, same weapon and armour) for the standard loadout:
-# general skill Strike for everyone, plus Zangetsu's blade technique for Shinigami and Visored. Win rates: all races 46-53% in every fight type.
+# "pve" = other wild enemies, "world_boss" = shared-HP world boss (each hit counts).
+# These are only residual fine-tuning (every value within 0.92-1.08). The real balance lives in the race base stats and mods
+# (data_races.py). Tuned with balance_sim.py at level ~40 (equal allocated points, same weapon and armour) for the standard loadout:
+# Strike for everyone; Zangetsu's technique and Hadō 1 and 4 for Shinigami and Visored. Win rates: every race 45-54% in every fight type.
 RACE_CONTEXT_DMG = {
-    "shinigami": {"pvp": 1.094, "hollow": 1.251, "boss": 1.180, "pve": 1.121, "world_boss": 1.001},
-    "quincy": {"pvp": 1.092, "hollow": 1.264, "boss": 1.165, "pve": 1.099, "world_boss": 1.006},
-    "hollow": {"pvp": 0.806, "hollow": 0.897, "boss": 0.840, "pve": 0.777, "world_boss": 1.037},
-    "arrancar": {"pvp": 0.774, "hollow": 0.883, "boss": 0.823, "pve": 0.749, "world_boss": 0.979},
-    "fullbringer": {"pvp": 1.026, "hollow": 1.182, "boss": 1.101, "pve": 1.063, "world_boss": 1.002},
-    "human": {"pvp": 1.058, "hollow": 1.125, "boss": 1.141, "pve": 1.074, "world_boss": 1.011},
-    "visored": {"pvp": 1.106, "hollow": 1.248, "boss": 1.183, "pve": 1.138, "world_boss": 0.999},
+    "shinigami": {"pvp": 0.920, "hollow": 1.080, "boss": 0.961, "pve": 0.921, "world_boss": 1.007},
+    "quincy": {"pvp": 0.931, "hollow": 1.047, "boss": 0.972, "pve": 0.931, "world_boss": 0.922},
+    "hollow": {"pvp": 0.974, "hollow": 1.051, "boss": 0.966, "pve": 0.928, "world_boss": 1.076},
+    "arrancar": {"pvp": 0.981, "hollow": 1.035, "boss": 0.979, "pve": 0.954, "world_boss": 1.071},
+    "fullbringer": {"pvp": 0.961, "hollow": 1.065, "boss": 0.973, "pve": 0.939, "world_boss": 0.977},
+    "human": {"pvp": 0.965, "hollow": 0.959, "boss": 1.004, "pve": 0.953, "world_boss": 0.928},
+    "visored": {"pvp": 0.947, "hollow": 1.080, "boss": 1.021, "pve": 0.946, "world_boss": 0.958},
 }
 
 

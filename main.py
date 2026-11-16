@@ -93,9 +93,10 @@ async def main():
     validate_settings()
     await connect_db()
     await seed()
-    from service_respec import rebase_race_stats_once
+    from service_respec import rebase_race_stats_once, rebase_race_stats_v3_once
     try:
         log.info("race rebase: %s character(s) moved", await rebase_race_stats_once())
+        log.info("race rebase v3: %s character(s) moved", await rebase_race_stats_v3_once())
     except Exception:
         log.exception("race rebase failed; it will retry on next start")
     runner = await health_server()

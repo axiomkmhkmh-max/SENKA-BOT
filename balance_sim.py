@@ -19,6 +19,25 @@ def max_hp(level, hakuda, mult=1.0):
 def max_reiatsu(level, reiatsu):
     return int(50 + level * 15 + reiatsu * 12)
 
+# Standard Hadō list of a level-40 Shinigami / Visored. Balance of the kidō races depends heavily on this choice.
+STD_HADO = (1, 4)
+KD_CHANCE = 0.4   # a human player casts a Hadō on roughly this share of turns when one is available
+
+
+def _player_policy():
+    """Players pick their own actions; the production AI almost never casts Hadō, so the simulator makes a player-like choice."""
+    base = E.ai_choose
+
+    def choose(state, side, rng):
+        f = state[side]
+        if not f.get("ai") and E.can(f, "kd") and rng.random() < KD_CHANCE:
+            return "kd"
+        return base(state, side, rng)
+    E.ai_choose = choose
+
+
+_player_policy()
+
 # Standard loadout: everyone has the general Strike skill; Shinigami and Visored also have Zangetsu's blade technique.
 # Hyorinmaru (owner-only) is not part of the standard loadout.
 def loadout(race):
@@ -29,7 +48,7 @@ def player(race):
     r = RACES[race]
     stats = {k: v + ALLOC for k, v in r["stats"].items()}
     mods = dict(r["mods"])
-    kido = {"had": [1], "bak": [1]} if race in ("shinigami", "visored") else {"had": [], "bak": []}
+    kido = {"had": list(STD_HADO), "bak": [1]} if race in ("shinigami", "visored") else {"had": [], "bak": []}
     return E.new_fighter(race, LEVEL, stats, max_hp(LEVEL, soft_stat(stats["hakuda"]), mods.get("hp", 1.0)),
                          max_reiatsu(LEVEL, soft_stat(stats["reiatsu"])), dict(WEAPON), armor=ARMOR, mods=mods,
                          kido=kido, race=race, sig=sig_for(race), **loadout(race))

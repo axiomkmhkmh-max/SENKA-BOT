@@ -153,3 +153,15 @@
   The lock is only as good as OWNER_ID (env). If the settings document znp_owner_only is written, it replaces the default list, so keep hyorinmaru in it.
 - Zanpakutō panel: an owner-only blade is hidden from players who are not the owner.
 - Stronger: shikai bonus 4% -> 8%, bankai bonus 7% -> 12%, attack style dmg x1.10 -> x1.15, technique x1.40 with 50% armour pierce and a 2-turn cooldown.
+
+## Second balance pass: structural balance, multipliers near 1.0 (data_races.py, data_race_rules.py, balance_sim.py, service_respec.py, main.py)
+- Finding: with every fight-type multiplier at 1.0 the old bases gave Hollow/Arrancar about 75-80% and Shinigami/Visored about 35%.
+  The old multipliers (0.77-1.26) were hiding that. Equal base totals are not equal power: Kidō and Reiatsu points are worth less than
+  Zanjutsu, Hakuda and Hōhō for a race that cannot cast.
+- Fix: base stats (total still 40) and the hp/dmg/def mods were re-tuned; every `RACE_CONTEXT_DMG` value is now within 0.92-1.08.
+  Result in balance_sim.py (standard loadout): every race wins 45-54% in duels, Hollow foes, bosses and wild enemies; world-boss damage per hit 99-103 (100 = average).
+- New bases (zanjutsu, kidō, hakuda, hōhō, reiatsu): Shinigami 8/9/5/10/8, Quincy 4/3/9/10/14, Hollow 6/2/10/9/13, Arrancar 10/2/8/11/9, Fullbringer 8/2/8/10/12, Human 9/3/8/11/9, Visored 10/5/6/10/9.
+- Mods: Quincy dmg +12% def +3% hp +9%, Hollow dmg -6% hp +2%, Arrancar dmg -9% hp -2% (def bonus removed), Fullbringer hp +12%, Human dmg +6% def -3% hp +9%, Visored dmg +3% hp +3% (def bonus removed).
+- Existing characters: new once-only migration `race_base_v3` (service_respec.rebase_race_stats_v3_once, runs after v2 in main.py) moves each character from PREV_RACE_BASE to the new base and keeps every allocated point. The v2 migration now targets PREV_RACE_BASE so a database that has not run v2 yet is moved in two correct steps.
+- Standard loadout assumed by the simulator: general skill Strike for everyone; Zangetsu's blade technique and Hadō 1 and 4 for Shinigami and Visored (they cast Hadō on ~40% of turns when one is available). Kidō-race balance depends strongly on the Hadō list: with Hadō 31 a Shinigami wins ~94%, with Hadō 1 only ~19%. Change STD_HADO / KD_CHANCE in balance_sim.py and re-run when kidō is rebalanced.
+- Not covered: Hyōrinmaru (owner-only), blade-by-blade technique balance, Bankai/Resurrección releases and Xcution.

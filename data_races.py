@@ -10,23 +10,23 @@ def _r(fa, en, st, home, mods, evo, locked=False):
 
 
 RACES = {
-    "shinigami": _r("شینیگامی", "Shinigami", (10, 9, 6, 8, 7), "soul_society", {"kido": 1.05},
+    "shinigami": _r("شینیگامی", "Shinigami", (8, 9, 5, 10, 8), "soul_society", {"kido": 1.05},
                     [("دانشجو", "Academy Student"), ("عضو رسمی", "Officer Seat"), ("افسر", "Lieutenant Rank"),
                      ("ستوان", "Vice Captain"), ("کاپیتان", "Captain")]),
-    "quincy": _r("کوئینسی", "Quincy", (6, 3, 7, 9, 15), "wandenreich", {"pierce": 0.10},
+    "quincy": _r("کوئینسی", "Quincy", (4, 3, 9, 10, 14), "wandenreich", {"pierce": 0.10, "dmg": 1.12, "def": 1.03, "hp": 1.09},
                  [("شاگرد", "Apprentice"), ("کوئینسی", "Quincy"), ("استرنریتر", "Sternritter"),
                   ("استرنریتر نخبه", "Elite Sternritter")]),
-    "hollow": _r("هالو", "Hollow", (7, 2, 12, 8, 11), "hueco_mundo", {"hp": 1.08},
+    "hollow": _r("هالو", "Hollow", (6, 2, 10, 9, 13), "hueco_mundo", {"dmg": 0.94, "hp": 1.02},
                  [("هالو", "Hollow"), ("گیلیان", "Gillian"), ("آجوکاس", "Adjuchas"),
                   ("واستو لورد", "Vasto Lorde"), ("آرانکار", "Arrancar Ascendant")]),
-    "arrancar": _r("آرانکار", "Arrancar", (10, 2, 8, 10, 10), "las_noches", {"def": 1.06, "hp": 1.04, "dmg": 1.03},
+    "arrancar": _r("آرانکار", "Arrancar", (10, 2, 8, 11, 9), "las_noches", {"dmg": 0.91, "hp": 0.98},
                    [("پایه", "Base Arrancar"), ("فراسیون", "Fracción"), ("کاندیدای اسپادا", "Espada Candidate"),
                     ("اسپادا", "Espada")]),
-    "fullbringer": _r("فول‌برینگر", "Fullbringer", (8, 2, 8, 9, 13), "karakura", {"crit": 0.04},
+    "fullbringer": _r("فول‌برینگر", "Fullbringer", (8, 2, 8, 10, 12), "karakura", {"crit": 0.04, "hp": 1.12},
                       [("بیدار", "Awakened"), ("ماهر", "Skilled"), ("استاد", "Master")]),
-    "human": _r("انسان / روح", "Human / Soul", (8, 3, 9, 10, 10), "karakura", {"xp": 1.10, "crit": 0.03},
+    "human": _r("انسان / روح", "Human / Soul", (9, 3, 8, 11, 9), "karakura", {"xp": 1.10, "crit": 0.03, "dmg": 1.06, "def": 0.97, "hp": 1.09},
                 [("روح سرگردان", "Wandering Soul"), ("روح بیدار", "Awakened Soul"), ("روح قدرتمند", "Potent Soul")]),
-    "visored": _r("ویزورد", "Visored", (8, 7, 8, 8, 9), "karakura", {"dmg": 1.03, "def": 1.03},
+    "visored": _r("ویزورد", "Visored", (10, 5, 6, 10, 9), "karakura", {"dmg": 1.03, "hp": 1.03},
                   [("هولوفیکیشن", "Hollowfication"), ("ماسک کنترل‌شده", "Controlled Mask"), ("پیشرفته", "Advanced")],
                   locked=True),
 }
@@ -41,10 +41,20 @@ OLD_RACE_BASE = {
 }
 
 
-def rebased_stats(race: str, stats: dict) -> dict:
-    """New absolute stats for a character of `race`: new base + the points allocated over the old base."""
-    old = dict(zip(STATS, OLD_RACE_BASE[race]))
-    new = RACES[race]["stats"]
+# Bases before the second balance pass (equal win rates at ~1.0 multipliers). Characters that already moved onto these
+# are moved once more by service_respec.rebase_race_stats_v3_once.
+PREV_RACE_BASE = {
+    "shinigami": (10, 9, 6, 8, 7), "quincy": (6, 3, 7, 9, 15), "hollow": (7, 2, 12, 8, 11),
+    "arrancar": (10, 2, 8, 10, 10), "fullbringer": (8, 2, 8, 9, 13), "human": (8, 3, 9, 10, 10),
+    "visored": (8, 7, 8, 8, 9),
+}
+
+
+def rebased_stats(race: str, stats: dict, old_base=None, new_base=None) -> dict:
+    """New absolute stats for a character of `race`: new base + the points allocated over the old base.
+    Defaults: OLD_RACE_BASE -> the current RACES base."""
+    old = dict(zip(STATS, old_base if old_base is not None else OLD_RACE_BASE[race]))
+    new = dict(zip(STATS, new_base)) if new_base is not None else RACES[race]["stats"]
     return {k: int(new[k]) + max(0, int(stats.get(k, 0)) - old[k]) for k in STATS}
 
 

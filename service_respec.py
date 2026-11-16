@@ -31,16 +31,35 @@ REBASE_ID = "race_base_v2"
 async def rebase_race_stats_once() -> int:
     """Move existing characters onto the rebalanced race bases. Runs once (marker in `migrations`).
     Characters created after the marker are already on the new base, so they are never touched again."""
-    from data_races import OLD_RACE_BASE, rebased_stats
+    from data_races import OLD_RACE_BASE, PREV_RACE_BASE, rebased_stats
     if await col("migrations").find_one({"_id": REBASE_ID}):
         return 0
     moved, failed = 0, 0
     async for ch in col("characters").find({"race": {"$in": list(OLD_RACE_BASE)}}, {"user_id": 1, "race": 1, "stats": 1}):
-        new = rebased_stats(ch["race"], ch.get("stats") or {})
+        new = rebased_stats(ch["race"], ch.get("stats") or {}, new_base=PREV_RACE_BASE[ch["race"]])
         r = await col("characters").update_one({"_id": ch["_id"], "stats": ch.get("stats") or {}}, {"$set": {"stats": new}})
         moved += int(bool(r.modified_count))
         failed += int(not r.modified_count)
     await col("migrations").update_one({"_id": REBASE_ID}, {"$set": {"moved": moved, "failed": failed, "at": int(time.time())}}, upsert=True)
+    return moved
+
+
+REBASE_V3_ID = "race_base_v3"
+
+
+async def rebase_race_stats_v3_once() -> int:
+    """Second balance pass: move characters from the previous race bases onto the current ones, keeping every point
+    they allocated. Runs once (marker in `migrations`); runs after rebase_race_stats_once, which now targets PREV_RACE_BASE."""
+    from data_races import PREV_RACE_BASE, rebased_stats
+    if await col("migrations").find_one({"_id": REBASE_V3_ID}):
+        return 0
+    moved, failed = 0, 0
+    async for ch in col("characters").find({"race": {"$in": list(PREV_RACE_BASE)}}, {"user_id": 1, "race": 1, "stats": 1}):
+        new = rebased_stats(ch["race"], ch.get("stats") or {}, old_base=PREV_RACE_BASE[ch["race"]])
+        r = await col("characters").update_one({"_id": ch["_id"], "stats": ch.get("stats") or {}}, {"$set": {"stats": new}})
+        moved += int(bool(r.modified_count))
+        failed += int(not r.modified_count)
+    await col("migrations").update_one({"_id": REBASE_V3_ID}, {"$set": {"moved": moved, "failed": failed, "at": int(time.time())}}, upsert=True)
     return moved
 
 
