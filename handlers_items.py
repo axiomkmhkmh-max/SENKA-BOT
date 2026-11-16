@@ -684,9 +684,9 @@ async def gacha_sell_list(ctx, arg):
     if pg:
         rows.append(pg)
     rows.append(nav(ctx, ("gch", "")))
-    body = ("اینجا احضارهایی که داری و قیمت فروششون. فروش همه‌ی نسخه‌های یک احضار با هم انجام میشه و از پارتی هم حذف میشه."
+    body = ("اینجا احضارهایی که داری و قیمت فروششون. روی هر احضار بزن و تعداد فروش رو (×۱، ×۵، ×۱۰ یا همه) انتخاب کن. فقط با فروش همه‌ی نسخه‌ها از پارتی حذف میشه."
             if L == "fa" else
-            "Summons you own and what each one sells for. A sale takes every copy of that summon and removes it from the party.")
+            "Summons you own and what each one sells for. Tap one and pick how many copies to sell (×1, ×5, ×10 or all). It leaves the party only when every copy is sold.")
     if owned:
         body += "\n✅ = در پارتی (فعال)" if L == "fa" else "\n✅ = in your party (active)"
     else:
@@ -696,32 +696,45 @@ async def gacha_sell_list(ctx, arg):
 
 @action("gsc")
 async def gacha_sell_confirm(ctx, arg):
-    """Confirm step: a sale is permanent, so it always gets a second tap."""
+    """Pick how many copies to sell (like the shop's quantity row), then confirm: a sale is permanent."""
     L = ctx.lang
-    cid, _, page = arg.partition(".")
+    cid, _, rest = arg.partition(".")
+    page, _, q = rest.partition(".")
     g = await gacha_doc(ctx.uid)
     copies = int(g["chars"].get(cid, 0) or 0)
     if copies <= 0:
         return Out(alert=("این احضار دیگه مال تو نیست." if L == "fa" else "You no longer own this summon."))
+    n = copies if q == "all" else max(1, min(int(q or 1), copies))
     st = await game_settings()
-    pay = char_sell_value(cid, copies, float(st.get("coin_rate", 1.0)))
+    rate = float(st.get("coin_rate", 1.0))
     c = CHAR_BY_ID[cid]
     name = c["name_fa" if L == "fa" else "name_en"]
     active = (cid in ((await get_char(ctx.uid) or {}).get("party") or []))
-    body = (("✅ در پارتی (فعال)\n" if active else "") + f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> ×{fnum(copies, L)}\n"
-            f"برای فروش: {fnum(pay, L)} 🪙. این کار برگشت ندارد.\n"
+    lines = []
+    qopts = [x for x in (1, 5, 10) if x < copies] + [copies]
+    for x in qopts:
+        lines.append(f"×{fnum(x, L)} → {fnum(char_sell_value(cid, x, rate), L)} 🪙")
+    pay = char_sell_value(cid, n, rate)
+    rm = n >= copies
+    body = ((("✅ در پارتی (فعال)\n" if active else "") + f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> (داری: {fnum(copies, L)})\n"
+             + "\n".join(lines) + f"\n\nانتخاب تو: ×{fnum(n, L)} = {fnum(pay, L)} 🪙"
+             + ("\n⚠️ با فروش همه‌ی نسخه‌ها از پارتی هم حذف میشه." if rm and active else "") + "\nاین کار برگشت ندارد.")
             if L == "fa" else
-            ("✅ In your party (active)\n" if active else "") + f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> ×{fnum(copies, L)}\n"
-            f"Sells for {fnum(pay, L)} 🪙. This cannot be undone.\n")
-    rows = [[("✅ فروش" if L == "fa" else "✅ Sell", "gsy", f"{cid}.{page or 0}")], nav(ctx, ("gsl", page or "0"))]
+            ((("✅ In your party (active)\n" if active else "") + f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> (you own {fnum(copies, L)})\n"
+              + "\n".join(lines) + f"\n\nYour pick: ×{fnum(n, L)} = {fnum(pay, L)} 🪙"
+              + ("\n⚠️ Selling every copy also removes it from the party." if rm and active else "") + "\nThis cannot be undone.")))
+    pg = page or "0"
+    qrow = [(f"{'🟢 ' if (x == n) else ''}×{fnum(x, L)}", "gsc", f"{cid}.{pg}.{'all' if x == copies else x}") for x in qopts]
+    rows = [qrow, [("✅ فروش" if L == "fa" else "✅ Sell", "gsy", f"{cid}.{pg}.{'all' if rm else n}")], nav(ctx, ("gsl", pg))]
     return Out(head(ctx, "ttl_gch") + body, rows)
 
 
 @action("gsy")
 async def gacha_sell_do(ctx, arg):
     L = ctx.lang
-    cid, _, page = arg.partition(".")
-    status, pay = await sell_character(ctx.uid, cid)
+    cid, _, rest = arg.partition(".")
+    page, _, q = rest.partition(".")
+    status, pay = await sell_character(ctx.uid, cid, "all" if q in ("", "all") else q)
     if status != "ok":
         return Out(alert=("فروش انجام نشد، دوباره امتحان کن." if L == "fa" else "The sale did not go through. Try again."))
     out = await gacha_sell_list(ctx, page or "0")

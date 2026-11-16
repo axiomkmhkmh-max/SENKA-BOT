@@ -33,7 +33,7 @@ EVENTS = {
                    "mod_locs": ("karakura", "fake_karakura", "hueco_mundo", "las_noches", "forest_menos", "kurosaki_clinic", "las_noches_throne", "karakura_high", "riverbank", "orihime_chamber"),
                    "win": {"threat": -12.0, "stability": 8.0}, "lose": {"threat": 8.0, "stability": -10.0}},
     "dangai": {"icon": "🌌", "pts": {"explore": 1, "pve_win": 1, "elite_win": 2, "dungeon_clear": 6, "key": 1},
-               "locs": ("dangai", "royal_palace", "soul_king", "precipice_world", "zero_division_hall"), "mods": {"enemy": 1.20, "drop": 1.30, "xp": 1.30, "coin": 1.0},
+               "locs": None, "mods": {"enemy": 1.20, "drop": 1.30, "xp": 1.30, "coin": 1.0},  # None = anywhere: it used to count only at level 45+ places, so most players could never add a point
                "mod_locs": ("dangai", "royal_palace", "soul_king", "precipice_world", "zero_division_hall"),
                "win": {"threat": -5.0, "stability": 15.0}, "lose": {"threat": 4.0, "stability": -8.0}},
 }

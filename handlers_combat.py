@@ -226,6 +226,8 @@ async def _pve_result(ctx, doc, ev, o):
         rows.append([(ctx.t("b_next_stage"), "bn", o["next"])])
     elif o["dungeon_done"]:
         lines.append(ctx.t("dg_done"))
+        if o.get("dp"):
+            lines.append(f"💠 دانجن پوینت: +{fnum(o['dp'], L)}" if L == "fa" else f"💠 Dungeon Points: +{fnum(o['dp'], L)}")
     else:
         rows.append([(ctx.t("b_again"), "bs", "")])
     rows.append(nav(ctx))
@@ -338,8 +340,10 @@ async def dungeons(ctx, arg):
     for did, d in DUNGEONS.items():
         ok = ch["level"] >= d["level"]
         rows.append([(("🕳️ " if ok else "🔒 ") + f"{d['fa' if L == 'fa' else 'en']} ({fnum(d['level'], L)})", "dgd" if ok else "noop", did)])
+    rows.append([(("💠 شاپ دانجن" if L == "fa" else "💠 Dungeon Shop"), "dps", "")])
     rows.append(nav(ctx))
-    return Out(head(ctx, "ttl_dgn") + ctx.t("dgn_body"), rows)
+    dp = int(ch.get("dp", 0) or 0)
+    return Out(head(ctx, "ttl_dgn") + ctx.t("dgn_body") + (f"\n\n💠 دانجن پوینت: {fnum(dp, L)}" if L == "fa" else f"\n\n💠 Dungeon Points: {fnum(dp, L)}"), rows)
 
 
 @action("dgd")

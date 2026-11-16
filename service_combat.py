@@ -351,9 +351,9 @@ async def pve_settle(doc: dict):
         out["gang"] = await gang_rewards(uid, doc)
         from service_worldstate import on_action, territory_income
         out["terr"] = await territory_income(uid, doc["loc"], coins, xp)
-        chance = 1.0 if (doc["elite"] or (d and d["stage"] == d["total"])) else 0.35
-        if random.random() < chance:
-            iid = await roll_drop(uid, source_mult=2.0 if doc["elite"] else 1.0, floor_idx=2 if (d and d["stage"] == d["total"]) else 0)
+        chance = 1.0 if doc["elite"] else 0.35
+        if not d and random.random() < chance:  # dungeons drop no items any more: XP, coins and dungeon points (DP) instead
+            iid = await roll_drop(uid, source_mult=2.0 if doc["elite"] else 1.0)
             if await inv_add(uid, iid, 1):
                 out["drop"] = iid
             else:
@@ -373,6 +373,8 @@ async def pve_settle(doc: dict):
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)
+            from service_dungeonshop import award_dp
+            out["dp"] = await award_dp(uid, d)
             from service_cores import on_dungeon_clear  # rare Soul Core, abyss/legendary clears only
             await on_dungeon_clear(uid, d.get("diff", "normal"), d.get("id", ""))
             from data_races import unlocks_visored

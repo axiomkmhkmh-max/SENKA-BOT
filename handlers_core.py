@@ -16,6 +16,7 @@ import handlers_extras  # noqa: F401  (registers the new panels)
 import handlers_bleach  # noqa: F401  (allegiance panel)
 import handlers_zanpakuto  # noqa: F401 (Zanpakuto progression)
 import handlers_senkaimon  # noqa: F401 (Senkaimon portal)
+import handlers_dungeonshop  # noqa: F401 (dungeon points shop)
 import handlers_hollowraid
 import handlers_viral  # --- NEW BLEACH VIRAL SYSTEM
 import handlers_bleach_systems  # noqa: F401 (race, Kidō and faction progression)

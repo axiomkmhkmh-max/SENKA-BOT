@@ -457,21 +457,25 @@ def char_sell_value(cid: str, copies: int, coin_rate: float = 1.0) -> int:
     return max(1, int(base * max(1, int(copies)) * float(coin_rate)))
 
 
-async def sell_character(uid: int, cid: str) -> tuple:
-    """Sell a summoned character (all copies). Removes it from the party. Returns (status, coins)."""
+async def sell_character(uid: int, cid: str, qty=None) -> tuple:
+    """Sell copies of a summoned character: qty copies, or all of them when qty is None/'all'/>= what you own.
+    Selling every copy removes it from the party. Returns (status, coins)."""
     g = await gacha_doc(uid)
     copies = int(g["chars"].get(cid, 0) or 0)
     if copies <= 0:
         return "notowned", 0
+    n = copies if qty in (None, "all") else max(1, min(int(qty), copies))
     st = await game_settings()
-    pay = char_sell_value(cid, copies, float(st.get("coin_rate", 1.0)))
+    pay = char_sell_value(cid, n, float(st.get("coin_rate", 1.0)))
     # one atomic claim on the exact copy count: a double tap or a second window cannot sell it twice
-    r = await col("gacha").update_one({"user_id": uid, f"chars.{cid}": copies}, {"$unset": {f"chars.{cid}": ""}})
+    change = {"$unset": {f"chars.{cid}": ""}} if n >= copies else {"$inc": {f"chars.{cid}": -n}}
+    r = await col("gacha").update_one({"user_id": uid, f"chars.{cid}": copies}, change)
     if not r.modified_count:
         return "retry", 0
-    await col("characters").update_one({"user_id": uid}, {"$pull": {"party": cid}})
+    if n >= copies:
+        await col("characters").update_one({"user_id": uid}, {"$pull": {"party": cid}})
     await add_coins(uid, pay, "char_sell")
-    log_event("gacha", uid, f"فروش احضار {CHAR_BY_ID[cid]['name_fa']} ×{copies} → {pay:,} 🪙", char=cid, copies=copies)
+    log_event("gacha", uid, f"فروش احضار {CHAR_BY_ID[cid]['name_fa']} ×{n} → {pay:,} 🪙", char=cid, copies=n)
     return "ok", pay
 
 

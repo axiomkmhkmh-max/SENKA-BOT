@@ -1,0 +1,44 @@
+"""Dungeon shop: spend dungeon points (DP) on chests with coins or an item."""
+from fmt import nm
+from i18n import fnum
+from service_dungeonshop import BOXES, DP_BY_DIFF, DP_DAILY_CAP, buy_box, dp_balance
+from ui import Out, action, head, nav
+
+
+async def _shop(ctx, note=""):
+    L, fa = ctx.lang, ctx.lang == "fa"
+    bal = await dp_balance(ctx.uid)
+    lines = [(f"{b['icon']} {b['fa' if fa else 'en']}: {fnum(b['cost'], L)} 💠 → " +
+              (f"سکه ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) یا آیتم" if fa else
+               f"coins ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) or an item")) for b in BOXES.values()]
+    info = (f"با کلیر کامل هر دانجن دانجن پوینت می‌گیری (نرمال {DP_BY_DIFF['normal']}، لجندری {DP_BY_DIFF['legendary']} و هرچه دانجن سطح بالاتر، بیشتر). سقف روزانه: {fnum(DP_DAILY_CAP, L)}."
+            if fa else
+            f"Every full dungeon clear pays dungeon points (normal {DP_BY_DIFF['normal']}, legendary {DP_BY_DIFF['legendary']}, more in higher-level dungeons). Daily cap: {fnum(DP_DAILY_CAP, L)}.")
+    body = (f"💠 <b>{'شاپ دانجن' if fa else 'Dungeon Shop'}</b>\n{'موجودی' if fa else 'Balance'}: {fnum(bal, L)} 💠\n\n"
+            + "\n".join(lines) + "\n\n" + info + (("\n\n" + note) if note else ""))
+    rows = [[(f"{b['icon']} {b['fa' if fa else 'en']} · {fnum(b['cost'], L)}", "dpb", k)] for k, b in BOXES.items()]
+    rows.append(nav(ctx, ("dgn", "")))
+    return Out(head(ctx, "ttl_dgn") + body, rows)
+
+
+@action("dps")
+async def dungeon_shop(ctx, arg):
+    return await _shop(ctx)
+
+
+@action("dpb")
+async def dungeon_shop_buy(ctx, arg):
+    L, fa = ctx.lang, ctx.lang == "fa"
+    status, res = await buy_box(ctx.uid, arg)
+    if status == "poor":
+        return Out(alert=("دانجن پوینتت کافی نیست." if fa else "Not enough dungeon points."))
+    if status != "ok":
+        return Out()
+    b = BOXES[arg]
+    if res.get("item"):
+        got = (f"🎁 {b['fa']} باز شد: «{nm(res['item'], L)}»" if fa else f"🎁 {b['en']} opened: «{nm(res['item'], L)}»")
+    else:
+        got = (f"🎁 {b['fa']} باز شد: {fnum(res['coins'], L)} 🪙" if fa else f"🎁 {b['en']} opened: {fnum(res['coins'], L)} 🪙")
+        if res.get("full"):
+            got += ("\n🎒 کیفت پر بود، به‌جای آیتم سکه گرفتی." if fa else "\n🎒 Your bag was full, so you got coins instead of the item.")
+    return await _shop(ctx, got)
