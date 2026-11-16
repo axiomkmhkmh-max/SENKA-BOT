@@ -36,13 +36,13 @@ def race_allows(race, action):
 # Contexts: "pvp" = duel against a player, "hollow" = wild Hollow foe, "boss" = dungeon / tower boss,
 # "pve" = other wild enemies, "world_boss" = shared-HP world boss (each hit counts). Tuned with the duel and fight simulator at level ~40 (equal allocated points, same weapon and armour).
 RACE_CONTEXT_DMG = {
-    "shinigami": {"pvp": 1.318, "hollow": 1.390, "boss": 1.290, "pve": 1.328, "world_boss": 1.004},
-    "quincy": {"pvp": 1.171, "hollow": 1.218, "boss": 1.154, "pve": 1.128, "world_boss": 1.003},
-    "hollow": {"pvp": 0.835, "hollow": 0.801, "boss": 0.782, "pve": 0.812, "world_boss": 1.020},
-    "arrancar": {"pvp": 0.813, "hollow": 0.803, "boss": 0.767, "pve": 0.834, "world_boss": 0.978},
-    "fullbringer": {"pvp": 1.132, "hollow": 1.221, "boss": 1.139, "pve": 1.131, "world_boss": 0.996},
-    "human": {"pvp": 1.048, "hollow": 1.059, "boss": 1.046, "pve": 1.089, "world_boss": 1.008},
-    "visored": {"pvp": 1.130, "hollow": 1.134, "boss": 1.098, "pve": 1.119, "world_boss": 0.993},
+    "shinigami": {"pvp": 1.301, "hollow": 1.379, "boss": 1.311, "pve": 1.307, "world_boss": 1.001},
+    "quincy": {"pvp": 1.152, "hollow": 1.208, "boss": 1.147, "pve": 1.170, "world_boss": 1.008},
+    "hollow": {"pvp": 0.813, "hollow": 0.806, "boss": 0.772, "pve": 0.777, "world_boss": 1.031},
+    "arrancar": {"pvp": 0.808, "hollow": 0.792, "boss": 0.758, "pve": 0.814, "world_boss": 0.989},
+    "fullbringer": {"pvp": 1.122, "hollow": 1.207, "boss": 1.121, "pve": 1.152, "world_boss": 0.985},
+    "human": {"pvp": 1.144, "hollow": 1.120, "boss": 1.112, "pve": 1.174, "world_boss": 1.005},
+    "visored": {"pvp": 1.133, "hollow": 1.120, "boss": 1.072, "pve": 1.090, "world_boss": 0.983},
 }
 
 
@@ -62,3 +62,20 @@ def ctx_dmg_mult(att_race, context) -> float:
     if context is None:
         return 1.0
     return float(RACE_CONTEXT_DMG.get(att_race, {}).get(context, 1.0))
+
+
+# ---- General skills: one shared list any race can equip (profile switch). Race is a bonus, not a gate. ----------
+# cost = share of max Reiatsu, cd = turns before reuse. `fav` races get the bonus strength (GEN_FAV_MULT).
+GENERAL_SKILLS = {
+    "guard": {"cost": 0.08, "cd": 3, "shield": 0.12, "fav": ("quincy", "hollow", "human")},
+    "strike": {"cost": 0.10, "cd": 3, "mult": 1.15, "fav": ("shinigami", "fullbringer", "arrancar")},
+    "focus": {"cost": 0.08, "cd": 4, "buff": 1.20, "turns": 2, "fav": ("visored", "human", "fullbringer")},
+}
+GEN_ORDER = (None, "guard", "strike", "focus")  # the profile switch cycles through these
+GEN_FAV_MULT = 1.25
+
+
+def gen_power(race: str, key: str) -> float:
+    """Strength factor of a general skill for this race (1.25 when the race is one of its favourites)."""
+    spec = GENERAL_SKILLS.get(key) or {}
+    return GEN_FAV_MULT if race in spec.get("fav", ()) else 1.0

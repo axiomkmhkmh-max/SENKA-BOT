@@ -133,7 +133,8 @@ async def build_player(ch: dict, name: str = None):
     from znp_lock import blade_allowed  # owner-only blades give nothing to other players
     if zstate.get("blade_id") and not await blade_allowed(ch.get("user_id"), zstate["blade_id"]):
         zstate = dict(zstate, blade_id=None)
-    bond = int((ch.get("bond") or {}).get(wid, 0))  # per blade: the bond of the weapon in hand
+    from data_zanpakuto import bond_value
+    bond = bond_value(ch)  # per blade: the bond belongs to the chosen blade, not to the weapon in hand
     # Release stages feed the existing weapon-skill multiplier; no parallel combat engine.
     stage = BLADE_STAGES.get(zstate.get("blade_id"), {})
     release_bonus = (0.10 + stage.get("shikai_bonus", 0.0)) if zstate.get("shikai") else 0.0
@@ -172,7 +173,7 @@ async def build_player(ch: dict, name: str = None):
     released = zstate.get("shikai") or zstate.get("bankai")
     mv = wid if released and w else None  # weapon id; render turns it into "<blade>: <technique>"
     return E.new_fighter(name or tagged_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=combat_kido,
-                         race=ch["race"], zmult=zmult, sig=sig_for(ch["race"]), mv=mv)
+                         race=ch["race"], zmult=zmult, sig=sig_for(ch["race"]), mv=mv, gen=ch.get("gen_skill"))
 
 
 def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
@@ -341,7 +342,7 @@ async def pve_settle(doc: dict):
         ch, lv, got = await add_xp(uid, xp, "pve")
         # independent writes: run together instead of one after another
         await asyncio.gather(add_coins(uid, coins, "pve"),
-                             col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{(ch or {}).get('weapon_id') or 'none'}": 1, **({"zanpakuto.mastery": 1} if (ch0.get("zanpakuto") or {}).get("shikai") and int((ch0.get("zanpakuto") or {}).get("mastery", 0)) < int(gs.get("znp_mastery_cap", 1000)) else {}), **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
+                             col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{__import__('data_zanpakuto').bond_key(ch or {})}": 1, **({"zanpakuto.mastery": 1} if (ch0.get("zanpakuto") or {}).get("shikai") and int((ch0.get("zanpakuto") or {}).get("mastery", 0)) < int(gs.get("znp_mastery_cap", 1000)) else {}), **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
                              bump_quest(uid, "battle_win", 1))
         out.update(xp=got, coins=coins, levels=lv)
         from service_gangs_hook import gang_rewards  # Xcution siphon and Bount absorption (rules in data_gangs.py)

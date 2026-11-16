@@ -28,7 +28,7 @@ def race_name(race: str, lang: str) -> str:
     return RACES[race]["name_fa" if lang == "fa" else "name_en"]
 
 
-def item_card(ctx, item_id: str, qty: int = None) -> str:
+def item_card(ctx, item_id: str, qty: int = None, shop_price: int = None) -> str:
     it = ALL[item_id]
     lang = ctx.lang
     lines = [f"<b>{nm(item_id, lang)}</b>" + (f"  ×{fnum(qty, lang)}" if qty else "")]
@@ -51,7 +51,8 @@ def item_card(ctx, item_id: str, qty: int = None) -> str:
             lines.append("✦ " + eff_line)
     if it.get("slot") and it.get("level_req", 1) > 1:
         lines.append(f"🔒 {ctx.t('lbl_level')} {fnum(it['level_req'], lang)}")
-    lines.append(f"🪙 {fnum(it['base_price'], lang)} | 💱 {fnum(it.get('sell_price', 0), lang)}")
+    price = it["base_price"] if shop_price is None else shop_price  # shop shows the scarcity-adjusted price it charges
+    lines.append(f"🪙 {fnum(price, lang)} | 💱 {fnum(it.get('sell_price', 0), lang)}")
     return "\n".join(lines)
 
 

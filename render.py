@@ -102,6 +102,8 @@ def events_text(lang: str, events: list) -> str:
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k in ("move", "retreat", "outrange", "knock", "side"):  # distance (فاصله) events
             out.append(dist_event_text(lang, e))
+        elif k == "gen":  # general skill (any race)
+            out.append(pick(lang, "lg_gen_" + str(e.get("skill")), a=a, n=n))
         elif k == "bount_seal":
             out.append(pick(lang, "lg_bount_seal", a=a, d=d))
         elif k == "shield":

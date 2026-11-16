@@ -77,3 +77,19 @@ def unlocked_blades(level: int):
 
 def blade_valid(blade_id, level: int) -> bool:
     return blade_id in BLADE_STAGES and blade_id in unlocked_blades(level)
+
+
+# ---- Bond key: the bond belongs to the blade. ----
+# Bond used to be keyed by the weapon in hand, so taking the weapon out (or fighting bare-handed) dropped the bond
+# to 0 and the Shikai / Bankai power and unlock checks with it. Now the chosen blade holds the bond. A character who
+# never chose a blade keeps the old weapon key, so nothing already earned is lost.
+def bond_key(ch: dict) -> str:
+    """The `bond` dict key this character's bond is read from and written to."""
+    blade = (ch.get("zanpakuto") or {}).get("blade_id")
+    if blade:
+        return blade
+    return ch.get("weapon_id") or "none"
+
+
+def bond_value(ch: dict) -> int:
+    return int((ch.get("bond") or {}).get(bond_key(ch), 0))

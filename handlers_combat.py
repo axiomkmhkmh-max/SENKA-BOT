@@ -6,6 +6,10 @@ from aiogram.exceptions import TelegramBadRequest
 from data_items import ALL
 from data_lore import dungeon_line
 from data_bleachfx import RESURRECCION_RACES
+from data_race_rules import GEN_ORDER
+
+GEN_BUTTON = {"guard": ("🧱 گارد", "🧱 Guard"), "strike": ("⚡ ضربه‌ی عمومی", "⚡ General strike"),
+              "focus": ("🎯 تمرکز", "🎯 Focus")}
 from data_items import iname
 from data_misc import FORMS, KIDO_NAMES
 from data_races import DIFFICULTY, DIFF_FA, DUNGEONS
@@ -80,6 +84,9 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
         rows.append([mk(ctx.t(key), "sg")])
+    if E.can(f, "gs"):  # general skill chosen in the profile (any race)
+        gl_, ge_ = GEN_BUTTON[f["gen"]]
+        rows.append([mk(gl_ if L == "fa" else ge_, "gs")])
     r3 = [mk(ctx.t("a_df"), "df")]
     if E.can(f, "f1"):
         r3.append(mk("✨ " + form1[i], "f1"))

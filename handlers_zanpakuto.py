@@ -80,8 +80,9 @@ async def _state(uid):
     if z.get("blade_id") and not blade_valid(z["blade_id"], ch["level"]):
         z.pop("blade_id", None)
         await col("characters").update_one({"user_id": uid}, {"$unset": {"zanpakuto.blade_id": ""}})
-    # Bond is per blade: it belongs to the weapon in hand, so switching blades starts that blade's bond from its own count.
-    z["bond"] = int((ch.get("bond") or {}).get(wid, 0))
+    # Bond is per blade (data_zanpakuto.bond_key): taking the weapon out does not touch it.
+    from data_zanpakuto import bond_value
+    z["bond"] = bond_value(ch)
     z["mastery"] = int(z.get("mastery", 0))
     return ch, z
 

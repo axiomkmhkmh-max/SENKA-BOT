@@ -7,7 +7,7 @@ import random
 
 from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
 from data_races import soft_stat
-from data_race_rules import race_allows, fight_context, ctx_dmg_mult
+from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
 from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
@@ -21,7 +21,7 @@ DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 
 
 def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, kido=None,
-                race="human", ai=False, zmult=1.0, element=None, luck=0, sig=None, mv=None):
+                race="human", ai=False, zmult=1.0, element=None, luck=0, sig=None, mv=None, gen=None):
     w = weapon or {"attack": 3, "crit": 0.0, "element": element or "light", "skills": [], "weapon_type": "melee"}
     return {"name": name, "level": level, "stats": dict(stats), "hp": int(max_hp), "max_hp": int(max_hp),
             "re": int(max_re), "max_re": int(max_re), "weapon": {"attack": w.get("attack", 3), "crit": w.get("crit", 0.0),
@@ -30,7 +30,7 @@ def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, 
             "kido": {"had": list((kido or {}).get("had", [1])), "bak": list((kido or {}).get("bak", [1]))},
             "race": race, "ai": ai, "zmult": zmult, "fx": [], "guard": False, "shield": 0, "luck": luck,
             "form": {"on": 0, "mult": 1.0, "left": 0, "fat": 0, "used": [0, 0], "fx": None},
-            "sig": sig, "mv": mv, "x": _new_x()}
+            "sig": sig, "mv": mv, "gen": gen, "x": _new_x()}
 
 
 def eff(f, k):
@@ -46,7 +46,7 @@ def has_fx(f, k):
 
 def _new_x():
     """Bleach combat-feel state (see data_bleachfx). Plain ints only, so it is stored as-is in MongoDB."""
-    return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
+    return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "gcd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
             "gauge": 0, "awake": 0, "slash": 0, "bstack": 0, "bseal": 0}
 
 
@@ -290,7 +290,7 @@ def dist_of(state):
 def _band(f, action):
     """(min, max) zones this action can hit at, or None when the action ignores distance."""
     lo, hi = reach_for(f["weapon"].get("type", "melee"), f["weapon"].get("reach"))
-    if action == "atk" or (action == "sg" and f.get("sig") == "bring"):
+    if action == "atk" or (action == "sg" and f.get("sig") in ("bring", "soul")):
         return lo, hi
     if action in ("hvy", "gx"):
         return lo, min(ZONE_MAX, hi + 1)
@@ -366,6 +366,9 @@ def can(f, action):
         from data_bleachfx import GARGANTA, NEGACION
         c = NEGACION if action == "neg" else GARGANTA
         return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
+    if action == "gs":  # general skill chosen in the profile: any race, own cost and cooldown
+        spec = GENERAL_SKILLS.get(f.get("gen"))
+        return bool(spec) and _x(f)["gcd"] <= 0 and f["re"] >= f["max_re"] * spec["cost"]
     if action in ("blv", "bla", "bal"):  # Quincy Blut / Arrancar Bala: their own cost, sharing the special cooldown
         from data_bleachfx import BALA, BLUT
         c = BLUT["blut_vene"] if action == "blv" else BLUT["blut_arterie"] if action == "bla" else BALA
@@ -509,6 +512,8 @@ def _signature(state, side, rng, ev):
         if o["hp"] > 0 and rng.random() < c["bleed"]:
             add_fx(o, "bleed", DOT_TURNS["bleed"])
             ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "bleed"})
+    elif sg == "soul":  # Soul Strike: a reiatsu strike (no bleed, no shield)
+        _deal(state, side, c["mult"], rng, ev, "bring", allow_procs=True)
     elif sg == "guts":  # Santen Kesshun: a shield that soaks the next hits
         n = max(1, int(f["max_hp"] * c["shield"]))
         f["shield"] += n
@@ -551,6 +556,21 @@ def _do_action(state, action, rng, max_turns=30):
         _x(f)["cd"] = GARGANTA["cd"]
         state["dist"] = ZONE_MAX
         ev.append({"k": "garganta", "a": f["name"]})
+    elif action == "gs":  # general skill: guard (shield), strike (a blow) or focus (a damage buff)
+        key = f["gen"]
+        spec, pw = GENERAL_SKILLS[key], gen_power(f.get("race"), key)
+        f["re"] -= int(f["max_re"] * spec["cost"])
+        _x(f)["gcd"] = spec["cd"]
+        if key == "guard":
+            n = max(1, int(f["max_hp"] * spec["shield"] * pw))
+            f["shield"] += n
+            ev.append({"k": "gen", "a": f["name"], "skill": key, "n": n})
+        elif key == "strike":
+            ev.append({"k": "gen", "a": f["name"], "skill": key})
+            _deal(state, side, spec["mult"] * pw, rng, ev, "gen", allow_procs=True)
+        else:  # focus
+            _x(f)["buff_t"], _x(f)["buff_m"] = spec["turns"] + 1, spec["buff"] * pw
+            ev.append({"k": "gen", "a": f["name"], "skill": key})
     elif action == "bnt":  # Bount Seal: the souls bind the foe, who loses its next turn
         from data_gangs import BOUNT_SEAL
         foe = state["b" if side == "a" else "a"]

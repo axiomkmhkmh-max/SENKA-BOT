@@ -105,3 +105,33 @@
 - Other bosses (Hollow raid, Xcution, Bount) are not tagged yet and get no fight-type multiplier.
 - Caveat: the simulator is an approximation of the real fights (no real items, no player skill, enemy scale
   calibrated to about even). Re-run the balance numbers on real battle logs before release.
+
+## Makeover: Human, Hollow, Arrancar (data_bleachfx.py, locale_bleachfx.py, engine.py, data_race_rules.py)
+- Human: the signature is now Soul Strike ("soul", reiatsu strike, x1.30 damage, 10% reiatsu, 3-turn cooldown).
+  Humans used to have only Santen Kesshun (a shield) and no damage move. Trade-off: the shield is gone.
+- Arrancar: Bala multiplier 1.30 -> 1.40.
+- Hollow: Negación shield 15% -> 18% of max HP.
+- Race fight-type multipliers were re-tuned for the new kits. Hollow and Arrancar keep their lower multipliers
+  (about 0.76 to 0.89) because the simulator still shows them strong without them.
+- Known gap: the simulator plays both sides with the AI. Hollow and Arrancar need reiatsu, telegraphed Cero and
+  Garganta (no damage) to win, and players may use them less effectively than the AI. Judge this in real play.
+
+## General skills (data_race_rules.py, engine.py, service_combat.py, render.py, locale_bleachfx.py, handlers_combat.py, handlers_panels.py)
+- One shared list for every race: guard (shield 12% of max HP), strike (a blow at x1.15) and focus (damage x1.20 for 2 turns).
+- Race is a bonus, not a gate: a race in a skill's `fav` list gets x1.25 from it. No race is locked out.
+- Choose in the profile ("🧩 مهارت عمومی"), which cycles none, guard, strike, focus. Saved as characters.gen_skill.
+- In a fight the skill appears as its own combat button when reiatsu and cooldown allow (action code "gs").
+- Tests: test_general_skills.py. The balance multipliers do not include general skills yet, since nobody has
+  one by default. Re-run the balance simulator if this changes.
+
+## Zanpakutō upgrade bug: bond belongs to the blade (data_zanpakuto.py, service_combat.py, handlers_zanpakuto.py, handlers_panels.py)
+- Root cause: the bond (which gives the zanpakutō power and unlocks Shikai) was stored under the weapon in hand
+  (bond.<weapon_id>). Taking the weapon out, or fighting without one, read or wrote bond.none, so the bond fell to 0
+  and the upgrade seemed to vanish. Blades are chosen separately from the weapon, so this was a mismatch.
+- Fix: data_zanpakuto.bond_key / bond_value. With a blade chosen, the bond is stored under the blade. Without one,
+  the old weapon key is kept, so nothing already earned is lost. Used in combat, the zanpakutō panel, the profile
+  and the win counter.
+- Forge upgrades (weapon_plus) were checked and are kept when the weapon is taken out.
+- Tests: test_zanpakuto_bond.py.
+- Existing players keep their current bond under the weapon key until they choose a blade. Choosing a blade starts
+  that blade's bond from zero, as the design says.

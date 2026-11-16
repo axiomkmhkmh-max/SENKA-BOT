@@ -107,7 +107,7 @@ async def profile(ctx, arg):
     vitals = f"<code>{bar(ch['xp'], need)}</code> ⭐ {fnum(ch['xp'], L)}/{fnum(need, L)}   ❤️ {fnum(hp, L)}   🔵 {fnum(re_max, L)}"
     lines = [head(ctx, "ttl_prof"), vitals,
              ctx.t("prof_body", name=esc(ch["name"]), race=race_name(ch["race"], L), title=title_of(ch, L), lvl=fnum(ch["level"], L),
-                   rank=rank_label(ch["rating"], L), rating=fnum(ch["rating"], L), bond=fnum(min(100, int((ch.get("bond") or {}).get(ch.get("weapon_id"), 0)) // 5), L), plus=fnum((ch.get("weapon_plus") or {}).get(ch.get("weapon_id"), 0), L), w=fnum(ch["wins"], L), l=fnum(ch["losses"], L),
+                   rank=rank_label(ch["rating"], L), rating=fnum(ch["rating"], L), bond=fnum(min(100, __import__("data_zanpakuto").bond_value(ch) // 5), L), plus=fnum((ch.get("weapon_plus") or {}).get(ch.get("weapon_id"), 0), L), w=fnum(ch["wins"], L), l=fnum(ch["losses"], L),
                    pw=fnum(ch["pvp_w"], L), pl=fnum(ch["pvp_l"], L), power=fnum(power(ch), L)),
              stats_block(ctx, ch["stats"]),
              "🧿 " + bonus_line(ctx, player_bonus(ch, ALL, await game_settings())),
@@ -123,6 +123,9 @@ async def profile(ctx, arg):
             lines.append("🛡️ " + esc(g["name_fa" if L == "fa" else "name_en"]))
     rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")], [(ctx.t("b_forge"), "frg", ""), (ctx.t("m_eqp"), "eqp", "")],
             [("🧍 " + ("تن من" if L == "fa" else "What I wear"), "worn", "")]]
+    gen = ch.get("gen_skill")  # general skill: any race can equip one (see data_race_rules.GENERAL_SKILLS)
+    gen_name = {"guard": ("گارد", "Guard"), "strike": ("ضربه‌ی عمومی", "General strike"), "focus": ("تمرکز", "Focus")}.get(gen, ("هیچ", "None"))
+    rows.append([("🧩 " + ("مهارت عمومی: " if L == "fa" else "General skill: ") + gen_name[0 if L == "fa" else 1], "gsp", "")])
     if ch.get("race") in ("shinigami", "visored"):  # the boss attack switch, reachable from the profile too
         kido = ch.get("boss_style") == "kido"
         if L == "fa":
@@ -142,6 +145,18 @@ async def boss_style_profile(ctx, arg):
                           else "Only Shinigami and Visored can strike bosses with Hadō."))
     new = "blade" if me.get("boss_style") == "kido" else "kido"
     await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"boss_style": new}})
+    return await profile(ctx, "")
+
+
+@action("gsp")
+async def general_skill_switch(ctx, arg):
+    from data_race_rules import GEN_ORDER
+    me = await get_char(ctx.uid)
+    if not me:
+        return Out(alert=ctx.t("not_registered"))
+    cur = me.get("gen_skill")
+    new = GEN_ORDER[(GEN_ORDER.index(cur) + 1) % len(GEN_ORDER)] if cur in GEN_ORDER else GEN_ORDER[1]
+    await col("characters").update_one({"user_id": ctx.uid}, {"$set": {"gen_skill": new}})
     return await profile(ctx, "")
 
 
@@ -485,7 +500,8 @@ async def worn_panel(ctx, arg):
             parts.append(H("⚔️ " + ("جنگ‌افزار در مبارزه" if fa else "Weapon in combat")))
             parts.append(f"• {'قدرت' if fa else 'attack'}: {fnum(int(atk), L)} (پایه {fnum(int(w.get('attack', 0)), L)} · فورج +{fnum(wplus, L)} ×{round(1 + 0.06 * wplus, 2)})")
             parts.append(f"• {'شانس کریتیکال' if fa else 'crit'}: {round(float(w.get('crit', 0)) * 100, 1)}%")
-        bond = int((ch.get("bond") or {}).get(wid, 0))
+        from data_zanpakuto import bond_value
+        bond = bond_value(ch)
         zst = ch.get("zanpakuto") or {}
         parts.append(H("🔗 " + ("زانپاکتو" if fa else "Zanpakuto")))
         parts.append(f"• {'پیوند' if fa else 'bond'}: {fnum(bond, L)} → ×{round(1 + min(1.0, bond / 500), 2)} "

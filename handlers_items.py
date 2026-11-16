@@ -10,7 +10,7 @@ from database import col, game_settings
 from fmt import item_card, nm, pctf
 from i18n import esc, fnum
 from service_economy import (FORGE_CHANCE, auction_bid, equip, forge, forge_cost, gacha_doc, gacha_pull, inv_get, market_buy, market_cancel, market_create,
-                             npc_sell, price_mult, settle_listings, shop_buy, shop_stock, slots_used, suggested_price, toggle_party, unequip,
+                             npc_sell, price_mult, settle_listings, shop_buy, shop_price, shop_stock, slots_used, suggested_price, toggle_party, unequip,
                              use_item)
 from service_economy import char_sell_value, inv_remove, sell_character
 from service_log import log_event
@@ -600,7 +600,7 @@ async def shop(ctx, arg):
 async def shop_view(ctx, arg):
     if arg not in shop_stock(today()):
         return Out(alert=ctx.t("mk_gone"))
-    return Out(head(ctx, "ttl_shp") + item_card(ctx, arg), [[(ctx.t("b_buy"), "sb", arg)], nav(ctx, ("shp", "0"))])
+    return Out(head(ctx, "ttl_shp") + item_card(ctx, arg, shop_price=await shop_price(arg)), [[(ctx.t("b_buy"), "sb", arg)], nav(ctx, ("shp", "0"))])
 
 
 @action("sb")

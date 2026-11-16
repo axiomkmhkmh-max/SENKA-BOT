@@ -12,6 +12,7 @@ FA = {
     "lg_gauge_full": "🔥 روحیه‌ی <b>{a}</b> پر شد! رهاسازی آماده است…",
     "lg_gauge_full_2": "🔥 <b>{a}</b> می‌تواند رها کند — نام تیغه‌اش را صدا بزن یا دکمه را بزن!",
     "lg_unleash": "👑 <b>{a}</b> ریاتسوی خود را آزاد کرد — بانکای!",
+    "lg_gen_guard": "🧱 {a} گارد کشید: {n} سپر", "lg_gen_strike": "⚡ {a} با مهارت عمومی ضربه زد", "lg_gen_focus": "🎯 {a} تمرکز کرد: ضربه‌هایش قوی‌تر می‌شوند",
     "lg_unleash_2": "👑 فشار ریاتسوی <b>{a}</b> زمین را از جا کند!",
     "lg_unleash_res": "👑 <b>{a}</b> رسورکسیون را آزاد کرد!",
     "lg_unleash_move": "👑 <b>{a}</b> تیغه‌اش را آزاد کرد: <b>{move}</b>!",
@@ -20,7 +21,7 @@ FA = {
     "lg_resurrect_2": "🦴 از دل ویرانه‌ی ماسک {a}، ارکانار برخاست!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 شونپو", "a_sg_hiren": "🌪️ هیرنکیاکو", "a_sg_cero": "🔴 جمع‌کردن سرو", "a_sg_cero_fire": "💥 شلیک سرو!",
-    "a_sg_bring": "💠 ضربه‌ی فول‌برینگ", "a_sg_guts": "🛡️ سانتن کسشون (شون‌شون ریکّا)", "a_blv": "🩸 بلوت: ونه", "a_bla": "🩸 بلوت: آرتری", "a_bal": "🔵 بالا", "a_neg": "🕳️ نگاسیون", "a_gar": "🕳️ گارگانتا", "a_ch": "📿 ورد کیدو", "a_gc": "🌙 جمع‌آوری ریاتسو", "a_gt": "🌙 گتسوگا تنشوگا",
+    "a_sg_bring": "💠 ضربه‌ی فول‌برینگ", "a_sg_guts": "🛡️ سانتن کسشون (شون‌شون ریکّا)", "a_sg_soul": "⚡ ضربه‌ی روح", "a_blv": "🩸 بلوت: ونه", "a_bla": "🩸 بلوت: آرتری", "a_bal": "🔵 بالا", "a_neg": "🕳️ نگاسیون", "a_gar": "🕳️ گارگانتا", "a_ch": "📿 ورد کیدو", "a_gc": "🌙 جمع‌آوری ریاتسو", "a_gt": "🌙 گتسوگا تنشوگا",
     "lg_gather": "🌙 {a} شمشیر را بالا برد و ریاتسو را در تیغه جمع کرد…",
     "lg_getsuga": "🌙 <b>{a}</b> شمشیرش را فرود آورد: <b>گتسوگا تنشوگا!</b> موج ریاتسو به سوی {d} رفت — {n} آسیب.",
     # ---- battle log ----
@@ -79,6 +80,7 @@ EN = {
     "lg_gauge_full": "🔥 <b>{a}</b>'s spirit is full! The release is ready…",
     "lg_gauge_full_2": "🔥 <b>{a}</b> can release now — call the blade's name, or press the button!",
     "lg_unleash": "👑 <b>{a}</b> unleashes their reiatsu — Bankai!",
+    "lg_gen_guard": "🧱 {a} braces: {n} shield", "lg_gen_strike": "⚡ {a} strikes with a general skill", "lg_gen_focus": "🎯 {a} focuses: strikes hit harder",
     "lg_unleash_2": "👑 The pressure of <b>{a}</b>'s reiatsu tears the ground apart!",
     "lg_unleash_res": "👑 <b>{a}</b> unleashes Resurrección!",
     "lg_unleash_move": "👑 <b>{a}</b> releases the blade: <b>{move}</b>!",
@@ -87,7 +89,7 @@ EN = {
     "lg_resurrect_2": "🦴 From the ruins of {a}'s mask, the Arrancar rises!",
     # ---- battle buttons ----
     "a_sg_shunpo": "🌀 Shunpo", "a_sg_hiren": "🌪️ Hirenkyaku", "a_sg_cero": "🔴 Gather Cero", "a_sg_cero_fire": "💥 Fire Cero!",
-    "a_sg_bring": "💠 Fullbring Strike", "a_sg_guts": "🛡️ Santen Kesshun", "a_blv": "🩸 Blut: Vene", "a_bla": "🩸 Blut: Arterie", "a_bal": "🔵 Bala", "a_neg": "🕳️ Negación", "a_gar": "🕳️ Garganta", "a_ch": "📿 Chant Kidō", "a_gc": "🌙 Gather reiatsu", "a_gt": "🌙 Getsuga Tenshō",
+    "a_sg_bring": "💠 Fullbring Strike", "a_sg_guts": "🛡️ Santen Kesshun", "a_sg_soul": "⚡ Soul Strike", "a_blv": "🩸 Blut: Vene", "a_bla": "🩸 Blut: Arterie", "a_bal": "🔵 Bala", "a_neg": "🕳️ Negación", "a_gar": "🕳️ Garganta", "a_ch": "📿 Chant Kidō", "a_gc": "🌙 Gather reiatsu", "a_gt": "🌙 Getsuga Tenshō",
     "lg_gather": "🌙 {a} raised the blade and gathered reiatsu into it…",
     "lg_getsuga": "🌙 <b>{a}</b> brought the blade down: <b>Getsuga Tenshō!</b> A wave of reiatsu tore toward {d} — {n} damage.",
     # ---- battle log ----
