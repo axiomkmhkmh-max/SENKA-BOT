@@ -43,7 +43,17 @@ async def _eligible(uid):
 
 
 async def busy_session(uid):
-    return await col("trades").find_one({"status": "open", "members": uid})
+    """The player's live open session. Idle ones past TRADE_TTL are closed here: they used to stay `open` until
+    their own owner looked at them, and in the meantime they blocked every new trade ("one of you already has an
+    open trade")."""
+    for _ in range(5):
+        doc = await col("trades").find_one({"status": "open", "members": uid})
+        if not doc:
+            return None
+        if time.time() - int(doc.get("updated_at", 0)) <= TRADE_TTL:
+            return doc
+        await col("trades").update_one({"_id": doc["_id"], "status": "open"}, {"$set": {"status": "expired"}})
+    return None
 
 
 async def _create(kind, host, members, limit_note=None):

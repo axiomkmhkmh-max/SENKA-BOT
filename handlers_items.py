@@ -421,23 +421,29 @@ async def market_list_prompt(ctx, arg):
     if not it:
         return await bag(ctx, "0")
     sp = await suggested_price(arg)
-    kind = "auction" if it["rarity"] in ("Epic", "Legendary", "Mythic") else "fixed"
-    rows = [[(f"{fnum(int(sp * m / 10), ctx.lang)} 🪙", "mlp", f"{arg}.{m}")] for m in (7, 10, 15, 22)]
-    rows = chunk([r[0] for r in rows], 2)
+    high = it["rarity"] in ("Epic", "Legendary", "Mythic")  # these can be sold either way: the seller picks fixed or auction
+    btns = [(f"🏷 {fnum(int(sp * m / 10), ctx.lang)} 🪙", "mlp", f"{arg}.{m}.f") for m in (7, 10, 15, 22)]
+    rows = chunk(btns, 2)
+    if high:
+        abtns = [(f"🔨 {fnum(int(sp * m / 10), ctx.lang)} 🪙", "mlp", f"{arg}.{m}.a") for m in (7, 10, 15, 22)]
+        rows += chunk(abtns, 2)
     rows.append(nav(ctx, ("iv", arg)))
-    note = ctx.t("ml_auction") if kind == "auction" else ctx.t("ml_fixed")
+    note = ctx.t("ml_fixed") + ("\n" + ctx.t("ml_auction") if high else "")
+    if high:
+        note += "\n🏷 = قیمت ثابت · 🔨 = حراج" if ctx.lang == "fa" else "\n🏷 = fixed price · 🔨 = auction"
     return Out(head(ctx, "ttl_mkt") + item_card(ctx, arg) + f"\n\n{note}\n" + ctx.t("ml_pick", sp=fnum(sp, ctx.lang)), rows)
 
 
 @action("mlp")
 async def market_list_do(ctx, arg):
-    iid, _, m = arg.partition(".")
+    iid, _, rest = arg.partition(".")
+    m, _, k = rest.partition(".")
     it = ALL.get(iid)
     if not it:
         return Out()
     sp = await suggested_price(iid)
     price = max(1, int(sp * int(m) / 10))
-    kind = "auction" if it["rarity"] in ("Epic", "Legendary", "Mythic") else "fixed"
+    kind = "auction" if k == "a" else "fixed"
     r = await market_create(ctx.uid, iid, price, kind)
     if r != "ok":
         return Out(alert=ctx.t("ml_e_" + r))
@@ -631,6 +637,7 @@ async def gacha_sell_list(ctx, arg):
     L = ctx.lang
     st = await game_settings()
     g = await gacha_doc(ctx.uid)
+    in_party = set((await get_char(ctx.uid) or {}).get("party") or [])
     rate = float(st.get("coin_rate", 1.0))
     owned = sorted(g["chars"].items(), key=lambda kv: (-RARITIES.index(CHAR_BY_ID[kv[0]]["rarity"]), kv[0]))
     page = int(arg or 0)
@@ -640,7 +647,8 @@ async def gacha_sell_list(ctx, arg):
     for cid, copies in owned[page * PER:(page + 1) * PER]:
         c = CHAR_BY_ID[cid]
         pay = char_sell_value(cid, copies, rate)
-        label = f"{RARITY_ICON[c['rarity']]} {c['name_fa' if L == 'fa' else 'name_en']} ×{fnum(copies, L)} · {fnum(pay, L)} 🪙"
+        on = "✅ " if cid in in_party else ""
+        label = f"{on}{RARITY_ICON[c['rarity']]} {c['name_fa' if L == 'fa' else 'name_en']} ×{fnum(copies, L)} · {fnum(pay, L)} 🪙"
         rows.append([(label, "gsc", f"{cid}.{page}")])
     pg = []
     if page > 0:
@@ -653,7 +661,9 @@ async def gacha_sell_list(ctx, arg):
     body = ("اینجا احضارهایی که داری و قیمت فروششون. فروش همه‌ی نسخه‌های یک احضار با هم انجام میشه و از پارتی هم حذف میشه."
             if L == "fa" else
             "Summons you own and what each one sells for. A sale takes every copy of that summon and removes it from the party.")
-    if not owned:
+    if owned:
+        body += "\n✅ = در پارتی (فعال)" if L == "fa" else "\n✅ = in your party (active)"
+    else:
         body = "هنوز احضاری نداری." if L == "fa" else "You have no summons yet."
     return Out(head(ctx, "ttl_gch") + body, rows)
 
@@ -671,10 +681,11 @@ async def gacha_sell_confirm(ctx, arg):
     pay = char_sell_value(cid, copies, float(st.get("coin_rate", 1.0)))
     c = CHAR_BY_ID[cid]
     name = c["name_fa" if L == "fa" else "name_en"]
-    body = (f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> ×{fnum(copies, L)}\n"
+    active = (cid in ((await get_char(ctx.uid) or {}).get("party") or []))
+    body = (("✅ در پارتی (فعال)\n" if active else "") + f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> ×{fnum(copies, L)}\n"
             f"برای فروش: {fnum(pay, L)} 🪙. این کار برگشت ندارد.\n"
             if L == "fa" else
-            f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> ×{fnum(copies, L)}\n"
+            ("✅ In your party (active)\n" if active else "") + f"{RARITY_ICON[c['rarity']]} <b>{esc(name)}</b> ×{fnum(copies, L)}\n"
             f"Sells for {fnum(pay, L)} 🪙. This cannot be undone.\n")
     rows = [[("✅ فروش" if L == "fa" else "✅ Sell", "gsy", f"{cid}.{page or 0}")], nav(ctx, ("gsl", page or "0"))]
     return Out(head(ctx, "ttl_gch") + body, rows)

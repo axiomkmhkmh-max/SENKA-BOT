@@ -19,7 +19,7 @@ RACES = {
     "hollow": _r("هالو", "Hollow", (7, 2, 12, 8, 11), "hueco_mundo", {"hp": 1.08},
                  [("هالو", "Hollow"), ("گیلیان", "Gillian"), ("آجوکاس", "Adjuchas"),
                   ("واستو لورد", "Vasto Lorde"), ("آرانکار", "Arrancar Ascendant")]),
-    "arrancar": _r("آرانکار", "Arrancar", (10, 2, 8, 10, 10), "las_noches", {"def": 1.06},
+    "arrancar": _r("آرانکار", "Arrancar", (10, 2, 8, 10, 10), "las_noches", {"def": 1.06, "hp": 1.04, "dmg": 1.03},
                    [("پایه", "Base Arrancar"), ("فراسیون", "Fracción"), ("کاندیدای اسپادا", "Espada Candidate"),
                     ("اسپادا", "Espada")]),
     "fullbringer": _r("فول‌برینگر", "Fullbringer", (8, 2, 8, 9, 13), "karakura", {"crit": 0.04},

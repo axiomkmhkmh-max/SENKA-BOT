@@ -195,6 +195,10 @@ async def active_pve(uid: int):
     return await col("battles").find_one({"user_id": uid, "mode": "pve", "status": "active"})
 
 
+DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
+DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
+
+
 async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = None, carry: dict = None, trial: dict = None,
                     force_elite: bool = False):
     ch = await get_char(uid)
@@ -337,8 +341,13 @@ async def pve_settle(doc: dict):
                 out["drop_full"] = iid  # bag full: shown to the player (it used to vanish silently)
         if d and d["stage"] < d["total"]:
             f = st["a"]
+            hp_frac = f["hp"] / f["max_hp"]
+            if d["stage"] + 1 == DG_STAGE3_HEAL_AT and hp_frac < 1.0:
+                # stage 3 was too hard on carried-over wounds: a breather restores part of the HP on the way in
+                hp_frac = min(1.0, hp_frac + DG_STAGE3_HEAL)
+                out["dg_heal"] = int(DG_STAGE3_HEAL * 100)
             nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": d["stage"] + 1},
-                                  carry={"hp": f["hp"] / f["max_hp"], "re": f["re"] / f["max_re"],
+                                  carry={"hp": hp_frac, "re": f["re"] / f["max_re"],
                                          "gauge": int((f.get("x") or {}).get("gauge", 0))})  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
         elif d:

@@ -23,11 +23,23 @@ from service_world import active_boss, boss_hit, group_doc, settle_boss
 from ui import Out, action, chunk, head, markup, nav
 
 
-def _act_rows(ctx, f, sid, pub=False, pot=False):
+def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
     L = ctx.lang
     form1, form2 = FORMS[f["race"]]
     i = 0 if L == "fa" else 1
-    mk = lambda label, act: (label, "pa" if pub else "ba", f"{sid}.{act}", pub)
+
+    def reach_tag(label, act):
+        # an attack pressed outside its reach does not strike: the turn is spent closing in (➡️) or backing off (⬅️).
+        # Players read that as "my skill is locked", so say it on the button.
+        band = E._band(f, act) if dist is not None else None
+        if band and dist > band[1]:
+            return "➡️ " + label
+        if band and dist < band[0]:
+            return "⬅️ " + label
+        return label
+
+    mk = lambda label, act: (reach_tag(label, act) if act in ("atk", "hvy", "kd", "gt", "gx", "sg") else label,
+                             "pa" if pub else "ba", f"{sid}.{act}", pub)
     rows = [[mk(ctx.t("a_atk"), "atk")]]
     rows.append([mk("🏃 شونپو" if L == "fa" else "🏃 Shunpo", "mvs"),
                  mk("⚡ سونیدو" if L == "fa" else "⚡ Sonido", "mvn"),
@@ -102,7 +114,7 @@ async def battle_panel(ctx, doc, events=None):
             title += f"<i>{flavor}</i>\n"
     text = battle_text(ctx.lang, st, events, title)
     pot = await _has_potion(ctx.uid)
-    return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot)) + [[(ctx.t("b_home"), "home", "")]])
+    return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [[(ctx.t("b_home"), "home", "")]])
 
 
 async def resume_battle(ctx):
@@ -185,6 +197,9 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("bt_drop", item=nm(o["drop"], L)))
     if o.get("bonus_drop"):
         lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
+    if o.get("dg_heal"):
+        lines.append(f"💚 استراحت قبل از طبقه‌ی ۳: {fnum(o['dg_heal'], L)}٪ جان برگشت." if L == "fa"
+                     else f"💚 A breather before floor 3: +{o['dg_heal']}% HP restored.")
     if o.get("drop_full"):
         lines.append(f"🎒 کیفت پره! «{nm(o['drop_full'], L)}» دراپ شد ولی جا نداشت. کیف رو خالی کن." if L == "fa"
                      else f"🎒 Bag full! «{nm(o['drop_full'], L)}» dropped but there was no room. Free some slots.")
@@ -372,7 +387,7 @@ async def _pvp_panel(chat_lang, ctx, doc, events, final=None):
     text = both(chat_lang, render)
     rows = []
     if final is None:
-        rows = _act_rows(ctx, st[st["cur"]], doc["sid"], pub=True)
+        rows = _act_rows(ctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st))
     return text, markup(ctx, rows)
 
 

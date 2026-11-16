@@ -290,8 +290,6 @@ async def market_create(uid: int, item_id: str, price: int, kind: str = "fixed",
     it = ALL.get(item_id)
     if not it or not it.get("tradeable"):
         return "notrade"
-    if kind == "fixed" and it["rarity"] in ("Epic", "Legendary", "Mythic"):
-        return "auction_only"
     if price < max(1, it["base_price"] // 10) or price > it["base_price"] * 20:
         return "price"
     if await col("market_listings").count_documents({"seller": uid, "status": "active"}) >= int(st["market_slots"]):
