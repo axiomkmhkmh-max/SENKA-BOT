@@ -269,6 +269,8 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     else:  # every other wild enemy
         foe["foe"] = "pve"
     state = E.new_state(player, foe, rng)
+    if carry:  # next dungeon stage: the player always opens, so no free enemy hit lands on carried HP / the Bakudō barrier
+        state["cur"] = state["first"] = "a"
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
            "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "lvl": lvl,
@@ -382,6 +384,13 @@ async def pve_settle(doc: dict):
             if dch and unlocks_visored(dch.get("race"), d.get("id")):
                 await col("characters").update_one({"user_id": uid}, {"$set": {"visored_unlocked": True}})  # Visored trial passed
             di = DIFFS.index(d["diff"]) if d["diff"] in DIFFS else 0
+            # a full clear always pays one item; the harder the difficulty, the higher its rarity floor
+            # (normal/hard Common, nightmare Uncommon, abyss Rare, legendary Epic) and the better its odds above that
+            diid = await roll_drop(uid, source_mult=1.0 + 0.25 * di, floor_idx=max(0, di - 1))
+            if await inv_add(uid, diid, 1):
+                out["drop"] = diid
+            else:
+                out["drop_full"] = diid
             if random.random() < 0.20 + 0.08 * di:  # evolution fuel comes from the deep places
                 pool = EVO_BY_RARITY[RARITIES[min(3, max(0, di - (1 if random.random() < 0.5 else 0)))]] or EVO_BY_RARITY["Common"]
                 eid = random.choice(pool)
