@@ -741,8 +741,9 @@ async def party(ctx, arg):
         on = "✅ " if cid in ch.get("party", []) else ""
         bonus = ", ".join(f"{ctx.t('bn_' + k)} +{pctf(v * 100, L, '.1f')}" for k, v in char_bonus(cid, copies).items())
         label = f"{on}{RARITY_ICON[c['rarity']]} {c['name_fa' if L == 'fa' else 'name_en']} {ctx.t('lbl_level')} {fnum(lvl, L)}{'★' * star} ({bonus})"
-        # 🗑 opens the sell confirmation (every copy goes, and it leaves the party); the old panel had no way to remove one
-        rows.append([(label, "pt", f"{cid}.{page}"), ("🗑", "gsc", f"{cid}.{page}", False, "danger")])
+        # one tap on the name adds or removes it from the party. Selling lives in the sell list (gsl), not here, so the
+        # team view is never cut across by a trash button (its confirm screen used to send you away from the party).
+        rows.append([(label, "pt", f"{cid}.{page}")])
     pg = []
     if page > 0:
         pg.append(("◀️", "pty", str(page - 1)))
