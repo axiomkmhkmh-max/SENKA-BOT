@@ -21,7 +21,7 @@ DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 
 
 def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, kido=None,
-                race="human", ai=False, zmult=1.0, element=None, luck=0, sig=None, mv=None, gen=None):
+                race="human", ai=False, zmult=1.0, element=None, luck=0, sig=None, mv=None, gen=None, bt=None):
     w = weapon or {"attack": 3, "crit": 0.0, "element": element or "light", "skills": [], "weapon_type": "melee"}
     return {"name": name, "level": level, "stats": dict(stats), "hp": int(max_hp), "max_hp": int(max_hp),
             "re": int(max_re), "max_re": int(max_re), "weapon": {"attack": w.get("attack", 3), "crit": w.get("crit", 0.0),
@@ -30,7 +30,7 @@ def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, 
             "kido": {"had": list((kido or {}).get("had", [1])), "bak": list((kido or {}).get("bak", [1]))},
             "race": race, "ai": ai, "zmult": zmult, "fx": [], "guard": False, "shield": 0, "luck": luck,
             "form": {"on": 0, "mult": 1.0, "left": 0, "fat": 0, "used": [0, 0], "fx": None},
-            "sig": sig, "mv": mv, "gen": gen, "x": _new_x()}
+            "sig": sig, "mv": mv, "gen": gen, "bt": bt, "x": _new_x()}
 
 
 def eff(f, k):
@@ -46,7 +46,7 @@ def has_fx(f, k):
 
 def _new_x():
     """Bleach combat-feel state (see data_bleachfx). Plain ints only, so it is stored as-is in MongoDB."""
-    return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "gcd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
+    return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "gcd": 0, "tcd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
             "gauge": 0, "awake": 0, "slash": 0, "bstack": 0, "bseal": 0}
 
 
@@ -366,6 +366,8 @@ def can(f, action):
         from data_bleachfx import GARGANTA, NEGACION
         c = NEGACION if action == "neg" else GARGANTA
         return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
+    if action == "bt":  # the blade's own technique (after Shikai): its own cost and cooldown
+        return bool(f.get("bt")) and _x(f)["tcd"] <= 0 and f["re"] >= f["max_re"] * f["bt"]["cost"]
     if action == "gs":  # general skill chosen in the profile: any race, own cost and cooldown
         spec = GENERAL_SKILLS.get(f.get("gen"))
         return bool(spec) and _x(f)["gcd"] <= 0 and f["re"] >= f["max_re"] * spec["cost"]
@@ -556,6 +558,21 @@ def _do_action(state, action, rng, max_turns=30):
         _x(f)["cd"] = GARGANTA["cd"]
         state["dist"] = ZONE_MAX
         ev.append({"k": "garganta", "a": f["name"]})
+    elif action == "bt":  # blade technique: pierce / bleed / twin / heavy, by the blade chosen
+        t = f["bt"]
+        f["re"] -= int(f["max_re"] * t["cost"])
+        _x(f)["tcd"] = t["cd"]
+        ev.append({"k": "bt", "a": f["name"], "kind": t["kind"]})
+        if t["kind"] == "twin":
+            _deal(state, side, t["mult"], rng, ev, "bt", allow_procs=True)
+            if state["b" if side == "a" else "a"]["hp"] > 0:
+                _deal(state, side, t["mult"], rng, ev, "bt", allow_procs=True)
+        else:
+            _deal(state, side, t["mult"], rng, ev, "bt", allow_procs=True, extra_pierce=t.get("pierce", 0.0))
+            foe = state["b" if side == "a" else "a"]
+            if t.get("bleed") and foe["hp"] > 0:
+                add_fx(foe, "bleed", DOT_TURNS["bleed"])
+                ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
     elif action == "gs":  # general skill: guard (shield), strike (a blow) or focus (a damage buff)
         key = f["gen"]
         spec, pw = GENERAL_SKILLS[key], gen_power(f.get("race"), key)

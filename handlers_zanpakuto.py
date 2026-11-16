@@ -77,6 +77,9 @@ async def _state(uid):
     z = dict(ch.get("zanpakuto") or {})
     # The blade is chosen from the catalogue (zanpakuto.blade_id), never from the weapon in hand.
     # Anything else, including the old weapon ids saved by the previous version, is dropped here.
+    from znp_lock import blade_allowed
+    if z.get("blade_id") and not await blade_allowed(uid, z["blade_id"]):  # owner-only blade: hidden from others
+        z.pop("blade_id", None)
     if z.get("blade_id") and not blade_valid(z["blade_id"], ch["level"]):
         z.pop("blade_id", None)
         await col("characters").update_one({"user_id": uid}, {"$unset": {"zanpakuto.blade_id": ""}})

@@ -12,7 +12,7 @@ BLADE_STAGES = {
                      "bankai": ("سنبون‌زاکورا کاگیوشی (بانکای)", "Senbonzakura Kageyoshi (Bankai)"),
                      "shikai_bonus": 0.02, "bankai_bonus": 0.05},
     "hyorinmaru": {"shikai": ("هیورین‌مارو", "Hyōrinmaru"), "bankai": ("دایگورن هیورین‌مارو", "Daiguren Hyōrinmaru"),
-                   "shikai_bonus": 0.04, "bankai_bonus": 0.07},  # Daiguren: among the strongest Bankai
+                   "shikai_bonus": 0.08, "bankai_bonus": 0.12},  # Daiguren: among the strongest Bankai
     "kyoka_suigetsu": {"shikai": ("کیوکا سویگتسو", "Kyōka Suigetsu"), "bankai": ("کیوکا سویگتسو (بانکای)", "Kyōka Suigetsu (Bankai)"),
                        "shikai_bonus": 0.03, "bankai_bonus": 0.05},
     "zanka_no_tachi": {"shikai": ("زانکا نو تاچی", "Zanka no Tachi"), "bankai": ("زانکا نو تاچی (بانکای)", "Zanka no Tachi (Bankai)"),
@@ -60,7 +60,7 @@ BLADE_UNLOCK = {
 # Combat style per blade (moved from service_combat.build_player; design values, applied on release only).
 BLADE_STYLE = {
     "zangetsu": {"dmg": 1.08}, "senbonzakura": {"crit": 0.05},
-    "hyorinmaru": {"def": 1.12, "dmg": 1.10}, "kyoka_suigetsu": {"crit": 0.04, "dmg": 1.03},
+    "hyorinmaru": {"def": 1.12, "dmg": 1.15}, "kyoka_suigetsu": {"crit": 0.04, "dmg": 1.03},
     "zanka_no_tachi": {"dmg": 1.12}, "sode_no_shirayuki": {"def": 1.05, "kido": 1.08},
     "zabimaru": {"dmg": 1.07}, "wabisuke": {"def": 1.10},
     "minazuki": {"def": 1.06}, "ruri_iro_kujaku": {"crit": 0.04}, "haineko": {"dmg": 1.06},
@@ -93,3 +93,36 @@ def bond_key(ch: dict) -> str:
 
 def bond_value(ch: dict) -> int:
     return int((ch.get("bond") or {}).get(bond_key(ch), 0))
+
+
+# ---- Blade techniques: the blade you choose gives you its own attack (after Shikai). ----
+# kind: pierce (ignores part of the armour), bleed (wound that keeps hurting), twin (two quick cuts),
+# heavy (a single heavier cut). The kind per blade is a design choice, not canon.
+BLADE_TECH_KINDS = {
+    "pierce": {"fa": "ضربه‌ی نفوذی", "en": "Piercing cut", "mult": 1.15, "pierce": 0.35},
+    "bleed": {"fa": "ضربه‌ی خون‌ریز", "en": "Bleeding cut", "mult": 1.00, "bleed": True},
+    "twin": {"fa": "ضربه‌ی دوگانه", "en": "Twin cut", "mult": 0.65, "twice": True},
+    "heavy": {"fa": "ضربه‌ی سنگین", "en": "Heavy cut", "mult": 1.25},
+}
+BLADE_TECH = {
+    "zangetsu": "twin", "senbonzakura": "heavy", "hyorinmaru": "pierce", "kyoka_suigetsu": "heavy",
+    "zanka_no_tachi": "bleed", "sode_no_shirayuki": "pierce", "zabimaru": "bleed", "wabisuke": "twin",
+    "minazuki": "bleed", "ruri_iro_kujaku": "heavy", "haineko": "twin", "nejibana": "pierce",
+    "kokujo_tengen_myoo": "pierce", "tachikaze": "bleed", "tengumaru": "heavy", "haguro_tonbo": "twin",
+    "kinshara": "bleed", "sakanade": "pierce", "kubikiri_orochi": "heavy",
+}
+BLADE_TECH_COST = {"cost": 0.09, "cd": 3}
+
+
+# Owner blades can be stronger than the common ones. Hyōrinmaru: a stronger technique (see znp_lock for the lock).
+BLADE_TECH_OVERRIDE = {"hyorinmaru": {"mult": 1.40, "pierce": 0.50, "cd": 2}}
+
+
+def blade_technique(blade_id: str):
+    """{'kind', 'fa', 'en', ...} for a blade's technique, or None for a blade without one."""
+    kind = BLADE_TECH.get(blade_id)
+    if not kind:
+        return None
+    stage = BLADE_STAGES.get(blade_id, {}).get("shikai") or (blade_id, blade_id)
+    return {"kind": kind, **BLADE_TECH_KINDS[kind], **BLADE_TECH_COST, **BLADE_TECH_OVERRIDE.get(blade_id, {}),
+            "blade_fa": stage[0], "blade_en": stage[1]}

@@ -84,6 +84,9 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
         rows.append([mk(ctx.t(key), "sg")])
+    if E.can(f, "bt"):  # the blade's own technique (after Shikai)
+        bt = f["bt"]
+        rows.append([mk(f"🗡 {bt['blade_fa' if L == 'fa' else 'blade_en']}: {bt['fa' if L == 'fa' else 'en']}", "bt")])
     if E.can(f, "gs"):  # general skill chosen in the profile (any race)
         gl_, ge_ = GEN_BUTTON[f["gen"]]
         rows.append([mk(gl_ if L == "fa" else ge_, "gs")])

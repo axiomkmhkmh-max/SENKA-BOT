@@ -173,7 +173,9 @@ async def build_player(ch: dict, name: str = None):
     released = zstate.get("shikai") or zstate.get("bankai")
     mv = wid if released and w else None  # weapon id; render turns it into "<blade>: <technique>"
     return E.new_fighter(name or tagged_name(ch, ALL), ch["level"], stats, hp, re, w, armor=armor, mods=mods, kido=combat_kido,
-                         race=ch["race"], zmult=zmult, sig=sig_for(ch["race"]), mv=mv, gen=ch.get("gen_skill"))
+                         race=ch["race"], zmult=zmult, sig=sig_for(ch["race"]), mv=mv, gen=ch.get("gen_skill"),
+                         bt=(__import__("data_zanpakuto").blade_technique(zstate.get("blade_id"))
+                             if released and zstate.get("blade_id") and zstate.get("shikai") else None))
 
 
 def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):

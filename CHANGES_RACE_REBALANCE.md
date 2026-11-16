@@ -135,3 +135,21 @@
 - Tests: test_zanpakuto_bond.py.
 - Existing players keep their current bond under the weapon key until they choose a blade. Choosing a blade starts
   that blade's bond from zero, as the design says.
+
+## Inner World timer and inner bond (service_extras.py)
+- Visits were reset every UTC day, so the weekly cap (inner_weekly) acted like a daily cap. The window is back to
+  the ISO week (service_player.week()) and the counter is kept for 8 days.
+- The bond from an Inner World choice is now written to the blade (data_zanpakuto.bond_key), like the other bond.
+
+## Blade techniques (data_zanpakuto.py, engine.py, service_combat.py, handlers_combat.py, render.py, locale_bleachfx.py)
+- Each of the 19 blades has one technique, after Shikai: pierce (x1.15, ignores 35% of armour), bleed (x1.0 plus a
+  bleed), twin (two cuts of x0.65), heavy (x1.25). The kind per blade is a design choice to review.
+- Button in combat: "🗡 <blade>: <technique>". Cost 9% of max reiatsu, cooldown 3 turns (own cooldown, tcd).
+- The technique is not in the balance simulator. Shikai users get extra damage from it, so re-run the balance check.
+- Tests: test_blade_techniques.py.
+
+## Hyōrinmaru: owner-only and stronger (data_zanpakuto.py, handlers_zanpakuto.py, test_hyorinmaru.py)
+- The lock was already in place: znp_lock.DEFAULT_OWNER_ONLY lists hyorinmaru, and combat and the blade picker check it.
+  The lock is only as good as OWNER_ID (env). If the settings document znp_owner_only is written, it replaces the default list, so keep hyorinmaru in it.
+- Zanpakutō panel: an owner-only blade is hidden from players who are not the owner.
+- Stronger: shikai bonus 4% -> 8%, bankai bonus 7% -> 12%, attack style dmg x1.10 -> x1.15, technique x1.40 with 50% armour pierce and a 2-turn cooldown.

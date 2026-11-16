@@ -341,8 +341,9 @@ async def seat_claim(uid: int):
 # 6. Inner World (daily window, a few visits)
 # ===================================================================================================
 def _inner_window() -> str:
-    """Visits reset every day (UTC date), not every week."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    """Visits reset every week (the setting is inner_weekly), as they were designed to."""
+    from service_player import week
+    return week()
 
 
 def _scene_for(uid: int, wk: str, n: int) -> int:
@@ -369,14 +370,14 @@ async def inner_choose(uid: int, scene: int, choice: str):
         return "limit", None
     if scene != _scene_for(uid, wk, used):
         return "stale", None
-    if not await bump_counter(f"inner:{uid}:{wk}", 1, int(st["inner_weekly"]), ttl_hours=48):
+    if not await bump_counter(f"inner:{uid}:{wk}", 1, int(st["inner_weekly"]), ttl_hours=24 * 8):  # keep the counter past the week
         return "limit", None
     eff = INNER[scene][choice][4]
     ch = await get_char(uid)
-    wid = ch.get("weapon_id") or "none"
+    from data_zanpakuto import bond_key
     res = {"bond": int(eff.get("bond", 0)), "xp": 0, "buff": None}
     if res["bond"]:
-        await col("characters").update_one({"user_id": uid}, {"$inc": {f"bond.{wid}": res["bond"]}})
+        await col("characters").update_one({"user_id": uid}, {"$inc": {f"bond.{bond_key(ch)}": res["bond"]}})
     if eff.get("xp"):
         res["xp"] = int((40 + ch["level"] * 6) * eff["xp"])
         await add_xp(uid, res["xp"], "inner")
