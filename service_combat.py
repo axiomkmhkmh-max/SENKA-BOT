@@ -199,6 +199,16 @@ DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
 
 
+def _is_boss_stage(dungeon, tower_floor_flag) -> bool:
+    """True for a dungeon's last stage and for a Soul Tower Warden floor (fight-type balance, see data_race_rules)."""
+    if not dungeon:
+        return False
+    if dungeon.get("tower") or tower_floor_flag:
+        from data_extras import TOWER_BOSS_EVERY
+        return int(dungeon.get("stage", 0)) % TOWER_BOSS_EVERY == 0
+    return dungeon.get("stage") == dungeon.get("total")
+
+
 async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = None, carry: dict = None, trial: dict = None,
                     force_elite: bool = False):
     ch = await get_char(uid)
@@ -251,6 +261,10 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     foe = make_enemy(lvl, scale, name, rng, sig=enemy_sig(loc.get("race"), pick))
     if enemy_sig(loc.get("race"), pick) == "cero":  # hollow foe: tells the human passive who it is
         foe["foe"] = "hollow"
+    elif _is_boss_stage(dungeon, tower):  # dungeon final stage or Soul Tower Warden: race balance by fight type
+        foe["foe"] = "boss"
+    else:  # every other wild enemy
+        foe["foe"] = "pve"
     state = E.new_state(player, foe, rng)
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,

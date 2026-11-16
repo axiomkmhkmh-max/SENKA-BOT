@@ -80,5 +80,31 @@ class CommandRouteTests(unittest.TestCase):
         self.assertEqual(missing, [], f"slash targets without an intent: {missing}")
 
 
+class FightTypeBalanceTests(unittest.TestCase):
+    """Race damage by fight type (data_race_rules.RACE_CONTEXT_DMG)."""
+
+    def test_every_race_has_every_fight_type(self):
+        from data_race_rules import RACE_CONTEXT_DMG
+        for race in RACE_CONTEXT_DMG:
+            self.assertEqual(set(RACE_CONTEXT_DMG[race]), {"pvp", "hollow", "boss", "pve", "world_boss"}, race)
+
+    def test_multipliers_stay_in_a_sane_band(self):
+        from data_race_rules import RACE_CONTEXT_DMG
+        for race, table in RACE_CONTEXT_DMG.items():
+            for ctx, val in table.items():
+                self.assertTrue(0.6 <= val <= 1.5, (race, ctx, val))
+
+    def test_context_routing(self):
+        from data_race_rules import fight_context, ctx_dmg_mult
+        self.assertEqual(fight_context({"pvp": True}, {}), "pvp")
+        self.assertEqual(fight_context({}, {"foe": "hollow"}), "hollow")
+        self.assertEqual(fight_context({}, {"foe": "boss"}), "boss")
+        self.assertEqual(fight_context({}, {"foe": "pve"}), "pve")
+        self.assertEqual(fight_context({}, {"foe": "world_boss"}), "world_boss")
+        self.assertIsNone(fight_context({}, {}))
+        self.assertEqual(ctx_dmg_mult("shinigami", None), 1.0)
+        self.assertEqual(ctx_dmg_mult("nobody", "pvp"), 1.0)
+
+
 if __name__ == "__main__":
     unittest.main()

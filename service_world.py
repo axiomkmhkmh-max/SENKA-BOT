@@ -116,6 +116,7 @@ async def boss_hit(uid: int, sid: str):
     player = await build_player(ch)
     boss = E.new_fighter("Boss", b["level"], {"zanjutsu": 1, "kido": 1, "hakuda": b["defense"] * 2, "hoho": 1, "reiatsu": 1}, 10 ** 9, 100,
                          {"attack": 1, "element": ELEMENTS[sum(map(ord, b["_id"])) % 8], "skills": [], "weapon_type": "melee"}, armor=0)
+    boss["foe"] = "world_boss"  # race balance by fight type (data_race_rules)
     state = {"a": player, "b": boss, "turn": 1, "cur": "a", "first": "a", "done": False, "winner": None}
     ev = []
     if ch.get("boss_style") == "kido" and E.can(player, "kd"):

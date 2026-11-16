@@ -89,3 +89,19 @@
 - Bount: a win in the mansion gives soul absorption coins (daily cap 500), for every race.
 - Tests: test_xcution_bount.py.
 - Not built: Xcution gang wars and boss, Bount seal.
+
+## Race balance by fight type (data_race_rules.py, engine.py, service_combat.py, test_race_balance.py)
+- Each race now has a damage multiplier per fight type: pvp (duel vs a player), hollow (wild Hollow foe),
+  boss (dungeon final stage and Soul Tower Warden floors), pve (other wild enemies) and world_boss (shared-HP
+  world boss, every hit counts).
+- Table: data_race_rules.RACE_CONTEXT_DMG, applied in engine._deal through fight_context and ctx_dmg_mult.
+- Foes are tagged in service_combat.pve_start: Hollow foes foe="hollow", dungeon/tower bosses foe="boss", other
+  wild enemies foe="pve". service_world.boss_hit tags world boss hits foe="world_boss".
+- Tuned with a duel simulator at level ~40: equal allocated points for every race, same weapon and armour.
+  Results on fresh seeds (about 180 duels per pair, so each figure is only accurate to about +/-4 points):
+  pvp 49-51%, hollow 43-49%, boss 41-48%, pve 45-57% (the least certain figure; wild-enemy samples swing about 8 points between runs), world_boss damage per hit 97-103 (100 = average).
+- Main changes from the old baseline: Shinigami x1.3 damage in all three contexts, Quincy x1.2, Fullbringer x1.1,
+  Visored and Human about x1.05-1.13, Hollow and Arrancar x0.8 in pvp and hollow fights.
+- Other bosses (Hollow raid, Xcution, Bount) are not tagged yet and get no fight-type multiplier.
+- Caveat: the simulator is an approximation of the real fights (no real items, no player skill, enemy scale
+  calibrated to about even). Re-run the balance numbers on real battle logs before release.

@@ -7,7 +7,7 @@ import random
 
 from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
 from data_races import soft_stat
-from data_race_rules import race_allows
+from data_race_rules import race_allows, fight_context, ctx_dmg_mult
 from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
@@ -167,6 +167,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     cm = 1.5 + eff(att, "zanjutsu") * 0.003 + skill_p(att, "surge") / 100
     dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * _zone(state, side) * _foe_mult(att, dfn)
     dmg *= RACE_KILLER.get(att.get("race"), {}).get(dfn.get("race"), 1.0)  # canon race killers (SENKA+)
+    dmg *= ctx_dmg_mult(att.get("race"), fight_context(state, dfn))  # balance by fight type (data_race_rules)
     ex = skill_p(att, "execute")
     if ex and dfn["hp"] < dfn["max_hp"] * 0.3:
         dmg *= 1 + ex / 100
