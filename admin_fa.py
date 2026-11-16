@@ -85,6 +85,8 @@ SETTING_FA = {
     "znp_mastery_cap": "سقف مهارت زانپاکتو", "znp_shikai_level": "سطح لازم شایکای", "znp_shikai_bond": "پیوند لازم شایکای",
     "znp_bankai_level": "سطح لازم بانکای", "znp_bankai_mastery": "مهارت لازم بانکای",
     "chain_cap": "سقف زنجیره", "chain_step": "گام زنجیره", "chain_expire_hours": "انقضای زنجیره (ساعت)", "chain_bonus_every": "پاداش زنجیره هر چند بار",
+    "chain_shield_min": "حداقل زنجیره برای سپر", "chain_shield_hours": "فاصله‌ی سپر زنجیره (ساعت)",
+    "shop_disc_5": "تخفیف خرید ۵تایی", "shop_disc_10": "تخفیف خرید ۱۰تایی", "shop_disc_25": "تخفیف خرید ۲۵تایی",
     "dispatch_slots": "جای اعزام", "dispatch_k": "ضریب اعزام", "dispatch_time_k": "ضریب زمان اعزام", "dispatch_energy": "انرژی اعزام",
     "wheel_cost": "هزینه‌ی چرخ", "wheel_extra_daily": "چرخش اضافه‌ی روزانه", "inner_weekly": "دنیای درون در هفته",
     "wheel2_enabled": "گردونه‌ها فعال", "wheel_free_daily": "چرخش رایگان گردونه در روز", "pity_leg": "ضمانت Legendary (چرخش)",

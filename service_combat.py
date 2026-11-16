@@ -393,8 +393,10 @@ async def pve_settle(doc: dict):
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1}})
         if not doc.get("dungeon") and not doc.get("trial"):
             from service_extras import chain_break
-            lost = await chain_break(uid)
-            if lost >= 2:
+            lost, shielded = await chain_break(uid)
+            if shielded:
+                out["chain_shield"] = True
+            elif lost >= 2:
                 out["chain_lost"] = lost
         from service_worldstate import on_action
         _bg(on_action(uid, "pve_loss", doc["loc"]))

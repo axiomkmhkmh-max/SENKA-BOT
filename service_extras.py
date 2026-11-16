@@ -160,12 +160,21 @@ async def chain_win(uid: int):
     return n, mult, item, None
 
 
-async def chain_break(uid: int) -> int:
+async def chain_break(uid: int):
+    """A loss ends the chain, except that a long chain (>= chain_shield_min) is protected by a shield that
+    absorbs one loss per chain_shield_hours. Returns (lost_n, shield_used). lost_n is 0 when nothing was lost."""
+    st = await game_settings()
     ch = await get_char(uid)
-    n = int((ch.get("chain") or {}).get("n", 0))
-    if n:
-        await col("characters").update_one({"user_id": uid}, {"$set": {"chain.n": 0}})
-    return n
+    c = (ch.get("chain") or {})
+    n = int(c.get("n", 0))
+    if not n:
+        return 0, False
+    now = int(time.time())
+    if n >= int(st["chain_shield_min"]) and now - int(c.get("shield_at", 0)) >= float(st["chain_shield_hours"]) * 3600:
+        await col("characters").update_one({"user_id": uid}, {"$set": {"chain.shield_at": now, "chain.at": now}})
+        return 0, True
+    await col("characters").update_one({"user_id": uid}, {"$set": {"chain.n": 0}})
+    return n, False
 
 
 # ===================================================================================================

@@ -48,3 +48,15 @@ class HiLoEdgeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShopBulkTests(unittest.TestCase):
+    def test_discount_tiers(self):
+        import config
+        from engine_shop import bulk_discount
+        st = config.GAME_DEFAULTS
+        self.assertEqual(bulk_discount(1, st), 0)
+        self.assertEqual(bulk_discount(5, st), st["shop_disc_5"])
+        self.assertEqual(bulk_discount(10, st), st["shop_disc_10"])
+        self.assertEqual(bulk_discount(25, st), st["shop_disc_25"])
+        self.assertLess(bulk_discount(25, {"shop_disc_25": 5}), 1)  # a typo in `set` can never make it free

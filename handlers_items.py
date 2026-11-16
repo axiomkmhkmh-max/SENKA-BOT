@@ -10,7 +10,7 @@ from database import col, game_settings
 from fmt import item_card, nm, pctf
 from i18n import esc, fnum
 from service_economy import (FORGE_CHANCE, auction_bid, equip, forge, forge_cost, gacha_doc, gacha_pull, inv_get, market_buy, market_cancel, market_create,
-                             npc_sell, price_mult, settle_listings, shop_buy, shop_price, shop_stock, slots_used, suggested_price, toggle_party, unequip,
+                             npc_sell, price_mult, settle_listings, shop_buy, shop_price, shop_quote, shop_stock, SHOP_QTYS, slots_used, suggested_price, toggle_party, unequip,
                              use_item)
 from service_economy import char_sell_value, inv_remove, sell_character
 from service_log import log_event
@@ -596,21 +596,47 @@ async def shop(ctx, arg):
     return Out(head(ctx, "ttl_shp") + ctx.t("shp_body", p=fnum(page + 1, L), n=fnum(pages, L)) + "\n" + reset, rows)
 
 
+async def _shop_item_view(ctx, item_id, note=""):
+    L = ctx.lang
+    st = await game_settings()
+    unit = await shop_price(item_id)
+    lines = []
+    for q in SHOP_QTYS:
+        _, total, disc = await shop_quote(item_id, q)
+        tag = f" (−{int(round(disc * 100))}٪)" if disc and L == "fa" else f" (−{int(round(disc * 100))}%)" if disc else ""
+        lines.append(f"×{fnum(q, L)} → {fnum(total, L)}🪙{tag}")
+    hdr = ("🛒 خرید تعدادی (تخفیف حجمی):" if L == "fa" else "🛒 Bulk buy (volume discount):")
+    body = head(ctx, "ttl_shp") + item_card(ctx, item_id, shop_price=unit) + "\n\n" + hdr + "\n" + "\n".join(lines)
+    if note:
+        body += "\n\n" + note
+    rows = [[(f"{'🟢 ' if q == 1 else ''}×{fnum(q, L)}", "sb", f"{item_id}|{q}") for q in SHOP_QTYS], nav(ctx, ("shp", "0"))]
+    return Out(body, rows)
+
+
 @action("sv")
 async def shop_view(ctx, arg):
     if arg not in shop_stock(today()):
         return Out(alert=ctx.t("mk_gone"))
-    return Out(head(ctx, "ttl_shp") + item_card(ctx, arg, shop_price=await shop_price(arg)), [[(ctx.t("b_buy"), "sb", arg)], nav(ctx, ("shp", "0"))])
+    return await _shop_item_view(ctx, arg)
 
 
 @action("sb")
 async def shop_buy_cb(ctx, arg):
-    r = await shop_buy(ctx.uid, arg, today())
+    iid, _, q = (arg or "").partition("|")
+    try:
+        qty = int(q) if q else 1
+    except ValueError:
+        qty = 1
+    r = await shop_buy(ctx.uid, iid, today(), qty)
     if r != "ok":
         return Out(alert=ctx.t("mk_e_" + r))
     from service_player import bump_quest
     await bump_quest(ctx.uid, "market_buy", 1)
-    out = await shop(ctx, "0")
+    # stay on the same item so the player can buy more, instead of being thrown back to page 1 of the shop
+    ch = await get_char(ctx.uid)
+    left = fnum((ch or {}).get("coins", 0), ctx.lang)
+    note = (f"✅ خرید انجام شد! ×{fnum(qty, ctx.lang)} — موجودی: {left}🪙" if ctx.lang == "fa" else f"✅ Bought ×{qty}! Balance: {left}🪙")
+    out = await _shop_item_view(ctx, iid, note)
     out.alert = ctx.t("mk_bought")
     return out
 

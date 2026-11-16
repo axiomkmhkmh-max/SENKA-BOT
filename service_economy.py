@@ -248,16 +248,31 @@ async def shop_price(item_id: str) -> int:
     return max(1, int(ALL[item_id]["base_price"] * await price_mult()))
 
 
-async def shop_buy(uid: int, item_id: str, day: str) -> str:
+from engine_shop import SHOP_QTYS, bulk_discount  # noqa: E402  (pure, unit-tested)
+
+
+async def shop_quote(item_id: str, qty: int = 1) -> tuple:
+    """(unit price after discount, total, discount fraction). The total is what is charged, so the button and the charge always agree."""
+    st = await game_settings()
+    unit = await shop_price(item_id)
+    disc = bulk_discount(qty, st)
+    total = max(qty, int(unit * qty * (1 - disc)))
+    return unit, total, disc
+
+
+async def shop_buy(uid: int, item_id: str, day: str, qty: int = 1) -> str:
+    qty = int(qty)
     if item_id not in shop_stock(day):
         return "gone"
-    price = await shop_price(item_id)
-    if not await add_coins(uid, -price, "shop_buy"):
+    if qty < 1 or qty > max(SHOP_QTYS):
+        return "gone"
+    _, total, _ = await shop_quote(item_id, qty)
+    if not await add_coins(uid, -total, "shop_buy"):
         return "funds"
-    if not await inv_add(uid, item_id, 1):
-        await add_coins(uid, price, "shop_refund")
+    if not await inv_add(uid, item_id, qty):
+        await add_coins(uid, total, "shop_refund")
         return "full"
-    log_event("shop", uid, f"از اوراهارا خرید: {iname(item_id, 'fa')} به قیمت {price:,} 🪙", item=item_id, price=price)
+    log_event("shop", uid, f"از اوراهارا خرید: {iname(item_id, 'fa')} ×{qty} به قیمت {total:,} 🪙", item=item_id, price=total, qty=qty)
     return "ok"
 
 

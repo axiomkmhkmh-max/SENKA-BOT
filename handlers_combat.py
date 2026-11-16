@@ -193,6 +193,8 @@ async def _pve_result(ctx, doc, ev, o):
         return _tower_result(ctx, doc, ev, o)
     if not o["win"]:
         text = battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")) + "\n\n" + ctx.t("bt_lose")
+        if o.get("chain_shield"):
+            text += "\n" + ctx.t("ch_shield")
         if o.get("chain_lost"):
             text += "\n" + ctx.t("ch_lost", n=fnum(o["chain_lost"], L))
         return Out(text, [[(ctx.t("b_again"), "bs", "")], nav(ctx)])
