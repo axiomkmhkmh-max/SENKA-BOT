@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
+from config import BAG_START
 from data_crafting import player_bonus
 from data_items import ALL
 from data_misc import DAILY_POOL, QUEST_BY_ID, QUESTS, RACE_START_KIDO, START_KIDO
@@ -125,7 +126,7 @@ async def finish_registration(uid: int, reg: dict):
         await col("characters").insert_one(doc)
     except DuplicateKeyError:
         return None
-    await col("inventories").update_one({"user_id": uid}, {"$setOnInsert": {"user_id": uid, "items": {}, "capacity": 50}}, upsert=True)
+    await col("inventories").update_one({"user_id": uid}, {"$setOnInsert": {"user_id": uid, "items": {}, "capacity": BAG_START}}, upsert=True)
     await col("player_quests").update_one({"user_id": uid}, {"$setOnInsert": {"user_id": uid, "total": {}, "daily": {"day": today(), "c": {}}, "weekly": {"week": week(), "c": {}}, "claimed": []}}, upsert=True)
     await reg_clear(uid)
     log_event("reg", uid, f"ثبت‌نام کرد: {name} — نژاد {race['name_fa']}", race=reg["race"])

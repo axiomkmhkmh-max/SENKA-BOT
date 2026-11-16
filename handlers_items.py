@@ -2,6 +2,7 @@
 import math
 import time
 
+from config import BAG_MAX, BAG_START, BAG_STEP
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus, copies_to_level_star
 from data_items import ALL
 from data_lore import CHAR_EPI
@@ -26,7 +27,7 @@ def _rk(i):
 
 
 # ---- bag ----------------------------------------------------------------------------------
-BAG_START, BAG_STEP, BAG_MAX = 50, 10, 150  # slots: start, +per upgrade, ceiling
+# BAG_START / BAG_STEP / BAG_MAX live in config.py (slots: start, +per upgrade, ceiling)
 
 
 def bag_upgrade_cost(capacity: int) -> int:
@@ -91,14 +92,14 @@ async def bag(ctx, arg):
         rows.append(pg)
     if ids:
         rows.append([("☑️ انتخاب چندتایی و حذف" if L == "fa" else "☑️ Select multiple & remove", "bqm", f"{page}:{flt}")])
-    capn_now = max(1, inv.get("capacity", 50))
+    capn_now = max(1, inv.get("capacity", BAG_START))
     if capn_now < BAG_MAX:
         cost = bag_upgrade_cost(capn_now)
         lbl = (f"⬆️ ارتقای کوله +{BAG_STEP} ({fnum(cost, L)} 🪙)" if L == "fa" else f"⬆️ Upgrade bag +{BAG_STEP} ({fnum(cost, L)} 🪙)")
         rows.append([(lbl, "bagup", "")])
     rows.append(nav(ctx))
     eq = f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"
-    used, capn = slots_used(inv["items"]), max(1, inv.get("capacity", 50))
+    used, capn = slots_used(inv["items"]), max(1, inv.get("capacity", BAG_START))
     k = min(10, round(10 * used / capn))
     cap = f"<code>{'▰' * k}{'▱' * (10 - k)}</code> {fnum(used, L)}/{fnum(capn, L)}"
     body = ctx.t("bag_body", cap=cap, eq=eq, n=fnum(len(ids), L))
@@ -683,6 +684,8 @@ async def gacha_sell_list(ctx, arg):
         pg.append(("▶️", "gsl", str(page + 1)))
     if pg:
         rows.append(pg)
+    if owned:
+        rows.append([("☑️ انتخاب چندتایی و فروش" if L == "fa" else "☑️ Select multiple & sell", "gml", str(page))])
     rows.append(nav(ctx, ("gch", "")))
     body = ("اینجا احضارهایی که داری و قیمت فروششون. روی هر احضار بزن و تعداد فروش رو (×۱، ×۵، ×۱۰ یا همه) انتخاب کن. فقط با فروش همه‌ی نسخه‌ها از پارتی حذف میشه."
             if L == "fa" else
@@ -740,6 +743,228 @@ async def gacha_sell_do(ctx, arg):
     out = await gacha_sell_list(ctx, page or "0")
     out.alert = (f"💱 فروخته شد: {fnum(pay, 'fa')} 🪙" if L == "fa" else f"💱 Sold for {fnum(pay, 'en')} 🪙")
     return out
+
+
+# ---- multi-select sell for summons ------------------------------------------------------------
+# Same idea as the bag's multi-select: the selection lives in Mongo (collection "gacha_sel", one doc per player) because
+# callback_data is capped at 64 bytes. Two sale modes: only the extra copies (keeps 1 of each, so level/stars and the
+# party are untouched) or every copy (the summon is gone and leaves the party). Every sale goes through a confirmation.
+async def _gsel_get(uid, g):
+    d = await col("gacha_sel").find_one({"_id": uid})
+    return [c for c in (d or {}).get("chars", []) if c in CHAR_BY_ID and int(g["chars"].get(c, 0) or 0) > 0]
+
+
+async def _gsel_set(uid, chars):
+    if chars:
+        await col("gacha_sel").update_one({"_id": uid}, {"$set": {"chars": chars, "at": time.time()}}, upsert=True)
+    else:
+        await col("gacha_sel").delete_one({"_id": uid})
+
+
+def _owned_sorted(g):
+    return sorted((c for c, n in g["chars"].items() if int(n or 0) > 0 and c in CHAR_BY_ID),
+                  key=lambda c: (-RARITIES.index(CHAR_BY_ID[c]["rarity"]), c))
+
+
+def _gm_page(arg):
+    p = (arg or "0").split(":")[0]
+    return int(p) if p.lstrip("-").isdigit() else 0
+
+
+async def _gm_view(ctx, page, alert=None):
+    L = ctx.lang
+    fa = L == "fa"
+    g = await gacha_doc(ctx.uid)
+    ch = await get_char(ctx.uid) or {}
+    in_party = set(ch.get("party") or [])
+    rate = float((await game_settings()).get("coin_rate", 1.0))
+    owned = _owned_sorted(g)
+    sel = await _gsel_get(ctx.uid, g)
+    sset = set(sel)
+    pages = max(1, math.ceil(len(owned) / PER))
+    page = max(0, min(page, pages - 1))
+    rows = []
+    for cid in owned[page * PER:(page + 1) * PER]:
+        c = CHAR_BY_ID[cid]
+        copies = int(g["chars"][cid])
+        on = cid in sset
+        name = c["name_fa" if fa else "name_en"].replace("<", "").replace(">", "")
+        label = f"{'☑️' if on else '⬜'} {'✅' if cid in in_party else ''}{RARITY_ICON[c['rarity']]} {name} ×{fnum(copies, L)} · {fnum(char_sell_value(cid, copies, rate), L)} 🪙"
+        rows.append([(label, "gmt", f"{cid}:{page}", False, GREEN if on else "none")])
+    pg = []
+    if page > 0:
+        pg.append(("◀️", "gmv", str(page - 1), False, "none"))
+    if page < pages - 1:
+        pg.append(("▶️", "gmv", str(page + 1), False, "none"))
+    if pg:
+        rows.append(pg)
+    rows.append([("✅ همه‌ی این صفحه" if fa else "✅ Whole page", "gma", str(page), False, "none"),
+                 ("🧹 پاک‌کردن انتخاب" if fa else "🧹 Clear", "gmc", str(page), False, "none")])
+    present = [r for r in RARITIES if any(CHAR_BY_ID[c]["rarity"] == r for c in owned)]
+    if present:  # tap a tier to tick every summon of it; tap again to untick them
+        for k in range(0, len(present), 3):
+            rows.append([((f"🎯 همه‌ی {RAR_FA.get(r, r)}" if fa else f"🎯 All {r}"), "gmr", f"{r}:{page}", False, "none")
+                         for r in present[k:k + 3]])
+    if sel:
+        n_extra = sum(1 for c in sel if int(g["chars"][c]) > 1)
+        rows.append([((f"💱 فروش اضافه‌ها ({fnum(n_extra, L)})" if fa else f"💱 Sell extras ({n_extra})"), "gmx", f"e:{page}", False, GREEN),
+                     ((f"💥 فروش همه‌ی نسخه‌ها ({fnum(len(sel), L)})" if fa else f"💥 Sell all copies ({len(sel)})"), "gmx", f"a:{page}", False, RED)])
+    rows.append(nav(ctx, ("gsl", str(page))))
+    if fa:
+        body = (f"☑️ <b>انتخاب چندتایی احضارها</b> | صفحه {fnum(page + 1, L)}/{fnum(pages, L)}\n"
+                f"انتخاب‌شده: <b>{fnum(len(sel), L)}</b>\n"
+                "روی هر احضار بزن تا تیک بخوره، یا یک رده رو کامل انتخاب کن. انتخاب‌ها بین صفحه‌ها می‌مونه.\n"
+                "💱 <b>فروش اضافه‌ها</b>: از هر احضار فقط نسخه‌های تکراری فروخته می‌شه و ۱ نسخه (با سطح و ستاره‌ش) می‌مونه.\n"
+                "💥 <b>فروش همه‌ی نسخه‌ها</b>: احضار کامل رفته و از پارتی هم حذف می‌شه.\n✅ = در پارتی")
+        if not owned:
+            body = "هنوز احضاری نداری."
+    else:
+        body = (f"☑️ <b>Multi-select summons</b> | page {page + 1}/{pages}\n"
+                f"Selected: <b>{len(sel)}</b>\n"
+                "Tap summons to tick them, or select a whole tier. Picks survive page changes.\n"
+                "💱 <b>Sell extras</b>: only the duplicate copies are sold; 1 copy (with its level and stars) stays.\n"
+                "💥 <b>Sell all copies</b>: the summon is gone and leaves your party.\n✅ = in your party")
+        if not owned:
+            body = "You have no summons yet."
+    return Out(head(ctx, "ttl_gch") + body, rows, alert=alert)
+
+
+@action("gml")
+async def gacha_multi_enter(ctx, arg):
+    await _gsel_set(ctx.uid, [])  # always start a fresh selection
+    return await _gm_view(ctx, _gm_page(arg))
+
+
+@action("gmv")
+async def gacha_multi_view(ctx, arg):
+    return await _gm_view(ctx, _gm_page(arg))
+
+
+@action("gmt")
+async def gacha_multi_toggle(ctx, arg):
+    cid, _, p = (arg or "").partition(":")
+    page = _gm_page(p)
+    g = await gacha_doc(ctx.uid)
+    if cid not in CHAR_BY_ID or int(g["chars"].get(cid, 0) or 0) <= 0:
+        return await _gm_view(ctx, page)
+    sel = await _gsel_get(ctx.uid, g)
+    if cid in sel:
+        sel.remove(cid)
+    else:
+        sel.append(cid)
+    await _gsel_set(ctx.uid, sel)
+    return await _gm_view(ctx, page)
+
+
+@action("gma")
+async def gacha_multi_page(ctx, arg):
+    page = _gm_page(arg)
+    g = await gacha_doc(ctx.uid)
+    owned = _owned_sorted(g)
+    page = max(0, min(page, max(1, math.ceil(len(owned) / PER)) - 1))
+    sel = await _gsel_get(ctx.uid, g)
+    for cid in owned[page * PER:(page + 1) * PER]:
+        if cid not in sel:
+            sel.append(cid)
+    await _gsel_set(ctx.uid, sel)
+    return await _gm_view(ctx, page)
+
+
+@action("gmr")
+async def gacha_multi_rarity(ctx, arg):
+    """Tick every owned summon of one rarity (or untick them if they are all ticked already). arg = rarity:page"""
+    rar, _, p = (arg or "").partition(":")
+    page = _gm_page(p)
+    g = await gacha_doc(ctx.uid)
+    ids = [c for c in _owned_sorted(g) if CHAR_BY_ID[c]["rarity"] == rar]
+    sel = await _gsel_get(ctx.uid, g)
+    if ids and all(c in sel for c in ids):
+        sel = [c for c in sel if c not in ids]
+    else:
+        sel += [c for c in ids if c not in sel]
+    await _gsel_set(ctx.uid, sel)
+    return await _gm_view(ctx, page)
+
+
+@action("gmc")
+async def gacha_multi_clear(ctx, arg):
+    await _gsel_set(ctx.uid, [])
+    return await _gm_view(ctx, _gm_page(arg))
+
+
+def _gm_plan(g, sel, mode):
+    """[(cid, qty_to_sell)] for the mode: 'e' = extras only (keep 1), 'a' = every copy."""
+    plan = []
+    for cid in sel:
+        copies = int(g["chars"].get(cid, 0) or 0)
+        qty = copies - 1 if mode == "e" else copies
+        if qty > 0:
+            plan.append((cid, qty, copies))
+    return plan
+
+
+@action("gmx")
+async def gacha_multi_confirm(ctx, arg):
+    mode, _, p = (arg or "").partition(":")
+    page = _gm_page(p)
+    L = ctx.lang
+    fa = L == "fa"
+    g = await gacha_doc(ctx.uid)
+    sel = await _gsel_get(ctx.uid, g)
+    if not sel or mode not in ("e", "a"):
+        return await _gm_view(ctx, page, ("چیزی انتخاب نشده." if fa else "Nothing selected."))
+    plan = _gm_plan(g, sel, mode)
+    if not plan:
+        return await _gm_view(ctx, page, ("نسخه‌ی اضافه‌ای در انتخابت نیست؛ همه‌شون فقط ۱ نسخه‌ان." if fa else "No extra copies in your selection; each one has only 1 copy."))
+    rate = float((await game_settings()).get("coin_rate", 1.0))
+    party = set((await get_char(ctx.uid) or {}).get("party") or [])
+    est = sum(char_sell_value(c, q, rate) for c, q, _ in plan)
+    shown = []
+    for c, q, copies in plan[:15]:
+        d = CHAR_BY_ID[c]
+        shown.append(f"• {RARITY_ICON[d['rarity']]} {esc(d['name_fa' if fa else 'name_en'])} ×{fnum(q, L)} <i>({'از' if fa else 'of'} {fnum(copies, L)})</i>")
+    if len(plan) > 15:
+        shown.append(f"… و {fnum(len(plan) - 15, L)} مورد دیگه" if fa else f"… and {len(plan) - 15} more")
+    lost_party = [c for c, q, copies in plan if q >= copies and c in party]
+    if fa:
+        title = "💱 <b>تأیید فروش اضافه‌ها</b>" if mode == "e" else "💥 <b>تأیید فروش همه‌ی نسخه‌ها</b>"
+        warn = (f"\n⚠️ {fnum(len(lost_party), L)} احضار از پارتی حذف می‌شه." if lost_party else "")
+        body = f"{title}\n{fnum(len(plan), L)} احضار:\n\n" + "\n".join(shown) + f"\n\n💰 دریافتی: <b>{fnum(est, L)} 🪙</b>{warn}\nاین کار برگشت ندارد. مطمئنی؟"
+    else:
+        title = "💱 <b>Confirm selling extras</b>" if mode == "e" else "💥 <b>Confirm selling all copies</b>"
+        warn = (f"\n⚠️ {len(lost_party)} summon(s) will leave your party." if lost_party else "")
+        body = f"{title}\n{len(plan)} summons:\n\n" + "\n".join(shown) + f"\n\n💰 Payout: <b>{fnum(est, L)} 🪙</b>{warn}\nThis cannot be undone. Are you sure?"
+    yes = (("✅ تأیید فروش" if fa else "✅ Confirm sale"), "gmy", f"{mode}:{page}", False, RED if mode == "a" else GREEN)
+    rows = [[yes], [("❌ لغو" if fa else "❌ Cancel", "gmv", str(page), False, "none")]]
+    return Out(head(ctx, "ttl_gch") + body, rows)
+
+
+@action("gmy")
+async def gacha_multi_do(ctx, arg):
+    mode, _, p = (arg or "").partition(":")
+    page = _gm_page(p)
+    fa = ctx.lang == "fa"
+    # take the selection atomically: a double tap on "confirm" can never run it twice
+    d = await col("gacha_sel").find_one_and_delete({"_id": ctx.uid})
+    chars = [c for c in (d or {}).get("chars", []) if c in CHAR_BY_ID]
+    if not chars or mode not in ("e", "a"):
+        return await _gm_view(ctx, page, ("چیزی انتخاب نشده." if fa else "Nothing selected."))
+    g = await gacha_doc(ctx.uid)
+    done, total = 0, 0
+    for cid, qty, _copies in _gm_plan(g, chars, mode):
+        status, pay = await sell_character(ctx.uid, cid, "all" if mode == "a" else qty)
+        if status == "retry":  # copies changed under us (a pull landed mid-sale): re-read once and try again
+            g2 = await gacha_doc(ctx.uid)
+            again = _gm_plan(g2, [cid], mode)
+            if again:
+                status, pay = await sell_character(ctx.uid, cid, "all" if mode == "a" else again[0][1])
+        if status == "ok":
+            done += 1
+            total += pay
+    if not done:
+        return await _gm_view(ctx, page, ("فروش انجام نشد؛ احضارها تغییر کرده بودن." if fa else "Nothing was sold; your summons changed."))
+    msg = f"✅ {fnum(done, ctx.lang)} احضار فروخته شد: {fnum(total, ctx.lang)} 🪙" if fa else f"✅ Sold {done} summons for {fnum(total, ctx.lang)} 🪙"
+    return await _gm_view(ctx, page, msg)
 
 
 @action("gp")

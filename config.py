@@ -1,6 +1,9 @@
 """Environment settings and admin-tunable game defaults."""
 import os
 
+# bag slots: what a new player starts with, slots per upgrade, ceiling (BAG_OLD_START is the pre-v2 start, used once by the migration)
+BAG_START, BAG_STEP, BAG_MAX, BAG_OLD_START = 100, 20, 300, 50
+
 
 def _int(name, default):
     try:

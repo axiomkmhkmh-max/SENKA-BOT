@@ -47,6 +47,10 @@ async def migrate_world():
     if claimed:
         async for c in col("characters").find({"evo": {"$exists": False}}, {"race": 1, "level": 1}):
             await col("characters").update_one({"_id": c["_id"], "evo": {"$exists": False}}, {"$set": {"evo": evo_gate_stage(c["race"], c["level"])}})
+    # bag v2: every existing bag gains the new starting slots once (upgrades already bought are kept)
+    from config import BAG_OLD_START, BAG_START
+    if await col("world_state").find_one_and_update({"_id": "main", "bag_v2": {"$ne": True}}, {"$set": {"bag_v2": True}}):
+        await col("inventories").update_many({"capacity": {"$exists": True}}, {"$inc": {"capacity": BAG_START - BAG_OLD_START}})
     await col("characters").update_many({"relics": {"$exists": False}}, {"$set": {"relics": [], "cosmetics": {}, "armor_plus": {}, "buffs": {}}})
     await col("characters").update_many({"seen_at": {"$exists": False}}, {"$set": {"seen_at": 0}})
 

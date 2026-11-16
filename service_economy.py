@@ -6,6 +6,7 @@ import uuid
 
 from pymongo import ReturnDocument
 
+from config import BAG_START
 from data_crafting import forge_value, player_bonus
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus
 from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY, iname
@@ -26,7 +27,7 @@ PITY = (("legendary", 4, 1000), ("epic", 3, 200), ("rare", 2, 50))
 async def inv_get(uid: int) -> dict:
     d = await col("inventories").find_one({"user_id": uid})
     if not d:
-        await col("inventories").update_one({"user_id": uid}, {"$setOnInsert": {"user_id": uid, "items": {}, "capacity": 50}}, upsert=True)
+        await col("inventories").update_one({"user_id": uid}, {"$setOnInsert": {"user_id": uid, "items": {}, "capacity": BAG_START}}, upsert=True)
         d = await col("inventories").find_one({"user_id": uid})
     return d
 
@@ -42,7 +43,7 @@ async def inv_add(uid: int, item_id: str, qty: int = 1, force: bool = False) -> 
     cur = inv["items"].get(item_id, 0)
     sm = max(1, ALL[item_id]["stack_max"])
     need = math.ceil((cur + qty) / sm) - math.ceil(cur / sm)
-    if not force and slots_used(inv["items"]) + need > inv.get("capacity", 50):
+    if not force and slots_used(inv["items"]) + need > inv.get("capacity", BAG_START):
         return False
     await col("inventories").update_one({"user_id": uid}, {"$inc": {f"items.{item_id}": qty}}, upsert=True)
     return True
