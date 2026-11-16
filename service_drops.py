@@ -12,7 +12,7 @@ import uuid
 
 from pymongo import ReturnDocument
 
-from data_artifacts import ARTIFACTS, ART_BY_ID, art_cap
+from data_artifacts import ARTIFACTS, ART_BY_ID, art_cap, art_drop_weight
 from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from service_economy import inv_add, inv_get, inv_remove
@@ -227,7 +227,8 @@ async def _reserve_art(drop_id: str, aid: str = None):
         ids = [aid]
     else:
         ids = [d["_id"] async for d in col("artifacts").find({}, {"_id": 1, "held": 1}) if (d.get("held") or 0) < art_cap(d["_id"])]
-    random.shuffle(ids)
+    if not aid:  # weighted random order: signature relics (weight < 1) are tried later, so they rarely drop
+        ids.sort(key=lambda x: random.random() ** (1.0 / art_drop_weight(x)), reverse=True)
     for i in ids:
         hit = await col("artifacts").find_one_and_update({"_id": i, "state": {"$ne": "dropped"}, "held": {"$lt": art_cap(i)}},
                                                          {"$set": {"state": "dropped", "drop_id": drop_id}})

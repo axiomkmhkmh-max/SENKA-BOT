@@ -254,6 +254,9 @@ TIERS = {
     2: {"name_en": "Lieutenant / Captain", "name_fa": "ستوان / کاپیتان", "cap": 5 * COPY_MULT},
     3: {"name_en": "Captain-Commander / Espada", "name_fa": "فرمانده‌ی کل / اسپادا", "cap": 3 * COPY_MULT},
     4: {"name_en": "Soul King / Central 46", "name_fa": "پادشاه ارواح / سنترال ۴۶", "cap": 2 * COPY_MULT},
+    # Signature relics of Aizen, Tōshirō and Ichigo: far stronger than everything else and almost unobtainable.
+    # `cap` is fixed (NOT scaled by COPY_MULT): at most ONE player in the whole world can hold each one.
+    5: {"name_en": "Legendary Signature Relic", "name_fa": "یادگار امضایی افسانه‌ای", "cap": 1},
 }
 TIER_OF = {
     "art_gikongan": 1, "art_kon_pill": 1, "art_hat": 1, "art_straw_hat": 1, "art_hellbutterfly": 1,
@@ -287,6 +290,35 @@ for _a in ARTIFACTS:
             break
         if _k not in _b:
             _b[_k] = 0.03
+
+
+# ---- SIGNATURE RELICS (Aizen / Tōshirō Hitsugaya / Ichigo) --------------------------------------------------------
+# Deliberate exception to the low-power rule: these are the strongest and rarest artifacts in the game.
+# One artifact per player (ch["artifact"]); data_crafting.player_bonus still caps xp/drop/coin/dmg/def at 60% overall.
+SIGNATURE = {
+    # Sōsuke Aizen
+    "art_hogyoku":         {"dmg": 0.30, "def": 0.18, "xp": 0.18},
+    "art_kyoka":           {"crit": 0.22, "dmg": 0.25, "drop": 0.18},
+    "art_glasses":         {"xp": 0.32, "crit": 0.18, "hunt": 0.18},
+    "art_restraint_chair": {"def": 0.35, "regen": 0.22, "dmg": 0.15},
+    # Tōshirō Hitsugaya (Hyōrinmaru)
+    "art_ice":             {"def": 0.32, "dmg": 0.28, "regen": 0.14},
+    # Ichigo Kurosaki
+    "art_zangetsu_frag":   {"dmg": 0.35, "crit": 0.18, "def": 0.14},
+    "art_badge":           {"dmg": 0.28, "xp": 0.25, "def": 0.14},
+    "art_visored_mask":    {"dmg": 0.28, "def": 0.22, "crit": 0.12},
+}
+SIGNATURE_TIER = 5
+SIGNATURE_DROP_WEIGHT = 0.05  # relative chance to be picked for a drop, compared with 1.0 for every other artifact
+for _a in ARTIFACTS:
+    if _a["_id"] in SIGNATURE:
+        _a["tier"] = SIGNATURE_TIER
+        _a["cap"] = TIERS[SIGNATURE_TIER]["cap"]
+        _a["bonus"] = dict(SIGNATURE[_a["_id"]])
+
+
+def art_drop_weight(aid: str) -> float:
+    return SIGNATURE_DROP_WEIGHT if aid in SIGNATURE else 1.0
 
 
 def art_due(chance: float, now: float, last_art_at: float, pity_seconds: float, roll: float) -> bool:
