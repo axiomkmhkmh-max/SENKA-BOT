@@ -245,6 +245,8 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         player["re"] = max(0, int(player["max_re"] * carry["re"]))
         if "gauge" in carry:  # the spirit gauge is the same fighter's courage: it does not reset between stages
             player["x"]["gauge"] = max(0, int(carry["gauge"]))
+        if carry.get("shield", 0) > 0:  # the barrier was dropped between stages, so the enemy's opening hit landed on bare HP
+            player["shield"] = int(carry["shield"])
     from data_bleachfx import enemy_sig
     foe = make_enemy(lvl, scale, name, rng, sig=enemy_sig(loc.get("race"), pick))
     if enemy_sig(loc.get("race"), pick) == "cero":  # hollow foe: tells the human passive who it is
@@ -348,7 +350,8 @@ async def pve_settle(doc: dict):
                 out["dg_heal"] = int(DG_STAGE3_HEAL * 100)
             nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": d["stage"] + 1},
                                   carry={"hp": hp_frac, "re": f["re"] / f["max_re"],
-                                         "gauge": int((f.get("x") or {}).get("gauge", 0))})  # spirit carries over; HP and reiatsu are kept as fractions
+                                         "gauge": int((f.get("x") or {}).get("gauge", 0)),
+                                         "shield": int(f.get("shield", 0))})  # a Bakudō barrier survives the stage change  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
         elif d:
             out["dungeon_done"] = True
