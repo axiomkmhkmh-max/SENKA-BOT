@@ -231,8 +231,9 @@ async def grant_rewards(uid: int, r: dict, reason: str = "admin"):
         await add_xp(uid, int(r["xp"]), reason, apply_rate=False)
     if r.get("tokens"):
         await add_tokens(uid, int(r["tokens"]), reason)
+    from service_raceweapon import admin_give
     for iid, n in (r.get("items") or {}).items():
-        await inv_add(uid, iid, int(n), force=True)
+        await admin_give(uid, iid, int(n))  # race weapons go to the hand of a player of that race; old blades are skipped
     return "ok"
 
 
@@ -322,7 +323,9 @@ async def gift_all(kind: str, n: int, item_id: str = None):
             if kind == "xp":
                 await add_xp(c["user_id"], int(n), "admin", apply_rate=False)
             else:
-                await inv_add(c["user_id"], item_id, int(n), force=True)
+                from service_raceweapon import admin_give
+                if await admin_give(c["user_id"], item_id, int(n)) not in ("ok", "equipped"):
+                    continue
             done += 1
         except Exception:
             pass

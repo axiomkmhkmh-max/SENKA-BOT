@@ -157,6 +157,36 @@ async def on_race_change(uid: int, old_race: str, new_race: str):
     await col("characters").update_one({"user_id": uid}, {"$set": {"rw_pending": lvl, "weapon_id": None}})
 
 
+async def admin_give(uid: int, item_id: str, n: int = 1) -> str:
+    """Give an item the right way after the rework (admin panel, admin commands, redeem codes, mass gifts):
+    a race weapon goes straight into the hand of a player of that race (it never sits in a bag), an old blade is
+    refused (it can no longer be used), anything else goes to the bag. Returns ok | equipped | retired | race | noreg."""
+    from service_economy import inv_add
+    it = ALL.get(item_id) or {}
+    if it.get("retired"):
+        return "retired"
+    if it.get("subtype") == "rweapon":
+        ch = await get_char(uid)
+        if not ch:
+            return "noreg"
+        if it.get("race") != ch.get("race"):
+            return "race"
+        cur_plus = int((ch.get("weapon_plus") or {}).get(item_id, 0))
+        await col("characters").update_one({"user_id": uid}, {"$set": {"weapon_id": item_id, f"weapon_plus.{item_id}": cur_plus},
+                                                               "$unset": {"rw_pending": ""}})
+        return "equipped"
+    await inv_add(uid, item_id, int(n), force=True)
+    return "ok"
+
+
+ADMIN_GIVE_MSG = {
+    "retired": ("❌ تیغه‌های قدیمی دیگر قابل استفاده نیستند؛ سلاح نژادی (rw_...) بده.", "❌ Old blades can no longer be used; give a race weapon (rw_...)."),
+    "race": ("❌ این سلاح مال نژاد دیگری است.", "❌ This weapon belongs to another race."),
+    "noreg": ("❌ این بازیکن کاراکتر ندارد.", "❌ This player has no character."),
+    "equipped": ("✅ سلاح نژادی مستقیم دست بازیکن داده شد.", "✅ The race weapon was put straight into the player's hand."),
+}
+
+
 # ---- one-time move from the old blades -------------------------------------------------------------------------------
 MIGRATION_ID = "race_weapons_v1"
 
@@ -200,29 +230,29 @@ NOTICE = {
 BTN = {"fa": "🗡 انتخاب سلاح نژاد", "en": "🗡 Choose race weapon"}
 
 
-async def notify_pending(bot, stop: asyncio.Event):
-    """Send the notice to every player with a pending choice who has not had it yet (resumes after a restart)."""
+async def broadcast_flag(bot, stop: asyncio.Event, flag: str, texts: dict, buttons: dict, code: str):
+    """Send `texts` once to every character whose `flag` is False (the flag is set True first, so a restart resumes
+    without sending twice). The button opens `code`."""
     from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError, TelegramRetryAfter
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     from security import make_cb
     await asyncio.sleep(8)
     try:
         while not stop.is_set():
-            batch = await col("characters").find({"rw_pending": {"$exists": True}, "rw_notice": {"$ne": True}},
-                                                 {"user_id": 1}).limit(200).to_list(200)
+            batch = await col("characters").find({flag: False}, {"user_id": 1}).limit(200).to_list(200)
             if not batch:
                 return
             for ch in batch:
                 uid = ch["user_id"]
                 u = await col("users").find_one({"telegram_id": uid}, {"lang": 1, "blocked_bot": 1}) or {}
-                await col("characters").update_one({"_id": ch["_id"]}, {"$set": {"rw_notice": True}})
+                await col("characters").update_one({"_id": ch["_id"]}, {"$set": {flag: True}})
                 if u.get("blocked_bot"):
                     continue
                 lang = "fa" if (u.get("lang") or "fa") == "fa" else "en"
-                kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=BTN[lang], callback_data=make_cb("rwp", "", uid))]])
+                kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=buttons[lang], callback_data=make_cb(code, "", uid))]])
                 for _ in range(3):
                     try:
-                        await bot.send_message(uid, NOTICE[lang], reply_markup=kb)
+                        await bot.send_message(uid, texts[lang], reply_markup=kb)
                         break
                     except TelegramRetryAfter as e:
                         await asyncio.sleep(min(60, e.retry_after + 1))
@@ -233,4 +263,9 @@ async def notify_pending(bot, stop: asyncio.Event):
                         break
                 await asyncio.sleep(0.06)
     except Exception:
-        log.exception("race weapon notice failed")
+        log.exception("broadcast %s failed", flag)
+
+
+async def notify_pending(bot, stop: asyncio.Event):
+    """The «choose your race weapon» notice, once per player with a pending choice."""
+    await broadcast_flag(bot, stop, "rw_notice", NOTICE, BTN, "rwp")

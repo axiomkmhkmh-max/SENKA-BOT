@@ -350,7 +350,7 @@ async def on_callback(cb: CallbackQuery):
     blocked = await gate(ctx)
     if blocked:
         return await cb.answer(blocked.text, show_alert=True)
-    if code not in ("lang", "noop") and code not in ("begin", "gen", "race", "st", "zp", "bh", "dua", "dud", "pa") and not await _has_char(user.id):
+    if code not in ("lang", "noop") and code not in ("begin", "gen", "race", "st", "zp", "rgi", "zpi", "rgl", "bh", "dua", "dud", "pa") and not await _has_char(user.id):
         r = await reg.reg_panel(ctx)
         return await _deliver(cb, ctx, r)
     wg = await weapon_gate(ctx, code)

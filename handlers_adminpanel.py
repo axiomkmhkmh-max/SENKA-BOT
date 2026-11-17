@@ -421,7 +421,7 @@ async def broadcast_send(ctx, arg):
 async def settings_list(ctx, arg):
     if not await _need(ctx, 80):
         return _deny(ctx)
-    want = int(arg) if (arg or "0").isdigit() else 0
+    want = int(arg) if str(arg or "").isdigit() else 0
     start, pages, page = page_bounds(len(KEYS), want, PAGE)
     st = await game_settings()
     rows = []
@@ -489,7 +489,7 @@ async def admin_log(ctx, arg):
     if not await _need(ctx, 20):
         return _deny(ctx)
     total = await col("admin_logs").count_documents({})
-    want = int(arg) if (arg or "0").isdigit() else 0
+    want = int(arg) if str(arg or "").isdigit() else 0
     start, pages, page = page_bounds(total, want, PAGE)
     docs = await col("admin_logs").find({}).sort("at", -1).skip(start).limit(PAGE).to_list(PAGE)
     lines = []
@@ -646,7 +646,11 @@ async def _run_input(ctx, name, pend, raw):
         if n is None:
             raise ValueError(raw)
         if name == "give_item":
-            await inv_add(tid, iid, n, force=True)
+            from service_raceweapon import ADMIN_GIVE_MSG, admin_give
+            res = await admin_give(tid, iid, n)
+            if res not in ("ok", "equipped"):
+                fa_m, en_m = ADMIN_GIVE_MSG[res]
+                return Out(T(ctx, fa_m, en_m), [_back(ctx, "ade", "")])
         elif not await inv_remove(tid, iid, n):
             return Out(T(ctx, "❌ آیتم کافی نیست.", "❌ Not enough items."), [_back(ctx, "ade", "")])
         await alog(ctx.uid, name, tid, None, {"item": iid, "n": n}, "panel")

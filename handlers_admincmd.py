@@ -410,8 +410,10 @@ async def c_give_item(e: Env):
         return
     if n > MAX_QTY:
         return await e.say(e.t(f"❌ حداکثر {MAX_QTY} عدد.", f"❌ Max {MAX_QTY}."))
-    from service_economy import inv_add
-    await inv_add(tid, iid, n, force=True)
+    from service_raceweapon import ADMIN_GIVE_MSG, admin_give
+    res = await admin_give(tid, iid, n)
+    if res not in ("ok", "equipped"):
+        return await e.say(e.t(*ADMIN_GIVE_MSG[res]))
     await alog(e.uid, "give_item", tid, None, {"item": iid, "n": n}, "cmd")
     await _dm(e.bot, tid, f"🎁 ادمین «{iname(iid, 'fa')}» ×{n} به تو داد!", f"🎁 An admin gave you {iname(iid, 'en')} ×{n}!")
     await e.say(f"✅ {esc(iname(iid, e.lang))} ×{n} → " + await _name(tid))

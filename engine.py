@@ -8,7 +8,7 @@ import random
 from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
-from data_race_tech import TECH_SLOTS, tech_of
+from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, HEAVY_REIATSU, TECH_SLOTS, tech_of
 from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
@@ -150,7 +150,41 @@ def gear_soft(attack: float) -> float:
     return a if a <= GEAR_KNEE else GEAR_KNEE + (a - GEAR_KNEE) * GEAR_SLOPE
 
 
-def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierce=0.0):
+def strike_base(att, src="atk"):
+    """Stat part + weapon of a blow. src: atk (plain attack: Zanjutsu), hvy (heavy: Zanjutsu and Reiatsu half and half),
+    abl (ability: ABILITY_SHARE from the race's own stat, the rest from Zanjutsu; Fullbringer: the weapon counts more).
+    The bond (zmult) strengthens the Zanjutsu part. Wild enemies always use the plain formula."""
+    zpart = eff(att, "zanjutsu") * att["zmult"]
+    w = gear_soft(att["weapon"]["attack"])
+    if att.get("wild") or src == "atk":
+        return zpart + w
+
+    def power_of(stat):  # a form (mask, Shikai, Vollständig...) strengthens the race's ability stat too
+        v = eff(att, stat)
+        if att["form"]["on"] and stat not in ("zanjutsu", "kido", "hakuda"):  # eff() already scales those three
+            v *= att["form"]["mult"]
+        return v
+    if src == "hvy":
+        return (1 - HEAVY_REIATSU) * zpart + HEAVY_REIATSU * power_of("reiatsu") + w
+    rs = ABILITY_STAT.get(att.get("race"))
+    if rs == "weapon":
+        return zpart + FULLBRING_WEAPON * w
+    if rs:
+        return (1 - ABILITY_SHARE) * zpart + ABILITY_SHARE * power_of(rs) + w
+    return zpart + w
+
+
+def race_factor(f) -> float:
+    """How strongly a fighter's shields, heals and buffs work: ABILITY_SHARE of it follows the race's own stat against
+    the fighter's average stat (0.5..2.0). 1.0 for wild enemies and for races whose stat is the weapon."""
+    rs = ABILITY_STAT.get(f.get("race"))
+    if f.get("wild") or not rs or rs == "weapon":
+        return 1.0
+    mean = sum(eff(f, k) for k in ("zanjutsu", "kido", "hakuda", "hoho", "reiatsu")) / 5 or 1.0
+    return max(0.5, min(2.0, (1 - ABILITY_SHARE) + ABILITY_SHARE * eff(f, rs) / mean))
+
+
+def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierce=0.0, src=None):
     att, dfn = state[side], state["b" if side == "a" else "a"]
     fx = _f2fx(att)
     if (dfn.get("x") or {}).get("flash") and kind != "counter":  # Shunpo: the strike meets empty air, then is answered
@@ -172,7 +206,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         return 0
     pierce = att["mods"].get("pierce", 0) + skill_p(att, "pierce") / 100 + (fx[1] if fx and fx[0] == "pierce" else 0) + extra_pierce
     defense = total_def(dfn) * (1 - min(0.8, pierce))
-    base = eff(att, "zanjutsu") * att["zmult"] + gear_soft(att["weapon"]["attack"])
+    base = strike_base(att, src or ("hvy" if kind == "hvy" else "abl" if kind not in ("atk", "echo") else "atk"))
     raw = max(1.0, base - defense * 0.6) * power
     crit_p = 0.05 + eff(att, "hoho") * 0.001 + att["weapon"]["crit"] + att["mods"].get("crit", 0) + (SIG["hiren"]["crit"] if has_fx(att, "hiren") else 0)
     if _x(att)["awake"] > 0:
@@ -573,6 +607,7 @@ def _technique(state, side, slot, rng, ev):
     x = _x(f)
     from data_racegear import TECH_LVL_STEP
     pw = 1 + TECH_LVL_STEP * int((f.get("tm") or {}).get(slot, 0))  # mastery from race technique cards
+    rf = race_factor(f)  # shields, heals and buffs follow the race's own stat
     f["re"] -= int(f["max_re"] * t["cost"])
     x[slot + "cd"] = t["cd"]
     ev.append({"k": "tech", "a": f["name"], "d": o["name"], "id": t["id"]})
@@ -596,11 +631,11 @@ def _technique(state, side, slot, rng, ev):
                 add_fx(o, t["fx"], 3 if t["fx"] == "weaken" else DOT_TURNS.get(t["fx"], 3))
                 ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": t["fx"]})
     elif kind == "shield":
-        n = max(1, int(f["max_hp"] * t["shield"] * pw))
+        n = max(1, int(f["max_hp"] * t["shield"] * pw * rf))
         f["shield"] += n
         ev.append({"k": "shield_t", "a": f["name"], "n": n})
     elif kind == "heal":
-        n = max(1, int(f["max_hp"] * t["heal"] * pw))
+        n = max(1, int(f["max_hp"] * t["heal"] * pw * rf))
         f["hp"] = min(f["max_hp"], f["hp"] + n)
         if t.get("cleanse"):
             f["fx"] = [e for e in f["fx"] if e["k"] not in CLEANSE]
@@ -608,11 +643,11 @@ def _technique(state, side, slot, rng, ev):
     elif kind == "buff":
         turns = int(t.get("turns", 2)) + 1  # +1: the countdown ticks at the start of each own turn
         if t.get("guard"):
-            x["gd_t"], x["gd_m"] = turns, max(0.3, 1 - (1 - t["guard"]) * pw)
+            x["gd_t"], x["gd_m"] = turns, max(0.3, 1 - (1 - t["guard"]) * pw * rf)
         if t.get("crit"):
-            x["cb_t"], x["cb_v"] = turns, t["crit"] * pw
+            x["cb_t"], x["cb_v"] = turns, t["crit"] * pw * rf
         if t.get("dmg"):
-            x["buff_t"], x["buff_m"] = turns, 1 + (t["dmg"] - 1) * pw
+            x["buff_t"], x["buff_m"] = turns, 1 + (t["dmg"] - 1) * pw * rf
     elif kind == "blur":
         add_fx(f, "hiren", int(t.get("turns", 2)))
         _deal(state, side, t["mult"] * pw, rng, ev, "tech", allow_procs=False)
@@ -631,7 +666,7 @@ def _do_action(state, action, rng, max_turns=30):
         c = BLUT["blut_vene"]
         f["re"] -= int(f["max_re"] * c["cost"])
         _x(f)["cd"] = c["cd"]
-        n = max(1, int(f["max_hp"] * c["shield"] * evb(f, "blut", 1.0)))
+        n = max(1, int(f["max_hp"] * c["shield"] * evb(f, "blut", 1.0) * race_factor(f)))
         f["shield"] += n
         ev.append({"k": "blut_vene", "a": f["name"], "n": n})
     elif action == "bla":  # Blut Arterie: the blood runs through the blade, stronger strikes for a while
@@ -645,7 +680,7 @@ def _do_action(state, action, rng, max_turns=30):
         from data_bleachfx import NEGACION
         f["re"] -= int(f["max_re"] * NEGACION["cost"])
         _x(f)["cd"] = NEGACION["cd"]
-        n = max(1, int(f["max_hp"] * NEGACION["shield"]))
+        n = max(1, int(f["max_hp"] * NEGACION["shield"] * race_factor(f)))
         f["shield"] += n
         ev.append({"k": "negacion", "a": f["name"], "n": n})
     elif action == "gar":  # Garganta: a tunnel opens and the gap to the foe is the full range
@@ -698,7 +733,7 @@ def _do_action(state, action, rng, max_turns=30):
         from data_bleachfx import BALA
         f["re"] -= int(f["max_re"] * BALA["cost"])
         _x(f)["cd"] = BALA["cd"]
-        _deal(state, side, BALA["mult"], rng, ev, "atk", allow_procs=True, extra_pierce=BALA["pierce"])
+        _deal(state, side, BALA["mult"], rng, ev, "atk", allow_procs=True, extra_pierce=BALA["pierce"], src="abl")
     elif action == "hvy":
         f["re"] -= int(f["max_re"] * 0.10)
         _deal(state, side, 1.6, rng, ev, "hvy")
@@ -749,7 +784,7 @@ def _do_action(state, action, rng, max_turns=30):
             # the crescent wave flies through the space the target just left: step off the line and it misses
             ev.append({"k": "miss", "a": f["name"], "d": o["name"]})
         else:
-            _deal(state, side, GETSUGA_DMG, rng, ev, "hvy")
+            _deal(state, side, GETSUGA_DMG, rng, ev, "hvy", src="abl")
             if ev and ev[-1].get("k") == "hit":
                 ev[-1]["gt"] = True
     elif action == "ch":  # Kidō chanting: the turn is spent speaking the incantation, and you stand open
@@ -767,7 +802,7 @@ def _do_action(state, action, rng, max_turns=30):
         # +1: the countdown ticks at the start of each of your turns, so this covers `turns` actions (evolution adds more)
         x["awake"] = GAUGE["turns"] + int(evb(f, "release_turns", 0)) + 1
         ev.append({"k": "unleash", "a": f["name"], "mv": f.get("mv"), "r": f.get("race")})
-        _deal(state, side, GAUGE["strike"], rng, ev, "hvy")  # arrives with the release: Bankai is an attack, not a pause
+        _deal(state, side, GAUGE["strike"], rng, ev, "hvy", src="abl")  # arrives with the release: Bankai is an attack, not a pause
         if f.get("mv") and ev and ev[-1].get("k") == "hit":
             ev[-1]["mv"] = f["mv"]
     elif action == "f1":

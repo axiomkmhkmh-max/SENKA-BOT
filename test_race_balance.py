@@ -29,8 +29,8 @@ class RaceBalanceTests(unittest.TestCase):
                 elif mod == "xp":
                     self.assertLessEqual(val, 1.15, key)
                 else:
-                    # hp / dmg / def / kido: small in either direction (second balance pass, no race is far above or below 1.0)
-                    self.assertLessEqual(val, 1.12 + 1e-9, key)
+                    # hp / dmg / def / kido: small in either direction (ability-stat pass: Visored needed a lift, no race far off 1.0)
+                    self.assertLessEqual(val, 1.15 + 1e-9, key)
                     self.assertGreaterEqual(val, 0.88 - 1e-9, key)
 
     def test_shinigami_and_visored_keep_kido_and_bankai_paths(self):
@@ -78,7 +78,7 @@ class RebaseTests(unittest.TestCase):
         from data_race_rules import RACE_CONTEXT_DMG
         for race, ctxs in RACE_CONTEXT_DMG.items():
             for c, v in ctxs.items():
-                self.assertTrue(0.80 - 1e-9 <= v <= 1.20 + 1e-9, (race, c, v))
+                self.assertTrue(0.60 - 1e-9 <= v <= 1.40 + 1e-9, (race, c, v))
 
     def test_rebase_is_never_negative(self):
         new = rebased_stats("human", {"zanjutsu": 0, "kido": 0, "hakuda": 0, "hoho": 0, "reiatsu": 0})

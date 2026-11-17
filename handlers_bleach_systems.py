@@ -37,11 +37,11 @@ async def race_panel(ctx, arg):
     techs = RACE_TECH.get(ch["race"]) or {}
     for i, (title, _add, desc) in enumerate(EVO_PATHS[ch["race"]]):
         mark = "✅" if i < cur else "▶️" if i == cur else "🔒"
-        text = desc[0 if L == "fa" else 1]
-        opened = [tech_name(t, L) for t in techs.values() if t["unlock"] == i]
-        if opened:
-            text += (" · تکنیک: " + "، ".join(opened)) if L == "fa" else (" · technique: " + ", ".join(opened))
-        lines.append(ctx.t("evo_path_line", mark=mark, title=title[0 if L == "fa" else 1], lvl=fnum(LEVEL_GATES[i], L), desc=text))
+        lines.append(ctx.t("evo_path_line", mark=mark, title=title[0 if L == "fa" else 1], lvl=fnum(LEVEL_GATES[i], L),
+                           desc=desc[0 if L == "fa" else 1]))
+    if techs:  # every race technique is open from level 1; evolution only adds power
+        names = ("، " if L == "fa" else ", ").join(tech_name(t, L) for t in techs.values())
+        lines.append(("\n✨ تکنیک‌های نژادت (همه از لِوِل ۱ باز): " if L == "fa" else "\n✨ Your race techniques (all open from level 1): ") + names)
     rows = [[(ctx.t("b_evo_open"), "evo", "")]] if cur < len(EVO_PATHS[ch["race"]]) - 1 else []
     rows.append(nav(ctx))
     return Out(head(ctx, "ttl_race_path") + "\n".join(lines), rows)

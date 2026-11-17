@@ -1,0 +1,87 @@
+# فایل‌های این آپدیت
+
+این فایل‌ها را روی سورس اصلی بازی جایگزین کنید (یا اضافه کنید). بقیه‌ی فایل‌ها تغییری نکرده‌اند.
+
+## فایل‌های جدید (23)
+- `CHANGES_BUGFIXES.md`
+- `CHANGES_ENEMY_NAMES.md`
+- `CHANGES_REWORK.md`
+- `data_battlerank.py`
+- `data_evolution.py`
+- `data_guides.py`
+- `data_race_tech.py`
+- `data_racegear.py`
+- `data_raceweapons.py`
+- `handlers_battlerank.py`
+- `handlers_raceweapon.py`
+- `locale_rework.py`
+- `service_battlerank.py`
+- `service_migrate_rework.py`
+- `service_racegear.py`
+- `service_raceweapon.py`
+- `test_battlerank.py`
+- `test_bugfixes.py`
+- `test_dungeon_enemies.py`
+- `test_evolution.py`
+- `test_race_gear.py`
+- `test_race_tech.py`
+- `test_race_weapons.py`
+
+## فایل‌های تغییرکرده (57)
+- `admin_fa.py`
+- `balance_sim.py`
+- `cmdlist.py`
+- `config.py`
+- `data_bleach.py`
+- `data_bleachfx.py`
+- `data_bosses.py`
+- `data_chars.py`
+- `data_crafting.py`
+- `data_help.py`
+- `data_items.py`
+- `data_misc.py`
+- `data_race_rules.py`
+- `data_races.py`
+- `data_weapons.py`
+- `data_wheels.py`
+- `data_world.py`
+- `data_zanpakuto.py`
+- `database.py`
+- `engine.py`
+- `handlers_admincmd.py`
+- `handlers_adminpanel.py`
+- `handlers_adminplus.py`
+- `handlers_bank.py`
+- `handlers_bleach_systems.py`
+- `handlers_combat.py`
+- `handlers_core.py`
+- `handlers_drops.py`
+- `handlers_dungeonshop.py`
+- `handlers_items.py`
+- `handlers_panels.py`
+- `handlers_registration.py`
+- `handlers_respec.py`
+- `handlers_trade.py`
+- `handlers_world.py`
+- `i18n.py`
+- `intents.py`
+- `locale_en.py`
+- `locale_fa.py`
+- `main.py`
+- `render.py`
+- `scheduler.py`
+- `service_admin_tools.py`
+- `service_bank.py`
+- `service_combat.py`
+- `service_dungeonshop.py`
+- `service_economy.py`
+- `service_player.py`
+- `service_respec.py`
+- `service_trade.py`
+- `service_wheels.py`
+- `service_world.py`
+- `service_worldcore.py`
+- `test_bankai_gauge.py`
+- `test_dungeon_chests.py`
+- `test_race_balance.py`
+- `test_senka_plus.py`

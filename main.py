@@ -122,6 +122,8 @@ async def main():
     notify_task = asyncio.create_task(service_notify.run(bot, stop))
     import service_raceweapon
     rw_task = asyncio.create_task(service_raceweapon.notify_pending(bot, stop))  # "choose your race weapon" notice
+    from service_migrate_rework import notify_respec
+    rs_task = asyncio.create_task(notify_respec(bot, stop))  # "your stat points came back" notice
     try:
         await bot.delete_webhook(drop_pending_updates=settings.drop_pending)
         await setup_commands(bot)
@@ -130,7 +132,7 @@ async def main():
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"], handle_signals=True)
     finally:
         stop.set()
-        await asyncio.gather(task, log_task, notify_task, rw_task, return_exceptions=True)
+        await asyncio.gather(task, log_task, notify_task, rw_task, rs_task, return_exceptions=True)
         await bot.session.close()
         await runner.cleanup()
         await close_db()

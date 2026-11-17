@@ -451,11 +451,28 @@ async def commands_panel(ctx, arg):
 
 @action("hlp")
 async def help_panel(ctx, arg):
-    from data_help import STATS_TOPIC
+    """The guide: one topic per system (data_help.TOPICS), the stats page, and a guide page for every race."""
+    from data_help import STATS_TOPIC, TOPIC_ORDER, TOPICS
+    from data_races import RACES
     lang = "fa" if ctx.lang == "fa" else "en"
+    back = [nav(ctx, ("hlp", ""))]
     if arg == "stats":
-        return Out(STATS_TOPIC[lang], [nav(ctx, ("hlp", ""))])
-    topics = [[("📊 استت‌ها" if lang == "fa" else "📊 Stats", "hlp", "stats")]]
+        return Out(STATS_TOPIC[lang], back)
+    if arg in TOPICS:
+        return Out(TOPICS[arg][2][lang], back)
+    if arg == "races":
+        rows = [[(("🧬 " + r["name_fa"]) if lang == "fa" else ("🧬 " + r["name_en"]), "hlp", "race:" + k)] for k, r in RACES.items()]
+        text = ("🧬 <b>نژادها</b>\nروی هر نژاد بزن تا راهنمای کاملش را ببینی." if lang == "fa"
+                else "🧬 <b>Races</b>\nTap a race to see its full guide.")
+        return Out(text, rows + back)
+    if arg.startswith("race:") and arg[5:] in RACES:
+        from data_guides import race_guide
+        return Out(race_guide(arg[5:], lang), [nav(ctx, ("hlp", "races"))])
+    names = {"stats": ("📊 استت‌ها", "📊 Stats"), "races": ("🧬 نژادها", "🧬 Races")}
+    for k, (fa, en, _t) in TOPICS.items():
+        names[k] = (fa, en)
+    labels = [(names[k][0 if lang == "fa" else 1], "hlp", k) for k in TOPIC_ORDER if k in names]
+    topics = [labels[i:i + 2] for i in range(0, len(labels), 2)]
     return Out(head(ctx, "ttl_hlp") + ctx.t("help_body"), topics + [nav(ctx)])
 
 

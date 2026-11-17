@@ -45,12 +45,33 @@ def loadout(race):
     return {"gen": "strike", "bt": blade_technique("zangetsu") if race in ("shinigami", "visored") else None}
 
 EVO_STAGE = 2   # a level-40 player is at about the third evolution stage (level gate 35)
+# How a sensible player spends 5 x ALLOC points now that abilities follow the race's own stat (data_race_tech):
+# 40% into that stat, 25% Zanjutsu, 15% Hakuda, the rest split over the other two. Fullbringer has no ability stat.
+def allocation(race):
+    from data_race_tech import ABILITY_STAT
+    total = 5 * ALLOC
+    stat = ABILITY_STAT.get(race)
+    if stat in (None, "weapon"):
+        share = {"zanjutsu": 0.45, "hakuda": 0.25, "hoho": 0.15, "reiatsu": 0.15, "kido": 0.0}
+    elif race == "visored":  # a Kidō user as well: keeps some Kidō for its spells
+        share = {"reiatsu": 0.35, "zanjutsu": 0.25, "kido": 0.15, "hakuda": 0.15, "hoho": 0.10}
+    else:
+        share = {"zanjutsu": 0.25, "hakuda": 0.15}
+        share[stat] = share.get(stat, 0) + 0.40
+        rest = [k for k in ("zanjutsu", "kido", "hakuda", "hoho", "reiatsu") if k not in share]
+        left = 1 - sum(share.values())
+        for k in rest:
+            share[k] = left / len(rest)
+        for k in ("zanjutsu", "kido", "hakuda", "hoho", "reiatsu"):
+            share.setdefault(k, 0.0)
+    return {k: int(round(total * v)) for k, v in share.items()}
 
 
 def player(race):
     from data_evolution import evo_bonus
     r = RACES[race]
-    stats = {k: v + ALLOC for k, v in r["stats"].items()}
+    add = allocation(race)
+    stats = {k: v + add.get(k, 0) for k, v in r["stats"].items()}
     mods = dict(r["mods"])
     evb = evo_bonus(race, EVO_STAGE)  # same split as service_combat.build_player
     for key in ("dmg", "def", "hp", "kido"):

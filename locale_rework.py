@@ -23,7 +23,17 @@ FA = {
     # ---- race weapons ----
     "ttl_rw": "سلاح نژاد",
     "ttl_brk": "رنک نبرد",
+    "help_body": "با کلمه بازی کن: <i>خانه، پروفایل، شکار، نبرد، کوله، بازار، سلاح، رنک نبرد، تکامل، ماموریت، رتبه‌بندی، جایزه روزانه</i>.\n"
+                 "⚔️ <b>مسیر قدرت:</b> سلاح نژادت را انتخاب کن ← شکار و نبرد کن ← سلاح را فورج کن و رنگش را بالا ببر ← تکامل ← رنک نبرد.\n"
+                 "در گروه: روی پیام یک بازیکن ریپلای کن و بنویس <i>دوئل</i>؛ وقتی باس آمد، دکمه‌ی حمله را بزن.\n\n"
+                 "📚 راهنمای هر بخش را از دکمه‌های پایین ببین:",
     "reg_t_zanp": "سلاح نژاد تو",
+    "reg_race_hint": "👆 روی هر نژاد بزن تا راهنمای کاملش رو ببینی، بعد انتخابش کن.",
+    "reg_weapon_hint": "👆 روی هر سلاح بزن تا ببینی دقیقاً چیکار می‌کنه، بعد برش دار.",
+    "b_take_race": "✅ {race} رو انتخاب می‌کنم",
+    "b_other_races": "↩️ نژادهای دیگه",
+    "b_take_weapon": "✅ همین سلاح رو برمی‌دارم",
+    "b_other_weapons": "↩️ سلاح‌های دیگه",
     "reg_ask_zanp": "ده سلاح خام نژادت صدایت می‌زنند. یکی را بردار؛ با تو بزرگ می‌شود (فورج، پیوند و رنگ):\nسبک نژادت: {style}",
     "reg_done": "🌸 <b>{name}</b> ({race}) پا به جهان ارواح گذاشت.\nسلاح نژادت: {weapon}\n۳ معجون درمان در کوله‌ات است.\n«خانه» را بزن و شکار را شروع کن.",
     "prof_rank_line": "🎖 رنک نبرد: {t}",
@@ -79,7 +89,17 @@ EN = {
     # ---- race weapons ----
     "ttl_rw": "Race weapon",
     "ttl_brk": "Battle Rank",
+    "help_body": "Play with plain words: <i>home, profile, explore, battle, bag, market, weapon, battle rank, evolution, quests, ranking, daily</i>.\n"
+                 "⚔️ <b>Path of power:</b> choose your race weapon → hunt and fight → forge it and raise its colour → evolve → climb the Battle Rank.\n"
+                 "In groups: reply to a player with <i>duel</i>; when a boss appears, tap Attack.\n\n"
+                 "📚 Every system has its own guide below:",
     "reg_t_zanp": "Your race weapon",
+    "reg_race_hint": "👆 Tap a race to read its full guide, then choose it.",
+    "reg_weapon_hint": "👆 Tap a weapon to see exactly what it does, then take it.",
+    "b_take_race": "✅ I choose {race}",
+    "b_other_races": "↩️ Other races",
+    "b_take_weapon": "✅ I take this weapon",
+    "b_other_weapons": "↩️ Other weapons",
     "reg_ask_zanp": "Ten raw weapons of your race call to you. Take one; it grows with you (forge, bond and colour):\nYour race style: {style}",
     "reg_done": "🌸 <b>{name}</b> ({race}) stepped into the world of souls.\nYour race weapon: {weapon}\n3 healing potions are in your bag.\nTap «Home» and start hunting.",
     "prof_rank_line": "🎖 Battle Rank: {t}",

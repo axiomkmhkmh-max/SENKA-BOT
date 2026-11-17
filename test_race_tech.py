@@ -29,12 +29,13 @@ class TechTests(unittest.TestCase):
             self.assertTrue(RACE_TECH[race], race)
         self.assertNotIn("shinigami", RACE_TECH)
 
-    def test_locked_until_the_evolution_stage(self):
-        f = fighter("quincy", evs=0)
-        self.assertTrue(E.can(f, "t1"))
-        self.assertFalse(E.can(f, "t2"))   # Seele Schneider opens at stage 2
-        f["evs"] = 2
-        self.assertTrue(E.can(f, "t2"))
+    def test_every_technique_is_open_from_level_one(self):
+        for race, techs in RACE_TECH.items():
+            f = fighter(race, evs=0)
+            if race == "visored":
+                f["form"]["on"] = 1  # Mask Strike still needs the mask on
+            for slot in techs:
+                self.assertTrue(E.can(f, slot), (race, slot))
 
     def test_wild_enemies_cannot_use_them(self):
         f = fighter("hollow", ai=True)
@@ -85,6 +86,48 @@ class TechTests(unittest.TestCase):
         a = fighter("quincy")
         self.assertIsNotNone(E._band(a, "t1"))
         self.assertIsNone(E._band(fighter("human"), "t1"))  # a shield ignores distance
+
+
+class StatScalingTests(unittest.TestCase):
+    """Abilities draw 70% of their stat part from the race's own stat; plain = Zanjutsu, heavy = Zanjutsu + Reiatsu."""
+
+    def _f(self, race, **stats):
+        w = {"attack": 30, "crit": 0.0, "element": "light", "skills": [], "weapon_type": "melee"}
+        base = {"zanjutsu": 40, "kido": 40, "hakuda": 40, "hoho": 40, "reiatsu": 40}
+        base.update(stats)
+        return E.new_fighter(race, 40, base, 2000, 800, w, race=race)
+
+    def test_race_stat_drives_abilities(self):
+        for race, stat in (("quincy", "reiatsu"), ("arrancar", "hoho"), ("shinigami", "kido"), ("hollow", "hakuda"),
+                           ("human", "reiatsu"), ("visored", "reiatsu")):
+            lo, hi = self._f(race), self._f(race, **{stat: 140})
+            self.assertGreater(E.strike_base(hi, "abl"), E.strike_base(lo, "abl") + 60, race)
+            self.assertEqual(E.strike_base(hi, "atk"), E.strike_base(lo, "atk"), race)  # plain attack: Zanjutsu only
+
+    def test_heavy_uses_zanjutsu_and_reiatsu(self):
+        a, b, c = self._f("quincy"), self._f("quincy", reiatsu=140), self._f("quincy", hoho=140)
+        self.assertGreater(E.strike_base(b, "hvy"), E.strike_base(a, "hvy"))
+        self.assertEqual(E.strike_base(c, "hvy"), E.strike_base(a, "hvy"))
+
+    def test_fullbringer_leans_on_the_weapon(self):
+        f = self._f("fullbringer")
+        self.assertGreater(E.strike_base(f, "abl"), E.strike_base(f, "atk"))
+
+    def test_wild_enemies_keep_the_plain_formula(self):
+        f = self._f("quincy", reiatsu=140)
+        f["wild"] = True
+        self.assertEqual(E.strike_base(f, "abl"), E.strike_base(f, "atk"))
+
+    def test_shields_follow_the_race_stat(self):
+        out = []
+        for rei in (40, 140):
+            a, b = self._f("human", reiatsu=rei), self._f("hollow")
+            a["evs"] = 0
+            st = E.new_state(a, b, random.Random(1))
+            st["cur"], st["awaiting"] = "a", True
+            E._do_action(st, "t1", random.Random(1))
+            out.append(a["shield"])
+        self.assertGreater(out[1], out[0])
 
 
 if __name__ == "__main__":

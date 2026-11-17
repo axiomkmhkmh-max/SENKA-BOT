@@ -38,7 +38,8 @@ async def reg_panel(ctx, reg=None):
                 continue
             st = " ".join(f"{STAT_ICON[k]}{r['stats'][k]}" for k in STATS)
             body.append(f"<b>{race_name(key, ctx.lang)}</b>  {st}\n   ↳ {t('race_p_' + key)}")
-        rows = [[(race_name(k, ctx.lang), "race", k)] for k, r in RACES.items() if not r["locked"]]
+        body.append("\n" + t("reg_race_hint"))
+        rows = [[("ℹ️ " + race_name(k, ctx.lang), "rgi", k)] for k, r in RACES.items() if not r["locked"]]
         rows = [rows[i][0:1] + (rows[i + 1][0:1] if i + 1 < len(rows) else []) for i in range(0, len(rows), 2)]
         return Out(head(ctx, "reg_t_race") + "\n".join(body), rows)
     if step == "stats":
@@ -56,9 +57,11 @@ async def reg_panel(ctx, reg=None):
         rows, body = [], [t("reg_ask_zanp", style=RACE_STYLE.get(reg.get("race"), ("", ""))[0 if L == "fa" else 1]), ""]
         for wid in reg.get("starters", []):
             it = ALL.get(wid) or {}
-            body.append(f"• {nm(wid, L)} — {it.get('meaning_fa' if L == 'fa' else 'meaning_en', '')}: "
+            atk = fnum(it.get("attack", 0), L)
+            body.append(f"• {nm(wid, L)} ⚔️{atk} — {it.get('meaning_fa' if L == 'fa' else 'meaning_en', '')}: "
                         + "، ".join(skill_text(sk, L) for sk in it.get("skills", [])))
-            rows.append([(nm(wid, L).replace("<", "").replace(">", ""), "zp", wid)])
+            rows.append([("ℹ️ " + nm(wid, L).replace("<", "").replace(">", "") + f" · ⚔️{atk}", "zpi", wid)])
+        body.append("\n" + t("reg_weapon_hint"))
         return Out(head(ctx, "reg_t_zanp") + "\n".join(body), rows)
     return Out(t("reg_welcome"), [[(t("b_begin"), "begin", "")]])
 
@@ -110,6 +113,34 @@ async def pick_gender(ctx, arg):
         return await reg_panel(ctx)
     reg = await reg_set(ctx.uid, step="race", gender=arg)
     return await reg_panel(ctx, reg)
+
+
+@action("rgi")
+async def race_info(ctx, arg):
+    """Registration: the guide of one race before choosing it."""
+    from data_guides import race_guide
+    reg = await reg_get(ctx.uid)
+    if not reg or reg.get("step") != "race" or arg not in RACES or RACES[arg]["locked"]:
+        return await reg_panel(ctx)
+    rows = [[(ctx.t("b_take_race", race=race_name(arg, ctx.lang)), "race", arg)], [(ctx.t("b_other_races"), "rgl", "")]]
+    return Out(head(ctx, "reg_t_race") + race_guide(arg, ctx.lang), rows)
+
+
+@action("zpi")
+async def weapon_info(ctx, arg):
+    """Registration: the guide of one race weapon before choosing it."""
+    from data_guides import weapon_guide
+    reg = await reg_get(ctx.uid)
+    if not reg or reg.get("step") != "zanp" or arg not in reg.get("starters", []):
+        return await reg_panel(ctx)
+    rows = [[(ctx.t("b_take_weapon"), "zp", arg)], [(ctx.t("b_other_weapons"), "rgl", "")]]
+    return Out(head(ctx, "reg_t_zanp") + weapon_guide(arg, ctx.lang), rows)
+
+
+@action("rgl")
+async def reg_back(ctx, arg):
+    """Back to the current registration step (the race or weapon list)."""
+    return await reg_panel(ctx)
 
 
 @action("race")

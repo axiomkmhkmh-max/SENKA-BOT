@@ -46,7 +46,6 @@ async def respec_menu(ctx, arg):
     if not ch:
         return Out(_msg(ctx, "noreg"), [nav(ctx)])
     rq = respec_quote(ch)
-    cq = race_change_quote(ch)
     lines = [T(ctx, "🔁 <b>ریست و تغییر نژاد</b>", "🔁 <b>Respec and race change</b>"),
              T(ctx, f"نژاد فعلی: <b>{_race_name(ch['race'], L)}</b> · لول {fnum(ch['level'], L)}",
                f"Current race: <b>{_race_name(ch['race'], L)}</b> · Lv.{fnum(ch['level'], L)}"),
@@ -84,7 +83,7 @@ async def race_pick(ctx, arg):
     for key, r in RACES.items():
         if key == ch["race"] or not race_selectable(key, ch):
             continue
-        rows.append([(_race_name(key, L), "rspc", key)])
+        rows.append([("ℹ️ " + _race_name(key, L), "rspc", key)])
     rows.append(nav(ctx, ("resp", "")))
     text = T(ctx, "کدوم نژاد؟ همه‌ی امتیازهای استت برمی‌گرده تا دوباره پخششون کنی.", "Which race? All your stat points come back to spend again.")
     return Out(text, rows)
@@ -93,7 +92,10 @@ async def race_pick(ctx, arg):
 @action("rspc")
 async def race_confirm(ctx, arg):
     L = ctx.lang
-    text = T(ctx, f"مطمئنی به <b>{_race_name(arg, L)}</b> میری؟ رایگانه، ولی تا ۴۸ ساعت دیگه نمی‌تونی دوباره عوض کنی.",
+    if arg not in RACES:
+        return await race_pick(ctx, "")
+    from data_guides import race_guide
+    text = race_guide(arg, L) + "\n\n" + T(ctx, f"مطمئنی به <b>{_race_name(arg, L)}</b> میری؟ رایگانه، ولی تا ۴۸ ساعت دیگه نمی‌تونی دوباره عوض کنی.",
              f"Sure about <b>{_race_name(arg, L)}</b>? It is free, but you cannot change again for 48 hours.")
     rows = [[(T(ctx, "✅ بله، تغییر بده", "✅ Yes, change"), "rspx", arg)],
             [(T(ctx, "❌ نه", "❌ No"), "resp", "")]]

@@ -12,11 +12,11 @@ def _r(fa, en, st, home, mods, evo, locked=False):
 RACES = {
     "shinigami": _r("شینیگامی", "Shinigami", (8, 9, 5, 10, 8), "soul_society", {"kido": 1.05}, None),
     "quincy": _r("کوئینسی", "Quincy", (4, 3, 9, 10, 14), "wandenreich", {"pierce": 0.10, "dmg": 1.12, "def": 1.03, "hp": 1.09}, None),
-    "hollow": _r("هالو", "Hollow", (6, 2, 10, 9, 13), "hueco_mundo", {"dmg": 0.94, "hp": 1.02}, None),
+    "hollow": _r("هالو", "Hollow", (6, 2, 10, 9, 13), "hueco_mundo", {"dmg": 0.90, "hp": 0.92}, None),  # Hakuda drives its abilities too (HP + power), so a lower HP base
     "arrancar": _r("آرانکار", "Arrancar", (10, 2, 8, 11, 9), "las_noches", {"dmg": 0.91, "hp": 0.98}, None),
     "fullbringer": _r("فول‌برینگر", "Fullbringer", (8, 2, 8, 10, 12), "karakura", {"crit": 0.04, "hp": 1.12}, None),
     "human": _r("انسان / روح", "Human / Soul", (9, 3, 8, 11, 9), "karakura", {"xp": 1.10, "crit": 0.03, "dmg": 1.06, "def": 0.97, "hp": 1.09}, None),
-    "visored": _r("ویزورد", "Visored", (10, 5, 6, 10, 9), "karakura", {"dmg": 1.03, "hp": 1.03}, None, locked=True),
+    "visored": _r("ویزورد", "Visored", (10, 5, 6, 10, 9), "karakura", {"dmg": 1.15, "hp": 1.15}, None, locked=True),  # raised after the ability-stat rework
 }
 # Evolution titles come from the one 5-stage canon path per race (data_evolution.EVO_PATHS)
 from data_evolution import EVO_PATHS as _EVO_PATHS  # noqa: E402

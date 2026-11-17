@@ -28,9 +28,9 @@ PER = 8
 
 CAT_FA = {"kido_card": "کارت کیدو", "material": "متریال", "armor": "زره", "accessory": "اکسسوری", "key": "کلید", "weapon": "سلاح",
           "potion": "معجون", "cosmetic": "ظاهری", "relic": "یادگار", "book": "کتاب", "evolution": "تکامل", "egg": "تخم",
-          "charm": "طلسم", "quincy": "کوئینسی"}
+          "charm": "طلسم", "quincy": "کوئینسی", "race_card": "کارت تکنیک نژادی"}
 CAT_ICON = {"kido_card": "🔮", "material": "🧱", "armor": "🛡", "accessory": "💍", "key": "🗝", "weapon": "⚔️", "potion": "🧪",
-            "cosmetic": "🎨", "relic": "🏺", "book": "📖", "evolution": "🧬", "egg": "🥚", "charm": "🧿", "quincy": "✝️"}
+            "cosmetic": "🎨", "relic": "🏺", "book": "📖", "evolution": "🧬", "egg": "🥚", "charm": "🧿", "quincy": "✝️", "race_card": "🎴"}
 CATS = [c for c in CAT_FA if any(v["category"] == c for v in ALL.values())]
 TRAIT_FA = {"bleed": "خونریزی", "armor": "زره‌دار", "enrage": "خشم", "regen": "بازسازی", "dodge": "چابک", "decay": "پوسیدگی",
             "burn": "سوزش", "poison": "زهر", "illusion": "توهم"}
@@ -224,7 +224,7 @@ async def event_pick_end(ctx, arg):
 
 # ---- item picker ---------------------------------------------------------------------------------------------------
 def _items(cat: str, rar: str):
-    return sorted((i for i, v in ALL.items() if v["category"] == cat and (rar == "x" or v["rarity"] == rar)),
+    return sorted((i for i, v in ALL.items() if v["category"] == cat and not v.get("retired") and (rar == "x" or v["rarity"] == rar)),
                   key=lambda i: (RARITIES.index(ALL[i]["rarity"]), ALL[i]["name_en"]))
 
 
@@ -264,7 +264,9 @@ async def item_pick_list(ctx, arg):
         return Out(alert="?")
     ids = _items(cat, rar)
     page = max(0, min(_page(p), _pages(len(ids)) - 1))
-    rows = [[(f"{RARITY_ICON[ALL[i]['rarity']]} {_nm(ALL[i], ctx)}", "adip", i, False, "none")] for i in ids[page * PER:(page + 1) * PER]]
+    from data_races import RACES
+    race_tag = lambda v: (" · " + RACES[v["race"]]["name_fa" if ctx.lang == "fa" else "name_en"]) if v.get("race") in RACES else ""  # noqa: E731
+    rows = [[(f"{RARITY_ICON[ALL[i]['rarity']]} {_nm(ALL[i], ctx)}{race_tag(ALL[i])}"[:60], "adip", i, False, "none")] for i in ids[page * PER:(page + 1) * PER]]
     pg = _pager(page, _pages(len(ids)), "adil", f"{cat}:{rar}:")
     if pg:
         rows.append(pg)
@@ -351,7 +353,10 @@ async def run_input(ctx, name, pend, raw):
     if name == "give_pick":
         if what not in ALL:
             raise ValueError(raw)
-        await inv_add(tid, what, n, force=True)
+        from service_raceweapon import ADMIN_GIVE_MSG, admin_give
+        res = await admin_give(tid, what, n)
+        if res not in ("ok", "equipped"):
+            return Out(T(ctx, *ADMIN_GIVE_MSG[res]), [_back(ctx, "adi", "")])
         await alog(ctx.uid, "give_item", tid, None, {"item": what, "n": n}, "panel picker")
     else:
         if what not in CHAR_BY_ID:

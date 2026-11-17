@@ -35,11 +35,52 @@ async def pin_evolution_once() -> int:
     return moved
 
 
+RESPEC_ID = "ability_stats_respec_v1"
+
+
+async def free_respec_once() -> int:
+    """Abilities now draw on each race's own stat, so every player gets one free stat reset: allocated points come
+    back (stats return to the race base) and a notice tells them to spend the points again."""
+    if await col("migrations").find_one({"_id": RESPEC_ID}):
+        return 0
+    from data_races import RACES, STATS
+    moved = 0
+    async for ch in col("characters").find({}, {"user_id": 1, "race": 1, "stats": 1}):
+        race = ch.get("race")
+        if race not in RACES:
+            continue
+        base = RACES[race]["stats"]
+        alloc = sum(max(0, int((ch.get("stats") or {}).get(k, 0)) - int(base.get(k, 0))) for k in STATS)
+        upd = {"$set": {"stats": {k: int(base.get(k, 0)) for k in STATS}, "respec_notice": False}}
+        if alloc:
+            upd["$inc"] = {"points": alloc}
+        r = await col("characters").update_one({"_id": ch["_id"], "stats": ch.get("stats")}, upd)
+        moved += int(bool(r.modified_count))
+    await col("migrations").update_one({"_id": RESPEC_ID}, {"$set": {"moved": moved, "at": int(time.time())}}, upsert=True)
+    return moved
+
+
+RESPEC_NOTICE = {
+    "fa": "📊 <b>همه‌ی امتیازهای استتت برگشت!</b>\n\nحالا قدرت ابیلیتی‌های هر نژاد ۷۰٪ از استت خود آن نژاد می‌آید:\n"
+          "شینیگامی کیدو · کوئینسی، ویزورد و انسان ریاتسو · آرانکار هوهو · هالو هاکودا · فول‌برینگر قدرت سلاح.\n"
+          "حمله‌ی معمولی فقط با زنجوتسو و ضربه‌ی سنگین با زنجوتسو و ریاتسو است.\n\nاز پروفایل امتیازهایت را دوباره پخش کن.",
+    "en": "📊 <b>All your stat points came back!</b>\n\nEvery race's abilities now draw 70% of their power from that race's own stat:\n"
+          "Shinigami Kidō · Quincy, Visored and Human Reiatsu · Arrancar Hohō · Hollow Hakuda · Fullbringer weapon attack.\n"
+          "Plain attacks use Zanjutsu only and heavy strikes Zanjutsu and Reiatsu.\n\nSpend your points again in your profile.",
+}
+
+
+async def notify_respec(bot, stop) -> None:
+    """One private message to every player whose points were returned (resumes after a restart)."""
+    from service_raceweapon import broadcast_flag
+    await broadcast_flag(bot, stop, "respec_notice", RESPEC_NOTICE, {"fa": "👤 پروفایل", "en": "👤 Profile"}, "prof")
+
+
 async def run_all() -> None:
     from service_racegear import migrate_armour_once
     from service_raceweapon import migrate_blades_once
     for name, fn in (("evolution pin", pin_evolution_once), ("race weapons", migrate_blades_once),
-                     ("race armour", migrate_armour_once)):
+                     ("race armour", migrate_armour_once), ("free stat reset", free_respec_once)):
         try:
             log.info("%s: %s character(s) moved", name, await fn())
         except Exception:

@@ -59,7 +59,9 @@ async def choice_panel(ctx, ch=None):
                "evolution relics.\n⚠️ You cannot fight until you choose.")]
     rows = []
     for n, w in enumerate(RACE_WEAPONS[race]):
-        rows.append([(f"{w['fa' if L == 'fa' else 'en']} · {w['lean'][0 if L == 'fa' else 1]}", "rwc", str(n))])
+        atk = fnum(ALL[rw_id(race, n, lvl["c"])]["attack"], L)  # attack at the offered colour
+        rows.append([(f"ℹ️ {w['fa' if L == 'fa' else 'en']} · {w['lean'][0 if L == 'fa' else 1]} · ⚔️{atk}", "rwc", str(n))])
+    lines.append(ctx.t("reg_weapon_hint"))
     rows.append(nav(ctx))
     return Out(head(ctx, "ttl_rw") + "\n".join(lines), rows)
 
@@ -113,7 +115,8 @@ async def race_weapon_look(ctx, arg):
         return Out(alert=_e(ctx, "bad"))
     lvl = offer_level(ch)
     iid = rw_id(ch["race"], n, lvl["c"])
-    text = head(ctx, "ttl_rw") + item_card(ctx, iid) + "\n\n" + _level_line(ctx, lvl)
+    from data_guides import weapon_guide
+    text = head(ctx, "ttl_rw") + weapon_guide(iid, ctx.lang) + "\n\n" + _level_line(ctx, lvl)
     rows = [[(T(ctx, "✅ همین را برمی‌دارم", "✅ I take this one"), "rwk", str(n))], [(T(ctx, "↩️ بقیه", "↩️ The others"), "rwp", "")], nav(ctx)]
     return Out(text, rows)
 
@@ -153,9 +156,21 @@ async def race_weapon_switch(ctx, arg):
     if seals:
         for n, w in enumerate(RACE_WEAPONS[ch["race"]]):
             if n != cur:
-                rows.append([(f"{w['fa' if L == 'fa' else 'en']} · {w['lean'][0 if L == 'fa' else 1]}", "rwsk", str(n))])
+                rows.append([(f"ℹ️ {w['fa' if L == 'fa' else 'en']} · {w['lean'][0 if L == 'fa' else 1]}", "rwsi", str(n))])
     rows.append(nav(ctx, ("rwp", "")))
     return Out(head(ctx, "ttl_rw") + "\n".join(lines), rows)
+
+
+@action("rwsi")
+async def race_weapon_switch_info(ctx, arg):
+    """The guide of the weapon to switch to, at the colour of the weapon in hand."""
+    from data_guides import weapon_guide
+    ch = await get_char(ctx.uid)
+    if not ch or needs_choice(ch) or not str(arg).isdigit() or not 0 <= int(arg) < len(RACE_WEAPONS[ch["race"]]):
+        return await race_weapon(ctx, "")
+    iid = rw_id(ch["race"], int(arg), ALL[ch["weapon_id"]]["rw_c"])
+    rows = [[(T(ctx, "🔄 به این سلاح عوض کن", "🔄 Switch to this weapon"), "rwsk", arg)], [(T(ctx, "↩️ بقیه", "↩️ The others"), "rws", "")]]
+    return Out(head(ctx, "ttl_rw") + weapon_guide(iid, ctx.lang), rows)
 
 
 @action("rwsk")

@@ -61,6 +61,12 @@ class _Forced:
     def randint(self, a, b):
         return a
 
+    def random(self):
+        return 0.99  # no relic
+
+    def choice(self, seq):
+        return seq[0]
+
 
 class ChestTests(unittest.TestCase):
     def setUp(self):
@@ -121,6 +127,22 @@ class ChestTests(unittest.TestCase):
         CHAR["box_pity"] = {"gold": 2}
         self._buy("gold", _Forced(1))
         self.assertEqual(SETS[-1], {"box_pity.gold": 0})
+
+    def test_relics_come_by_luck_in_the_chest_colours(self):
+        from data_items import ALL
+        rng = random.Random(21)
+        for key, (chance, rars) in S.RELIC_ODDS.items():
+            got = 0
+            for _ in range(400):
+                CHAR.clear()
+                CHAR["dp"] = S.BOXES[key]["cost"]
+                ITEMS.clear()
+                status, res = asyncio.run(S.buy_box(1, key, rng))
+                if res["relic"]:
+                    got += 1
+                    self.assertEqual(ALL[res["relic"]]["category"], "evolution")
+                    self.assertIn(ALL[res["relic"]]["rarity"], rars)
+            self.assertAlmostEqual(got / 400, chance, delta=0.07)
 
     def test_dp_grows_with_level_and_difficulty(self):
         low = S.dp_for_clear({"id": "trial", "diff": "normal"})

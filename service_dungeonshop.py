@@ -24,6 +24,9 @@ BOXES = {
     "silver": {"cost": 120, "rar": (2, 3), "odds": (65, 35), "coins": (600, 1500), "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
     "gold": {"cost": 360, "rar": (4, 5), "odds": (80, 20), "coins": (2250, 5000), "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
 }
+# Evolution relics (the fuel of evolution and of a race weapon's colour) come from these chests by luck, on top of the
+# item: key -> (chance, relic rarities it can be). Relics only exist up to Epic (purple), so the gold chest gives purple.
+RELIC_ODDS = {"bronze": (0.20, ("Common", "Uncommon")), "silver": (0.30, ("Rare", "Epic")), "gold": (0.40, ("Epic",))}
 
 
 def dp_for_clear(dungeon: dict) -> int:
@@ -47,7 +50,8 @@ async def dp_balance(uid: int) -> int:
 
 
 async def buy_box(uid: int, key: str, rng=random):
-    """Returns (status, result). status: ok | nobox | poor. result: {"coins": n, "item": id, "rar_idx": i, "pity": bool}."""
+    """Returns (status, result). status: ok | nobox | poor.
+    result: {"coins": n, "item": id, "rar_idx": i, "pity": bool, "relic": evolution relic id or None}."""
     b = BOXES.get(key)
     if not b:
         return "nobox", None
@@ -69,6 +73,14 @@ async def buy_box(uid: int, key: str, rng=random):
     await add_coins(uid, n, "dp_chest")
     iid = await roll_drop(uid, exact_idx=idx, rng=rng)  # exactly the rolled colour: the chest never pays outside its own
     await inv_add(uid, iid, 1, force=True)  # a chest is never lost to a full bag
-    res = {"coins": n, "item": iid, "rar_idx": idx, "pity": pity}
+    relic = None
+    chance, rars = RELIC_ODDS.get(key, (0.0, ()))
+    if rars and rng.random() < chance:
+        from data_items import EVO_BY_RARITY
+        pool = EVO_BY_RARITY.get(rng.choice(rars)) or []
+        if pool:
+            relic = rng.choice(pool)
+            await inv_add(uid, relic, 1, force=True)
+    res = {"coins": n, "item": iid, "rar_idx": idx, "pity": pity, "relic": relic}
     log_event("dungeon_shop", uid, f"جعبه‌ی دانجن {key}: {res}", box=key)
     return "ok", res

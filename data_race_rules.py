@@ -35,20 +35,20 @@ def race_allows(race, action):
 # kind of fight (PvP duel, Hollow foe, Boss), while every race ends up with about the same win rate.
 # Contexts: "pvp" = duel against a player, "hollow" = wild Hollow foe, "boss" = dungeon / tower boss,
 # "pve" = other wild enemies, "world_boss" = shared-HP world boss (each hit counts).
-# Residual fine-tuning (every value within 0.80-1.20). The race base stats and mods (data_races.py), the evolution bonuses
-# (data_evolution.py) and the race techniques (data_race_tech.py) carry the identity; these even out what is left.
-# Retuned after the rework (releases for every race, canon evolution bonuses, race techniques) with balance_sim.py at
-# level ~40, evolution stage 2 (equal allocated points, same weapon and armour), standard loadout: Strike for everyone;
-# Zangetsu's technique and Hadō 1 and 4 for Shinigami and Visored. PvP win rates: every race 49-53%; against wild foes
-# every race within about 5 points of the average (players now win far more often there, because of the stronger releases).
+# Fine-tuning by fight type (every value within 0.60-1.40). Race base stats and mods (data_races.py), evolution bonuses
+# (data_evolution.py), race techniques and the ability stat of each race (data_race_tech.py) carry the identity; these
+# even out what is left. Retuned after abilities started to draw 70% of their power from the race's own stat, with
+# balance_sim.py at level ~40, evolution stage 2, and a sensible allocation (40% of the points into the race's ability
+# stat; balance_sim.allocation). PvP win rates: every race 48-51%. Against wild foes every race wins 77-96% (the strong
+# releases make players win far more often there than before the rework).
 RACE_CONTEXT_DMG = {
-    "shinigami": {"pvp": 1.023, "hollow": 1.2, "boss": 1.129, "pve": 1.073, "world_boss": 1.012},
-    "quincy": {"pvp": 0.807, "hollow": 0.8, "boss": 0.801, "pve": 0.8, "world_boss": 0.883},
-    "hollow": {"pvp": 0.913, "hollow": 0.914, "boss": 0.879, "pve": 0.851, "world_boss": 1.019},
-    "arrancar": {"pvp": 1.066, "hollow": 1.104, "boss": 1.065, "pve": 1.07, "world_boss": 1.037},
-    "fullbringer": {"pvp": 0.939, "hollow": 0.91, "boss": 0.928, "pve": 0.919, "world_boss": 1.005},
-    "human": {"pvp": 0.906, "hollow": 0.825, "boss": 0.904, "pve": 0.874, "world_boss": 0.978},
-    "visored": {"pvp": 1.115, "hollow": 1.2, "boss": 1.166, "pve": 1.2, "world_boss": 1.052},
+    "shinigami": {"pvp": 1.253, "hollow": 1.4, "boss": 1.4, "pve": 1.4, "world_boss": 1.085},
+    "quincy": {"pvp": 0.949, "hollow": 0.863, "boss": 0.831, "pve": 0.845, "world_boss": 0.894},
+    "hollow": {"pvp": 0.751, "hollow": 0.632, "boss": 0.624, "pve": 0.632, "world_boss": 1.134},
+    "arrancar": {"pvp": 0.982, "hollow": 1.051, "boss": 1.047, "pve": 1.039, "world_boss": 1.093},
+    "fullbringer": {"pvp": 0.697, "hollow": 0.6, "boss": 0.681, "pve": 0.658, "world_boss": 0.857},
+    "human": {"pvp": 1.131, "hollow": 0.894, "boss": 1.01, "pve": 0.981, "world_boss": 1.042},
+    "visored": {"pvp": 1.285, "hollow": 1.4, "boss": 1.4, "pve": 1.4, "world_boss": 0.962},
 }
 
 
