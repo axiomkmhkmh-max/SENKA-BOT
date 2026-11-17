@@ -20,7 +20,8 @@ SLOT_FIELD = {"weapon": "weapon_id", "armor": "armor_id", "ring": "acc_id", "nec
 PETS = [("Spirit Fox", "روباه روحی"), ("Moon Cat", "گربه‌ی ماه"), ("Ember Wisp", "شراره‌ی زنده"),
         ("Tide Serpent", "مار جزرومد"), ("Hollow Pup", "توله‌ی تهی"), ("Storm Hawk", "عقاب توفان")]
 DROP_W = [50, 25, 15, 7, 2.5, 0.5]
-PITY = (("legendary", 4, 1000), ("epic", 3, 200), ("rare", 2, 50))
+# Pity: this many drops in a row below the tier guarantees it. It used to be 1000 / 200 / 50, which almost nobody ever reached.
+PITY = (("legendary", 4, 150), ("epic", 3, 40), ("rare", 2, 15))
 
 
 # ---- inventory ---------------------------------------------------------------

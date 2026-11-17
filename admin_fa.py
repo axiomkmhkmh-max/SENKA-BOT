@@ -41,7 +41,7 @@ SETTING_FA = {
     "pvp_turn_seconds": "مهلت هر نوبت پی‌وی‌پی (ثانیه)", "pvp_max_turns": "حداکثر نوبت پی‌وی‌پی",
     "market_seller_fee": "کارمزد فروشنده‌ی بازار", "market_buyer_fee": "کارمزد خریدار بازار", "market_slots": "جای آگهی بازار",
     "market_hours": "مدت آگهی بازار (ساعت)", "auction_snipe_seconds": "بازه‌ی ضدشکار حراج (ثانیه)", "auction_extend_seconds": "تمدید حراج (ثانیه)",
-    "gacha_cost": "هزینه‌ی گچا", "gacha_pity_legendary": "ضمانت افسانه‌ای گچا", "gacha_pity_rare": "ضمانت کمیاب گچا", "gacha_mythic_cap": "سقف اساطیری در احضار (۰ = بی‌حد)",
+    "gacha_cost": "هزینه‌ی گچا", "gacha_pity_legendary": "ضمانت افسانه‌ای گچا", "gacha_pity_rare": "ضمانت کمیاب گچا", "gacha_mythic_cap": "سقف اساطیری در احضار (۰ = بی‌حد)", "dp_pity_bronze": "ضمانت جعبه‌ی برنزی (۰ = خاموش)", "dp_pity_silver": "ضمانت جعبه‌ی نقره‌ای (۰ = خاموش)", "dp_pity_gold": "ضمانت جعبه‌ی طلایی (۰ = خاموش)",
     "guild_create_cost": "هزینه‌ی ساخت گیلد", "guild_min_level": "حداقل سطح گیلد", "squad_change_days": "روز تا تغییر اسکواد",
     "minigame_daily_xp_cap": "سقف تجربه‌ی روزانه‌ی مینی‌گیم", "hollow_daily_xp_cap": "سقف تجربه‌ی روزانه‌ی هالو", "referral_reward": "پاداش دعوت",
     "world_threat_drift_hour": "رانش ساعتی تهدید دنیا", "world_threat_win": "تهدید پس از برد", "world_threat_boss_kill": "تهدید پس از کشتن باس",

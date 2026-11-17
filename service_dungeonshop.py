@@ -5,18 +5,22 @@ that hold coins or an item. Pure rules first, then the database parts."""
 import random
 
 from data_world import day_id
-from database import bump_counter, col
+from database import bump_counter, col, game_settings
 from service_economy import inv_add, roll_drop
 from service_log import log_event
 from service_player import add_coins, get_char
 
 DP_BY_DIFF = {"normal": 2, "hard": 4, "nightmare": 8, "abyss": 16, "legendary": 32}
 DP_DAILY_CAP = 400
-# key -> cost in DP, lowest item rarity index (0 Common .. 5 Mythic), coin range, icon, names
+# key -> cost in DP, lowest item rarity index (0 Common .. 5 Mythic), coin range, icon, names.
+# Every chest now pays coins AND an item (it used to be coins OR an item, so the best chest was half the time just coins).
+# The coin range is half of the old one, so the coins per chest stay the same on average.
+# odds: weights for floor, floor+1, floor+2 rarity. weapon: chance the item is a weapon.
+# Pity (GAME_DEFAULTS dp_pity_<key>): after that many chests in a row without reaching floor+1, the next one does.
 BOXES = {
-    "bronze": {"cost": 40, "floor": 1, "coins": (300, 900), "icon": "🥉", "fa": "جعبه‌ی برنزی", "en": "Bronze Chest"},
-    "silver": {"cost": 120, "floor": 2, "coins": (1200, 3000), "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
-    "gold": {"cost": 360, "floor": 3, "coins": (4500, 10000), "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
+    "bronze": {"cost": 40, "floor": 1, "coins": (150, 450), "odds": (62, 33, 5), "weapon": 0.15, "icon": "🥉", "fa": "جعبه‌ی برنزی", "en": "Bronze Chest"},
+    "silver": {"cost": 120, "floor": 2, "coins": (600, 1500), "odds": (62, 33, 5), "weapon": 0.25, "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
+    "gold": {"cost": 360, "floor": 3, "coins": (2250, 5000), "odds": (64, 34, 2), "weapon": 0.35, "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
 }
 
 
@@ -41,7 +45,7 @@ async def dp_balance(uid: int) -> int:
 
 
 async def buy_box(uid: int, key: str, rng=random):
-    """Returns (status, result). status: ok | nobox | poor. result: {"coins": n} or {"item": id} (+ "full" when the bag was full)."""
+    """Returns (status, result). status: ok | nobox | poor. result: {"coins": n, "item": id, "rar_idx": i, "pity": bool}."""
     b = BOXES.get(key)
     if not b:
         return "nobox", None
@@ -49,18 +53,20 @@ async def buy_box(uid: int, key: str, rng=random):
     hit = await col("characters").find_one_and_update({"user_id": uid, "dp": {"$gte": b["cost"]}}, {"$inc": {"dp": -b["cost"]}})
     if not hit:
         return "poor", None
-    res = {}
-    if rng.random() < 0.5:
-        n = rng.randint(*b["coins"])
-        await add_coins(uid, n, "dp_chest")
-        res["coins"] = n
-    else:
-        iid = await roll_drop(uid, source_mult=1.5, floor_idx=b["floor"])
-        if await inv_add(uid, iid, 1):
-            res["item"] = iid
-        else:  # bag full: pay the top of the coin range instead of losing the chest
-            n = b["coins"][1]
-            await add_coins(uid, n, "dp_chest")
-            res.update(coins=n, full=iid)
+    st = await game_settings()
+    pity_n = int(st[f"dp_pity_{key}"])  # 0 = no pity
+    streak = int((hit.get("box_pity") or {}).get(key, 0))
+    idx = b["floor"] + rng.choices((0, 1, 2), b["odds"])[0]
+    up = b["floor"] + 1
+    pity = pity_n > 0 and streak + 1 >= pity_n and idx < up
+    if pity:
+        idx = up
+    await col("characters").update_one({"user_id": uid}, {"$set": {f"box_pity.{key}": 0 if idx >= up else streak + 1}})
+    n = rng.randint(*b["coins"])
+    await add_coins(uid, n, "dp_chest")
+    # a Mythic result is a Mythic weapon (the only Mythic items roll_drop can hand out)
+    iid = await roll_drop(uid, source_mult=1.0, weapon_chance=1.0 if idx >= 5 else b["weapon"], floor_idx=idx, rng=rng)
+    await inv_add(uid, iid, 1, force=True)  # a chest is never lost to a full bag
+    res = {"coins": n, "item": iid, "rar_idx": idx, "pity": pity}
     log_event("dungeon_shop", uid, f"جعبه‌ی دانجن {key}: {res}", box=key)
     return "ok", res
