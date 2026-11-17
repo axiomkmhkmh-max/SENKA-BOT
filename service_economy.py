@@ -164,12 +164,15 @@ async def use_item(uid: int, item_id: str):
         await col("characters").update_one({"user_id": uid}, {"$addToSet": {f"kido.{eff['branch']}": pick}})
         return "ok", pick
     if t == "bond":
-        wid = ch.get("weapon_id")
-        if not wid:
+        # The bond belongs to the chosen blade (data_zanpakuto.bond_key), the same key the Zanpakuto panel and combat
+        # read. It used to be written under the weapon in hand, so a character with a chosen blade never saw it grow.
+        from data_zanpakuto import bond_key
+        key = bond_key(ch)
+        if key == "none":
             return "nouse", None
         if not await inv_remove(uid, item_id, 1):
             return "missing", None
-        await col("characters").update_one({"user_id": uid}, {"$inc": {f"bond.{wid}": eff["amount"]}})
+        await col("characters").update_one({"user_id": uid}, {"$inc": {f"bond.{key}": eff["amount"]}})
         return "ok", eff["amount"]
     if t == "pet":
         # eggs go through the incubator (service_effects.use_egg): they hatch after egg_hatch_explores explores.
