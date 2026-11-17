@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from data_crafting import player_bonus, tagged_name, temper_def
 from data_items import ALL, EVO_BY_RARITY
-from data_races import DIFFICULTY, DUNGEONS, LOCATIONS, RACES, soft_stat
+from data_races import DIFF_DROP, DIFFICULTY, DUNGEONS, LOCATIONS, RACES, soft_stat
 from data_weapons import ELEMENTS, RARITIES
 from data_crafting import DIFFS
 from data_zanpakuto import BLADE_STAGES, BLADE_STYLE
@@ -223,6 +223,9 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     name = pick[0 if lang == "fa" else 1]
     lvl = max(1, ch["level"] + rng.randint(-1, 1))
     tower = bool(dungeon and dungeon.get("tower"))
+    fixed_dg = bool(dungeon and not tower and dungeon.get("id") in DUNGEONS)
+    if fixed_dg:  # a dungeon's enemies keep the dungeon's own level, whatever level the player is
+        lvl = int(DUNGEONS[dungeon["id"]]["level"])
     if tower:  # Soul Tower: endless floors, a Warden every 5th
         from data_extras import TOWER_BOSS_EVERY, TOWER_ENEMIES
         floor = int(dungeon["stage"])
@@ -246,7 +249,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         scale, name = (1.55 if force_elite else 1.4), "💀 " + name
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
-    elif not tower:
+    elif not tower and not fixed_dg:  # dungeons stay fixed: no world-event scaling on top
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
     player["x"]["bstack"] = int((ch.get("bount") or {}).get("stacks", 0))  # soul stacks: PvE only, settled in pve_settle
@@ -386,11 +389,23 @@ async def pve_settle(doc: dict):
             di = DIFFS.index(d["diff"]) if d["diff"] in DIFFS else 0
             # a full clear always pays one item; the harder the difficulty, the higher its rarity floor
             # (normal/hard Common, nightmare Uncommon, abyss Rare, legendary Epic) and the better its odds above that
-            diid = await roll_drop(uid, source_mult=1.0 + 0.25 * di, floor_idx=max(0, di - 1))
-            if await inv_add(uid, diid, 1):
-                out["drop"] = diid
-            else:
-                out["drop_full"] = diid
+            # reward multiplier (DIFF_DROP: 1 / 1.5 / 3 / 10 / 30): the number of items grows with its square root
+            # (about 1 / 1.2 / 1.7 / 3.2 / 5.5 items; the fraction is a chance for one more), each item also gets the multiplier
+            # as source_mult. The rarity cap in roll_drop still holds, so rarity comes from the floor, quantity from the multiplier.
+            dm = float(DIFF_DROP.get(d["diff"], 1.0))
+            n_items = int(dm ** 0.5)
+            n_items += 1 if random.random() < (dm ** 0.5 - n_items) else 0
+            got_items = []
+            for _ in range(max(1, n_items)):
+                diid = await roll_drop(uid, source_mult=dm, floor_idx=max(0, di - 1))
+                if await inv_add(uid, diid, 1):
+                    got_items.append(diid)
+                else:
+                    out["drop_full"] = diid
+            if got_items:
+                out["drop"] = got_items[0]
+                out["extra_drops"] = got_items[1:]
+            out["diff_mult"] = dm
             if random.random() < 0.20 + 0.08 * di:  # evolution fuel comes from the deep places
                 pool = EVO_BY_RARITY[RARITIES[min(3, max(0, di - (1 if random.random() < 0.5 else 0)))]] or EVO_BY_RARITY["Common"]
                 eid = random.choice(pool)

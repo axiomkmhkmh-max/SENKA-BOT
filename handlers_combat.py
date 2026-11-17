@@ -207,6 +207,8 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("bt_levelup", n=fnum(o["levels"], L)))
     if o["drop"]:
         lines.append(ctx.t("bt_drop", item=nm(o["drop"], L)))
+    for xid in o.get("extra_drops") or []:
+        lines.append(ctx.t("bt_drop", item=nm(xid, L)))
     if o.get("bonus_drop"):
         lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
     if o.get("dg_heal"):
@@ -352,9 +354,11 @@ async def dungeon_diff(ctx, arg):
     d = DUNGEONS.get(arg)
     if not d:
         return Out()
-    rows = [[(ctx.t("diff_" + k) + (" 🔑" if k != "normal" else ""), "dgs", f"{arg}.{k}")] for k in DIFFICULTY]
+    rows = [[(ctx.t("diff_" + k) + f" ×{DIFFICULTY[k]:g}" + (" 🔑" if k != "normal" else ""), "dgs", f"{arg}.{k}")] for k in DIFFICULTY]
     rows.append(nav(ctx, ("dgn", "")))
-    return Out(head(ctx, "ttl_dgn") + f"<b>{d['fa' if L == 'fa' else 'en']}</b>\n<i>{dungeon_line(arg, 1, d['stages'], L)}</i>\n" + ctx.t("dgn_pick", n=fnum(d["stages"], L)), rows)
+    lvl_line = (f"\n🎚 سطح دشمنان ثابت: {fnum(d['level'], L)} — ضریب سختی روی قدرت دشمن و پاداش اثر می‌گذارد."
+                if L == "fa" else f"\n🎚 Fixed enemy level: {d['level']}. The difficulty multiplier scales enemy power and rewards.")
+    return Out(head(ctx, "ttl_dgn") + f"<b>{d['fa' if L == 'fa' else 'en']}</b>\n<i>{dungeon_line(arg, 1, d['stages'], L)}</i>\n" + ctx.t("dgn_pick", n=fnum(d["stages"], L)) + lvl_line, rows)
 
 
 @action("dgs")

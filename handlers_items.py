@@ -161,6 +161,13 @@ async def ueq(ctx, arg):
 @action("us")
 async def use(ctx, arg):
     r, extra = await use_item(ctx.uid, arg)
+    if r == "ok" and ((ALL.get(arg) or {}).get("effect") or {}).get("type") == "pet":  # egg hatched on the spot
+        from service_economy import PETS
+        nmx = PETS[int(extra) % len(PETS)][0 if ctx.lang != "fa" else 1]
+        out = await bag(ctx, "0")
+        out.alert = (f"🐣 تخم شکست و یک همراه بیرون اومد: {nmx}! از پنل همراه می‌تونی ببینیش." if ctx.lang == "fa"
+                     else f"🐣 The egg hatched: {nmx}! See it in the companion panel.")
+        return out
     if r == "ok":
         out = await bag(ctx, "0")
         out.alert = ctx.t("us_ok", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))

@@ -587,6 +587,11 @@ async def pet_panel(ctx, arg):
         rows.append(row)
     if not pets:
         lines.append(ctx.t("pet_none"))
+    inc = ch.get("incubator")  # an egg put in before eggs started hatching instantly: it still finishes by exploring
+    if inc:
+        n = fnum(max(0, int(inc.get("left", 0))), L)
+        lines.append(f"🥚 یک تخم در انکوباتور است؛ {n} اکتشاف دیگه تا بیرون اومدنش." if L == "fa"
+                     else f"🥚 An egg is incubating; {n} more explores until it hatches.")
     return Out("\n".join(lines), rows + [nav(ctx, ("eqp", ""))])
 
 

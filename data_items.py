@@ -144,8 +144,8 @@ def _build():
                     desc_en, desc_fa = _book_desc(eff)
                 else:
                     eff = {"type": "konpaku", "minutes": 60 + 30 * tier}
-                    desc_en = f"Duel charm: one extra Konpaku life for {eff["minutes"]} minutes."
-                    desc_fa = f"طلسم دوئل: یک جان کونپاکوی اضافه برای {eff["minutes"]} دقیقه."
+                    desc_en = f"Duel charm: one extra Konpaku life for {eff['minutes']} minutes."
+                    desc_fa = f"طلسم دوئل: یک جان کونپاکوی اضافه برای {eff['minutes']} دقیقه."
             elif cat == "potion":
                 if i % 2 == 0:
                     eff = {"type": "hp", "pct": 15 + tier * 10}

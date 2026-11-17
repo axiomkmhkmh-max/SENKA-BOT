@@ -9,7 +9,7 @@ from i18n import t
 # ---- tunables (defaults mirrored in config.GAME_DEFAULTS) ------------------------------------
 DEFAULTS = {
     "relic_slot2_level": 50, "relic_slot1_level": 20, "relic_effect_mult": 1.0,
-    "pet_fang_pct": 1.0, "pet_heal_pct": 0.5, "pet_luck_pct": 1.0, "egg_hatch_explores": 5,
+    "pet_fang_pct": 1.0, "pet_heal_pct": 0.5, "pet_luck_pct": 1.0, "egg_hatch_explores": 0,  # 0 = an egg hatches the moment you use it; N > 0 = it incubates for N explores first
     "book_buff_minutes": 30, "evo_item_required": 1, "evo_coin_cost": 5000,
 }
 

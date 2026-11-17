@@ -248,5 +248,10 @@ DUNGEONS.update({
     "zero_trial": {"fa": "آزمون نیروی صفر", "en": "Zero Division Trial", "level": 92, "stages": 7},
 })
 DUNGEONS = dict(sorted(DUNGEONS.items(), key=lambda kv: kv[1]["level"]))
-DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 2.2, "abyss": 3.2, "legendary": 4.5}
+# Dungeons have a FIXED enemy level (DUNGEONS[id]["level"]) that does not follow the player's level.
+# Difficulty only multiplies the enemies' strength (hp, attack, defense) and, in the same direction, the rewards:
+#   DIFFICULTY = enemy power multiplier        DIFF_DROP = reward multiplier (items on a full clear; coins/XP already follow the power)
+# Tune both here. Keep the keys in sync with DIFFS in data_items / data_crafting (one key per difficulty).
+DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 3.0, "abyss": 10.0, "legendary": 30.0}
+DIFF_DROP = {"normal": 1.0, "hard": 1.5, "nightmare": 3.0, "abyss": 10.0, "legendary": 30.0}
 DIFF_FA = {"normal": "عادی", "hard": "سخت", "nightmare": "کابوس", "abyss": "ورطه", "legendary": "افسانه‌ای"}
