@@ -14,8 +14,8 @@ RACE_ABILITIES = {
     # Getsuga Tenshō is a zanpakutō technique.
     "gc": SHINIGAMI_LIKE,
     "gt": SHINIGAMI_LIKE,
-    # Spirit-gauge release: Bankai for Shinigami/Visored, Resurrección for Hollow/Arrancar. Nobody else has one.
-    "gx": SHINIGAMI_LIKE + ("hollow", "arrancar"),
+    # Spirit-gauge release ("gx"): every race has one now (Bankai, Resurrección, Vollständig, Complete Fullbring,
+    # full soul awakening; names in data_bleachfx.RELEASE_NAME), so it is not listed here.
     # Canon: Quincy Blut (Vene and Arterie) and Arrancar Bala.
     "blv": ("quincy",),
     "bla": ("quincy",),
@@ -35,17 +35,20 @@ def race_allows(race, action):
 # kind of fight (PvP duel, Hollow foe, Boss), while every race ends up with about the same win rate.
 # Contexts: "pvp" = duel against a player, "hollow" = wild Hollow foe, "boss" = dungeon / tower boss,
 # "pve" = other wild enemies, "world_boss" = shared-HP world boss (each hit counts).
-# These are only residual fine-tuning (every value within 0.92-1.08). The real balance lives in the race base stats and mods
-# (data_races.py). Tuned with balance_sim.py at level ~40 (equal allocated points, same weapon and armour) for the standard loadout:
-# Strike for everyone; Zangetsu's technique and Hadō 1 and 4 for Shinigami and Visored. Win rates: every race 45-54% in every fight type.
+# Residual fine-tuning (every value within 0.80-1.20). The race base stats and mods (data_races.py), the evolution bonuses
+# (data_evolution.py) and the race techniques (data_race_tech.py) carry the identity; these even out what is left.
+# Retuned after the rework (releases for every race, canon evolution bonuses, race techniques) with balance_sim.py at
+# level ~40, evolution stage 2 (equal allocated points, same weapon and armour), standard loadout: Strike for everyone;
+# Zangetsu's technique and Hadō 1 and 4 for Shinigami and Visored. PvP win rates: every race 49-53%; against wild foes
+# every race within about 5 points of the average (players now win far more often there, because of the stronger releases).
 RACE_CONTEXT_DMG = {
-    "shinigami": {"pvp": 0.920, "hollow": 1.080, "boss": 0.961, "pve": 0.921, "world_boss": 1.007},
-    "quincy": {"pvp": 0.931, "hollow": 1.047, "boss": 0.972, "pve": 0.931, "world_boss": 0.922},
-    "hollow": {"pvp": 0.974, "hollow": 1.051, "boss": 0.966, "pve": 0.928, "world_boss": 1.076},
-    "arrancar": {"pvp": 0.981, "hollow": 1.035, "boss": 0.979, "pve": 0.954, "world_boss": 1.071},
-    "fullbringer": {"pvp": 0.961, "hollow": 1.065, "boss": 0.973, "pve": 0.939, "world_boss": 0.977},
-    "human": {"pvp": 0.965, "hollow": 0.959, "boss": 1.004, "pve": 0.953, "world_boss": 0.928},
-    "visored": {"pvp": 0.947, "hollow": 1.080, "boss": 1.021, "pve": 0.946, "world_boss": 0.958},
+    "shinigami": {"pvp": 1.023, "hollow": 1.2, "boss": 1.129, "pve": 1.073, "world_boss": 1.012},
+    "quincy": {"pvp": 0.807, "hollow": 0.8, "boss": 0.801, "pve": 0.8, "world_boss": 0.883},
+    "hollow": {"pvp": 0.913, "hollow": 0.914, "boss": 0.879, "pve": 0.851, "world_boss": 1.019},
+    "arrancar": {"pvp": 1.066, "hollow": 1.104, "boss": 1.065, "pve": 1.07, "world_boss": 1.037},
+    "fullbringer": {"pvp": 0.939, "hollow": 0.91, "boss": 0.928, "pve": 0.919, "world_boss": 1.005},
+    "human": {"pvp": 0.906, "hollow": 0.825, "boss": 0.904, "pve": 0.874, "world_boss": 0.978},
+    "visored": {"pvp": 1.115, "hollow": 1.2, "boss": 1.166, "pve": 1.2, "world_boss": 1.052},
 }
 
 

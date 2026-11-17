@@ -50,7 +50,8 @@ async def ensure_indexes():
     specs = {
         "users": [([("telegram_id", ASCENDING)], U), ([("last_seen", DESCENDING)], {}),
                   ([("banned", ASCENDING)], {}), ([("created_at", DESCENDING)], {})],
-        "characters": [([("user_id", ASCENDING)], U), ([("name_key", ASCENDING)], U), ([("coins", DESCENDING)], {}), ([("location", ASCENDING), ("seen_at", DESCENDING)], {}),
+        "characters": [([("user_id", ASCENDING)], U), ([("name_key", ASCENDING)], U), ([("coins", DESCENDING)], {}),
+                       ([("br_season", ASCENDING), ("br", DESCENDING)], {}), ([("location", ASCENDING), ("seen_at", DESCENDING)], {}),
                        ([("level", DESCENDING), ("xp", DESCENDING)], {}),
                        ([("rating", DESCENDING)], {}), ([("guild_id", ASCENDING)], {}),
                        ([("tower.wk", ASCENDING), ("tower.wk_best", DESCENDING)], {})],
@@ -73,6 +74,7 @@ async def ensure_indexes():
         "guilds": [([("name_key", ASCENDING)], U)],
         "player_quests": [([("user_id", ASCENDING)], U)],
         "gacha": [([("user_id", ASCENDING)], U)],
+        "bank_accounts": [([("user_id", ASCENDING)], U), ([("tick_day", ASCENDING)], {})],  # one vault per player
         "minigames": [([("gid", ASCENDING)], U), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
         "admin_logs": [([("at", DESCENDING)], {})],
         "admin_users": [([("user_id", ASCENDING)], U)],

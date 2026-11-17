@@ -77,10 +77,13 @@ def evo_gate_stage(race: str, level: int) -> int:
 
 
 def evo_stage(ch: dict) -> int:
-    """Stage the player may display/use. Missing `evo` field (old saves) = grandfathered by level."""
-    gate = evo_gate_stage(ch["race"], ch["level"])
+    """Evolution stage (0..4). Only an evolution trial raises it, so the race title rises only through evolution.
+    A character the one-time pin (service_migrate_rework) has not reached yet keeps the title it had by level."""
     ev = ch.get("evo")
-    return gate if ev is None else min(gate, int(ev))
+    if ev is None:
+        from service_migrate_rework import legacy_evo_stage
+        return legacy_evo_stage(ch["race"], int(ch.get("level", 1)))
+    return max(0, min(len(RACES[ch["race"]]["evo"]) - 1, int(ev)))
 
 
 def evo_next(ch: dict):
@@ -206,9 +209,7 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     """Everything equipment-like adds, as plain numbers. Caps keep stacking sane."""
     b = {"dmg": 0.0, "def": 0.0, "crit": 0.0, "regen": 0.0, "xp": 0.0, "drop": 0.0, "coin": 0.0, "hunt": 0.0, "calm": 0.0, "stab": 0.0}
     k_r, k_p = float(st["relic_k"]), float(st["pet_k"])
-    stage = evo_stage(ch)
-    b["dmg"] += float(st["evo_bonus_pct"]) * stage
-    b["def"] += float(st["evo_bonus_pct"]) * stage
+    # evolution bonuses are race-specific now (data_evolution, applied in service_combat.build_player)
     pets = ch.get("pets") or []
     if pets:
         role, per = PET_ROLES.get(pets[0]["sp"] % len(PET_ROLES), ("dmg", 0.01))
@@ -228,6 +229,10 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     for kind, v in art.items():
         if kind in b:
             b[kind] += v * float(st.get("art_k", 1.0))
+    if ch.get("kenpachi_art"):  # Battle Rank: the Kenpachi artifact, on top of any other artifact, forever
+        from data_battlerank import KENPACHI_ART
+        for kind, v in KENPACHI_ART["bonus"].items():
+            b[kind] += v
     if ch.get("hogyoku"):  # --- NEW BLEACH VIRAL SYSTEM ---
         from data_artifacts import HOGYOKU
         for kind, v in HOGYOKU["bonus"].items():

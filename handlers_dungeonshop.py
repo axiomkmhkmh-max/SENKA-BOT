@@ -10,11 +10,11 @@ async def _shop(ctx, note=""):
     L, fa = ctx.lang, ctx.lang == "fa"
     bal = await dp_balance(ctx.uid)
     lines = [(f"{b['icon']} {b['fa' if fa else 'en']}: {fnum(b['cost'], L)} 💠 → " +
-              (f"سکه ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) + آیتم تضمینی از «{rarity_name(RARITIES[b['floor']], L)}» به بالا" if fa else
-               f"coins ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) + a guaranteed item, {rarity_name(RARITIES[b['floor']], L)} or better")) for b in BOXES.values()]
-    info = (f"با کلیر کامل هر دانجن دانجن پوینت می‌گیری (نرمال {DP_BY_DIFF['normal']}، لجندری {DP_BY_DIFF['legendary']} و هرچه دانجن سطح بالاتر، بیشتر). سقف روزانه: {fnum(DP_DAILY_CAP, L)}."
+              (f"سکه ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) + یک آیتم فقط «{rarity_name(RARITIES[b['rar'][0]], L)}» یا «{rarity_name(RARITIES[b['rar'][1]], L)}»" if fa else
+               f"coins ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) + one item, only {rarity_name(RARITIES[b['rar'][0]], L)} or {rarity_name(RARITIES[b['rar'][1]], L)}")) for b in BOXES.values()]
+    info = (f"دانجن‌ها سکه و آیتم نمی‌دن؛ با کلیر کامل هر دانجن دانجن پوینت و تجربه‌ی بیشتر می‌گیری (پایه: عادی {DP_BY_DIFF['normal']}، افسانه‌ای {DP_BY_DIFF['legendary']}، و هرچه سطح دانجن بالاتر، بیشتر). سقف روزانه: {fnum(DP_DAILY_CAP, L)}."
             if fa else
-            f"Every full dungeon clear pays dungeon points (normal {DP_BY_DIFF['normal']}, legendary {DP_BY_DIFF['legendary']}, more in higher-level dungeons). Daily cap: {fnum(DP_DAILY_CAP, L)}.")
+            f"Dungeons pay no coins or items: every full clear pays dungeon points and extra XP (base: normal {DP_BY_DIFF['normal']}, legendary {DP_BY_DIFF['legendary']}, more in higher-level dungeons). Daily cap: {fnum(DP_DAILY_CAP, L)}.")
     body = (f"💠 <b>{'شاپ دانجن' if fa else 'Dungeon Shop'}</b>\n{'موجودی' if fa else 'Balance'}: {fnum(bal, L)} 💠\n\n"
             + "\n".join(lines) + "\n\n" + info + (("\n\n" + note) if note else ""))
     rows = [[(f"{b['icon']} {b['fa' if fa else 'en']} · {fnum(b['cost'], L)}", "dpb", k)] for k, b in BOXES.items()]

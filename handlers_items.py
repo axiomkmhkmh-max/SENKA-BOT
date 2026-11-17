@@ -19,7 +19,7 @@ from service_player import add_coins, get_char, today
 from ui import GREEN, RED, Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "book", "egg", "key", "material", "evolution", "quincy")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy")}
 
 
 def _rk(i):
@@ -183,6 +183,17 @@ async def use(ctx, arg):
         out = await bag(ctx, "0")
         out.alert = txt
         return out
+    if r == "race_card":
+        return Out(alert=ctx.t("us_race_card"))
+    if r == "order":
+        return Out(alert=ctx.t("us_order", n=fnum(extra or 0, ctx.lang)))
+    if r == "rw_switch":  # Weapon Rebirth Seal: pick the new type (the seal is spent only when you pick)
+        from handlers_raceweapon import race_weapon_switch
+        return await race_weapon_switch(ctx, "")
+    if r == "race":
+        return Out(alert=("📜 فقط شینیگامی و ویزورد می‌تونن کیدو یاد بگیرن؛ این آیتم مصرف نشد. می‌تونی بفروشیش یا ترید کنی."
+                          if ctx.lang == "fa" else
+                          "📜 Only Shinigami and Visored can learn Kidō; the item was not used. You can sell or trade it."))
     return Out(alert=ctx.t("us_" + r, n=extra or 0))
 
 
@@ -578,7 +589,7 @@ async def listing_cancel(ctx, arg):
 @action("shp")
 async def shop(ctx, arg):
     L = ctx.lang
-    stock = shop_stock(today())
+    stock = shop_stock(today(), ((await get_char(ctx.uid)) or {}).get("race"))
     page = int(arg or 0)
     pages = math.ceil(len(stock) / PER)
     page = max(0, min(page, pages - 1))
@@ -623,7 +634,7 @@ async def _shop_item_view(ctx, item_id, note=""):
 
 @action("sv")
 async def shop_view(ctx, arg):
-    if arg not in shop_stock(today()):
+    if arg not in shop_stock(today(), ((await get_char(ctx.uid)) or {}).get("race")):
         return Out(alert=ctx.t("mk_gone"))
     return await _shop_item_view(ctx, arg)
 
@@ -1041,6 +1052,9 @@ async def forge_panel(ctx, arg):
     L = ctx.lang
     ch = await get_char(ctx.uid)
     wid = ch.get("weapon_id")
+    if wid not in ALL:  # race weapon not chosen yet: choose it first
+        from handlers_raceweapon import choice_panel
+        return await choice_panel(ctx, ch)
     plus = (ch.get("weapon_plus") or {}).get(wid, 0)
     alert = None
     if arg == "go":

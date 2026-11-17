@@ -54,10 +54,12 @@ async def respec_menu(ctx, arg):
              T(ctx, f"🔁 <b>ریست استت:</b> {fnum(rq['points'], L)} امتیاز برمی‌گرده. هزینه: {fnum(rq['coins'], L)} 🪙. "
                     "هر ۲۴ ساعت یک بار.",
                f"🔁 <b>Stat reset:</b> returns {fnum(rq['points'], L)} points. Cost: {fnum(rq['coins'], L)} 🪙. Once per 24h."),
-             T(ctx, f"🧬 <b>تغییر نژاد:</b> امتیازهای استت حفظ میشن و روی پایه‌ی نژاد جدید میشینن. "
-                    f"هزینه: {fnum(cq['coins'], L)} 🪙. هر ۳۰ روز یک بار. کیدو و مسیر تکامل نژاد قبلی ریست میشه.",
-               f"🧬 <b>Race change:</b> your allocated points are kept on the new race's base. Cost: {fnum(cq['coins'], L)} 🪙. "
-                    "Once per 30 days. Kidō and the old race's evolution progress reset.")]
+             T(ctx, "🧬 <b>تغییر نژاد:</b> رایگانه، فقط هر ۴۸ ساعت یک بار. همه‌ی امتیازهای استت برمی‌گرده تا برای نژاد جدید دوباره پخششون کنی. "
+                    "مرحله‌ی تکاملت حفظ میشه. ویزوردها می‌تونن به شینیگامی برگردن و بعد بدون آزمون دوباره ویزورد بشن. "
+                    "زره نژادیت به زره نژاد جدید (همون رنگ) تبدیل میشه و سلاح نژادیت رو با همون سطح از بین سلاح‌های نژاد جدید انتخاب می‌کنی.",
+               "🧬 <b>Race change:</b> free, once every 48 hours. Every stat point comes back so you can spend it again for the new race. "
+                    "Your evolution stage is kept. A Visored can go back to Shinigami and later become Visored again without the trial. "
+                    "Your race armour turns into the new race's (same colour) and you pick a new race weapon at the same level.")]
     rows = [[(T(ctx, "🔁 ریست استت", "🔁 Reset stats"), "rspst", "")],
             [(T(ctx, "🧬 تغییر نژاد", "🧬 Change race"), "rspr", "")],
             nav(ctx)]
@@ -84,16 +86,15 @@ async def race_pick(ctx, arg):
             continue
         rows.append([(_race_name(key, L), "rspc", key)])
     rows.append(nav(ctx, ("resp", "")))
-    text = T(ctx, "کدوم نژاد؟ امتیازهای استت حفظ میشن.", "Which race? Your stat points are kept.")
+    text = T(ctx, "کدوم نژاد؟ همه‌ی امتیازهای استت برمی‌گرده تا دوباره پخششون کنی.", "Which race? All your stat points come back to spend again.")
     return Out(text, rows)
 
 
 @action("rspc")
 async def race_confirm(ctx, arg):
     L = ctx.lang
-    cq = race_change_quote(await get_char(ctx.uid) or {"level": 1})
-    text = T(ctx, f"مطمئنی به <b>{_race_name(arg, L)}</b> میری؟ {fnum(cq['coins'], L)} 🪙 هزینه داره و ۳۰ روز دیگه نمی‌تونی عوض کنی.",
-             f"Sure about <b>{_race_name(arg, L)}</b>? It costs {fnum(cq['coins'], L)} 🪙 and you cannot change again for 30 days.")
+    text = T(ctx, f"مطمئنی به <b>{_race_name(arg, L)}</b> میری؟ رایگانه، ولی تا ۴۸ ساعت دیگه نمی‌تونی دوباره عوض کنی.",
+             f"Sure about <b>{_race_name(arg, L)}</b>? It is free, but you cannot change again for 48 hours.")
     rows = [[(T(ctx, "✅ بله، تغییر بده", "✅ Yes, change"), "rspx", arg)],
             [(T(ctx, "❌ نه", "❌ No"), "resp", "")]]
     return Out(text, rows)
@@ -104,9 +105,12 @@ async def race_do(ctx, arg):
     code, extra = await change_race(ctx.uid, arg)
     if code != "ok":
         return Out(alert=_msg(ctx, code, extra))
-    text = T(ctx, f"نژادت حالا <b>{_race_name(arg, ctx.lang)}</b> شده. امتیازهات سر جاشونن.",
-             f"You are now <b>{_race_name(arg, ctx.lang)}</b>. Your points stayed with you.")
-    return Out(text, [nav(ctx)])
+    pts = fnum((extra or {}).get("points", 0), ctx.lang)
+    text = T(ctx, f"نژادت حالا <b>{_race_name(arg, ctx.lang)}</b> شده. {pts} امتیاز برگشت؛ از پروفایل دوباره پخششون کن. "
+                  "سلاح نژاد جدیدت رو هم از پنل سلاح انتخاب کن.",
+             f"You are now <b>{_race_name(arg, ctx.lang)}</b>. {pts} points came back; spend them again in your profile. "
+             "Pick your new race weapon in the weapon panel.")
+    return Out(text, [[(T(ctx, "🗡 انتخاب سلاح نژاد", "🗡 Pick race weapon"), "rwp", "")], nav(ctx)])
 
 
 def T(ctx, fa, en):

@@ -119,7 +119,7 @@ TEXT = {
  "lg_form1_shinigami": "🗡️ {a} cries out the blade's name — <b>Shikai!</b>",
  "lg_form2_shinigami": "🌟 “Bankai!” — {a}'s reiatsu becomes a pillar that splits the sky!",
  "lg_form1_quincy": "🏹 {a} draws the reishi bow — <b>Heilig Bogen!</b>",
- "lg_form2_quincy": "✝️ {a}: “Vollständig” — white light swallows everything!",
+ "lg_form2_quincy": "✝️ {a}: “Letzt Stil” — the last Quincy style; white light swallows everything!",
  "lg_form1_hollow": "🐺 {a} roars; the mask cracks and hunger breaks loose!",
  "lg_form2_hollow": "💀 {a}'s complete form awakens; the sands tremble!",
  "lg_form1_arrancar": "🌀 {a} releases the blade — <b>Resurrección!</b>",
@@ -326,3 +326,12 @@ TEXT.update({'ttl_home':'Soul Society','m_home':'🏯 Soul Society','ttl_map':'S
  'lg_mask_lost':'🎭 {a} loses control — the Hollow inside takes the wheel!','lg_mask_lost_2':'🎭 {a}\'s mask roars; the Hollow swallows the turn!'})
 
 TEXT.update({'ttl_casino': 'Bleach Casino', 'ttl_bank': 'Bleach Bank'})
+
+# A Bankai / Resurrection that slips out of control at low HP (engine event release_lost): one line per race.
+TEXT.update({
+    'lg_release_lost_shinigami': "🌀 {a}'s Bankai pressure runs wild; the turn is lost!",
+    'lg_release_lost_shinigami_2': "🌀 {a}'s blade shakes under the Bankai's weight; the turn slips away!",
+    'lg_release_lost_visored': "🎭 {a}'s mask roars; the Hollow inside swallows the turn!",
+    'lg_release_lost_hollow': "🦴 {a}'s Hollow instinct takes over; it howls instead of fighting!",
+    'lg_release_lost_arrancar': "🦴 {a}'s Resurrección slips out of control; the turn is lost!",
+})

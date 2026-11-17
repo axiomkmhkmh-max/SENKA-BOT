@@ -60,16 +60,24 @@ GAUGE = {
     "take_share": 40,   # ... plus this many per 100% of your max HP the hit removed ...
     "take_cap": 12,     # ... capped at this bonus
     "cost": 0.10,       # reiatsu paid to unleash (share of max Reiatsu)
-    "strike": 1.15,     # the release is itself a strike (power), so unleashing is never a wasted turn
+    "strike": 2.0,      # the release opens with a double-power strike, so unleashing is never a wasted turn
     "turns": 2,         # actions covered by the released form (after the release strike)
-    "dmg": 1.06,        # damage multiplier while released
-    "crit": 0.02,       # extra crit chance while released
+    "dmg": 1.60,        # damage multiplier while released (+60%)
+    "crit": 0.30,       # extra crit chance while released (+30%)
     "hollow_hp": 0.30,  # below this HP share, a released fighter may lose the turn to the Hollow ...
     "hollow_p": 0.12,   # ... with this chance each turn
 }
 # Resurrección: the Hollow / Arrancar version of Resolve (same once-per-battle trigger, a stronger surge).
 RESURRECCION = {"heal": 0.08, "dmg": 1.15, "turns": 3}
 RESURRECCION_RACES = ("hollow", "arrancar")
+# Every race has a spirit-gauge release now (engine action "gx"). Name per race: (fa, en). Shinigami / Visored keep Bankai,
+# Hollow / Arrancar Resurrección; Quincy Vollständig, Fullbringer Complete Fullbring, Human the full awakening of the soul.
+RELEASE_NAME = {
+    "shinigami": ("بانکای", "Bankai"), "visored": ("بانکای", "Bankai"),
+    "hollow": ("رسورکسیون", "Resurrección"), "arrancar": ("رسورکسیون", "Resurrección"),
+    "quincy": ("فولشتندیگ", "Vollständig"), "fullbringer": ("فول‌برینگ کامل", "Complete Fullbring"),
+    "human": ("بیداری کامل روح", "Full Soul Awakening"),
+}
 
 # weapon_type -> (fa, en) technique word. A released fighter's Heavy strike is called "<blade name>: <word>!".
 # (The 120 blades are original ids wp_001..wp_120, so the technique is named after the type, not a canon blade id.)
@@ -79,14 +87,19 @@ TYPE_MOVES = {
     "ranged": ("سنکو", "Senkō"), "speed": ("رانبو", "Ranbu"), "hybrid": ("کیوگکی", "Kyōgeki"),
 }
 
-_HOLLOW_RE = re.compile(r"hollow|menos|gillian|adjuchas|vasto|masked|هالو|منوس|جیلیان|ماسک", re.I)
+# Hollows and Arrancar (Numeros, Fracción, Exequias, Espada... all Hollows in canon) fire Cero; Quincy foes (Soldat,
+# Sternritter, Jagdarmee, Schutzstaffel...) use Hirenkyaku. Decided by the enemy's name, so it holds in every place.
+_HOLLOW_RE = re.compile(r"hollow|menos|gillian|adjuchas|vasto|masked|arrancar|espada|numeros|fracci[oó]n|exequias|ulquiorra"
+                        r"|هالو|منوس|جیلیان|ماسک|آرانکار|اسپادا|نومروس|فراسیون|اکسکیاس|اولکیورا", re.I)
+_QUINCY_RE = re.compile(r"quincy|sternritter|soldat|jagdarmee|schutzstaffel|schrift"
+                        r"|کوئینسی|استرنریتر|سولدات|یاگدآرمه|شوتس‌اشتافل|شریفت", re.I)
 
 
 def enemy_sig(loc_race, names) -> str:
     """Signature a wild enemy uses. `names` = the (fa, en) pair picked for the encounter. None = plain fighter."""
     if loc_race == "hollow" or any(_HOLLOW_RE.search(n or "") for n in names):
         return "cero"
-    if loc_race == "quincy":
+    if loc_race == "quincy" or any(_QUINCY_RE.search(n or "") for n in names):
         return "hiren"
     return None
 

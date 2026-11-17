@@ -251,7 +251,7 @@ async def send_drop(bot, chat_id: int, doc: dict):
     g = await col("groups").find_one({"chat_id": chat_id}, {"title": 1}) or {}
     what = art_name(doc["ref"], "fa") if doc["kind"] == "art" else nm(doc["ref"], "fa").replace("<", "").replace(">", "")
     log_event("drop", doc.get("dropper", 0), f"دراپ «{what}» در گروه «{g.get('title', chat_id)}»" + (" 🔱 (آرتیفکت یکتا)" if doc["kind"] == "art" else ""),
-              chat=chat_id, kind=doc["kind"], ref=doc["ref"])
+              chat=chat_id, drop_kind=doc["kind"], ref=doc["ref"])
     from html import escape as _h
     from service_notify import alert_group_members
     title = _h(g.get("title") or "")
@@ -303,7 +303,7 @@ async def group_hook(message, text: str, n: str) -> bool:
             await _edit(message.bot, doc, lambda L: claimed_text(L, doc))
             await message.reply(both(lang, lambda L: claimed_text(L, doc)))
             what = _prize("fa", doc).replace("<", "").replace(">", "")
-            log_event("drop", user.id, f"برنده‌ی دراپ شد: «{what}»" + (" 🔱" if doc["kind"] == "art" else ""), chat=chat.id, kind=doc["kind"], ref=doc["ref"])
+            log_event("drop", user.id, f"برنده‌ی دراپ شد: «{what}»" + (" 🔱" if doc["kind"] == "art" else ""), chat=chat.id, drop_kind=doc["kind"], ref=doc["ref"])
             return True
         if res == "gone":
             end = doc.get("claimed_at") or doc.get("end_at") or 0

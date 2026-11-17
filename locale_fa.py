@@ -111,7 +111,7 @@ TEXT = {
  "lg_form1_shinigami": "🗡️ {a} نام تیغه‌اش را فریاد زد — <b>شیکای!</b>",
  "lg_form2_shinigami": "🌟 «بانکای!» — ریاتسوی {a} ستونی شد و آسمان را شکافت!",
  "lg_form1_quincy": "🏹 {a} کمان ریشی را کشید — <b>هایلیگ بوگن!</b>",
- "lg_form2_quincy": "✝️ {a}: «وولشتاندیگ» — نوری سفید همه‌چیز را بلعید!",
+ "lg_form2_quincy": "✝️ {a}: «لتسته اشتیل» — آخرین سبک کوئینسی، نوری سفید همه‌چیز را بلعید!",
  "lg_form1_hollow": "🐺 {a} غرید؛ ماسک ترک خورد و گرسنگی رها شد!",
  "lg_form2_hollow": "💀 شکل کامل {a} بیدار شد؛ شن‌ها لرزید!",
  "lg_form1_arrancar": "🌀 {a} تیغ را رها کرد — <b>ریسوررکسیون!</b>",
@@ -317,3 +317,12 @@ TEXT.update({
 })
 
 TEXT.update({'ttl_casino': 'کازینو بلیچ', 'ttl_bank': 'بانک بلیچ'})
+
+# A Bankai / Resurrección that slips out of control at low HP (engine event release_lost): one line per race.
+TEXT.update({
+    'lg_release_lost_shinigami': '🌀 فشار بانکایِ {a} از کنترلش خارج شد؛ نوبتش را از دست داد!',
+    'lg_release_lost_shinigami_2': '🌀 تیغه‌ی {a} زیر بار بانکای لرزید و نوبت سوخت!',
+    'lg_release_lost_visored': '🎭 ماسکِ {a} غرید؛ هالوی درونش نوبت را بلعید!',
+    'lg_release_lost_hollow': '🦴 غریزه‌ی هالوییِ {a} بیدار شد؛ به‌جای جنگیدن زوزه کشید!',
+    'lg_release_lost_arrancar': '🦴 رزورکسیونِ {a} از کنترل خارج شد و نوبتش سوخت!',
+})

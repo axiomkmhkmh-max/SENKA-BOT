@@ -26,6 +26,10 @@ ERRORS = {
     "max": ("امنیت گاوصندوق در بالاترین سطح است.", "Vault security is already maxed."),
     "self": ("به خودت نمی‌تونی پول بفرستی.", "You cannot send money to yourself."),
     "no_bond": ("اوراق پیدا نشد.", "Bond not found."),
+    "has_debt": ("بدهی معوقه داری؛ تا صافش نکنی وام جدید نمی‌دن.", "You have unpaid debt. No new loan until it is cleared."),
+    "debt_left": ("هر چی تو بانک و جیبت بود برداشته شد، ولی هنوز بدهی مونده.", "Everything in your vault and wallet was taken, but some debt is still left."),
+    "busy": ("بانک شلوغه، یه لحظه دیگه دوباره بزن.", "The bank is busy. Try again in a moment."),
+    "bad_amount": ("مبلغ باید بیشتر از صفر باشه.", "The amount must be above zero."),
 }
 
 
@@ -48,6 +52,9 @@ def _vault_text(ctx, acc, ch):
     ]
     if acc.get("loans"):
         lines.append(f"🧾 {_L(ctx, 'بدهی', 'Owed')}: {fnum(acc['loans'][0]['owed'], L)}")
+    if int(acc.get("debt", 0)) > 0:
+        lines.append(f"⛔ {_L(ctx, 'بدهی معوقه (از بانک و جیبت برداشته می‌شه)', 'Overdue debt (taken from vault and wallet)')}: "
+                     f"{fnum(acc['debt'], L)}")
     if acc.get("collectors"):
         c = acc["collectors"]
         lines.append(f"🕴 {_L(ctx, 'ماموران گوتی ۱۳ روی تو هستن', 'Gotei 13 collectors are on you')}: "
@@ -69,7 +76,8 @@ async def bank_home(ctx, arg):
     if events:
         names = {"interest": _L(ctx, "بهره", "interest"), "bond": _L(ctx, "اوراق", "bond"),
                  "raid": _L(ctx, "حمله‌ی هالو", "Hollow raid"), "espada": _L(ctx, "حمله‌ی اسپادا", "Espada raid"),
-                 "default": _L(ctx, "نکول وام", "loan default"), "collectors": _L(ctx, "ماموران", "collectors")}
+                 "default": _L(ctx, "نکول وام", "loan default"), "collectors": _L(ctx, "ماموران", "collectors"),
+                 "debt": _L(ctx, "وصول بدهی", "debt collected")}
         body = "\n".join(f"• {names.get(k, k)}: {'+' if k in ('interest', 'bond') else '-'}{fnum(v, ctx.lang)}" for k, v in events) + "\n\n" + body
     rows = [
         [(_L(ctx, "⬇️ واریز", "⬇️ Deposit"), "bnk_dep", "menu"), (_L(ctx, "⬆️ برداشت", "⬆️ Withdraw"), "bnk_wdr", "menu")],
@@ -165,11 +173,9 @@ async def bank_insurance(ctx, arg):
     if arg == "menu":
         return Out(head(ctx, "ttl_bank") + _L(ctx, "چند روز بیمه شوی؟ هزینه روزانه ۲٪ موجودی.", "How many days? 2% of balance per day."),
                    [[(_L(ctx, f"{d} روز", f"{d} days"), "bnk_ins", str(d)) for d in (1, 3, 7)], nav(ctx, ("bnk", ""))])
-    acc = await SB.load(ctx.uid)
-    r = B.buy_insurance(acc, int(arg))
-    if not r["ok"]:
-        return _err(ctx, r["reason"])
-    await SB.save(acc)
+    acc, err = await SB.insurance(ctx.uid, int(arg))
+    if err:
+        return _err(ctx, err)
     return Out(alert=_L(ctx, "بیمه خریده شد.", "Insurance bought."))
 
 

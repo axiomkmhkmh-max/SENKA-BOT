@@ -28,6 +28,8 @@ ERR = {
     "busy": ("یکی از شما الان یه ترید بازی داره.", "One of you already has an open trade."),
     "self": ("با خودت نمی‌تونی ترید کنی.", "You cannot trade with yourself."),
     "missing": ("این آیتم رو دیگه نداری.", "You no longer have that item."),
+    "notrade": ("این آیتم قابل ترید نیست (مثل کلید دانجن یا سلاح نژاد).", "This item cannot be traded (like dungeon keys or race weapons)."),
+    "race": ("زره و کارت نژادی فقط به بازیکن همان نژاد می‌رسد؛ ترید انجام نشد.", "Race armour and race cards only go to a player of that race; the trade did not go through."),
     "lines": ("حداکثر ۸ نوع آیتم توی هر ترید.", "Up to 8 item types per trade."),
     "funds": ("سکه‌ی کافی نداری.", "Not enough coins."),
     "closed": ("این ترید بسته شده.", "This trade is closed."),
@@ -177,12 +179,34 @@ async def trade_view(ctx, tid):
     return Out("\n".join(lines), _pubify(rows))
 
 
+TRADE_PAGE = 10
+
+
 @action("trdadd")
-async def trade_add_list(ctx, tid):
+async def trade_add_list(ctx, arg):
+    # arg = "<tid>" or "<tid>:<page>". Only tradeable items are listed, and every one of them can be reached
+    # (the list used to stop at the first 12 items of the bag, tradeable or not).
+    from data_items import ALL
     from service_economy import inv_get
+    tid, _, pg = arg.partition(":")
+    page = max(0, int(pg)) if pg.isdigit() else 0
     inv = await inv_get(ctx.uid)
-    items = [(i, q) for i, q in (inv.get("items") or {}).items() if q > 0][:12]
-    rows = [[(f"{iname(i, ctx.lang)} ×{q}", "trdi", f"{tid}:{i}")] for i, q in items]
+    items = sorted(((i, q) for i, q in (inv.get("items") or {}).items() if q > 0 and (ALL.get(i) or {}).get("tradeable")),
+                   key=lambda x: iname(x[0], ctx.lang))
+    pages = max(1, -(-len(items) // TRADE_PAGE))
+    page = min(page, pages - 1)
+    rows = [[(f"{iname(i, ctx.lang)} ×{q}", "trdi", f"{tid}:{i}")]
+            for i, q in items[page * TRADE_PAGE:(page + 1) * TRADE_PAGE]]
+    if pages > 1:
+        pager = []
+        if page > 0:
+            pager.append(("◀️", "trdadd", f"{tid}:{page - 1}"))
+        pager.append((f"{page + 1}/{pages}", "trdadd", f"{tid}:{page}"))
+        if page < pages - 1:
+            pager.append(("▶️", "trdadd", f"{tid}:{page + 1}"))
+        rows.append(pager)
+    if not items:
+        rows.append([(T(ctx, "آیتم قابل تریدی نداری", "No tradeable items"), "trdv", tid)])
     rows.append(nav(ctx, ("trdv", tid)))
     return Out(T(ctx, "کدوم آیتم رو بذارم روی میز؟", "Which item do you want to put on the table?"), _pubify(rows))
 

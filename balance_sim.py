@@ -44,14 +44,29 @@ def loadout(race):
     from data_zanpakuto import blade_technique
     return {"gen": "strike", "bt": blade_technique("zangetsu") if race in ("shinigami", "visored") else None}
 
+EVO_STAGE = 2   # a level-40 player is at about the third evolution stage (level gate 35)
+
+
 def player(race):
+    from data_evolution import evo_bonus
     r = RACES[race]
     stats = {k: v + ALLOC for k, v in r["stats"].items()}
     mods = dict(r["mods"])
+    evb = evo_bonus(race, EVO_STAGE)  # same split as service_combat.build_player
+    for key in ("dmg", "def", "hp", "kido"):
+        if evb.get(key):
+            mods[key] = mods.get(key, 1.0) * (1 + evb[key])
+    for key in ("crit", "pierce"):
+        if evb.get(key):
+            mods[key] = mods.get(key, 0.0) + evb[key]
+    mods["regen"] = evb.get("regen", 0.0)
     kido = {"had": list(STD_HADO), "bak": [1]} if race in ("shinigami", "visored") else {"had": [], "bak": []}
-    return E.new_fighter(race, LEVEL, stats, max_hp(LEVEL, soft_stat(stats["hakuda"]), mods.get("hp", 1.0)),
-                         max_reiatsu(LEVEL, soft_stat(stats["reiatsu"])), dict(WEAPON), armor=ARMOR, mods=mods,
-                         kido=kido, race=race, sig=sig_for(race), **loadout(race))
+    f = E.new_fighter(race, LEVEL, stats, max_hp(LEVEL, soft_stat(stats["hakuda"]), mods.get("hp", 1.0)),
+                      max_reiatsu(LEVEL, soft_stat(stats["reiatsu"])), dict(WEAPON), armor=ARMOR, mods=mods,
+                      kido=kido, race=race, sig=sig_for(race), **loadout(race))
+    f["evo"] = {k: v for k, v in evb.items() if k not in ("dmg", "def", "hp", "kido", "crit", "pierce", "regen")}
+    f["evs"] = EVO_STAGE
+    return f
 
 def foe(scale, hollow):
     k, lvl = ENEMY_K, LEVEL
@@ -61,6 +76,7 @@ def foe(scale, hollow):
     f = E.new_fighter("hollow" if hollow else "boss", lvl, stats, (k["h0"] + lvl * k["h1"]) * scale, 80 + lvl * 10, w,
                       armor=lvl * k["ar"] * scale, ai=True, sig=("cero" if hollow else None))
     f["foe"] = "hollow" if hollow else ("boss" if scale > 0.91 else "pve")
+    f["wild"] = True
     return f
 
 def pvp_rates(n, rng):

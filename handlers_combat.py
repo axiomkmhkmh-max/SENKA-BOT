@@ -42,7 +42,7 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
             return "⬅️ " + label
         return label
 
-    mk = lambda label, act: (reach_tag(label, act) if act in ("atk", "hvy", "kd", "gt", "gx", "sg") else label,
+    mk = lambda label, act: (reach_tag(label, act) if act in ("atk", "hvy", "kd", "gt", "gx", "sg", "t1", "t2", "t3") else label,
                              "pa" if pub else "ba", f"{sid}.{act}", pub)
     rows = [[mk(ctx.t("a_atk"), "atk")]]
     rows.append([mk("🏃 شونپو" if L == "fa" else "🏃 Shunpo", "mvs"),
@@ -64,8 +64,10 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         rows.append(r2[k:k + 2])
     if E.can(f, "gt"):  # gathered: release the wave
         rows.append([mk(ctx.t("a_gt"), "gt")])
-    if E.can(f, "gx"):  # spirit gauge full: Bankai (Resurrección for Hollow / Arrancar)
-        rows.append([mk(ctx.t("a_gx_hollow" if f.get("race") in RESURRECCION_RACES else "a_gx"), "gx")])
+    if E.can(f, "gx"):  # spirit gauge full: the race's release (Bankai, Resurrección, Vollständig, Complete Fullbring...)
+        r = f.get("race")
+        rows.append([mk(ctx.t("a_gx_hollow" if r in RESURRECCION_RACES
+                              else f"a_gx_{r}" if r in ("quincy", "fullbringer", "human") else "a_gx"), "gx")])
     canon_row = []
     if E.can(f, "blv"):
         canon_row.append(mk(ctx.t("a_blv"), "blv"))
@@ -81,6 +83,10 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         rows.append(canon_row[:2])
         if canon_row[2:]:
             rows.append(canon_row[2:])
+    from data_race_tech import TECH_SLOTS, tech_name, tech_of
+    tech_row = [mk(tech_name(tech_of(f["race"], s), L), s) for s in TECH_SLOTS if E.can(f, s)]
+    for k in range(0, len(tech_row), 2):  # canon race techniques (Licht Regen, Hierro, Santen Kesshun...)
+        rows.append(tech_row[k:k + 2])
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
         rows.append([mk(ctx.t(key), "sg")])
@@ -124,7 +130,11 @@ async def battle_panel(ctx, doc, events=None):
             title += f"<i>{flavor}</i>\n"
     text = battle_text(ctx.lang, st, events, title)
     pot = await _has_potion(ctx.uid)
-    return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [[(ctx.t("b_home"), "home", "")]])
+    from service_combat import can_flee
+    tail = [(ctx.t("b_home"), "home", "")]
+    if can_flee(doc) and not st.get("done"):  # normal battles only: fleeing costs Battle Rank, the chain stays
+        tail.insert(0, ("🏃 " + ("فرار" if ctx.lang == "fa" else "Flee"), "bf", doc["sid"]))
+    return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [tail])
 
 
 async def resume_battle(ctx):
@@ -197,8 +207,15 @@ async def _pve_result(ctx, doc, ev, o):
             text += "\n" + ctx.t("ch_shield")
         if o.get("chain_lost"):
             text += "\n" + ctx.t("ch_lost", n=fnum(o["chain_lost"], L))
+        from handlers_battlerank import result_lines
+        for line in result_lines(ctx, o.get("br")):
+            text += "\n" + line
         return Out(text, [[(ctx.t("b_again"), "bs", "")], nav(ctx)])
-    lines = [battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")), "", ctx.t("bt_win", xp=fnum(o["xp"], L), coins=fnum(o["coins"], L))]
+    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if doc.get("dungeon")
+                else ctx.t("bt_win", xp=fnum(o["xp"], L), coins=fnum(o["coins"], L)))
+    lines = [battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")), "", win_line]
+    from handlers_battlerank import result_lines
+    lines += result_lines(ctx, o.get("br"))
     if o.get("chain") and o["chain"]["n"] >= 2:
         lines.append(ctx.t("ch_line", n=fnum(o["chain"]["n"], L), pct=fnum(o["chain"]["pct"], L)))
         if o["chain"].get("item"):
@@ -289,7 +306,8 @@ async def battle_action(ctx, arg):
 
 WORD_ACTIONS = {"حمله": "atk", "ضربه": "atk", "attack": "atk", "atk": "atk", "strike": "atk",
                 "سنگین": "hvy", "heavy": "hvy", "شونپو": "mvs", "shunpo": "mvs", "سونیدو": "mvn", "sonido": "mvn", "عقب": "rt", "retreat": "rt", "back": "rt", "جانبی": "sd", "sidestep": "sd", "دفاع": "df", "guard": "df", "defend": "df", "defense": "df"}
-WORD_RELEASE = ("بانکای", "bankai", "رهاسازی", "release", "رسورکسیون", "resurreccion", "resurrección")
+WORD_RELEASE = ("بانکای", "bankai", "رهاسازی", "release", "رسورکسیون", "resurreccion", "resurrección",
+                "فولشتندیگ", "vollstandig", "vollständig", "فول‌برینگ کامل", "complete fullbring", "بیداری کامل روح", "awakening")
 
 
 async def battle_word(ctx, text):
@@ -319,7 +337,8 @@ async def battle_word(ctx, text):
         names |= {normalize_text(iname(z["blade_id"], "fa")), normalize_text(iname(z["blade_id"], "en"))}
     if n not in names:
         return None
-    if not released:
+    from data_race_rules import SHINIGAMI_LIKE
+    if not released and doc["state"]["a"].get("race") in SHINIGAMI_LIKE:  # only a Zanpakutō needs its Shikai first
         return Out(ctx.t("wr_locked"), [nav(ctx)], new=True)
     f = doc["state"]["a"]
     if not E.can(f, "gx"):

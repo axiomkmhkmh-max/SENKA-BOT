@@ -66,6 +66,8 @@ GAME_DEFAULTS = {
     "world_boss_interval_k": 0.40,
     # ---- global boss -----------------------------------------------------------
     "boss_hp_players_ref": 10, "boss_hp_scale_cap": 8.0, "boss_hp_threat_k": 0.5,
+    # world boss HP = random base (min..max) x players online right now (seen in the last boss_online_minutes)
+    "boss_hp_base_min": 100000, "boss_hp_base_max": 200000, "boss_online_minutes": 15,
     "boss_main_share": 0.003, "boss_pool_cap": 25, "boss_daily_paid": 8,
     "boss_min_age_minutes": 60, "boss_refresh_seconds": 120, "boss_broadcast_cap": 300,
     # ---- world events ------------------------------------------------------------

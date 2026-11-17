@@ -40,13 +40,13 @@ async def seed():
 async def migrate_world():
     """Create world_state and give old characters the new fields without touching existing data.
     Evolution is grandfathered: every old character keeps the title their level already shows."""
-    from data_crafting import evo_gate_stage
+    from service_migrate_rework import legacy_evo_stage
     from service_worldcore import get_world
     await get_world(force=True)
     claimed = await col("world_state").find_one_and_update({"_id": "main", "evo_migrated": {"$ne": True}}, {"$set": {"evo_migrated": True}})
     if claimed:
         async for c in col("characters").find({"evo": {"$exists": False}}, {"race": 1, "level": 1}):
-            await col("characters").update_one({"_id": c["_id"], "evo": {"$exists": False}}, {"$set": {"evo": evo_gate_stage(c["race"], c["level"])}})
+            await col("characters").update_one({"_id": c["_id"], "evo": {"$exists": False}}, {"$set": {"evo": legacy_evo_stage(c["race"], c["level"])}})
     # bag v2: every existing bag gains the new starting slots once (upgrades already bought are kept)
     from config import BAG_OLD_START, BAG_START
     if await col("world_state").find_one_and_update({"_id": "main", "bag_v2": {"$ne": True}}, {"$set": {"bag_v2": True}}):
@@ -103,6 +103,8 @@ async def main():
         log.info("race rebase v3: %s character(s) moved", await rebase_race_stats_v3_once())
     except Exception:
         log.exception("race rebase failed; it will retry on next start")
+    from service_migrate_rework import run_all as rework_migrations
+    await rework_migrations()  # evolution titles, race weapons, race armour (each runs once)
     runner = await health_server()
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True))
     from handlers_core import router
@@ -118,6 +120,8 @@ async def main():
     log_task = asyncio.create_task(service_log.run(bot, stop))
     import service_notify
     notify_task = asyncio.create_task(service_notify.run(bot, stop))
+    import service_raceweapon
+    rw_task = asyncio.create_task(service_raceweapon.notify_pending(bot, stop))  # "choose your race weapon" notice
     try:
         await bot.delete_webhook(drop_pending_updates=settings.drop_pending)
         await setup_commands(bot)
@@ -126,7 +130,7 @@ async def main():
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"], handle_signals=True)
     finally:
         stop.set()
-        await asyncio.gather(task, log_task, notify_task, return_exceptions=True)
+        await asyncio.gather(task, log_task, notify_task, rw_task, return_exceptions=True)
         await bot.session.close()
         await runner.cleanup()
         await close_db()

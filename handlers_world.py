@@ -421,9 +421,9 @@ async def evolution_panel(ctx, arg):
     req = {"cat": "evolution", "n": need, "t": tier}
     have = _count_fit(req, inv["items"])
     to = RACES[ch["race"]]["evo"][stage][0 if L == "fa" else 1]
-    from config import GAME_DEFAULTS
+    from data_evolution import evo_desc
     text = (head(ctx, "ttl_evo") + ctx.t("evo_body", cur=cur, to=to, lvl=fnum(gate, L), mine=fnum(ch["level"], L), need=fnum(need, L),
-                                          rar=RARITY_ICON[RARITIES[tier]], have=fnum(have, L), pct=fnum(round(float((await game_settings())["evo_bonus_pct"]) * 100), L)))
+                                          rar=RARITY_ICON[RARITIES[tier]], have=fnum(have, L), gift=evo_desc(ch["race"], stage, L)))
     rows = [[(ctx.t("b_evo_go"), "evs", "")]] if ch["level"] >= gate and have >= need else []
     return Out(text, rows + [nav(ctx, ("crf", ""))])
 

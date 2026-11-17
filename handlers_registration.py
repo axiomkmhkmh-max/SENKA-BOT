@@ -50,10 +50,15 @@ async def reg_panel(ctx, reg=None):
             rows.append([(t("b_confirm"), "st", "ok")])
         return Out(head(ctx, "reg_t_stats") + t("reg_ask_stats", pts=fnum(pts, ctx.lang)), rows)
     if step == "zanp":
-        rows, body = [], [t("reg_ask_zanp"), ""]
+        from data_raceweapons import RACE_STYLE
+        from data_weapons import skill_text
+        L = ctx.lang
+        rows, body = [], [t("reg_ask_zanp", style=RACE_STYLE.get(reg.get("race"), ("", ""))[0 if L == "fa" else 1]), ""]
         for wid in reg.get("starters", []):
-            body.append(item_card(ctx, wid) + "\n")
-            rows.append([(nm(wid, ctx.lang).replace("<", "").replace(">", ""), "zp", wid)])
+            it = ALL.get(wid) or {}
+            body.append(f"• {nm(wid, L)} — {it.get('meaning_fa' if L == 'fa' else 'meaning_en', '')}: "
+                        + "، ".join(skill_text(sk, L) for sk in it.get("skills", [])))
+            rows.append([(nm(wid, L).replace("<", "").replace(">", ""), "zp", wid)])
         return Out(head(ctx, "reg_t_zanp") + "\n".join(body), rows)
     return Out(t("reg_welcome"), [[(t("b_begin"), "begin", "")]])
 

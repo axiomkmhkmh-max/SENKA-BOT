@@ -112,9 +112,14 @@ async def profile(ctx, arg):
              stats_block(ctx, ch["stats"]),
              "🧿 " + bonus_line(ctx, player_bonus(ch, ALL, await game_settings())),
              f"⚔️ {nm(ch['weapon_id'], L)}\n🛡️ {nm(ch.get('armor_id'), L)}\n💍 {nm(ch.get('acc_id'), L)}\n📿 {nm(ch.get('charm_id'), L)}"]
+    from handlers_battlerank import rank_title
+    lines.insert(3, ctx.t("prof_rank_line", t=await rank_title(ch, L)))  # the battle-rank title, beside the race title
     if ch.get("artifact"):
         from data_artifacts import art_name
         lines.append("🔱 " + art_name(ch["artifact"], L))
+    if ch.get("kenpachi_art"):
+        from data_battlerank import KENPACHI_ART
+        lines.append("👁 " + KENPACHI_ART["name"][0 if L == "fa" else 1])
     if ch.get("points", 0) > 0:
         lines.append("💡 " + ("امتیاز ارتقا داری؛ از دکمه‌ی ارتقا استفاده کن." if L == "fa" else "You have upgrade points; open Upgrade to spend them."))
     if ch.get("guild_id"):
@@ -122,7 +127,8 @@ async def profile(ctx, arg):
         if g:
             lines.append("🛡️ " + esc(g["name_fa" if L == "fa" else "name_en"]))
     rows = [[(ctx.t("b_upgrade") + f" ({ch.get('points', 0)})", "upg", "")], [(ctx.t("m_bag"), "bag", "0"), (ctx.t("m_pty"), "pty", "0")], [(ctx.t("b_forge"), "frg", ""), (ctx.t("m_eqp"), "eqp", "")],
-            [("🧍 " + ("تن من" if L == "fa" else "What I wear"), "worn", "")]]
+            [("🧍 " + ("تن من" if L == "fa" else "What I wear"), "worn", ""), ("🗡 " + ("سلاح نژاد" if L == "fa" else "Race weapon"), "rwp", "")],
+            [("🎖 " + ("رنک نبرد" if L == "fa" else "Battle Rank"), "brk", "")]]
     gen = ch.get("gen_skill")  # general skill: any race can equip one (see data_race_rules.GENERAL_SKILLS)
     gen_name = {"guard": ("گارد", "Guard"), "strike": ("ضربه‌ی عمومی", "General strike"), "focus": ("تمرکز", "Focus")}.get(gen, ("هیچ", "None"))
     rows.append([("🧩 " + ("مهارت عمومی: " if L == "fa" else "General skill: ") + gen_name[0 if L == "fa" else 1], "gsp", "")])

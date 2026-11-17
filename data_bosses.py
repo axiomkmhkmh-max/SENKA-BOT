@@ -124,7 +124,7 @@ _EXTRA3 = [
     ("Renji Abarai", "رنجی آبارای", "bleed", 29, "تیغه‌اش بند‌بند می‌شود و هر بندش دندان دارد.", "His blade splits into joints, and each joint has teeth."),
     ("Rukia Kuchiki", "روکیا کوچیکی", None, 34, "سفید، سرد و آرام؛ مثل برف پیش از طوفان.", "White, cold and calm, like snow before a storm."),
     ("Nelliel Tu Odelschwanck", "نلیل تو اودلشوانک", "dodge", 44, "یاد گرفته چگونه از ضربه جا بخالی؛ و چگونه برگردد.", "She has learned to slip a blow, and to come back."),
-    ("Sajin Komamura", "ساجین کوماموتو", "armor", 48, "غولی از زره و وفاداری.", "A giant of armor and loyalty."),
+    ("Sajin Komamura", "ساجین کومامورا", "armor", 48, "غولی از زره و وفاداری.", "A giant of armor and loyalty."),
     ("Toshiro Hitsugaya", "توشیرو هیتسوگایا", None, 52, "کوچک‌ترین کاپیتان؛ سردترین نگاه.", "The smallest captain; the coldest gaze."),
     ("Yoruichi Shihoin", "یورویچی شیهوئین", "dodge", 57, "پیش از آنکه ببینی‌اش، رفته است.", "She is gone before you see her."),
     ("Kisuke Urahara", "کیسوکه اوراهارا", "illusion", 63, "پشت بادبزن لبخند می‌زند؛ و هر ضربه‌اش از قبل حساب شده.", "He smiles behind a fan; every blow is calculated in advance."),
@@ -203,12 +203,12 @@ def _build_extra5(start):
 
 # ---- Bleach villain pack 6: 6 more world bosses (boss_99..boss_104; canon villains not yet in the list, existing traits only) ----
 _EXTRA6 = [
-    ("Tia Halibel", "تیا هالیبل", "bleed", 60, "موجی که زیر تو پنهان شده؛ آرام است تا لحظه‌ای که دیر شده.", "A wave hidden beneath you; calm until it is too late."),
-    ("Cirucci Sanfilippo", "سیرسی سانفیلیپو", "dodge", 52, "می‌خندد، می‌رقصد، و تو نمی‌فهمی کدام حرکتش واقعی است.", "She laughs, she dances, and you cannot tell which move is real."),
-    ("Kokichi Muramasa", "کوکیچی موراماسا", "bleed", 74, "ذهنی که هر دشمنش را پیش از جنگ شکست داده؛ حتی خودش را.", "A mind that defeats every enemy before the battle, even itself."),
+    ("Ayon", "آیون", "bleed", 60, "هیولایی که از بازوی سه فراسیون هریبل زاده شد؛ فقط می‌درد.", "A beast born from the arms of Harribel's three Fracción; it only tears."),
+    ("Cirucci Sanderwicci", "سیروچی ساندرویچی", "dodge", 52, "می‌خندد، می‌رقصد، و تو نمی‌فهمی کدام حرکتش واقعی است.", "She laughs, she dances, and you cannot tell which move is real."),
+    ("Kōga Kuchiki", "کوگا کوچیکی", "bleed", 74, "صاحب موراماسا؛ روح تیغه‌ی خودت را علیه تو می‌شوراند.", "Muramasa's master; he turns your own blade's spirit against you."),
     ("Jin Kariya", "جین کاریا", "decay", 66, "جوان‌ترین شکارچی ارواح است و پیرترین اشتیاق را دارد: قدرت.", "The youngest hunter of souls, with the oldest hunger: power."),
     ("Lilynette Gingerbuck", "لیلینت جینجربک", "enrage", 49, "کوچک‌تر از آن که بترسی، و بیشتر از آن که فراموش کنی.", "Too small to fear, too vivid to forget."),
-    ("Gamuza", "گاموزا", "regen", 58, "از خوابی بیدار شد که هیچ‌کس نمی‌خواست تمام شود.", "He woke from a sleep no one wanted to end."),
+    ("Shuren", "شورن", "regen", 58, "رهبر توگابیتوهای دوزخ؛ هر بار تکه‌تکه شود، دوباره برمی‌خیزد.", "Leader of Hell's Togabito; torn apart, he rises again."),
 ]
 
 

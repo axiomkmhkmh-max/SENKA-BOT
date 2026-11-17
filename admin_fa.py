@@ -50,6 +50,7 @@ SETTING_FA = {
     "world_reishi_decay": "افت ریشی", "world_enemy_k": "ضریب دشمنان دنیا", "world_drop_k": "ضریب دراپ دنیا", "world_price_k": "ضریب قیمت دنیا",
     "world_stab_xp_k": "ضریب تجربه‌ی ثبات", "world_boss_interval_k": "ضریب فاصله‌ی باس دنیا",
     "boss_hp_players_ref": "بازیکن مرجع جان باس", "boss_hp_scale_cap": "سقف مقیاس جان باس", "boss_hp_threat_k": "ضریب تهدید در جان باس",
+    "boss_hp_base_min": "کمینه‌ی جان پایه‌ی باس", "boss_hp_base_max": "بیشینه‌ی جان پایه‌ی باس", "boss_online_minutes": "بازه‌ی آنلاین بودن برای جان باس (دقیقه)",
     "boss_main_share": "سهم جایزه‌ی اصلی باس", "boss_pool_cap": "سقف استخر جایزه‌ی باس", "boss_daily_paid": "سقف جایزه‌ی روزانه‌ی باس",
     "boss_min_age_minutes": "حداقل سن حساب برای باس (دقیقه)", "boss_refresh_seconds": "ثانیه‌ی نوسازی پیام باس", "boss_broadcast_cap": "سقف گروه‌های اعلان باس",
     "event_enabled": "رویدادها فعال", "event_min_gap_minutes": "حداقل فاصله‌ی رویدادها (دقیقه)", "event_duration_minutes": "مدت رویداد (دقیقه)",

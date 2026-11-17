@@ -6,9 +6,10 @@ import locale_en
 import locale_bleachfx
 import locale_extras
 import locale_fa
+import locale_rework
 
-LOCALES = {"fa": {**locale_fa.TEXT, **locale_extras.FA, **locale_drops.FA, **locale_bleachfx.FA},
-           "en": {**locale_en.TEXT, **locale_extras.EN, **locale_drops.EN, **locale_bleachfx.EN}}
+LOCALES = {"fa": {**locale_fa.TEXT, **locale_extras.FA, **locale_drops.FA, **locale_bleachfx.FA, **locale_rework.FA},
+           "en": {**locale_en.TEXT, **locale_extras.EN, **locale_drops.EN, **locale_bleachfx.EN, **locale_rework.EN}}
 _FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 _RLM = "\u200f"
 

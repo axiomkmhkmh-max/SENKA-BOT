@@ -59,7 +59,7 @@ _WHEEL_LIST = {
         ("w_zaraki", "🪓", "زاراکی", "Zaraki"),
         ("w_mayuri", "🧪", "مایوری", "Mayuri"),
         ("w_hitsugaya", "🧊", "توشیرو هیتسوگایا", "Toshiro Hitsugaya"),
-        ("w_komamura", "🐺", "کوماموره", "Komamura"),
+        ("w_komamura", "🐺", "کومامورا", "Komamura"),
     ],
     "espada": [
         ("w_starrk", "🔫", "استارک", "Starrk"),

@@ -1,9 +1,9 @@
 """Quests, quizzes, kido and transformation names."""
 FORMS = {  # race -> (form1 fa/en, form2 fa/en)
-    "shinigami": (("شیکای", "Shikai"), ("بانکای", "Bankai")), "quincy": (("هایلیگ بوگن", "Heilig Bogen"), ("وولشتاندیگ", "Vollständig")),
+    "shinigami": (("شیکای", "Shikai"), ("بانکای", "Bankai")), "quincy": (("هایلیگ بوگن", "Heilig Bogen"), ("لتسته اشتیل", "Letzt Stil")),
     "hollow": (("ریسوررکسیون", "Resurrección"), ("ریسوررکسیون کامل", "Full Resurrección")),
     "arrancar": (("ریسوررکسیون", "Resurrección"), ("ریسوررکسیون کامل", "Full Resurrección")),
-    "fullbringer": (("فول‌برینگ", "Fullbring"), ("فول‌برینگ کامل", "Complete Fullbring")),
+    "fullbringer": (("فول‌برینگ", "Fullbring"), ("فول‌برینگ تکامل‌یافته", "Evolved Fullbring")),
     "human": (("بیداری روح", "Soul Awakening"), ("اوج روح", "Soul Ascension")),
     "visored": (("ماسک هالو", "Hollow Mask"), ("ماسک پیشرفته", "Advanced Mask")),
 }
@@ -78,13 +78,13 @@ KIDO_NUM_POOL = [1, 4, 30, 31, 33, 37, 61, 63, 73, 81, 90, 99]
 TRIVIA = [  # (fa q, en q, correct idx fa/en shared, options fa, options en)
     ("کاپیتان گروه ۱۱ گوتی ۱۳ کیست؟", "Who captains Squad 11?", 0, ["کنپاچی", "بیاکویا", "توشیرو", "یاماموتو"], ["Kenpachi", "Byakuya", "Toshiro", "Yamamoto"]),
     ("کاپیتان گروه ۶ کیست؟", "Who captains Squad 6?", 1, ["رنجی", "بیاکویا", "اوکیتاکه", "کنپاچی"], ["Renji", "Byakuya", "Ukitake", "Kenpachi"]),
-    ("کاپیتان گروه ۱۰ کیست؟", "Who captains Squad 10?", 2, ["شونسویی", "ماییوری", "توشیرو", "کوماموتو"], ["Shunsui", "Mayuri", "Toshiro", "Komamura"]),
+    ("کاپیتان گروه ۱۰ کیست؟", "Who captains Squad 10?", 2, ["شونسویی", "ماییوری", "توشیرو", "کومامورا"], ["Shunsui", "Mayuri", "Toshiro", "Komamura"]),
     ("کاپیتان گروه ۱ کیست؟", "Who captains Squad 1?", 3, ["ایچیگو", "گین", "کنپاچی", "یاماموتو"], ["Ichigo", "Gin", "Kenpachi", "Yamamoto"]),
     ("کاپیتان گروه ۱۳ کیست؟", "Who captains Squad 13?", 0, ["اوکیتاکه", "رنجی", "سوی فون", "اوراهارا"], ["Ukitake", "Renji", "Soi Fon", "Urahara"]),
     ("هالوهای قدرتمند در لاس‌نوچس چه نامیده می‌شوند؟", "What are the rulers of Las Noches called?", 2, ["کاپیتان", "استرنریتر", "اسپادا", "فراسیون"], ["Captain", "Sternritter", "Espada", "Fracción"]),
     ("کاپیتان گروه ۱۲، دانشمند دیوانه‌ی گوتی، کیست؟", "Who captains Squad 12, the Gotei's mad scientist?", 0, ["ماییوری", "سوی فون", "اونوهانا", "توسن"], ["Mayuri", "Soi Fon", "Unohana", "Tosen"]),
     ("کاپیتان گروه ۲ و فرمانده‌ی نیروی ویژه کیست؟", "Who captains Squad 2 and leads the covert forces?", 1, ["رانگیکو", "سوی فون", "یورویچی", "کنپاچی"], ["Rangiku", "Soi Fon", "Yoruichi", "Kenpachi"]),
-    ("کاپیتان گروه ۸ که کلاه حصیری روی دوش دارد کیست؟", "Who captains Squad 8, the one with the straw hat?", 2, ["یاماموتو", "کوماموتو", "شونسویی", "آیزن"], ["Yamamoto", "Komamura", "Shunsui", "Aizen"]),
+    ("کاپیتان گروه ۸ که کلاه حصیری روی دوش دارد کیست؟", "Who captains Squad 8, the one with the straw hat?", 2, ["یاماموتو", "کومامورا", "شونسویی", "آیزن"], ["Yamamoto", "Komamura", "Shunsui", "Aizen"]),
     ("شماره‌ی کواترو، چهارمین اسپادا، با کیست؟", "Which Espada holds the number 4 (Cuatro)?", 1, ["گریمجو", "اولکیورا", "نوایترا", "استارک"], ["Grimmjow", "Ulquiorra", "Nnoitra", "Starrk"]),
     ("نخستین اسپادا کیست؟", "Who is the first Espada?", 1, ["باراگان", "استارک", "هریبل", "آیزن"], ["Baraggan", "Starrk", "Harribel", "Aizen"]),
     ("خالق هوگیوکو کیست؟", "Who created the Hōgyoku?", 1, ["آیزن", "اوراهارا", "ماییوری", "یوهابخ"], ["Aizen", "Urahara", "Mayuri", "Yhwach"]),
@@ -95,7 +95,7 @@ TRIVIA = [  # (fa q, en q, correct idx fa/en shared, options fa, options en)
     ("تکنیک حرکت سریع کوئینسی‌ها چه نام دارد؟", "What is the Quincy flash-step technique called?", 2, ["شونپو", "سونیدو", "هیرنکیاکو", "باکودو"], ["Shunpo", "Sonído", "Hirenkyaku", "Bakudō"]),
     ("دروازه‌ی میان هوئکو موندو و جهان‌های دیگر چه نام دارد؟", "What is the gate that tears open between Hueco Mundo and other worlds?", 1, ["سنکایمون", "گارگانتا", "دنگای", "روکونگای"], ["Senkaimon", "Garganta", "Dangai", "Rukongai"]),
     ("کاپیتان گروه ۵ که به همه خیانت کرد کیست؟", "Which Squad 5 captain betrayed everyone?", 0, ["آیزن", "گین", "توسن", "کیرا"], ["Aizen", "Gin", "Tosen", "Kira"]),
-    ("کاپیتان گروه ۹ که به آیزن پیوست کیست؟", "Which Squad 9 captain followed Aizen?", 2, ["گین", "شینجی", "توسن", "کوماموتو"], ["Gin", "Shinji", "Tosen", "Komamura"]),
+    ("کاپیتان گروه ۹ که به آیزن پیوست کیست؟", "Which Squad 9 captain followed Aizen?", 2, ["گین", "شینجی", "توسن", "کومامورا"], ["Gin", "Shinji", "Tosen", "Komamura"]),
     ("باکودو چه نوع کیدویی است؟", "What kind of kidō is Bakudō?", 1, ["حمله‌ی مستقیم", "بند و دفاع", "احضار", "شفا"], ["Direct attack", "Binding and defense", "Summoning", "Healing"]),
     ("هادو چه نوع کیدویی است؟", "What kind of kidō is Hadō?", 0, ["تخریبی و تهاجمی", "بند و دفاع", "پنهان‌سازی", "شفا"], ["Destructive and offensive", "Binding and defense", "Concealment", "Healing"]),
     ("چشم‌بند کنپاچی چه می‌کند؟", "What does Kenpachi's eyepatch do?", 2, ["بینایی‌اش را تیز می‌کند", "زخمش را می‌پوشاند", "ریاتسویش را فرو می‌نشاند", "زانپاکتویش را مهر می‌کند"], ["Sharpens his sight", "Covers a wound", "Suppresses his reiatsu", "Seals his zanpakuto"]),

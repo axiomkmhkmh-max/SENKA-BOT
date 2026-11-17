@@ -225,9 +225,9 @@ CURATED.append({"_id": "it_q014", "item_id": "it_q014", "category": "quincy", "s
 CURATED.append({"_id": "it_q015", "item_id": "it_q015", "category": "quincy", "subtype": "quincy", "name_en": 'Fear', "name_fa": 'فیر', "desc_en": 'The Schrift of fear. Critical chance is higher for an hour.', "desc_fa": 'شرفت ترس. یک ساعت شانس ضربهٔ کاری بالاتره.', "rarity": "Legendary", "stats": {}, "effect": {"type": "buff", "stat": "crit", "pct": 0.10, "minutes": 60}, "slot": None, "level_req": 1, "base_price": 4000, "sell_price": 1600, "tradeable": True, "stack_max": 99})
 CURATED.append({"_id": "it_q016", "item_id": "it_q016", "category": "quincy", "subtype": "quincy", "name_en": 'Vollständig', "name_fa": 'ولشتندیگ', "desc_en": 'The full Quincy transformation. A short, violent surge of strength.', "desc_fa": 'تبدیل کامل کوئینسی. یک افزایش قدرت کوتاه و شدید.', "rarity": "Mythic", "stats": {}, "effect": {"type": "buff", "stat": "dmg", "pct": 0.20, "minutes": 15}, "slot": None, "level_req": 1, "base_price": 5000, "sell_price": 2000, "tradeable": True, "stack_max": 99})
 CURATED.append({"_id": "it_q017", "item_id": "it_q017", "category": "quincy", "subtype": "quincy",
-                "name_en": "Zanpakuto Rebirth Seal", "name_fa": "مهر بازآفرینی زانپاکتو",
-                "desc_en": "Use it with the blade you want equipped. Your zanpakuto is reborn as that blade: bond, mastery, Shikai and Bankai start over.",
-                "desc_fa": "با تیغه‌ای که می‌خواهی زانپاکتوت شود، استفاده‌اش کن. زانپاکتو با آن تیغه از نو متولد می‌شود: پیوند، مستری، شیکای و بانکای از صفر شروع می‌شوند.",
+                "name_en": "Weapon Rebirth Seal", "name_fa": "مهر بازآفرینی سلاح",
+                "desc_en": "Your race weapon is reborn as another of your race's ten weapons. Its colour, forge level and bond are kept.",
+                "desc_fa": "سلاح نژادت به یکی دیگر از ده سلاح نژادت تبدیل می‌شود. رنگ، سطح فورج و پیوندش حفظ می‌شود.",
                 "rarity": "Legendary", "stats": {}, "effect": {"type": "znp_reset"}, "slot": None, "level_req": 1,
                 "base_price": 8000, "sell_price": 3000, "tradeable": True, "stack_max": 99})
 ITEMS += CURATED
@@ -235,11 +235,38 @@ QUINCY_DROPS = [x["_id"] for x in CURATED if x["_id"] not in ("it_q001", "it_q01
 ALL = {x["_id"]: x for x in ITEMS}
 for _w in WEAPONS:
     _w.setdefault("sell_price", max(2, int(_w["base_price"] * 0.4)))
+    _w["retired"] = True   # the old blades no longer drop or sell; every player grows a race weapon instead
+    _w["tradeable"] = False
     ALL[_w["_id"]] = _w
+from data_raceweapons import RACE_WEAPON_ITEMS  # noqa: E402  (ten race weapons per race, one item per colour)
+for _w in RACE_WEAPON_ITEMS:
+    ALL[_w["_id"]] = _w
+from data_racegear import RACE_ARMOUR_ITEMS, RACE_CARD_ITEMS  # noqa: E402  (race armour, race technique cards)
+for _x in ITEMS:
+    if _x["category"] == "armor":
+        _x["retired"] = True   # the old shared armour no longer drops; every race has its own twenty kinds
+for _x in RACE_ARMOUR_ITEMS + RACE_CARD_ITEMS:
+    ALL[_x["_id"]] = _x
 EVO_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "evolution"] for r in RARITIES}
 COSMETIC_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "cosmetic"] for r in RARITIES}
-BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "armor", "accessory", "book", "egg", "relic")] for r in RARITIES}
-WEAPON_BY_RARITY = {r: [w["_id"] for w in WEAPONS if w["rarity"] == r] for r in RARITIES}
+BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "accessory", "book", "egg", "relic")] for r in RARITIES}
+# Race-only drops: the race's own armour, and its cards (Kidō cards for Shinigami / Visored, technique cards for the rest).
+KIDO_CARD_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "kido_card"] for r in RARITIES}
+RACE_ARMOUR_BY_RARITY = {}
+RACE_CARD_BY_RARITY = {}
+for _x in RACE_ARMOUR_ITEMS:
+    RACE_ARMOUR_BY_RARITY.setdefault(_x["race"], {r: [] for r in RARITIES})[_x["rarity"]].append(_x["_id"])
+for _x in RACE_CARD_ITEMS:
+    RACE_CARD_BY_RARITY.setdefault(_x["race"], {r: [] for r in RARITIES})[_x["rarity"]].append(_x["_id"])
+
+
+def race_cards(race: str, rarity: str) -> list:
+    """Cards that drop for this race: Kidō cards for Shinigami (and Visored, who also get Mask Strike cards)."""
+    out = list((RACE_CARD_BY_RARITY.get(race) or {}).get(rarity, []))
+    if race in ("shinigami", "visored"):
+        out += KIDO_CARD_BY_RARITY.get(rarity, [])
+    return out
+WEAPON_BY_RARITY = {r: [] for r in RARITIES}  # blades no longer drop anywhere (race weapons are chosen and grown)
 
 
 def iname(item_id: str, lang: str) -> str:

@@ -88,6 +88,10 @@ def bond_key(ch: dict) -> str:
     blade = (ch.get("zanpakuto") or {}).get("blade_id")
     if blade:
         return blade
+    from data_raceweapons import parse_rw, rw_base
+    p = parse_rw(ch.get("weapon_id"))
+    if p:  # a race weapon keeps one bond through every colour (rw_<race>_<nn>)
+        return rw_base(p[0], p[1])
     return ch.get("weapon_id") or "none"
 
 

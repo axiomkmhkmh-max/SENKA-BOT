@@ -75,4 +75,5 @@ WEAPON_BY_ID = {w["_id"]: w for w in WEAPONS}
 
 
 def skill_text(skill: dict, lang: str) -> str:
-    return SKILLS[skill["id"]][0 if lang == "fa" else 1].format(p=skill["p"])
+    p = str(skill["p"]).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")) if lang == "fa" else skill["p"]
+    return SKILLS[skill["id"]][0 if lang == "fa" else 1].format(p=p)

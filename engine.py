@@ -8,6 +8,7 @@ import random
 from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
+from data_race_tech import TECH_SLOTS, tech_of
 from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
@@ -40,6 +41,11 @@ def eff(f, k):
     return v
 
 
+def evb(f, key, default=None):
+    """The fighter's evolution bonus `key` (data_evolution), or `default`. Enemies and old saves have none."""
+    return (f.get("evo") or {}).get(key, default)
+
+
 def has_fx(f, k):
     return any(x["k"] == k and x["t"] > 0 for x in f["fx"])
 
@@ -47,7 +53,9 @@ def has_fx(f, k):
 def _new_x():
     """Bleach combat-feel state (see data_bleachfx). Plain ints only, so it is stored as-is in MongoDB."""
     return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "gcd": 0, "tcd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
-            "gauge": 0, "awake": 0, "slash": 0, "bstack": 0, "bseal": 0}
+            "gauge": 0, "awake": 0, "slash": 0, "bstack": 0, "bseal": 0,
+            # race techniques (data_race_tech): own cooldowns, a guard buff (Hierro) and a crit buff (Pesquisa)
+            "t1cd": 0, "t2cd": 0, "t3cd": 0, "gd_t": 0, "gd_m": 1.0, "cb_t": 0, "cb_v": 0.0}
 
 
 def _x(f):
@@ -95,7 +103,10 @@ def _f2fx(f):
 def _foe_mult(att, dfn):
     """Race passive against the foe kind (Spiritual Awareness: humans vs hollows). Enemies carry `foe`."""
     from data_races import spiritual_awareness_mult
-    return spiritual_awareness_mult(att.get("race"), dfn.get("foe"))
+    m = spiritual_awareness_mult(att.get("race"), dfn.get("foe"))
+    if m != 1.0 and evb(att, "aware"):  # evolved Spiritual Awareness replaces the default bonus
+        m = evb(att, "aware")
+    return m
 
 
 def _dmg_mult(att):
@@ -123,6 +134,9 @@ def _take_mult(dfn):
     fx = _f2fx(dfn)
     if fx and fx[0] == "guard":
         m *= 1 - fx[1]
+    dx = dfn.get("x") or {}
+    if dx.get("gd_t", 0) > 0:  # Hierro and other guard techniques
+        m *= dx.get("gd_m", 1.0)
     return m
 
 
@@ -163,6 +177,8 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     crit_p = 0.05 + eff(att, "hoho") * 0.001 + att["weapon"]["crit"] + att["mods"].get("crit", 0) + (SIG["hiren"]["crit"] if has_fx(att, "hiren") else 0)
     if _x(att)["awake"] > 0:
         crit_p += GAUGE["crit"]
+    if _x(att)["cb_t"] > 0:  # Pesquisa and other focus techniques
+        crit_p += _x(att)["cb_v"]
     crit = rng.random() < crit_p
     cm = 1.5 + eff(att, "zanjutsu") * 0.003 + skill_p(att, "surge") / 100
     dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * _zone(state, side) * _foe_mult(att, dfn)
@@ -195,7 +211,9 @@ def _gain(f, n, ev):
     x = _x(f)
     before = x["gauge"]
     x["gauge"] = min(GAUGE["full"], before + n)
-    if before < GAUGE["full"] <= x["gauge"]:
+    # only fighters that can release (Bankai / Resurrección) hear "the release is ready": Fullbringer, Quincy, Human and
+    # wild enemies have no release button, so the line only confused them
+    if before < GAUGE["full"] <= x["gauge"] and race_allows(f.get("race"), "gx") and not f.get("wild"):
         ev.append({"k": "gauge_full", "a": f["name"]})
 
 
@@ -300,6 +318,10 @@ def _band(f, action):
         return 0, min(ZONE_MAX, hi + 1)
     if action == "sg" and f.get("sig") == "cero":
         return 0, ZONE_MAX
+    if action in TECH_SLOTS:
+        t = tech_of(f.get("race"), action)
+        if t and t["kind"] in ("strike", "blur"):
+            return (0, ZONE_MAX) if t["id"] == "cero_oscuras" else (lo, min(ZONE_MAX, hi + (1 if f["weapon"].get("type") == "ranged" else 0)))
     return None
 
 
@@ -379,9 +401,18 @@ def can(f, action):
         from data_gangs import BOUNT_SEAL
         x = _x(f)
         return x["cd"] <= 0 and x["bstack"] >= BOUNT_SEAL["stacks"] and f["re"] >= f["max_re"] * BOUNT_SEAL["re"]
-    if action == "gx":  # Bankai / Resurrección: a full spirit gauge, and not already released
+    if action == "gx":  # the race's release (Bankai, Resurrección...): a full spirit gauge, and not already released
+        if f.get("wild"):
+            return False  # wild enemies have no release
         x = _x(f)
         return x["gauge"] >= GAUGE["full"] and x["awake"] <= 0 and f["re"] >= f["max_re"] * GAUGE["cost"]
+    if action in TECH_SLOTS:  # canon race technique (data_race_tech): unlocked by evolution, own cost and cooldown
+        t = tech_of(f.get("race"), action)
+        if not t or f.get("ai") and f.get("wild") or int(f.get("evs", -1)) < t["unlock"]:
+            return False
+        if t.get("need_form") and not f["form"]["on"]:
+            return False
+        return _x(f)[action + "cd"] <= 0 and f["re"] >= f["max_re"] * t["cost"]
     if action == "gc":  # Getsuga: raise the blade and gather reiatsu into it (the turn is spent)
         return _x(f)["slash"] <= 0 and not _x(f)["chant"]
     if action == "gt":  # release the gathered reiatsu as one wave
@@ -406,6 +437,13 @@ def start_turn(state, rng):
     fs["flash"] = fs["open"] = 0
     if fs["cd"] > 0:
         fs["cd"] -= 1
+    for k in ("t1cd", "t2cd", "t3cd", "gd_t", "cb_t"):
+        if fs[k] > 0:
+            fs[k] -= 1
+    if fs["gd_t"] <= 0:
+        fs["gd_m"] = 1.0
+    if fs["cb_t"] <= 0:
+        fs["cb_v"] = 0.0
     if fs["buff_t"] > 0:
         fs["buff_t"] -= 1
         if fs["buff_t"] <= 0:
@@ -439,12 +477,12 @@ def start_turn(state, rng):
             ev.append({"k": "form_end", "a": f["name"]})
     if _check_end(state):
         return ev, True
-    if fm["on"] and f["race"] == "visored" and rng.random() < MASK_RAGE:  # the Hollow inside takes the wheel
+    if fm["on"] and f["race"] == "visored" and rng.random() < evb(f, "mask_rage", MASK_RAGE):  # the Hollow inside takes the wheel
         add_fx(f, "skip", 1)
         ev.append({"k": "mask_lost", "a": f["name"]})
     if fs["awake"] > 0 and f["hp"] < f["max_hp"] * GAUGE["hollow_hp"] and rng.random() < GAUGE["hollow_p"]:
-        add_fx(f, "skip", 1)  # released and battered: the Hollow inside takes the wheel
-        ev.append({"k": "mask_lost", "a": f["name"]})
+        add_fx(f, "skip", 1)  # released and battered: the release slips out of control (its line depends on the race)
+        ev.append({"k": "release_lost", "a": f["name"], "r": f.get("race")})
     skip = [x for x in f["fx"] if x["k"] == "skip"]
     if skip:
         f["fx"] = [e for e in f["fx"] if e["k"] != "skip"]
@@ -496,30 +534,88 @@ def _signature(state, side, rng, ev):
             ev.append({"k": "cero_charge", "a": f["name"], "d": o["name"]})
         else:  # turn 2: fire
             x["charge"] = 0
-            x["cd"] = c["cd"]
+            x["cd"] = int(evb(f, "sig_cd", c["cd"]))
             mult, pierce = (c["ai_mult"], c["ai_pierce"]) if f.get("ai") else (c["mult"], c["pierce"])
+            mult *= evb(f, "cero_mult", 1.0) * evb(f, "sig_mult", 1.0)
             _deal(state, side, mult, rng, ev, "cero", allow_procs=True, extra_pierce=pierce)
         return
     f["re"] -= int(f["max_re"] * c["cost"])
-    x["cd"] = c["cd"]
+    x["cd"] = int(evb(f, "sig_cd", c["cd"]))
+    sm = evb(f, "sig_mult", 1.0)
     if sg == "shunpo":
         x["flash"] = 1
         ev.append({"k": "shunpo", "a": f["name"]})
     elif sg == "hiren":
         add_fx(f, "hiren", c["turns"])
         ev.append({"k": "hiren", "a": f["name"]})
-        _deal(state, side, c["strike"], rng, ev, "blitz", allow_procs=False)  # arrives with a quick strike
+        _deal(state, side, c["strike"] * sm, rng, ev, "blitz", allow_procs=False)  # arrives with a quick strike
     elif sg == "bring":
-        _deal(state, side, c["mult"], rng, ev, "bring", allow_procs=True)
-        if o["hp"] > 0 and rng.random() < c["bleed"]:
+        _deal(state, side, c["mult"] * sm, rng, ev, "bring", allow_procs=True)
+        if o["hp"] > 0 and rng.random() < evb(f, "bleed", c["bleed"]):
             add_fx(o, "bleed", DOT_TURNS["bleed"])
             ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "bleed"})
     elif sg == "soul":  # Soul Strike: a reiatsu strike (no bleed, no shield); own hit kind so it has its own text
-        _deal(state, side, c["mult"], rng, ev, "soul", allow_procs=True)
+        _deal(state, side, c["mult"] * sm, rng, ev, "soul", allow_procs=True)
     elif sg == "guts":  # Santen Kesshun: a shield that soaks the next hits
         n = max(1, int(f["max_hp"] * c["shield"]))
         f["shield"] += n
         ev.append({"k": "guts", "a": f["name"], "n": n})
+
+
+CLEANSE = ("bleed", "burn", "poison", "fear", "weaken", "shock")
+
+
+def _technique(state, side, slot, rng, ev):
+    """A canon race technique (data_race_tech). Caller has already checked can(f, slot)."""
+    f = state[side]
+    o = state["b" if side == "a" else "a"]
+    t = tech_of(f["race"], slot)
+    x = _x(f)
+    from data_racegear import TECH_LVL_STEP
+    pw = 1 + TECH_LVL_STEP * int((f.get("tm") or {}).get(slot, 0))  # mastery from race technique cards
+    f["re"] -= int(f["max_re"] * t["cost"])
+    x[slot + "cd"] = t["cd"]
+    ev.append({"k": "tech", "a": f["name"], "d": o["name"], "id": t["id"]})
+    kind = t["kind"]
+    if kind == "strike":
+        hits = int(t.get("hits", 1))
+        for _ in range(hits):
+            if o["hp"] <= 0:
+                break
+            hp0 = o["hp"]
+            _deal(state, side, t["mult"] * pw, rng, ev, "tech", allow_procs=(hits == 1), extra_pierce=t.get("pierce", 0.0))
+            if t.get("lifesteal") and o["hp"] < hp0:
+                h = max(1, int((hp0 - o["hp"]) * t["lifesteal"]))
+                f["hp"] = min(f["max_hp"], f["hp"] + h)
+                ev.append({"k": "heal", "a": f["name"], "n": h})
+        if t.get("fx") and o["hp"] > 0 and rng.random() < t.get("fx_p", 1.0):
+            if t["fx"] == "skip":
+                add_fx(o, "skip", 1)
+                ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
+            else:
+                add_fx(o, t["fx"], 3 if t["fx"] == "weaken" else DOT_TURNS.get(t["fx"], 3))
+                ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": t["fx"]})
+    elif kind == "shield":
+        n = max(1, int(f["max_hp"] * t["shield"] * pw))
+        f["shield"] += n
+        ev.append({"k": "shield_t", "a": f["name"], "n": n})
+    elif kind == "heal":
+        n = max(1, int(f["max_hp"] * t["heal"] * pw))
+        f["hp"] = min(f["max_hp"], f["hp"] + n)
+        if t.get("cleanse"):
+            f["fx"] = [e for e in f["fx"] if e["k"] not in CLEANSE]
+        ev.append({"k": "heal", "a": f["name"], "n": n})
+    elif kind == "buff":
+        turns = int(t.get("turns", 2)) + 1  # +1: the countdown ticks at the start of each own turn
+        if t.get("guard"):
+            x["gd_t"], x["gd_m"] = turns, max(0.3, 1 - (1 - t["guard"]) * pw)
+        if t.get("crit"):
+            x["cb_t"], x["cb_v"] = turns, t["crit"] * pw
+        if t.get("dmg"):
+            x["buff_t"], x["buff_m"] = turns, 1 + (t["dmg"] - 1) * pw
+    elif kind == "blur":
+        add_fx(f, "hiren", int(t.get("turns", 2)))
+        _deal(state, side, t["mult"] * pw, rng, ev, "tech", allow_procs=False)
 
 
 def _do_action(state, action, rng, max_turns=30):
@@ -535,7 +631,7 @@ def _do_action(state, action, rng, max_turns=30):
         c = BLUT["blut_vene"]
         f["re"] -= int(f["max_re"] * c["cost"])
         _x(f)["cd"] = c["cd"]
-        n = max(1, int(f["max_hp"] * c["shield"]))
+        n = max(1, int(f["max_hp"] * c["shield"] * evb(f, "blut", 1.0)))
         f["shield"] += n
         ev.append({"k": "blut_vene", "a": f["name"], "n": n})
     elif action == "bla":  # Blut Arterie: the blood runs through the blade, stronger strikes for a while
@@ -543,7 +639,7 @@ def _do_action(state, action, rng, max_turns=30):
         c = BLUT["blut_arterie"]
         f["re"] -= int(f["max_re"] * c["cost"])
         _x(f)["cd"] = c["cd"]
-        _x(f)["buff_t"], _x(f)["buff_m"] = c["turns"] + 1, c["mult"]
+        _x(f)["buff_t"], _x(f)["buff_m"] = c["turns"] + 1, 1 + (c["mult"] - 1) * evb(f, "blut", 1.0)
         ev.append({"k": "blut_arterie", "a": f["name"]})
     elif action == "neg":  # Negación: the Hollow power field shields its bearer
         from data_bleachfx import NEGACION
@@ -662,24 +758,28 @@ def _do_action(state, action, rng, max_turns=30):
         ev.append({"k": "chant", "a": f["name"]})
     elif action == "sg":
         _signature(state, side, rng, ev)
+    elif action in TECH_SLOTS:
+        _technique(state, side, action, rng, ev)
     elif action == "gx":
         x = _x(f)
         f["re"] -= int(f["max_re"] * GAUGE["cost"])
         x["gauge"] = 0
-        x["awake"] = GAUGE["turns"] + 1  # +1: the countdown ticks at the start of each of your turns, so this covers `turns` actions
+        # +1: the countdown ticks at the start of each of your turns, so this covers `turns` actions (evolution adds more)
+        x["awake"] = GAUGE["turns"] + int(evb(f, "release_turns", 0)) + 1
         ev.append({"k": "unleash", "a": f["name"], "mv": f.get("mv"), "r": f.get("race")})
         _deal(state, side, GAUGE["strike"], rng, ev, "hvy")  # arrives with the release: Bankai is an attack, not a pause
         if f.get("mv") and ev and ev[-1].get("k") == "hit":
             ev[-1]["mv"] = f["mv"]
     elif action == "f1":
         f["re"] -= int(f["max_re"] * FORM1[3])
-        f["form"].update(on=1, mult=FORM1[0], left=FORM1[1], fx=None, fat_turns=FORM1[2])
+        f["form"].update(on=1, mult=FORM1[0], left=FORM1[1] + int(evb(f, "mask_turns", 0)), fx=None, fat_turns=FORM1[2])
         f["form"]["used"][0] = 1
         ev.append({"k": "form", "a": f["name"], "n": 1, "r": f["race"]})
     elif action == "f2":
         c = FORM2.get(f["race"], FORM2["default"])
         f["re"] -= int(f["max_re"] * c[3])
-        f["form"].update(on=2, mult=c[0], left=c[1], fat_turns=c[2], fx=list(FORM2_EFFECT.get(f["weapon"]["type"], ("pierce", 0.15))))
+        f["form"].update(on=2, mult=c[0], left=c[1] + int(evb(f, "mask_turns", 0)), fat_turns=c[2],
+                         fx=list(FORM2_EFFECT.get(f["weapon"]["type"], ("pierce", 0.15))))
         f["form"]["used"][1] = 1
         ev.append({"k": "form", "a": f["name"], "n": 2, "r": f["race"]})
     _check_end(state, ev)
@@ -744,6 +844,10 @@ def ai_choose(state, side, rng):
         return "sg"
     if f["hp"] < f["max_hp"] * 0.3 and r < 0.3:
         return "df"
+    if not f.get("wild") and r < 0.30:  # a player-like fighter (duel stand-in, simulator) uses its race techniques
+        ready = [s for s in TECH_SLOTS if can(f, s)]
+        if ready:
+            return rng.choice(ready)
     if sg and sg != "cero" and r < 0.22 and can(f, "sg") and not (sg == "guts" and f["shield"] > 0):
         return "sg"
     if sg == "cero" and r < 0.20 and can(f, "sg"):

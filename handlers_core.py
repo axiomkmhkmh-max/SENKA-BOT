@@ -30,6 +30,8 @@ import handlers_wheel  # noqa: F401  (Urahara's wheel: panel + animated spin)
 import handlers_inner  # noqa: F401  (Inner World: weekly scene panel + choices)
 import handlers_trade  # noqa: F401  (player trading: hub, shared view, group offers)
 import handlers_respec  # noqa: F401  (stat reset and race change)
+import handlers_raceweapon  # noqa: F401  (race weapon: choice, ascension, type switch)
+import handlers_battlerank  # noqa: F401  (Battle Rank: panel, ladder, flee)
 import handlers_gangs  # noqa: F401  (Xcution membership panel)
 import handlers_items
 import handlers_panels
@@ -95,6 +97,22 @@ async def gate(ctx):
     return None
 
 
+# Codes that start a fight. A player who still has to choose a race weapon is sent to that choice first (mandatory).
+FIGHT_CODES = {"bs", "bn", "dgs", "dua", "bh", "hnt", "exp", "evs", "skm"}
+
+
+async def weapon_gate(ctx, code):
+    """The race-weapon choice panel if this code starts a fight and the choice is still pending, else None."""
+    if code not in FIGHT_CODES:
+        return None
+    from service_raceweapon import needs_choice
+    ch = await get_char(ctx.uid)
+    if not ch or not needs_choice(ch):
+        return None
+    from handlers_raceweapon import choice_panel
+    return await choice_panel(ctx, ch)
+
+
 async def send_out(message: Message, ctx: Ctx, out: Out):
     if out.text:
         await message.answer(out.text, reply_markup=markup(ctx, out.rows))
@@ -131,7 +149,7 @@ COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle"
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
             "party": "party", "trade": "trdhub", "ترید": "trdhub", "respec": "resp", "ریست استت": "resp", "تغییر نژاد": "resp", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
             "zanpakuto": "zanpakuto", "znp": "zanpakuto", "kido": "kido", "racepath": "racepath", "faction": "faction", "bleach": "bleach_hub", "senkaimon": "senkaimon", "portal": "senkaimon", "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
-            "upgrade": "upgrade", "weapon": "sword", "division": "division", "hollow": "hollow", "event": "event",
+            "battlerank": "battle_rank", "upgrade": "upgrade", "weapon": "race_weapon", "division": "division", "hollow": "hollow", "event": "event",
             "chronicle": "chronicle", "territory": "territory", "bounty": "bounty", "relics": "gear", "evolve": "evolution",
             "exchange": "artifact_mkt", "registry": "artifact_reg", "admin": "admin",
             "shop": "shop", "listings": "listings", "auction": "auction", "mylistings": "mylistings", "pets": "pets", "cosmetics": "cosmetics",
@@ -234,7 +252,7 @@ async def handle_text(message: Message, text: str):
         return await message.answer(ctx.t("duel_group_only"))
     if code.startswith("ad") and len(code) == 3 and await handlers_admin.admin_level(user.id) < 20:
         return
-    out = await REGISTRY[code](ctx, arg)
+    out = await weapon_gate(ctx, code) or await REGISTRY[code](ctx, arg)
     out.new = True
     await send_out(message, ctx, out)
 
@@ -305,6 +323,8 @@ async def on_group_text(message: Message, text: str):
         return await message.reply(ctx.t("group_help"))
     if not await get_char(user.id) and code not in ("home", "commands", "chronicle", "event", "boss", "battle", "duel"):
         return await message.reply(ctx.t("cmd_private"))  # registration is private-chat only
+    if await weapon_gate(ctx, code):
+        return await message.reply(ctx.t("rw_choose_first"))
     out = await REGISTRY[code](ctx, arg)
     out.new = True
     await message.answer(out.text, reply_markup=markup(ctx, out.rows))
@@ -333,6 +353,11 @@ async def on_callback(cb: CallbackQuery):
     if code not in ("lang", "noop") and code not in ("begin", "gen", "race", "st", "zp", "bh", "dua", "dud", "pa") and not await _has_char(user.id):
         r = await reg.reg_panel(ctx)
         return await _deliver(cb, ctx, r)
+    wg = await weapon_gate(ctx, code)
+    if wg:  # a fight button while the race-weapon choice is pending: choose first (in a group, only a popup)
+        if ctx.chat_type != "private":
+            return await cb.answer(ctx.t("rw_choose_first"), show_alert=True)
+        return await _deliver(cb, ctx, wg)
     try:
         out = await fn(ctx, arg)
     except Exception:

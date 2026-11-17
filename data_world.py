@@ -90,6 +90,13 @@ def boss_hp_scale(active_players: int, threat: float, st: dict) -> float:
     return min(float(st["boss_hp_scale_cap"]), pop * thr)
 
 
+def boss_hp_roll(online: int, st: dict, rng) -> int:
+    """World boss HP: a random base between boss_hp_base_min and boss_hp_base_max, times the players online at spawn
+    (at least one), so every player gets to hit and the fight really takes time."""
+    lo, hi = int(st["boss_hp_base_min"]), int(st["boss_hp_base_max"])
+    return int(rng.randint(min(lo, hi), max(lo, hi)) * max(1, int(online)))
+
+
 def boss_gap_seconds(st: dict, threat: float, rng) -> int:
     lo, hi = int(st["boss_min_minutes"]), int(st["boss_max_minutes"])
     base = rng.randint(min(lo, hi), max(lo, hi)) * 60
