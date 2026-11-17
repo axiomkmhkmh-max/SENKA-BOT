@@ -24,6 +24,7 @@ import handlers_casino  # noqa: F401 (Bleach Casino)
 import handlers_bank  # noqa: F401 (Bleach Bank)
 import handlers_hunt  # noqa: F401 (Hollow Hunt)
 import handlers_adminpanel  # noqa: F401  (admin button panel)
+from admin_panel_logic import to_ascii_digits
 import handlers_adminplus  # noqa: F401  (admin pickers: boss, event, item, summon)
 import handlers_extras  # noqa: F401  (player extras: stats, quiz, coinflip, transfer...)
 import handlers_wheel  # noqa: F401  (Urahara's wheel: panel + animated spin)
@@ -259,9 +260,37 @@ async def handle_text(message: Message, text: str):
     await send_out(message, ctx, out)
 
 
+async def _group_admin_input(message: Message, text: str, n: str) -> bool:
+    """An admin pressed a panel input button in this group: their typed answer (usually a reply to the bot's prompt) goes to the panel.
+
+    Only a reply, a number, an @name or «cancel» is taken, so ordinary group chat is never swallowed. True when handled.
+    """
+    user = message.from_user
+    if not handlers_adminpanel.admin_waiting(user.id):
+        return False
+    first = (to_ascii_digits(text).split() or [""])[0]
+    if not (message.reply_to_message or first.lstrip("@-").isdigit() or first.startswith("@") or n in ("لغو", "cancel")):
+        return False
+    pend = await col("inputs").find_one({"user_id": user.id, "kind": "ad_act"})
+    if not pend or pend.get("at", 0) < time.time() - 300 or "ad_act" not in INPUTS:
+        return False
+    await col("inputs").delete_one({"_id": pend["_id"]})
+    ctx = await make_ctx(user, message.chat, message.bot, message)
+    try:
+        out = await INPUTS["ad_act"](ctx, text)
+    except Exception:
+        log.exception("admin panel input failed in a group")
+        return True
+    if out is not None and out.text:
+        await message.reply(out.text, reply_markup=markup(ctx, out.rows))
+    return True
+
+
 async def on_group_text(message: Message, text: str):
     user, chat = message.from_user, message.chat
     n = normalize_text(text)
+    if await _group_admin_input(message, text, n):
+        return
     if allow(chat.id, "note", 60):
         ch = await get_char(user.id)
         await note_group(chat.id, chat.title or "", ch["level"] if ch else None, "fa" if (user.language_code or "").startswith("fa") else "en")

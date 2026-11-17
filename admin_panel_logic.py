@@ -23,6 +23,20 @@ def split_id_rest(text: str):
     return tid, (parts[1].strip() if len(parts) > 1 else "")
 
 
+def split_target(text: str, reply_id=None, single_arg: bool = False):
+    """Like split_id_rest, but an admin who replied to a player's message may leave the id out.
+
+    With a reply target: a first word that is not an id means "the replied player, this is the rest";
+    for actions that take one number (single_arg) a lone word is that number, not an id.
+    """
+    tid, rest = split_id_rest(text)
+    if reply_id is not None:
+        parts = to_ascii_digits(text or "").split()
+        if tid is None or (single_arg and len(parts) == 1):
+            return reply_id, (text or "").strip()
+    return tid, rest
+
+
 def parse_amount(text: str, lo: int = 1, hi: int = 10 ** 9):
     """A positive whole number inside [lo, hi], or None."""
     raw = to_ascii_digits(text or "").strip().replace(",", "")

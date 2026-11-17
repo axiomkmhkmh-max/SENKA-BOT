@@ -1,7 +1,7 @@
 import unittest
 
 from admin_panel_logic import (
-    adjust_setting, coerce_setting, page_bounds, parse_amount, role_ok, split_id_rest, to_ascii_digits,
+    adjust_setting, coerce_setting, page_bounds, parse_amount, role_ok, split_id_rest, split_target, to_ascii_digits,
 )
 
 
@@ -99,3 +99,23 @@ class Roles(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SplitTarget(unittest.TestCase):
+    def test_no_reply_behaves_like_split_id_rest(self):
+        self.assertEqual(split_target("123 500"), (123, "500"))
+        self.assertEqual(split_target("spam"), (None, ""))
+
+    def test_reply_with_explicit_id_keeps_the_id(self):
+        self.assertEqual(split_target("123 500", reply_id=9, single_arg=True), (123, "500"))
+
+    def test_reply_with_lone_number_is_the_amount(self):
+        self.assertEqual(split_target("500", reply_id=9, single_arg=True), (9, "500"))
+        self.assertEqual(split_target("۵۰۰", reply_id=9, single_arg=True), (9, "۵۰۰"))
+
+    def test_reply_with_non_id_first_word_uses_replied_player(self):
+        self.assertEqual(split_target("sword_id 3", reply_id=9), (9, "sword_id 3"))
+        self.assertEqual(split_target("spam link", reply_id=9), (9, "spam link"))
+
+    def test_reply_without_single_arg_lone_number_is_an_id(self):
+        self.assertEqual(split_target("77", reply_id=9), (77, ""))
