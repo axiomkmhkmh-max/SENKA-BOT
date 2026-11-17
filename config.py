@@ -52,7 +52,7 @@ GAME_DEFAULTS = {
     "market_seller_fee": 0.05, "market_buyer_fee": 0.02, "market_slots": 5,
     "market_hours": 72, "auction_snipe_seconds": 60, "auction_extend_seconds": 120,
     "gacha_cost": 1500, "gacha_pity_legendary": 80, "gacha_pity_rare": 10,
-    "dp_pity_bronze": 6, "dp_pity_silver": 5, "dp_pity_gold": 4,  # dungeon chests: this many in a row without a better item guarantees one (0 = off)
+    "dp_pity_bronze": 4, "dp_pity_silver": 3, "dp_pity_gold": 3,  # dungeon chests: this many in a row without a better item guarantees one (0 = off)
     "gacha_mythic_cap": 10,  # most Mythic results one player can get from summons, ever (0 = no limit)
     "guild_create_cost": 5000, "guild_min_level": 20, "squad_change_days": 7,
     "minigame_daily_xp_cap": 500, "hollow_daily_xp_cap": 50,

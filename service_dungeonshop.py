@@ -18,9 +18,9 @@ DP_DAILY_CAP = 400
 # odds: weights for floor, floor+1, floor+2 rarity. weapon: chance the item is a weapon.
 # Pity (GAME_DEFAULTS dp_pity_<key>): after that many chests in a row without reaching floor+1, the next one does.
 BOXES = {
-    "bronze": {"cost": 40, "floor": 1, "coins": (150, 450), "odds": (62, 33, 5), "weapon": 0.15, "icon": "🥉", "fa": "جعبه‌ی برنزی", "en": "Bronze Chest"},
-    "silver": {"cost": 120, "floor": 2, "coins": (600, 1500), "odds": (62, 33, 5), "weapon": 0.25, "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
-    "gold": {"cost": 360, "floor": 3, "coins": (2250, 5000), "odds": (64, 34, 2), "weapon": 0.35, "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
+    "bronze": {"cost": 40, "floor": 1, "coins": (150, 450), "odds": (40, 45, 15), "weapon": 0.15, "icon": "🥉", "fa": "جعبه‌ی برنزی", "en": "Bronze Chest"},
+    "silver": {"cost": 120, "floor": 2, "coins": (600, 1500), "odds": (40, 45, 15), "weapon": 0.25, "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
+    "gold": {"cost": 360, "floor": 3, "coins": (2250, 5000), "odds": (48, 42, 10), "weapon": 0.35, "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
 }
 
 

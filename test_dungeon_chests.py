@@ -113,7 +113,7 @@ class ChestTests(unittest.TestCase):
             self._buy("gold", random.Random(seed))
             legendary_up += DROPS[0]["floor"] >= 4
         share = legendary_up / runs
-        self.assertTrue(0.25 < share < 0.47, share)  # about a third (34% Legendary + 2% Mythic)
+        self.assertTrue(0.44 < share < 0.60, share)  # about half (42% Legendary + 10% Mythic)
 
     def test_pity_guarantees_a_better_item(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"]
