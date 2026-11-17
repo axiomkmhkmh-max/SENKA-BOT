@@ -77,6 +77,11 @@ async def active_players(hours: int = 24) -> int:
     return await col("users").count_documents({"last_seen": {"$gte": int(time.time()) - hours * 3600}})
 
 
+async def online_players(minutes: int = 15) -> int:
+    """Players seen in the last `minutes` (the 'online right now' count)."""
+    return await col("users").count_documents({"last_seen": {"$gte": int(time.time()) - int(minutes) * 60}})
+
+
 async def active_levels(limit: int = 300) -> list:
     ids = [u["telegram_id"] async for u in col("users").find({"last_seen": {"$gte": int(time.time()) - 86400}}, {"telegram_id": 1}).limit(limit)]
     if not ids:

@@ -1,4 +1,5 @@
-"""Dungeon chests pay coins AND an item, never lower than the chest's floor, with pity.
+"""Dungeon chests pay coins AND an item of the chest's own two colours only (bronze white/green, silver blue/purple,
+gold gold/red), with pity towards the higher colour.
 No MongoDB needed: the database layer is faked. Run: python -m unittest test_dungeon_chests -v"""
 import asyncio
 import os
@@ -44,9 +45,9 @@ async def _inv_add(uid, iid, qty=1, force=False):
     return True
 
 
-async def _roll_drop(uid, source_mult=1.0, weapon_chance=0.1, floor_idx=0, rng=random):
-    DROPS.append({"floor": floor_idx, "weapon": weapon_chance})
-    return f"item_{floor_idx}"
+async def _roll_drop(uid, source_mult=1.0, weapon_chance=0.1, floor_idx=0, rng=random, exact_idx=None):
+    DROPS.append({"idx": exact_idx})
+    return f"item_{exact_idx}"
 
 
 class _Forced:
@@ -77,81 +78,56 @@ class ChestTests(unittest.TestCase):
     def _buy(self, key, rng=None):
         return asyncio.run(S.buy_box(1, key, rng or random.Random(3)))
 
+    def test_colours_per_chest(self):
+        self.assertEqual(S.BOXES["bronze"]["rar"], (0, 1))   # white, green
+        self.assertEqual(S.BOXES["silver"]["rar"], (2, 3))   # blue, purple
+        self.assertEqual(S.BOXES["gold"]["rar"], (4, 5))     # gold, red
+
     def test_not_enough_dp_gives_nothing(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"] - 1
-        self.assertEqual(self._buy("gold"), ("poor", None))
-        self.assertEqual((COINS, ITEMS), ([], []))
+        status, res = self._buy("gold")
+        self.assertEqual(status, "poor")
         self.assertEqual(CHAR["dp"], S.BOXES["gold"]["cost"] - 1)
+        self.assertEqual(DROPS, [])
 
-    def test_every_chest_pays_coins_and_an_item(self):
+    def test_every_chest_pays_coins_and_an_item_of_its_own_colours(self):
+        rng = random.Random(11)
         for key, b in S.BOXES.items():
-            CHAR["dp"] = b["cost"]
-            status, res = self._buy(key)
-            self.assertEqual(status, "ok")
-            self.assertTrue(b["coins"][0] <= res["coins"] <= b["coins"][1], key)
-            self.assertTrue(res["item"], key)
-            self.assertEqual(CHAR["dp"], 0)
-        self.assertEqual(len(COINS), 3)
-        self.assertEqual(len(ITEMS), 3)
-        self.assertTrue(all(force for _, force in ITEMS))  # a full bag never loses the item
-
-    def test_rarity_never_below_the_chest_floor(self):
-        for key, b in S.BOXES.items():
-            for seed in range(60):
-                DROPS.clear()
+            for _ in range(200):
+                CHAR.clear()
                 CHAR["dp"] = b["cost"]
-                self._buy(key, random.Random(seed))
-                self.assertGreaterEqual(DROPS[0]["floor"], b["floor"], key)
+                DROPS.clear()
+                status, res = asyncio.run(S.buy_box(1, key, rng))
+                self.assertEqual(status, "ok")
+                self.assertGreater(res["coins"], 0)
+                self.assertIn(DROPS[0]["idx"], b["rar"], key)
 
-    def test_gold_chest_odds(self):
-        legendary_up = 0
-        runs = 600
-        for seed in range(runs):
-            DROPS.clear()
-            CHAR.clear()
-            CHAR["dp"] = S.BOXES["gold"]["cost"]
-            self._buy("gold", random.Random(seed))
-            legendary_up += DROPS[0]["floor"] >= 4
-        share = legendary_up / runs
-        self.assertTrue(0.44 < share < 0.60, share)  # about half (42% Legendary + 10% Mythic)
-
-    def test_pity_guarantees_a_better_item(self):
+    def test_pity_gives_the_higher_colour(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"]
-        CHAR["box_pity"] = {"gold": 3}  # pity is 4: this is the 4th chest without Legendary
-        status, res = self._buy("gold", _Forced(0))  # the unluckiest roll
+        CHAR["box_pity"] = {"gold": 3}  # pity 4: this is the 4th in a row
+        status, res = self._buy("gold", _Forced(0))
         self.assertTrue(res["pity"])
-        self.assertEqual(DROPS[0]["floor"], 4)
-        self.assertEqual(SETS[-1], {"box_pity.gold": 0})
+        self.assertEqual(DROPS[0]["idx"], 5)
 
-    def test_pity_counts_up_after_a_plain_chest(self):
+    def test_pity_counts_up_after_a_lower_colour(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"]
-        CHAR["box_pity"] = {"gold": 1}
         status, res = self._buy("gold", _Forced(0))
         self.assertFalse(res["pity"])
-        self.assertEqual(DROPS[0]["floor"], 3)
-        self.assertEqual(SETS[-1], {"box_pity.gold": 2})
+        self.assertEqual(DROPS[0]["idx"], 4)
+        self.assertEqual(SETS[-1], {"box_pity.gold": 1})
 
-    def test_a_good_roll_resets_pity(self):
+    def test_a_higher_colour_resets_pity(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"]
         CHAR["box_pity"] = {"gold": 2}
         self._buy("gold", _Forced(1))
         self.assertEqual(SETS[-1], {"box_pity.gold": 0})
 
-    def test_mythic_result_is_a_weapon(self):
-        CHAR["dp"] = S.BOXES["gold"]["cost"]
-        self._buy("gold", _Forced(2))
-        self.assertEqual(DROPS[0]["floor"], 5)
-        self.assertEqual(DROPS[0]["weapon"], 1.0)
-
-    def test_pity_can_be_switched_off(self):
-        async def off():
-            return {"dp_pity_bronze": 0, "dp_pity_silver": 0, "dp_pity_gold": 0}
-        S.game_settings = off
-        CHAR["dp"] = S.BOXES["gold"]["cost"]
-        CHAR["box_pity"] = {"gold": 50}
-        status, res = self._buy("gold", _Forced(0))
-        self.assertFalse(res["pity"])
-        self.assertEqual(DROPS[0]["floor"], 3)
+    def test_dp_grows_with_level_and_difficulty(self):
+        low = S.dp_for_clear({"id": "trial", "diff": "normal"})
+        high = S.dp_for_clear({"id": "jigoku_pit", "diff": "normal"})
+        hard = S.dp_for_clear({"id": "jigoku_pit", "diff": "legendary"})
+        self.assertLess(low, high)
+        self.assertLess(high, hard)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,6 @@ from data_crafting import player_bonus
 from data_items import ALL
 from data_misc import DAILY_POOL, QUEST_BY_ID, QUESTS, RACE_START_KIDO, START_KIDO
 from data_races import RACES, STATS, soft_stat
-from data_weapons import WEAPONS
 from database import col, game_settings, settings_cached
 from service_log import log_event
 from service_worldcore import mods_for
@@ -100,8 +99,9 @@ async def reg_clear(uid: int):
 
 
 def starter_choices(race: str, rng=random):
-    pool = [w for w in WEAPONS if w["rarity"] in ("Common", "Uncommon")]
-    return [w["_id"] for w in rng.sample(pool, 3)]
+    """A new player picks one of the ten raw (white) weapons of their race (data_raceweapons)."""
+    from data_raceweapons import RACE_WEAPONS, rw_id
+    return [rw_id(race, n, 0) for n in range(len(RACE_WEAPONS.get(race, [])))]
 
 
 async def finish_registration(uid: int, reg: dict):

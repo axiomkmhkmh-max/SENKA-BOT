@@ -1,7 +1,7 @@
 """Dungeon points (DP) and the dungeon shop.
 
-Dungeons no longer drop level-based items (they were mostly junk). A full clear pays DP instead; DP buys chests
-that hold coins or an item. Pure rules first, then the database parts."""
+Dungeons pay no coins and no items: a full clear pays DP (and XP). DP buys chests that hold coins and an item of the
+chest's own colours. Pure rules first, then the database parts."""
 import random
 
 from data_world import day_id
@@ -10,17 +10,19 @@ from service_economy import inv_add, roll_drop
 from service_log import log_event
 from service_player import add_coins, get_char
 
-DP_BY_DIFF = {"normal": 2, "hard": 4, "nightmare": 8, "abyss": 16, "legendary": 32}
-DP_DAILY_CAP = 400
-# key -> cost in DP, lowest item rarity index (0 Common .. 5 Mythic), coin range, icon, names.
-# Every chest now pays coins AND an item (it used to be coins OR an item, so the best chest was half the time just coins).
-# The coin range is half of the old one, so the coins per chest stay the same on average.
-# odds: weights for floor, floor+1, floor+2 rarity. weapon: chance the item is a weapon.
-# Pity (GAME_DEFAULTS dp_pity_<key>): after that many chests in a row without reaching floor+1, the next one does.
+# DP per full clear = DP_BY_DIFF[difficulty] x (1 + dungeon level / DP_LEVEL_STEP). Harder and higher dungeons pay
+# much more; dungeons pay no coins and no items any more, so DP (and XP) is the whole reward.
+DP_BY_DIFF = {"normal": 6, "hard": 12, "nightmare": 25, "abyss": 60, "legendary": 150}
+DP_LEVEL_STEP = 20
+DP_DAILY_CAP = 1500
+# key -> cost in DP, the two rarity indexes the chest can hold (0 Common/white .. 5 Mythic/red), the odds of the lower
+# and the higher one, coin range, icon, names. Each chest holds only its own colours:
+# bronze = white + green, silver = blue + purple, gold = gold + red.
+# Pity (GAME_DEFAULTS dp_pity_<key>): after that many chests in a row with the lower colour, the next one is the higher.
 BOXES = {
-    "bronze": {"cost": 40, "floor": 1, "coins": (150, 450), "odds": (40, 45, 15), "weapon": 0.15, "icon": "🥉", "fa": "جعبه‌ی برنزی", "en": "Bronze Chest"},
-    "silver": {"cost": 120, "floor": 2, "coins": (600, 1500), "odds": (40, 45, 15), "weapon": 0.25, "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
-    "gold": {"cost": 360, "floor": 3, "coins": (2250, 5000), "odds": (48, 42, 10), "weapon": 0.35, "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
+    "bronze": {"cost": 40, "rar": (0, 1), "odds": (60, 40), "coins": (150, 450), "icon": "🥉", "fa": "جعبه‌ی برنزی", "en": "Bronze Chest"},
+    "silver": {"cost": 120, "rar": (2, 3), "odds": (65, 35), "coins": (600, 1500), "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
+    "gold": {"cost": 360, "rar": (4, 5), "odds": (80, 20), "coins": (2250, 5000), "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
 }
 
 
@@ -28,7 +30,7 @@ def dp_for_clear(dungeon: dict) -> int:
     """DP for one full clear: grows with difficulty and with the dungeon's level."""
     from data_races import DUNGEONS
     lvl = int((DUNGEONS.get(dungeon.get("id")) or {}).get("level", 1))
-    return DP_BY_DIFF.get(dungeon.get("diff", "normal"), 2) * (1 + lvl // 25)
+    return int(round(DP_BY_DIFF.get(dungeon.get("diff", "normal"), DP_BY_DIFF["normal"]) * (1 + lvl / DP_LEVEL_STEP)))
 
 
 async def award_dp(uid: int, dungeon: dict) -> int:
@@ -56,16 +58,16 @@ async def buy_box(uid: int, key: str, rng=random):
     st = await game_settings()
     pity_n = int(st[f"dp_pity_{key}"])  # 0 = no pity
     streak = int((hit.get("box_pity") or {}).get(key, 0))
-    idx = b["floor"] + rng.choices((0, 1, 2), b["odds"])[0]
-    up = b["floor"] + 1
-    pity = pity_n > 0 and streak + 1 >= pity_n and idx < up
+    lo, hi = b["rar"]
+    idx = rng.choices((lo, hi), b["odds"])[0]
+    pity = pity_n > 0 and streak + 1 >= pity_n and idx < hi
     if pity:
-        idx = up
+        idx = hi
+    up = hi
     await col("characters").update_one({"user_id": uid}, {"$set": {f"box_pity.{key}": 0 if idx >= up else streak + 1}})
     n = rng.randint(*b["coins"])
     await add_coins(uid, n, "dp_chest")
-    # a Mythic result is a Mythic weapon (the only Mythic items roll_drop can hand out)
-    iid = await roll_drop(uid, source_mult=1.0, weapon_chance=1.0 if idx >= 5 else b["weapon"], floor_idx=idx, rng=rng)
+    iid = await roll_drop(uid, exact_idx=idx, rng=rng)  # exactly the rolled colour: the chest never pays outside its own
     await inv_add(uid, iid, 1, force=True)  # a chest is never lost to a full bag
     res = {"coins": n, "item": iid, "rar_idx": idx, "pity": pity}
     log_event("dungeon_shop", uid, f"جعبه‌ی دانجن {key}: {res}", box=key)

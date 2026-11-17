@@ -88,10 +88,10 @@ class BossPackSixTests(unittest.TestCase):
     def test_new_bosses_are_wired(self):
         ids = [b["_id"] for b in data_bosses.BOSSES]
         self.assertEqual(len(ids), len(set(ids)))
-        for n in ("Tia Halibel", "Cirucci Sanfilippo", "Kokichi Muramasa", "Jin Kariya",
-                  "Lilynette Gingerbuck", "Gamuza"):
+        for n in ("Ayon", "Cirucci Sanderwicci", "Kōga Kuchiki", "Jin Kariya",
+                  "Lilynette Gingerbuck", "Shuren"):
             self.assertTrue(any(b["name_en"] == n for b in data_bosses.BOSSES), n)
-        self.assertEqual(data_bosses.BOSS_BY_ID["boss_104"]["name_en"], "Gamuza")
+        self.assertEqual(data_bosses.BOSS_BY_ID["boss_104"]["name_en"], "Shuren")
 
 
 class TeamBattleTests(unittest.TestCase):

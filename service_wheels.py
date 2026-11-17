@@ -105,6 +105,16 @@ async def spin(uid: int, wid: str, owner_id: int):
         coins = int((12000 + lvl * 250) * cr)
         item = pick_item("relic", [4])
 
+    if wid == "w_armor" and ch and rarity in ("Rare", "Epic", "Legendary", "Mythic", "Legacy"):
+        # the armour wheel really pays armour: a random piece of the player's own race armour, colour by the spin
+        from service_racegear import random_armour
+        colour = {"Rare": 1, "Epic": random.choice((2, 3)), "Legendary": 4, "Mythic": 5, "Legacy": 5}[rarity]
+        item = random_armour(ch["race"], colour)
+    elif wid == "w_weapon" and ch and rarity in ("Legendary", "Mythic", "Legacy"):
+        # blades no longer drop: the weapon wheel pays evolution relics, the fuel that raises a race weapon's colour
+        from data_items import EVO_BY_RARITY
+        pool = EVO_BY_RARITY[{"Legendary": "Rare", "Mythic": "Epic", "Legacy": "Epic"}[rarity]] or EVO_BY_RARITY["Common"]
+        item = random.choice(pool)
     if coins:
         await add_coins(uid, coins, "wheel2")
     if xp:

@@ -70,6 +70,10 @@ async def equip(uid: int, item_id: str) -> str:
     field = slot_of(it) if it else None
     if not field:
         return "noequip"
+    if it.get("retired") or it.get("subtype") == "rweapon":
+        return "noequip"  # old blades are gone; the race weapon is chosen in its own panel, never from the bag
+    if it.get("race") and it["race"] != ch.get("race"):
+        return "race"  # race armour fits only its own race
     if ch["level"] < it.get("level_req", 1):
         return "level"
     cur = ch.get(field)
@@ -91,6 +95,8 @@ async def unequip(uid: int, field: str) -> str:
     cur = ch.get(field)
     if not cur:
         return "empty"
+    if field == "weapon_id" and (ALL.get(cur) or {}).get("subtype") == "rweapon":
+        return "locked"  # the race weapon stays in hand (it grows with you; switch it with a Rebirth Seal)
     if not await inv_add(uid, cur, 1):
         return "full"
     r = await col("characters").update_one({"user_id": uid, field: cur}, {"$set": {field: None}})
@@ -106,6 +112,10 @@ async def use_item(uid: int, item_id: str):
     if not eff:
         return "nouse", None
     t = eff["type"]
+    if t in ("kido", "kido_book"):
+        from data_race_rules import race_allows
+        if not race_allows(ch.get("race"), "kd"):  # only Shinigami / Visored cast Kidō: other races used to lose the item for nothing
+            return "race", None
     if t == "kido":
         import math as _m
         if ch["level"] < _m.ceil(eff["num"] * 0.8):
@@ -122,16 +132,24 @@ async def use_item(uid: int, item_id: str):
         until = int(time.time()) + int(eff["minutes"]) * 60
         await col("characters").update_one({"user_id": uid}, {"$set": {"konpaku_until": until}})
         return "ok", eff["minutes"]
-    if t == "znp_reset":  # Zanpakuto Rebirth Seal: the zanpakuto becomes the blade you hold now, starting over
-        from service_combat import active_pve
-        if await active_pve(uid):
-            return "busy", None
-        if not ch.get("weapon_id"):
-            return "noweapon", None
+    if t == "tech_lvl":  # race technique card: raises that technique's mastery, in order
+        if eff["race"] != ch.get("race"):
+            return "race_card", None
+        cur = int((ch.get("tech_lvl") or {}).get(eff["slot"], 0))
+        if cur >= eff["lvl"]:
+            return "known", None
+        if cur < eff["lvl"] - 1:
+            return "order", eff["lvl"] - 1
         if not await inv_remove(uid, item_id, 1):
             return "missing", None
-        await col("characters").update_one({"user_id": uid}, {"$set": {"zanpakuto": {"blade_id": ch["weapon_id"], "mastery": 0}}})
-        return "ok", None
+        r = await col("characters").update_one({"user_id": uid, f"tech_lvl.{eff['slot']}": cur if cur else {"$in": [0, None]}},
+                                               {"$set": {f"tech_lvl.{eff['slot']}": eff["lvl"]}})
+        if not r.modified_count:
+            await inv_add(uid, item_id, 1, force=True)
+            return "retry", None
+        return "ok", eff["lvl"]
+    if t == "znp_reset":  # Weapon Rebirth Seal: switch the race weapon's type (the seal is spent in that panel)
+        return "rw_switch", None
     if t == "almighty":  # Yhwach's Eye: arms one survival of a fatal blow in PvE (see service_combat.pve_start)
         if not await inv_remove(uid, item_id, 1):
             return "missing", None
@@ -192,9 +210,14 @@ RARE_MULT_CAP = 2.5     # rare and epic weights never get more than this multipl
 TOP_MULT_CAP = 1.5      # legendary and mythic get a gentler cap: the drop buff was lifting them too much
 
 
-async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0.1, floor_idx: int = 0, rng=random):
+async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0.1, floor_idx: int = 0, rng=random,
+                    exact_idx: int = None):
+    """One random item for this player. exact_idx: skip the rarity roll and pity, and give exactly that colour
+    (dungeon-shop chests hold only their own colours)."""
     st = await game_settings()
     ch = await get_char(uid)
+    if exact_idx is not None:
+        return _pick_of_rarity(ch, int(exact_idx), weapon_chance=0.0, rng=rng)
     luck = ch.get("level", 1) // 20
     for k in ("acc_id", "charm_id"):
         luck += ALL.get(ch.get(k) or "", {}).get("stats", {}).get("luck", 0)
@@ -221,12 +244,33 @@ async def roll_drop(uid: int, source_mult: float = 1.0, weapon_chance: float = 0
     for name, tier_idx, thr in PITY:
         pity[name] = 0 if idx >= tier_idx else pity.get(name, 0) + 1
     await col("characters").update_one({"user_id": uid}, {"$set": {"pity": pity}})
+    return _pick_of_rarity(ch, idx, weapon_chance, rng)
+
+
+RACE_ARMOUR_SHARE = 0.25   # share of drops that are the player's own race armour
+RACE_CARD_SHARE = 0.10     # ... and their race cards (Kidō cards for Shinigami / Visored, technique cards for the rest)
+
+
+def _pick_of_rarity(ch: dict, idx: int, weapon_chance: float, rng=random):
+    """An item of rarity index `idx` (falls back to lower colours only if that colour has nothing). Armour and cards
+    are the player's own race's: other races' gear never drops for them."""
+    from data_items import RACE_ARMOUR_BY_RARITY, race_cards
+    race = (ch or {}).get("race")
     for i in range(idx, -1, -1):
         r = RARITIES[i]
         if rng.random() < weapon_chance and WEAPON_BY_RARITY[r]:
             return rng.choice(WEAPON_BY_RARITY[r])
+        roll = rng.random()
+        armour = (RACE_ARMOUR_BY_RARITY.get(race) or {}).get(r) or []
+        if roll < RACE_ARMOUR_SHARE and armour:
+            return rng.choice(armour)
+        cards = race_cards(race, r) if race else []
+        if roll < RACE_ARMOUR_SHARE + RACE_CARD_SHARE and cards:
+            return rng.choice(cards)
         if BY_RARITY[r]:
             return rng.choice(BY_RARITY[r])
+        if armour or cards:  # no shared item of this colour (red): the race's own armour or cards keep the colour
+            return rng.choice(armour + cards)
     return rng.choice(BY_RARITY["Common"])
 
 
@@ -235,10 +279,18 @@ async def grant_item(uid: int, item_id: str) -> bool:
 
 
 # ---- NPC shop (Urahara) ---------------------------------------------------------
-def shop_stock(day: str):
+def shop_stock(day: str, race: str = None):
+    """Urahara's stock of the day: 56 shared items plus 8 cards of the buyer's race (Kidō cards for Shinigami / Visored,
+    technique cards for the rest), so nobody is offered cards they cannot use."""
     r = random.Random("shop" + day)
-    pool = [i for i, x in ALL.items() if x["rarity"] in ("Common", "Uncommon", "Rare") and x["category"] in ("potion", "armor", "accessory", "weapon", "kido_card", "book", "material")]
-    return sorted(r.sample(pool, 64))
+    pool = [i for i, x in ALL.items() if x["rarity"] in ("Common", "Uncommon", "Rare") and x["category"] in ("potion", "accessory", "book", "material")]
+    base = r.sample(pool, 56)
+    if race:
+        from data_items import race_cards
+        cards = [c for rar in ("Common", "Uncommon", "Rare") for c in race_cards(race, rar)]
+        if cards:
+            base += random.Random(f"shop{day}{race}").sample(cards, min(8, len(cards)))
+    return sorted(base)
 
 
 async def price_mult() -> float:
@@ -267,7 +319,8 @@ async def shop_quote(item_id: str, qty: int = 1) -> tuple:
 
 async def shop_buy(uid: int, item_id: str, day: str, qty: int = 1) -> str:
     qty = int(qty)
-    if item_id not in shop_stock(day):
+    ch = await get_char(uid)
+    if item_id not in shop_stock(day, (ch or {}).get("race")):
         return "gone"
     if qty < 1 or qty > max(SHOP_QTYS):
         return "gone"
@@ -321,7 +374,7 @@ async def market_create(uid: int, item_id: str, price: int, kind: str = "fixed",
                                               "kind": kind, "status": "active", "created_at": int(time.time()),
                                               "end_at": int(time.time()) + hrs * 3600, "bid": 0, "bidder": None})
     await bump_quest(uid, "market_sell", 1)
-    log_event("market", uid, f"{'حراج' if kind == 'auction' else 'آگهی'} گذاشت: {iname(item_id, 'fa')} ({it['rarity']}) به قیمت {int(price):,} 🪙", item=item_id, price=int(price), kind=kind)
+    log_event("market", uid, f"{'حراج' if kind == 'auction' else 'آگهی'} گذاشت: {iname(item_id, 'fa')} ({it['rarity']}) به قیمت {int(price):,} 🪙", item=item_id, price=int(price), listing=kind)
     return "ok"
 
 
@@ -346,6 +399,10 @@ async def market_buy(uid: int, lid: str) -> str:
 
     async def revert():
         await col("market_listings").update_one({"_id": lid, "status": "sold", "buyer": uid}, {"$set": {"status": "active"}, "$unset": {"buyer": ""}})
+    item_race = (ALL.get(d["item_id"]) or {}).get("race")
+    if item_race and item_race != ((await get_char(uid)) or {}).get("race"):
+        await revert()
+        return "race"  # race armour / cards only go to a player of that race
     if not await add_coins(uid, -(d["price"] + fee), "market_buy"):
         await revert()
         return "funds"
@@ -411,7 +468,7 @@ async def gacha_pull(uid: int, n: int = 1):
     cost = int(st["gacha_cost"]) * n
     if not await add_coins(uid, -cost, "gacha"):
         return None, "funds"
-    g = await col("gacha").find_one({"user_id": uid}) or {"user_id": uid, "since_rare": 0, "since_leg": 0, "chars": {}, "total": 0}
+    g = await gacha_doc(uid)
     # Lifetime Mythic count from summons. Players who summoned before this counter existed start from the Mythic
     # characters they already own (Mythic items were never tracked, so they are not counted).
     if "mythic" not in g:
@@ -419,6 +476,7 @@ async def gacha_pull(uid: int, n: int = 1):
     mythic_cap = int(st["gacha_mythic_cap"])  # 0 = no limit
     rng = random.Random()
     results = []
+    won = {}  # character id -> copies won in this pull (written with $inc, see below)
     for _ in range(n):
         idx = rng.choices(range(6), list(GACHA_RATES.values()))[0]
         g["since_rare"] += 1
@@ -438,6 +496,7 @@ async def gacha_pull(uid: int, n: int = 1):
         if pool and rng.random() < 0.6:
             cid = rng.choice(pool)
             g["chars"][cid] = g["chars"].get(cid, 0) + 1
+            won[cid] = won.get(cid, 0) + 1
             results.append({"t": "char", "id": cid, "rar": rar, "copies": g["chars"][cid]})
         else:
             wp = WEAPON_BY_RARITY[rar]
@@ -448,8 +507,12 @@ async def gacha_pull(uid: int, n: int = 1):
         if results[-1]["rar"] == "Mythic":  # count what the player really received (a Mythic roll can land on a lower item)
             g["mythic"] += 1
     g["total"] += n
-    g.pop("_id", None)
-    await col("gacha").update_one({"user_id": uid}, {"$set": g}, upsert=True)
+    # Only what this pull changed is written: copies and the total go in with $inc. The whole document used to be
+    # written back, so a character sold while the pull was running came back (sold for coins and kept).
+    await col("gacha").update_one({"user_id": uid},
+                                  {"$inc": {**{f"chars.{cid}": k for cid, k in won.items()}, "total": n},
+                                   "$set": {"since_rare": g["since_rare"], "since_leg": g["since_leg"], "mythic": g["mythic"]}},
+                                  upsert=True)
     await bump_quest(uid, "gacha_pull", n)
     top = [r for r in results if r["rar"] in ("Epic", "Legendary", "Mythic")]
     names = "، ".join((CHAR_BY_ID[r["id"]]["name_fa"] if r["t"] == "char" else iname(r["id"], "fa")) + f" ({r['rar']})" for r in top[:6])
@@ -458,7 +521,10 @@ async def gacha_pull(uid: int, n: int = 1):
 
 
 async def gacha_doc(uid: int) -> dict:
-    return await col("gacha").find_one({"user_id": uid}) or {"user_id": uid, "since_rare": 0, "since_leg": 0, "chars": {}, "total": 0}
+    g = await col("gacha").find_one({"user_id": uid}) or {"user_id": uid}
+    for k, v in (("since_rare", 0), ("since_leg", 0), ("chars", {}), ("total", 0)):
+        g.setdefault(k, v)  # a pull that only gave items creates the document without "chars"
+    return g
 
 
 # Selling summoned characters: the whole stack (every copy) goes for this much per copy, by rarity.
@@ -534,6 +600,8 @@ async def forge(uid: int):
         return "wait", 0
     ch = await get_char(uid)
     wid = ch.get("weapon_id")
+    if wid not in ALL:
+        return "noweapon", 0  # the race weapon has not been chosen yet
     plus = (ch.get("weapon_plus") or {}).get(wid, 0)
     if plus >= 10:
         return "max", plus

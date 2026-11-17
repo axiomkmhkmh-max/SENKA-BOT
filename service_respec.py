@@ -3,24 +3,25 @@
 Stat reset: every point you put into a stat comes back to your spendable points (race base stays). Costs coins
 that grow with level, and can be done once per RESPEC_COOLDOWN.
 
-Race change: move to another unlocked race. Your allocated stat points are kept and laid on top of the new race's
-base, so a build survives the change. The new race brings its own base, home location and evolution gate, and
-race progression starts over. Kidō and Zanpakutō follow the race rules: a race that cannot use them loses its
-Kidō spells (and gets no refund for them). Costs a lot of coins and has a long cooldown.
+Race change: move to another unlocked race. Free; the only limit is a cooldown (RACE_CHANGE_COOLDOWN, 48 hours).
+Every allocated stat point comes back to spend again on the new race (the new race brings its own base and home).
+The evolution stage is kept (its title and bonuses are the new race's own at that stage). A Visored can go back to
+Shinigami and, having passed the Visored Gauntlet once, return to Visored without redoing it. Kidō follows the race
+rules: a race that cannot use it loses its spells. The race weapon and race armour turn into the new race's own
+(service_raceweapon / service_racegear): the armour keeps its colour, the weapon must be chosen again at the same level.
 
 Both are refused while you are in a fight (PvE, duel, trade) so nothing changes mid-battle.
 """
 import time
 
-from data_crafting import evo_gate_stage
 from data_races import RACES, STATS, race_selectable
 from database import col, game_settings
 from service_player import add_coins, get_char
 
 RESPEC_COST_PER_LEVEL = 150
 RESPEC_COOLDOWN = 24 * 3600
-RACE_CHANGE_COST_PER_LEVEL = 2000
-RACE_CHANGE_COOLDOWN = 30 * 24 * 3600
+RACE_CHANGE_COST_PER_LEVEL = 0          # race changes are free now
+RACE_CHANGE_COOLDOWN = 48 * 3600        # ... limited only by this cooldown
 KIDO_RACES = ("shinigami", "visored")
 
 
@@ -136,23 +137,23 @@ async def change_race(uid: int, new_race: str):
     left = _cooldown_left(ch, "race_changed_at", RACE_CHANGE_COOLDOWN)
     if left:
         return "cooldown", left
-    q = race_change_quote(ch)
-    if int(ch.get("coins", 0)) < q["coins"]:
-        return "funds", q["coins"]
     old = ch["race"]
     alloc = _allocated(ch)
     new_base = RACES[new_race]["stats"]
-    stats = {k: int(new_base.get(k, 0)) + alloc.get(k, 0) for k in STATS}
-    level = int(ch["level"])
+    stats = {k: int(new_base.get(k, 0)) for k in STATS}  # a clean base: every point comes back to spend again
+    refund = sum(alloc.values())
     upd = {"race": new_race, "stats": stats, "location": RACES[new_race]["home"],
-           "evo": evo_gate_stage(new_race, level), "race_progress": {"wins": 0, "hunts": 0, "stage": 0},
            "race_changed_at": int(time.time()), "race_from": old}
+    if old == "shinigami" and new_race == "visored" or old == "visored":
+        upd["visored_unlocked"] = True  # the Gauntlet was passed once: Visored <-> Shinigami without redoing it
     if new_race not in KIDO_RACES:  # no Kidō without the Shinigami/Visored path: clear the spells
         upd.update({"kido_learned": [], "kido": {"had": [], "bak": []}})
-    if not await add_coins(uid, -q["coins"], "race_change"):
-        return "funds", q["coins"]
-    r = await col("characters").update_one({"user_id": uid, "race": old}, {"$set": upd})
+    r = await col("characters").update_one({"user_id": uid, "race": old, "stats": ch.get("stats")},
+                                           {"$set": upd, "$inc": {"points": refund}})
     if not r.modified_count:
-        await add_coins(uid, q["coins"], "race_change_refund")
         return "retry", None
-    return "ok", q
+    from service_raceweapon import on_race_change as weapon_follow
+    from service_racegear import on_race_change as armour_follow
+    await weapon_follow(uid, old, new_race)
+    await armour_follow(uid, old, new_race)
+    return "ok", {"points": refund}

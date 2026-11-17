@@ -9,13 +9,13 @@ from data_bosses import BOSSES, BOSS_BY_ID
 from data_crafting import tagged_name
 from data_items import ALL, EVO_BY_RARITY
 from data_weapons import ELEMENTS, RARITIES
-from data_world import boss_gap_seconds, boss_hp_scale, day_id, season_pts_boss
+from data_world import boss_gap_seconds, boss_hp_roll, day_id, season_pts_boss
 import engine as E
 from database import bump_counter, col, game_settings, try_cooldown
 from service_combat import build_player
 from service_economy import inv_add, roll_drop
 from service_player import add_coins, add_xp, bump_quest, get_char
-from service_worldcore import (WS_ID, active_levels, active_players, chronicle, get_world, invalidate, is_new_account,
+from service_worldcore import (WS_ID, active_levels, online_players, chronicle, get_world, invalidate, is_new_account,
                                season_add, world_adjust)
 
 
@@ -60,8 +60,9 @@ async def spawn_boss(chat_id: int = None, boss_id: str = None):
     try:
         levels = await active_levels()
         b = BOSS_BY_ID.get(boss_id) if boss_id else pick_boss(levels)
-        scale = boss_hp_scale(await active_players(), ws.get("threat", 20), st)
-        hp = max(1, int(b["hp"] * scale * float(st["boss_hp_mult"])))
+        online = max(1, await online_players(int(st["boss_online_minutes"])))
+        hp = max(1, boss_hp_roll(online, st, random))
+        scale = online
         now = int(time.time())
         doc = {"_id": sid, "scope": "global", "boss_id": b["_id"], "name_fa": b["name_fa"], "name_en": b["name_en"], "level": b["level"],
                "hp": hp, "max_hp": hp, "trait": b["trait"], "active": True, "spawn_at": now, "scale": round(scale, 2),

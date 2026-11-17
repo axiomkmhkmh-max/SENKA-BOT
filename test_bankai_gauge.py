@@ -112,7 +112,7 @@ class GaugeEngineTests(unittest.TestCase):
         a["hp"] = int(a["max_hp"] * (GAUGE["hollow_hp"] - 0.05))
         ev, skipped = E.start_turn(st, FixedRng(0.0))  # roll always under hollow_p
         self.assertTrue(skipped)
-        self.assertIn("mask_lost", [e["k"] for e in ev])
+        self.assertIn("release_lost", [e["k"] for e in ev])
 
     def test_no_hollow_take_over_when_healthy(self):
         a, b = fighter("A"), fighter("B", race="hollow", ai=True)

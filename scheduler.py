@@ -48,6 +48,12 @@ async def tick(bot):
         await handlers_world.announce_territories(bot, res["terr"])
     if res["season"]:
         await handlers_world.announce_season(bot, res["season"])
+    # ---- Battle Rank: crown the finished season's Kenpachi (once) ----
+    if not await try_cooldown("br_crown", 300):
+        from service_battlerank import crown_due
+        won = await crown_due()
+        if won:
+            await _kenpachi_dm(bot, won)
     # ---- the single global boss ----
     left = await herald_due(int((await game_settings())["herald_window"]))  # Hollow Herald: countdown to the boss
     if left:
@@ -99,6 +105,19 @@ async def tick(bot):
             await bot.edit_message_text(text, chat_id=doc["chat_id"], message_id=doc["msg_id"], reply_markup=kb)
         except TelegramAPIError:
             pass
+
+
+async def _kenpachi_dm(bot, won: dict):
+    from data_battlerank import KENPACHI, KENPACHI_ART
+    u = await col("users").find_one({"telegram_id": won["user_id"]}, {"lang": 1}) or {}
+    fa = (u.get("lang") or "fa") == "fa"
+    text = (f"⚔️ <b>تو {KENPACHI[0]} فصل {won['season'] + 1} شدی!</b>\nنفر اول رنک نبرد. «{KENPACHI_ART['name'][0]}» برای همیشه مال توست."
+            if fa else f"⚔️ <b>You are the {KENPACHI[1]} of season {won['season'] + 1}!</b>\nNumber one in Battle Rank. "
+            f"«{KENPACHI_ART['name'][1]}» is yours forever.")
+    try:
+        await bot.send_message(won["user_id"], text)
+    except (TelegramAPIError, TelegramForbiddenError):
+        pass
 
 
 async def run(bot, stop: asyncio.Event):

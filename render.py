@@ -95,11 +95,21 @@ def events_text(lang: str, events: list) -> str:
             if e.get("mv") and move_name(e["mv"], lang):
                 out.append(pick(lang, "lg_unleash_move", a=a, move=esc(move_name(e["mv"], lang))))
             else:
-                out.append(pick(lang, "lg_unleash_res" if e.get("r") in RESURRECCION_RACES else "lg_unleash", a=a))
+                r = e.get("r")
+                key = ("lg_unleash_res" if r in RESURRECCION_RACES
+                       else f"lg_unleash_{r}" if r in ("quincy", "fullbringer", "human") else "lg_unleash")
+                out.append(pick(lang, key, a=a))
         elif k in ("miss", "dodge", "heal", "drain", "reflect", "double", "skip", "guard", "form_end", "mask_lost",
                    "flash", "shunpo", "hiren", "cero_charge", "charge_break", "chant", "resolve", "guts", "pressure",
                    "gauge_full", "unleash_end", "resurrect", "konpaku", "gather", "blut_vene", "blut_arterie", "negacion", "garganta"):
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
+        elif k == "tech":  # canon race technique (data_race_tech)
+            out.append(pick(lang, "lg_tech_" + str(e.get("id")), a=a, d=d))
+        elif k == "shield_t":
+            out.append(pick(lang, "lg_shield_t", a=a, n=n))
+        elif k == "release_lost":  # a battered Bankai / Resurrección gets out of hand: each race has its own line
+            rk = f"lg_release_lost_{e.get('r') or ''}"
+            out.append(pick(lang, rk if rk in (LOCALES.get(lang) or LOCALES["en"]) else "lg_mask_lost", a=a))
         elif k in ("move", "retreat", "outrange", "knock", "side"):  # distance (فاصله) events
             out.append(dist_event_text(lang, e))
         elif k == "bt":  # blade technique

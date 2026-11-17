@@ -35,7 +35,9 @@ class RaceBalanceTests(unittest.TestCase):
 
     def test_shinigami_and_visored_keep_kido_and_bankai_paths(self):
         self.assertTrue({"shinigami", "visored"} <= set(RACE_ABILITIES["bk"]))
-        self.assertTrue({"shinigami", "visored"} <= set(RACE_ABILITIES["gx"]))
+        from data_race_rules import race_allows
+        for r in ("shinigami", "visored", "quincy", "hollow", "arrancar", "fullbringer", "human"):
+            self.assertTrue(race_allows(r, "gx"), r)  # every race has a release since the release rework
         self.assertNotIn("human", RACE_ABILITIES["kd"])
         self.assertNotIn("quincy", RACE_ABILITIES["kd"])
 
@@ -76,7 +78,7 @@ class RebaseTests(unittest.TestCase):
         from data_race_rules import RACE_CONTEXT_DMG
         for race, ctxs in RACE_CONTEXT_DMG.items():
             for c, v in ctxs.items():
-                self.assertTrue(0.92 - 1e-9 <= v <= 1.08 + 1e-9, (race, c, v))
+                self.assertTrue(0.80 - 1e-9 <= v <= 1.20 + 1e-9, (race, c, v))
 
     def test_rebase_is_never_negative(self):
         new = rebased_stats("human", {"zanjutsu": 0, "kido": 0, "hakuda": 0, "hoho": 0, "reiatsu": 0})

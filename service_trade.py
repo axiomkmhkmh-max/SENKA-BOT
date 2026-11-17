@@ -14,6 +14,7 @@ import time
 
 from bson import ObjectId
 
+from data_items import ALL
 from database import col, game_settings
 from service_economy import inv_add, inv_get, inv_remove
 from service_player import add_coins, get_char
@@ -128,6 +129,8 @@ async def add_item(tid, uid, item_id):
     doc = await get_session(tid, uid)
     if not doc:
         return "closed"
+    if not (ALL.get(item_id) or {}).get("tradeable"):  # keys, Mythic blades... are bound to their owner (same rule as the market)
+        return "notrade"
     inv = await inv_get(uid)
     offer = _side(doc["offers"].get(str(uid)))
     have = int((inv.get("items") or {}).get(item_id, 0))
@@ -224,10 +227,18 @@ async def _execute(doc):
     for uid, (give, _) in plan.items():
         inv = await inv_get(uid)
         ch = await get_char(uid) or {}
+        if any(not (ALL.get(i) or {}).get("tradeable") for i in give["items"]):  # offers made before the rule existed
+            await col("trades").update_one({"_id": tid}, {"$set": {"status": "failed", "reason": "notrade"}})
+            return "notrade"
         if any(int((inv.get("items") or {}).get(i, 0)) < q for i, q in give["items"].items()) or \
            int(ch.get("coins", 0)) < int(give["coins"]):
             await col("trades").update_one({"_id": tid}, {"$set": {"status": "failed", "reason": "missing"}})
             return "missing"
+    for uid, (_give, get) in plan.items():  # race armour and race cards go only to a player of that race
+        race = ((await get_char(uid)) or {}).get("race")
+        if any((ALL.get(i) or {}).get("race") not in (None, race) for i in get["items"]):
+            await col("trades").update_one({"_id": tid}, {"$set": {"status": "failed", "reason": "race"}})
+            return "race"
     removed, debited = [], []
     try:
         # take what each side gives. A coin debit that fails (the player spent the coins since the check) must
