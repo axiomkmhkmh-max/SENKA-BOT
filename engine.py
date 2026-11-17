@@ -514,8 +514,8 @@ def _signature(state, side, rng, ev):
         if o["hp"] > 0 and rng.random() < c["bleed"]:
             add_fx(o, "bleed", DOT_TURNS["bleed"])
             ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "bleed"})
-    elif sg == "soul":  # Soul Strike: a reiatsu strike (no bleed, no shield)
-        _deal(state, side, c["mult"], rng, ev, "bring", allow_procs=True)
+    elif sg == "soul":  # Soul Strike: a reiatsu strike (no bleed, no shield); own hit kind so it has its own text
+        _deal(state, side, c["mult"], rng, ev, "soul", allow_procs=True)
     elif sg == "guts":  # Santen Kesshun: a shield that soaks the next hits
         n = max(1, int(f["max_hp"] * c["shield"]))
         f["shield"] += n

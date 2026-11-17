@@ -3,14 +3,19 @@ No MongoDB needed: the database layer is replaced by fakes. Run: python -m unitt
 import asyncio
 import os
 import sys
-import types
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from _stubs import import_with_stubs  # noqa: E402
+
+E = import_with_stubs("service_economy")
+from data_items import ALL  # noqa: E402
+
 CH = {}
 CALLS = []
 REMOVED = []
+BOND_ITEMS = [i for i, it in ALL.items() if (it.get("effect") or {}).get("type") == "bond"]
 
 
 class _Col:
@@ -18,30 +23,8 @@ class _Col:
         CALLS.append(upd)
 
 
-def _install_stubs():
-    def mod(name, **attrs):
-        m = types.ModuleType(name)
-        m.__dict__.update(attrs)
-        sys.modules[name] = m
-
-    async def _noop(*a, **k):
-        return None
-
-    async def get_char(uid):
-        return CH
-
-    mod("pymongo", ReturnDocument=types.SimpleNamespace(AFTER=1, BEFORE=0))
-    mod("database", col=lambda name: _Col(), game_settings=_noop, try_cooldown=_noop)
-    mod("service_log", log_event=_noop)
-    mod("service_player", add_coins=_noop, add_xp=_noop, bump_quest=_noop, get_char=get_char)
-    mod("service_worldcore", mods_for=_noop)
-
-
-_install_stubs()
-import service_economy as E  # noqa: E402
-from data_items import ALL  # noqa: E402
-
-BOND_ITEMS = [i for i, it in ALL.items() if (it.get("effect") or {}).get("type") == "bond"]
+async def _get_char(uid):
+    return CH
 
 
 async def _remove(uid, item_id, qty=1):
@@ -49,15 +32,18 @@ async def _remove(uid, item_id, qty=1):
     return True
 
 
-E.inv_remove = _remove
-
-
 class BondBookTests(unittest.TestCase):
     def setUp(self):
+        self._saved = {k: getattr(E, k) for k in ("get_char", "col", "inv_remove")}
+        E.get_char, E.col, E.inv_remove = _get_char, (lambda name: _Col()), _remove
         CALLS.clear()
         REMOVED.clear()
         self.item = BOND_ITEMS[0]
         self.amount = ALL[self.item]["effect"]["amount"]
+
+    def tearDown(self):
+        for k, v in self._saved.items():
+            setattr(E, k, v)
 
     def _use(self, ch):
         CH.clear()

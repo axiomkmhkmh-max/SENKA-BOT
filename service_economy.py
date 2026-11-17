@@ -411,6 +411,11 @@ async def gacha_pull(uid: int, n: int = 1):
     if not await add_coins(uid, -cost, "gacha"):
         return None, "funds"
     g = await col("gacha").find_one({"user_id": uid}) or {"user_id": uid, "since_rare": 0, "since_leg": 0, "chars": {}, "total": 0}
+    # Lifetime Mythic count from summons. Players who summoned before this counter existed start from the Mythic
+    # characters they already own (Mythic items were never tracked, so they are not counted).
+    if "mythic" not in g:
+        g["mythic"] = sum(int(c) for cid, c in (g.get("chars") or {}).items() if (CHAR_BY_ID.get(cid) or {}).get("rarity") == "Mythic")
+    mythic_cap = int(st["gacha_mythic_cap"])  # 0 = no limit
     rng = random.Random()
     results = []
     for _ in range(n):
@@ -421,6 +426,8 @@ async def gacha_pull(uid: int, n: int = 1):
             idx = 4
         elif g["since_rare"] >= int(st["gacha_pity_rare"]) and idx < 2:
             idx = 2
+        if idx == 5 and mythic_cap > 0 and g["mythic"] >= mythic_cap:
+            idx = 4  # Mythic limit reached: this roll becomes a Legendary
         if idx >= 2:
             g["since_rare"] = 0
         if idx >= 4:
@@ -437,6 +444,8 @@ async def gacha_pull(uid: int, n: int = 1):
             iid = rng.choice(wp) if wp and rng.random() < 0.4 else rng.choice(items)
             await inv_add(uid, iid, 1, force=True)
             results.append({"t": "item", "id": iid, "rar": ALL[iid]["rarity"]})
+        if results[-1]["rar"] == "Mythic":  # count what the player really received (a Mythic roll can land on a lower item)
+            g["mythic"] += 1
     g["total"] += n
     g.pop("_id", None)
     await col("gacha").update_one({"user_id": uid}, {"$set": g}, upsert=True)

@@ -22,8 +22,9 @@ SIG = {
     "cero": {"cost": 0.12, "cd": 2, "mult": 2.8, "pierce": 0.30, "ai_mult": 2.0, "ai_pierce": 0.15},
     "bring": {"cost": 0.10, "cd": 4, "mult": 1.25, "bleed": 0.4},
     "guts": {"cost": 0.10, "cd": 5, "shield": 0.20},
-    # Human: Soul Strike, a plain reiatsu strike with a short cooldown (humans had no damage move before)
-    "soul": {"cost": 0.10, "cd": 3, "mult": 1.30},
+    # Human: Soul Strike, a plain reiatsu strike with a short cooldown (humans had no damage move before).
+    # 1.30 was only about +7% damage over a normal attack per 4-turn cycle; 1.60 is about +15%.
+    "soul": {"cost": 0.10, "cd": 3, "mult": 1.60},
   # Orihime: Santen Kesshun, a three-layer shield
 }
 

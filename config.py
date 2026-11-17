@@ -52,6 +52,7 @@ GAME_DEFAULTS = {
     "market_seller_fee": 0.05, "market_buyer_fee": 0.02, "market_slots": 5,
     "market_hours": 72, "auction_snipe_seconds": 60, "auction_extend_seconds": 120,
     "gacha_cost": 1500, "gacha_pity_legendary": 80, "gacha_pity_rare": 10,
+    "gacha_mythic_cap": 10,  # most Mythic results one player can get from summons, ever (0 = no limit)
     "guild_create_cost": 5000, "guild_min_level": 20, "squad_change_days": 7,
     "minigame_daily_xp_cap": 500, "hollow_daily_xp_cap": 50,
     "referral_reward": 200,
