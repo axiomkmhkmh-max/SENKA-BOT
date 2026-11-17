@@ -740,6 +740,8 @@ async def c_addadmin(e: Env):
     if role not in ROLES or role == "owner":
         role = "admin"
     await col("admin_users").update_one({"user_id": tid}, {"$set": {"role": role}}, upsert=True)
+    from handlers_admin import forget_admin
+    forget_admin(tid)
     try:
         from handlers_adminpanel import refresh_admin_commands
         await refresh_admin_commands(e.bot, tid, True)
@@ -755,6 +757,8 @@ async def c_rmadmin(e: Env):
     if tid is None:
         return
     await col("admin_users").delete_one({"user_id": tid})
+    from handlers_admin import forget_admin
+    forget_admin(tid)
     try:
         from handlers_adminpanel import refresh_admin_commands
         await refresh_admin_commands(e.bot, tid, False)

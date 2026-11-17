@@ -162,8 +162,8 @@ async def boss_hit(uid: int, sid: str):
         return ("dead" if dead else "gone"), None
     phase_up = phase(doc) if phase(doc) > phase(sess) else 0
     await bump_quest(uid, "boss_hit", 1)
-    from service_worldstate import on_action
-    await on_action(uid, "boss_hit", ch["location"])
+    from service_worldstate import on_action_bg
+    on_action_bg(uid, "boss_hit", ch["location"])
     return "hit", {"dmg": dmg, "crit": crit, "doc": doc, "combo": combo, "special": special, "phase_up": phase_up, "race": ch["race"]}
 
 

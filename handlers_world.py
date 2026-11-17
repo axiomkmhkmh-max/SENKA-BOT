@@ -28,6 +28,7 @@ from service_world import active_boss, broadcast_groups, group_doc
 from service_worldcore import chronicle_text, get_world, mods_for
 from service_worldstate import event_contribute_key, season_top, territory_board, territory_owners
 from ui import INPUTS, Out, action, chunk, head, input_handler, make_button, markup, nav
+from service_pace import bulk_slot
 
 log = logging.getLogger("senka.hworld")
 PER_PAGE = 6
@@ -629,7 +630,7 @@ async def _send_groups(bot, text_fn, kb=None, limit: int = 300, want_ids: bool =
             await col("groups").update_one({"chat_id": g["chat_id"]}, {"$set": {"blocked": True}})
         except TelegramAPIError:
             log.warning("announce failed for %s", g["chat_id"])
-        await asyncio.sleep(0.05)
+        await bulk_slot()  # shared pace for all bulk sends (service_pace)
     return ids
 
 
@@ -666,7 +667,7 @@ async def _edit_all(bot, doc, text_fn, kb):
             await bot.edit_message_text(both(langs.get(cid, "fa"), text_fn), chat_id=int(cid), message_id=int(mid), reply_markup=kb(langs.get(cid, "fa")) if callable(kb) else kb)
         except TelegramAPIError:
             pass
-        await asyncio.sleep(0.05)
+        await bulk_slot()  # shared pace for all bulk sends (service_pace)
 
 
 async def announce_boss_phase(bot, doc, phase_no):
@@ -707,7 +708,7 @@ async def announce_event_end(bot, summary):
             await bot.send_message(r["uid"], t(tl, "ev_dm", xp=fnum(r["xp"], tl), coins=fnum(r["coins"], tl)) + (("\n🎁 " + nm(r["prize"], tl)) if r["prize"] else ""))
         except Exception:
             pass
-        await asyncio.sleep(0.05)
+        await bulk_slot()  # shared pace for all bulk sends (service_pace)
 
 
 async def announce_territories(bot, changes):
@@ -729,7 +730,7 @@ async def announce_season(bot, summary):
             await bot.send_message(uid, t(tl, key, **{k: fnum(v, tl) for k, v in params.items()}))
         except Exception:
             pass
-        await asyncio.sleep(0.05)
+        await bulk_slot()  # shared pace for all bulk sends (service_pace)
 
 # --- NEW BLEACH VIRAL SYSTEM: Quincy invasion messages ---
 _QT = {

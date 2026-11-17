@@ -13,6 +13,7 @@ from service_economy import inv_add
 from service_log import log_event
 from service_player import add_coins, add_xp, get_char, today
 from ui import Out, action, head, nav
+from service_pace import bulk_slot
 
 log = logging.getLogger("senka.admin")
 CMD = {"stats": "stats", "آمار": "stats", "ban": "ban", "بن": "ban", "unban": "unban", "آنبن": "unban",
@@ -26,11 +27,28 @@ NEED = {"stats": 20, "user": 20, "warn": 40, "mute": 40, "ban": 40, "unban": 40,
         "broadcast": 60, "reset": 80, "confirm": 80, "spawn": 60, "world": 20, "maintenance": 60, "addadmin": 100, "rmadmin": 100}
 
 
+_lvl_cache: dict = {}
+
+
 async def admin_level(uid: int) -> int:
+    """Admin level of a user. Asked on every private message, so it is cached for 30 seconds (adding or removing
+    an admin clears the cache through forget_admin)."""
     if uid == settings.owner_id:
         return 100
+    hit = _lvl_cache.get(uid)
+    now = time.monotonic()
+    if hit and now - hit[1] < 30:
+        return hit[0]
     d = await col("admin_users").find_one({"user_id": uid})
-    return ROLES.get((d or {}).get("role", ""), 0)
+    lvl = ROLES.get((d or {}).get("role", ""), 0)
+    if len(_lvl_cache) > 20000:
+        _lvl_cache.clear()
+    _lvl_cache[uid] = (lvl, now)
+    return lvl
+
+
+def forget_admin(uid: int):
+    _lvl_cache.pop(uid, None)
 
 
 async def alog(admin: int, act: str, target=None, before=None, after=None, reason: str = ""):
@@ -209,8 +227,10 @@ async def handle_admin_text(ctx, text: str):
         if cmd == "addadmin":
             role = args[1] if len(args) > 1 and args[1] in ROLES and args[1] != "owner" else "admin"
             await col("admin_users").update_one({"user_id": tid}, {"$set": {"role": role}}, upsert=True)
+            forget_admin(tid)
         else:
             await col("admin_users").delete_one({"user_id": tid})
+            forget_admin(tid)
         try:
             from handlers_adminpanel import refresh_admin_commands
             await refresh_admin_commands(ctx.bot, tid, cmd == "addadmin")
@@ -241,7 +261,7 @@ async def _broadcast(bot, flt, msg, admin):
             ok += 1
         except Exception:
             fail += 1
-        await asyncio.sleep(0.06)
+        await bulk_slot()  # shared pace for all bulk sends (service_pace)
     try:
         await bot.send_message(admin, f"📣 ✅ {ok} | ❌ {fail}")
     except Exception:
@@ -263,7 +283,7 @@ async def admin_world(ctx, args, lvl: int) -> str:
         rei = ", ".join(f"{(LOCATIONS.get(k) or {}).get('fa', k) if L == 'fa' else k}:{v:.0f}" for k, v in sorted((ws.get("reishi") or {}).items()))
         return ctx.t("adm_world", threat=f"{ws.get('threat', 0):.1f}", stab=f"{ws.get('stability', 0):.1f}", rei=rei or "—",
                      ev=(f"{EVENT_FA.get(ev['kind'], ev['kind']) if L == 'fa' else ev['kind']} {ev['progress']}/{ev['goal']}" if ev else "—"), boss=(f"{(b.get('name_fa') or b['name_en']) if L == 'fa' else b['name_en']} {max(0, b['hp'])}/{b['max_hp']}" if b else "—"),
-                     season=ws["season"]["id"])
+                     season=(ws.get("season") or {}).get("id", 1))
     if lvl < 60:
         return ctx.t("adm_noperm")
     if sub == "set" and len(args) >= 3:
@@ -287,7 +307,7 @@ async def admin_world(ctx, args, lvl: int) -> str:
         return ctx.t("adm_done")
     if sub == "event" and len(args) >= 2:
         if args[1].lower() == "end":
-            res = await event_end(force_success=False)
+            res = await event_end()  # success when the goal was reached
             await alog(ctx.uid, "world_event_end")
             return ctx.t("adm_done" if res else "adm_fail")
         if args[1] in EVENTS:

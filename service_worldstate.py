@@ -31,6 +31,17 @@ async def on_action(uid: int, action: str, loc: str = None):
         log.exception("on_action failed: %s %s", action, uid)
 
 
+_bg_tasks: set = set()
+
+
+def on_action_bg(uid: int, action: str, loc: str = None):
+    """Same as on_action, but the player's reply does not wait for the shared-world bookkeeping (5-8 database calls)."""
+    import asyncio
+    t = asyncio.ensure_future(on_action(uid, action, loc))
+    _bg_tasks.add(t)
+    t.add_done_callback(_bg_tasks.discard)
+
+
 async def _on_action(uid: int, action: str, loc: str):
     ch = await get_char(uid)
     if not ch:
@@ -54,8 +65,8 @@ async def _on_action(uid: int, action: str, loc: str):
     # 2) world event contribution
     _, ev = await get_world()
     if ev and not is_new_account(ch, st):
-        pts = event_pts(ev["kind"], action, loc)
-        if pts and await bump_counter(f"evpts:{uid}:{day_id()}", pts, int(st["event_daily_pts_cap"])):
+        pts = await _grant_pts(uid, event_pts(ev["kind"], action, loc), st)
+        if pts:
             await col("world_events").update_one({"_id": ev["_id"], "status": "active"},
                                                  {"$inc": {"progress": pts, f"contrib.{uid}": pts}, "$set": {f"nm.{uid}": ch["name"]}})
     # 3) territory points for the guild
@@ -64,6 +75,16 @@ async def _on_action(uid: int, action: str, loc: str):
     # 4) season points
     if action in SEASON_PTS:
         await season_add(uid, SEASON_PTS[action], ch["name"])
+
+
+async def _grant_pts(uid: int, pts: int, st: dict) -> int:
+    """Event points that still fit under today's cap. Near the cap the remainder is granted instead of nothing."""
+    key, cap = f"evpts:{uid}:{day_id()}", int(st["event_daily_pts_cap"])
+    while pts > 0:
+        if await bump_counter(key, pts, cap):
+            return pts
+        pts = pts // 2 if pts > 2 else pts - 1
+    return 0
 
 
 # ---- territories ------------------------------------------------------------------------------------------------------
@@ -214,7 +235,9 @@ async def event_end(eid: str = None, force_success: bool = None):
     await world_adjust(threat=eff["threat"], stability=eff["stability"])
     await col("world_events").update_one({"_id": doc["_id"]}, {"$set": {"status": "done", "ended_at": int(time.time()), "success": ok,
                                                                           "expire_at": datetime.now(timezone.utc) + timedelta(days=14)}})
-    await col("world_state").update_one({"_id": WS_ID, "event_id": doc["_id"]}, {"$set": {"event_id": None}})
+    now = int(time.time())  # an event that ends early (goal reached / admin) must not push the next one back
+    await col("world_state").update_one({"_id": WS_ID, "event_id": doc["_id"]},
+                                        {"$set": {"event_id": None, "next_event_at": now + int(st["event_min_gap_minutes"]) * 60}})
     await chronicle("event_win" if ok else "event_lose", ev_fa=t("fa", f"ev_{doc['kind']}_name"), ev_en=t("en", f"ev_{doc['kind']}_name"), n=n)
     invalidate()
     return {"doc": doc, "ok": ok, "rows": rows, "n": n}
@@ -237,10 +260,13 @@ async def event_contribute_key(uid: int, item_id: str):
     pts = event_pts(ev["kind"], "key", ch["location"]) * KEY_PTS.get(e["diff"], 1)
     if pts <= 0:
         return "noevent", None
-    if not await bump_counter(f"evpts:{uid}:{day_id()}", pts, int(st["event_daily_pts_cap"])):
-        return "cap", None
     if not await inv_remove(uid, item_id, 1):
         return "missing", None
+    pts = await _grant_pts(uid, pts, st)
+    if not pts:
+        from service_economy import inv_add as _back
+        await _back(uid, item_id, 1)  # the key is given back when today's cap is already full
+        return "cap", None
     await col("world_events").update_one({"_id": ev["_id"], "status": "active"}, {"$inc": {"progress": pts, f"contrib.{uid}": pts}, "$set": {f"nm.{uid}": ch["name"]}})
     return "ok", pts
 
@@ -332,7 +358,18 @@ async def tick() -> dict:
             alive = await col("boss_sessions").find_one({"_id": ws["boss_id"], "active": True}, {"_id": 1})
             if not alive and now - ws.get("next_boss_at", 0) > 60:
                 await col("world_state").update_one({"_id": WS_ID, "boss_id": ws["boss_id"]}, {"$set": {"boss_id": None}})
-        # events
+        # events: a slot pointing at an event that is no longer active (crash while settling, deleted document)
+        # would block every future event, so it is freed here
+        if not ev and ws.get("event_id"):
+            stale = await col("world_events").find_one({"_id": ws["event_id"]}, {"status": 1, "end_at": 1})
+            if not stale or stale.get("status") == "done" or (stale.get("status") == "settling" and now - int(stale.get("end_at", 0)) > 600):
+                if stale and stale.get("status") == "settling":
+                    await col("world_events").update_one({"_id": stale["_id"]}, {"$set": {"status": "done", "success": False, "ended_at": now}})
+                await col("world_state").update_one({"_id": WS_ID, "event_id": ws["event_id"]},
+                                                    {"$set": {"event_id": None, "next_event_at": now + 300}})
+                invalidate()
+                log.warning("freed a stuck world-event slot (%s)", ws["event_id"])
+            ws, ev = await get_world(force=True)
         if ev and (ev["progress"] >= ev["goal"] or now >= ev["end_at"]):
             out["event_ended"] = await event_end(ev["_id"])
         elif not ev and st["event_enabled"] and ws.get("next_event_at", 0) <= now:

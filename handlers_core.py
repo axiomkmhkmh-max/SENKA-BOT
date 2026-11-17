@@ -216,10 +216,10 @@ async def handle_text(message: Message, text: str):
     await touch_user(user)
     ctx = await make_ctx(user, message.chat, message.bot, message)
     asyncio.ensure_future(_ensure_admin_menu(message.bot, user.id))
-    blocked = await gate(ctx)
+    # the gate, the character and a pending typed prompt are independent: one round trip instead of three in a row
+    blocked, ch, pend = await asyncio.gather(gate(ctx), get_char(user.id), col("inputs").find_one({"user_id": user.id}))
     if blocked:
         return await send_out(message, ctx, blocked)
-    ch = await get_char(user.id)
     if not ch:
         if not await user_lang(user.id):
             return await send_out(message, ctx, reg.lang_panel(ctx))
@@ -228,12 +228,14 @@ async def handle_text(message: Message, text: str):
             return await send_out(message, ctx, await reg.handle_name_text(ctx, text))
         return await send_out(message, ctx, await reg.reg_panel(ctx, r))
     # admin text commands (a multi-word player phrase wins over an admin shortcut with the same first word)
-    if await handlers_admin.admin_level(user.id) >= 20 and not await _is_player_phrase(text) and not await col("inputs").find_one({"user_id": user.id, "kind": {"$regex": "^ad_"}, "at": {"$gte": time.time() - 300}}):
+    admin_prompt = bool(pend and str(pend.get("kind", "")).startswith("ad_") and pend.get("at", 0) >= time.time() - 300)
+    if not admin_prompt and await handlers_admin.admin_level(user.id) >= 20 and not await _is_player_phrase(text):
         out = await handlers_admin.handle_admin_text(ctx, text)
         if out is not None:
             return await send_out(message, ctx, out)
-    # pending free-text prompts (e.g. guild name)
-    pend = await col("inputs").find_one_and_delete({"user_id": user.id})
+    # pending free-text prompts (e.g. guild name). Usually there is none: then no write at all
+    if pend:
+        pend = await col("inputs").find_one_and_delete({"_id": pend["_id"]})
     if pend and pend["kind"] in INPUTS:
         if time.time() - pend["at"] < 300 and normalize_text(text) not in ("لغو", "cancel"):
             return await send_out(message, ctx, await INPUTS[pend["kind"]](ctx, text))
@@ -347,10 +349,11 @@ async def on_callback(cb: CallbackQuery):
     fn = REGISTRY.get(code)
     if not fn:
         return await cb.answer()
-    blocked = await gate(ctx)
+    need_char = code not in ("lang", "noop") and code not in ("begin", "gen", "race", "st", "zp", "rgi", "zpi", "rgl", "bh", "dua", "dud", "pa")
+    blocked, has_char = await asyncio.gather(gate(ctx), _has_char(user.id) if need_char else asyncio.sleep(0, True))  # together: one wait
     if blocked:
         return await cb.answer(blocked.text, show_alert=True)
-    if code not in ("lang", "noop") and code not in ("begin", "gen", "race", "st", "zp", "rgi", "zpi", "rgl", "bh", "dua", "dud", "pa") and not await _has_char(user.id):
+    if need_char and not has_char:
         r = await reg.reg_panel(ctx)
         return await _deliver(cb, ctx, r)
     wg = await weapon_gate(ctx, code)

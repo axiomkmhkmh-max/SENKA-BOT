@@ -17,6 +17,7 @@ from security import normalize_text
 from service_economy import inv_add
 from service_log import log_event
 from service_player import add_coins, add_xp, get_char
+from service_pace import bulk_slot
 
 _DIG = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 MAX_QTY = 9999
@@ -330,5 +331,5 @@ async def gift_all(kind: str, n: int, item_id: str = None):
         except Exception:
             pass
         if done % 40 == 0:
-            await asyncio.sleep(0.05)
+            await bulk_slot()  # shared pace for all bulk sends (service_pace)
     return done

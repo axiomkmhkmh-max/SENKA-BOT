@@ -673,6 +673,8 @@ async def _run_input(ctx, name, pend, raw):
             raise ValueError(raw)
         role = role_ok(rest.split()[0] if rest else "", ROLE_CHOICES)
         await col("admin_users").update_one({"user_id": tid}, {"$set": {"role": role}}, upsert=True)
+        from handlers_admin import forget_admin
+        forget_admin(tid)
         try:
             await refresh_admin_commands(ctx.bot, tid, True)
         except Exception:
@@ -684,6 +686,8 @@ async def _run_input(ctx, name, pend, raw):
         if tid is None or tid == settings.owner_id:
             raise ValueError(raw)
         await col("admin_users").delete_one({"user_id": tid})
+        from handlers_admin import forget_admin
+        forget_admin(tid)
         try:
             await refresh_admin_commands(ctx.bot, tid, False)
         except Exception:

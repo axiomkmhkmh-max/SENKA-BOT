@@ -4,8 +4,9 @@ Codes: brk (rank panel), brl (season ladder: every division and its reward), bf:
 """
 import time
 
-from data_battlerank import (DIVS, KENPACHI, KENPACHI_ART, REWARD_NAME, SEASON_DAYS, TIER_ICON, div_title, flee_cost,
-                             progress, reward_of, season_end, season_of, title)
+from data_battlerank import (DIVS, DUEL_DAILY_CAP, DUEL_PAIR_DAILY, KENPACHI, KENPACHI_ART, PVE_DAILY_CAP, PVE_ELITE, PVE_WIN,
+                             REWARD_NAME, SEASON_DAYS, TIER_ICON, div_title, flee_cost, loss_cost, progress, reward_of, season_end,
+                             season_of, title)
 from fmt import nm
 from i18n import esc, fnum
 from service_battlerank import current, kenpachi_now, leaderboard
@@ -41,6 +42,9 @@ def result_lines(ctx, br: dict) -> list:
     d = br["delta"]
     sign = "+" if d >= 0 else "−"
     lines = [T(ctx, f"🎖 رنک نبرد: {sign}{fnum(abs(d), L)} → {t}", f"🎖 Battle Rank: {sign}{abs(d)} → {t}")]
+    if br.get("capped"):
+        lines.append(T(ctx, f"⏳ سقف امروز رنک از نبرد عادی ({fnum(PVE_DAILY_CAP, L)}) پر شد؛ تا فردا فقط دوئل رنکی رنک می‌دهد.",
+                       f"⏳ Today's Battle Rank cap from normal battles ({PVE_DAILY_CAP}) is full; until tomorrow only ranked duels add rank."))
     if br.get("up"):
         lines.append(T(ctx, f"⬆️ ارتقا! حالا <b>{t}</b> هستی.", f"⬆️ Promoted! You are now <b>{t}</b>."))
     elif br.get("down"):
@@ -64,18 +68,26 @@ async def rank_panel(ctx, arg):
     season = season_of(time.time())
     left = max(0, season_end(season) - int(time.time()))
     days, hours = left // 86400, (left % 86400) // 3600
-    lines = [T(ctx, "🎖 <b>رنک نبرد</b> — فقط نبردهای عادی (نه دانجن)", "🎖 <b>Battle Rank</b> — normal battles only (not dungeons)"),
+    lines = [T(ctx, "🎖 <b>رنک نبرد</b> — نبرد عادی و دوئل رنکی (نه دانجن)", "🎖 <b>Battle Rank</b> — normal battles and ranked duels (not dungeons)"),
              T(ctx, f"رتبه‌ی تو: <b>{await rank_title(ch, 'fa')}</b>", f"Your rank: <b>{await rank_title(ch, 'en')}</b>"),
              f"<code>{_bar(into, w)}</code> {fnum(into, L)}/{fnum(w, L)}" if k < DIVS - 1 else T(ctx, f"امتیاز: {fnum(rp, L)}", f"Points: {rp}"),
              T(ctx, f"🗓 فصل {fnum(season + 1, L)} · {fnum(days, L)} روز و {fnum(hours, L)} ساعت مانده",
                f"🗓 Season {season + 1} · {days}d {hours}h left"), "",
-             T(ctx, "📜 <b>قانون‌ها</b>\n• برد با نوبت کمتر = رنک بیشتر\n• باخت زنجیره را می‌شکند و هرچه رنکت بالاتر باشد بیشتر کم می‌کند\n"
-                    f"• فرار رنک زیادی کم می‌کند (الان {fnum(flee_cost(rp), L)}) ولی زنجیره نمی‌شکند\n"
-                    "• همه‌چیز نسبیه: درصدی از بازه‌ی همان رتبه\n• به هر زیررتبه که برسی یک‌بار در فصل جایزه می‌گیری\n"
+             T(ctx, "📜 <b>قانون‌ها</b> (لول و قدرت هیچ اثری ندارند)\n"
+                    f"• برد در نبرد عادی: +{fnum(PVE_WIN, L)} (دشمن الیت +{fnum(PVE_ELITE, L)})؛ سقف روزانه {fnum(PVE_DAILY_CAP, L)}\n"
+                    f"• دوئل رنکی: برد مقابل رتبه‌ی بالاتر بیشتر می‌دهد (۱۵ تا ۸۰)؛ بازنده حدود ۸۰٪ همان را از دست می‌دهد\n"
+                    f"• با یک حریف فقط {fnum(DUEL_PAIR_DAILY, L)} دوئل اول هر روز رنک دارد؛ سقف روزانه‌ی دوئل {fnum(DUEL_DAILY_CAP, L)}\n"
+                    f"• باخت در نبرد عادی زنجیره را می‌شکند (الان −{fnum(loss_cost(rp), L)})\n"
+                    f"• فرار بیشتر از باخت کم می‌کند (الان −{fnum(flee_cost(rp), L)}) ولی زنجیره نمی‌شکند\n"
+                    "• هر زیررتبه چند روز طول می‌کشد؛ بالای نردبان برای کل فصل است\n• به هر زیررتبه که برسی یک‌بار در فصل جایزه می‌گیری\n"
                     f"• نفر اول فصل «{KENPACHI[0]}» می‌شود و «{KENPACHI_ART['name'][0]}» را برای همیشه می‌گیرد",
-               "📜 <b>Rules</b>\n• A win in fewer rounds = more rank\n• A loss breaks the chain and costs more the higher you are\n"
-               f"• Fleeing costs a lot of rank (now {flee_cost(rp)}) but keeps the chain\n"
-               "• Everything is proportional: a share of your division\n• Each sub-tier you reach pays once per season\n"
+               "📜 <b>Rules</b> (level and power play no part)\n"
+               f"• Normal win: +{PVE_WIN} (elite foe +{PVE_ELITE}); daily cap {PVE_DAILY_CAP}\n"
+               "• Ranked duel: beating a higher rank pays more (15 to 80); the loser drops about 80% of it\n"
+               f"• Only the first {DUEL_PAIR_DAILY} duels a day against the same opponent count; duel daily cap {DUEL_DAILY_CAP}\n"
+               f"• A normal loss breaks the chain (now −{loss_cost(rp)})\n"
+               f"• Fleeing costs more than losing (now −{flee_cost(rp)}) but keeps the chain\n"
+               "• Each sub-tier takes days; the top of the ladder takes the whole season\n• Each sub-tier you reach pays once per season\n"
                f"• The season's number one becomes {KENPACHI[1]} and keeps {KENPACHI_ART['name'][1]} forever")]
     if ch.get("kenpachi_art"):
         lines.append(T(ctx, f"\n👁 {KENPACHI_ART['name'][0]} مال توست.", f"\n👁 You hold {KENPACHI_ART['name'][1]}."))

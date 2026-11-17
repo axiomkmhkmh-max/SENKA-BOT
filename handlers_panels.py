@@ -14,7 +14,7 @@ from fmt import effect_text, nm, race_name, rarity_name, stats_block, title_of
 from handlers_world import bonus_line, world_line
 from service_interact import crowd_counts, find_trace
 from service_worldcore import mods_for
-from service_worldstate import on_action, territory_income, territory_owners
+from service_worldstate import on_action_bg, territory_income, territory_owners
 from i18n import bar, esc, fnum
 from security import clean_name
 from data_lore import streak_line
@@ -169,12 +169,17 @@ async def general_skill_switch(ctx, arg):
 @action("upg")
 async def upgrade(ctx, arg):
     L = ctx.lang
-    if arg in STATS:
-        r = await col("characters").update_one({"user_id": ctx.uid, "points": {"$gte": 1}}, {"$inc": {"points": -1, f"stats.{arg}": 1}})
-        if not r.modified_count:
+    k, _, many = (arg or "").partition(":")  # "zanjutsu" = +1, "zanjutsu:10" = +10 (or all points left when fewer)
+    if k in STATS:
+        want = 10 if many == "10" else 1
+        have = int(((await col("characters").find_one({"user_id": ctx.uid}, {"points": 1})) or {}).get("points", 0))
+        n = min(want, have)
+        r = await col("characters").update_one({"user_id": ctx.uid, "points": {"$gte": n}}, {"$inc": {"points": -n, f"stats.{k}": n}}) if n >= 1 else None
+        if not r or not r.modified_count:
             return Out(alert=ctx.t("no_points"))
     ch = await get_char(ctx.uid)
-    rows = [[(f"➕ {STAT_ICON[k]} {ctx.t('stat_' + k)}: {fnum(int(ch['stats'][k]), L)}", "upg", k)] for k in STATS]
+    rows = [[(f"➕ {STAT_ICON[s]} {ctx.t('stat_' + s)}: {fnum(int(ch['stats'][s]), L)}", "upg", s), ("+" + fnum(10, L), "upg", s + ":10")]
+            for s in STATS]
     rows.append(nav(ctx, ("prof", "")))
     return Out(head(ctx, "ttl_upg") + ctx.t("upg_body", pts=fnum(ch.get("points", 0), L)), rows)
 
@@ -234,7 +239,7 @@ async def explore(ctx, arg):
     ok, left, nxt = await spend_energy(ctx.uid, int(st["explore_cost"]))
     if not ok:
         return Out(alert=ctx.t("exp_no_energy", n=fnum(left, L), s=fnum(nxt // 60 + 1, L)))
-    await on_action(ctx.uid, "explore", ch["location"])
+    on_action_bg(ctx.uid, "explore", ch["location"])
     # every successful explore moves the incubator on by one; an egg that finishes hatches here
     from service_effects import tick_incubator
     from service_economy import PETS

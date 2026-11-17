@@ -75,8 +75,8 @@ async def craft(uid: int, rid: str):
             await add_coins(uid, coins, "craft_refund")
         return "full", None
     await world_adjust(reishi_loc=ch["location"], reishi=float(st["world_reishi_craft"]))
-    from service_worldstate import on_action
-    await on_action(uid, "craft", ch["location"])
+    from service_worldstate import on_action_bg
+    on_action_bg(uid, "craft", ch["location"])
     return "ok", r["out"]
 
 

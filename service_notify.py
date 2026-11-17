@@ -15,6 +15,7 @@ from config import settings
 from database import acquire_lease, col
 from security import make_cb
 from service_log import log_event
+from service_pace import bulk_slot
 
 log = logging.getLogger("senka.notify")
 INSTANCE = os.urandom(6).hex()
@@ -69,7 +70,7 @@ async def broadcast(bot, ver: str):
             sent += ok
             failed += not ok
             await col("users").update_one({"telegram_id": u["telegram_id"]}, {"$set": {"notified_ver": ver}})
-            await asyncio.sleep(0.06)  # ~16 msg/s, under Telegram's 30/s global limit
+            await bulk_slot()  # shared pace for all bulk sends (service_pace)
     return sent, failed
 
 
@@ -127,7 +128,7 @@ async def dm_group_members(bot, chat_id: int, text_fa: str, text_en: str) -> int
                 await asyncio.sleep(min(30, e.retry_after + 1))
             except (TelegramForbiddenError, TelegramAPIError):
                 break
-        await asyncio.sleep(0.06)
+        await bulk_slot()  # shared pace for all bulk sends (service_pace)
     return sent
 
 

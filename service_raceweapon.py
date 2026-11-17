@@ -17,6 +17,7 @@ from data_raceweapons import COLOURS, LEVEL_BY_COLOUR, RACE_WEAPONS, ascend_cost
 from database import col
 from service_economy import inv_get, inv_remove
 from service_player import add_coins, get_char
+from service_pace import bulk_slot
 
 log = logging.getLogger("senka.rweapon")
 REBIRTH_SEAL = "it_q017"     # the old Zanpakutō Rebirth Seal: now switches the race weapon's type, keeping its level
@@ -261,7 +262,7 @@ async def broadcast_flag(bot, stop: asyncio.Event, flag: str, texts: dict, butto
                         break
                     except TelegramAPIError:
                         break
-                await asyncio.sleep(0.06)
+                await bulk_slot()  # shared pace for all bulk sends (service_pace)
     except Exception:
         log.exception("broadcast %s failed", flag)
 

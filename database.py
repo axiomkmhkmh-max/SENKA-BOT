@@ -66,10 +66,13 @@ async def ensure_indexes():
                             ([("seller", ASCENDING), ("status", ASCENDING)], {}),
                             ([("end_at", ASCENDING)], {})],
         "battles": [([("sid", ASCENDING)], U), ([("status", ASCENDING), ("deadline", ASCENDING)], {}),
+                    # "is this player in a fight?" is asked on every battle click; without these it scanned the collection
+                    ([("user_id", ASCENDING), ("status", ASCENDING)], {}), ([("a_uid", ASCENDING), ("status", ASCENDING)], {}),
+                    ([("b_uid", ASCENDING), ("status", ASCENDING)], {}),
                     ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
-        "battle_logs": [([("user_id", ASCENDING), ("at", DESCENDING)], {}),
+        "battle_logs": [([("user_id", ASCENDING), ("at", DESCENDING)], {}), ([("pair", ASCENDING), ("at", DESCENDING)], {}),
                         ([("at", ASCENDING)], {"expireAfterSeconds": 60 * 60 * 24 * 60})],
-        "boss_sessions": [([("chat_id", ASCENDING), ("active", ASCENDING)], {})],
+        "boss_sessions": [([("chat_id", ASCENDING), ("active", ASCENDING)], {}), ([("scope", ASCENDING), ("active", ASCENDING)], {})],
         "groups": [([("chat_id", ASCENDING)], U)],
         "guilds": [([("name_key", ASCENDING)], U)],
         "player_quests": [([("user_id", ASCENDING)], U)],
@@ -101,6 +104,12 @@ async def ensure_indexes():
                          ([("end_at", ASCENDING)], {})],
         "action_logs": [([("uid", ASCENDING), ("at", DESCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
         "territory_scores": [([("week", ASCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
+        # hot lookups that had no index (each one was a full collection scan)
+        "group_members": [([("chat_id", ASCENDING), ("uid", ASCENDING)], {}), ([("chat_id", ASCENDING), ("last_seen", DESCENDING)], {})],
+        "group_hunts": [([("chat_id", ASCENDING), ("status", ASCENDING)], {}), ([("status", ASCENDING), ("round_ends", ASCENDING)], {})],
+        "trades": [([("members", ASCENDING), ("status", ASCENDING)], {})],
+        "espada": [([("holder", ASCENDING)], {})],
+        "quincy_raids": [([("status", ASCENDING), ("end_at", ASCENDING)], {})],
     }
     for name, items in specs.items():
         for keys, opts in items:

@@ -198,7 +198,9 @@ def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
 
 def _rewards(level: int, scale: float, st: dict):
     xp = (20 * level ** 1.25 + 20) * (scale if scale > 1 else 1.0)
-    coins = (10 + 6 * level) * (scale if scale > 1 else 1.0) * float(st["coin_rate"])
+    # coins grow faster than the level (more than linear), so higher levels earn clearly more per fight:
+    # Lv1 ≈ 20, Lv10 ≈ 97, Lv30 ≈ 297, Lv50 ≈ 537, Lv80 ≈ 972, Lv100 ≈ 1312 (was 16 / 70 / 190 / 310 / 490 / 610)
+    coins = (12 + 8 * level + 0.05 * level ** 2) * (scale if scale > 1 else 1.0) * float(st["coin_rate"])
     return int(xp), int(coins)
 
 
@@ -350,12 +352,16 @@ async def pve_settle(doc: dict):
         xp, coins = _rewards(doc["lvl"], doc["scale"], gs)
         d = doc.get("dungeon")
         plain = not d and not doc.get("trial")
-        if plain:  # Battle Rank: normal battles only (fewer rounds, more rank)
-            from service_battlerank import apply as br_apply
-            out["br"] = await br_apply(uid, "win", int(st.get("turn", 1)), bool(doc.get("elite")))
+        # Battle Rank, win chain, world modifiers and the character are independent: fetched together (one wait, not four)
+        from service_battlerank import apply as br_apply
+        from service_extras import chain_win
+        br_res, chain_res, wm, ch0 = await asyncio.gather(
+            br_apply(uid, "win", int(st.get("turn", 1)), bool(doc.get("elite"))) if plain else asyncio.sleep(0),
+            chain_win(uid) if plain else asyncio.sleep(0), mods_for(doc["loc"]), get_char(uid))
+        if plain:  # Battle Rank: normal battles only
+            out["br"] = br_res
         if plain:  # win chain: consecutive plain victories raise coin/XP rewards
-            from service_extras import chain_win
-            cn, cm, cdrop, cfull = await chain_win(uid)
+            cn, cm, cdrop, cfull = chain_res
             xp, coins = int(xp * cm), int(coins * cm)
             out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop}
             if cfull:
@@ -364,9 +370,7 @@ async def pve_settle(doc: dict):
             xp, coins = int(xp * DG_XP_MULT), 0
             if d["stage"] == d["total"]:
                 xp *= 3
-        wm = await mods_for(doc["loc"])
         coins = int(coins * wm["coin"])
-        ch0 = await get_char(uid)
         coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
         ch, lv, got = await add_xp(uid, xp, "pve")
         # independent writes: run together instead of one after another
@@ -585,7 +589,7 @@ async def pvp_settle(doc: dict):
     pair = _pair(a_uid, b_uid)
     note = None
     if doc["ranked"]:
-        pair_n = await col("battle_logs").count_documents({"pair": pair, "rated": True, "at": {"$gte": now - 86400}})
+        pair_n = await col("battle_logs").count_documents({"pair": pair, "rated": True, "win": True, "at": {"$gte": now - 86400}})  # one log per duel (each duel stores two)
         if pair_n >= int(gs["pvp_pair_daily_cap"]):
             note = "pair_cap"
         elif abs(cw["level"] - cl["level"]) > 10:
@@ -601,6 +605,15 @@ async def pvp_settle(doc: dict):
         await col("characters").update_one({"user_id": w_uid}, {"$inc": {"rating": gain, "pvp_w": 1}})
         await col("characters").update_one({"user_id": l_uid}, {"$set": {"rating": new_l}, "$inc": {"pvp_l": 1}})
         res["rating"] = {w_uid: (cw["rating"] + gain, gain), l_uid: (new_l, -(cl["rating"] - new_l))}
+        # Battle Rank from ranked duels (skill, not level): only the first few duels of the same pair each day count
+        from data_battlerank import DUEL_PAIR_DAILY
+        from data_world import day_id
+        from database import bump_counter
+        if await bump_counter(f"brpair:{pair}:{day_id()}", 1, DUEL_PAIR_DAILY):
+            from service_battlerank import apply as br_apply, current as br_current
+            rw, rl = br_current(cw)[0], br_current(cl)[0]
+            bw, bl = await asyncio.gather(br_apply(w_uid, "duel_win", opp_rp=rl), br_apply(l_uid, "duel_loss", opp_rp=rw))
+            res["br"] = {w_uid: bw, l_uid: bl}
     log_event("pvp", w_uid, f"دوئل {'رنکد' if doc['ranked'] else 'دوستانه'}: برد مقابل {cl['name']} ({l_uid})" + (f" | رتبه {res['rating'][w_uid][1]:+d}" if rated else (f" | بدون امتیاز ({note})" if note else "")),
               loser=l_uid, ranked=bool(doc["ranked"]))
     wins_today = await col("battle_logs").count_documents({"user_id": w_uid, "mode": "pvp", "win": True, "at": {"$gte": now - 86400}})
@@ -613,8 +626,9 @@ async def pvp_settle(doc: dict):
         await bump_quest(w_uid, "pvp_win", 1)
     res["note"] = note
     from service_interact import claim_bounty
-    from service_worldstate import on_action
-    await on_action(w_uid, "pvp_win", cw["location"])
+    from service_worldstate import on_action_bg
+    if note not in ("pair_cap", "new_account"):  # farming the same friend must not feed events, territory or season
+        on_action_bg(w_uid, "pvp_win", cw["location"])
     if doc["ranked"] and note not in ("pair_cap", "new_account", "level_gap"):
         res["bounty"] = await claim_bounty(w_uid, l_uid)
     base = {"mode": "pvp", "pair": pair, "rated": rated, "at": now}

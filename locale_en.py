@@ -35,7 +35,7 @@ TEXT = {
  # home & profile
  "home_body": "👤 <b>{name}</b> | {race} — {title}\n⭐ Lv {lvl} {xpbar}\nXP {xp}/{need}\n💪 Power {power}\n❤️ HP {hp} | 🔮 Reiatsu {re}\n📍 {loc}\n⚡ Energy {en}/{enmax}\n🪙 {coins}   🎯 Points {pts}",
  "menu_body": "Everything the world offers:", "prof_body": "<b>{name}</b> | {race} — {title}\n⭐ Lv {lvl} | 💪 {power}\n🏅 Rank {rank} ({rating})\n⚔️ PvE {w}W/{l}L | 🥊 PvP {pw}W/{pl}L\n🔗 Zanpakuto bond {bond}% | 🔨 Forge +{plus}",
- "upg_body": "Shape your reiatsu. Points left: <b>{pts}</b>\nGrowth softens after 100 / 200 / 500. Everyone has a human limit.", "no_points": "No points left. Each level-up grants more.",
+ "upg_body": "Shape your reiatsu. Points left: <b>{pts}</b>\n➕ adds one point, +10 adds ten (or whatever is left).\nGrowth softens after 100 / 200 / 500. Everyone has a human limit.", "no_points": "No points left. Each level-up grants more.",
  "map_body": "📍 You stand in <b>{loc}</b>.\nEvery crossing has a 1-minute cooldown.", "loc_locked": "Your reiatsu is not enough for that place yet.",
  "exp_body": "📍 <b>{loc}</b>\n⚡ Energy {en} (each hunt costs {cost}).\nSomething waits behind every alley: treasure, enemies, secrets, or a rift to another world.",
  "exp_no_energy": "⚡ Your reiatsu runs dry ({n}). It refills in ~{s} min.", "exp_item": "🎁 Among the traces of reiatsu you found {item}.\n+{xp} XP", "exp_npc": "🧙 \n+{xp} XP, +{coins} 🪙",

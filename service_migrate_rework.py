@@ -76,11 +76,28 @@ async def notify_respec(bot, stop) -> None:
     await broadcast_flag(bot, stop, "respec_notice", RESPEC_NOTICE, {"fa": "👤 پروفایل", "en": "👤 Profile"}, "prof")
 
 
+BR_RESET_ID = "battlerank_fair_reset_v2"
+
+
+async def battlerank_reset_once() -> int:
+    """Battle Rank became flat and level-free (rework 2). Points earned this season under the old rules came mostly from
+    level, so the current season restarts from zero for everyone. Rewards already claimed stay claimed (no double chests)."""
+    if await col("migrations").find_one({"_id": BR_RESET_ID}):
+        return 0
+    from data_battlerank import season_of
+    season = season_of(time.time())
+    r = await col("characters").update_many({"br_season": season, "br": {"$gt": 0}}, {"$set": {"br": 0, "br_best": 0}})
+    await col("migrations").update_one({"_id": BR_RESET_ID}, {"$set": {"at": int(time.time()), "n": r.modified_count, "season": season}},
+                                       upsert=True)
+    return r.modified_count
+
+
 async def run_all() -> None:
     from service_racegear import migrate_armour_once
     from service_raceweapon import migrate_blades_once
     for name, fn in (("evolution pin", pin_evolution_once), ("race weapons", migrate_blades_once),
-                     ("race armour", migrate_armour_once), ("free stat reset", free_respec_once)):
+                     ("race armour", migrate_armour_once), ("free stat reset", free_respec_once),
+                     ("battle rank fair reset", battlerank_reset_once)):
         try:
             log.info("%s: %s character(s) moved", name, await fn())
         except Exception:

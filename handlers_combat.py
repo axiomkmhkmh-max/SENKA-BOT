@@ -308,14 +308,24 @@ WORD_ACTIONS = {"حمله": "atk", "ضربه": "atk", "attack": "atk", "atk": "a
                 "سنگین": "hvy", "heavy": "hvy", "شونپو": "mvs", "shunpo": "mvs", "سونیدو": "mvn", "sonido": "mvn", "عقب": "rt", "retreat": "rt", "back": "rt", "جانبی": "sd", "sidestep": "sd", "دفاع": "df", "guard": "df", "defend": "df", "defense": "df"}
 WORD_RELEASE = ("بانکای", "bankai", "رهاسازی", "release", "رسورکسیون", "resurreccion", "resurrección",
                 "فولشتندیگ", "vollstandig", "vollständig", "فول‌برینگ کامل", "complete fullbring", "بیداری کامل روح", "awakening")
+_BLADE_WORDS = None
+
+
+def _maybe_battle_word(n: str) -> bool:
+    """Cheap check before any database call: only an action word, a release word or a Zanpakutō name can matter."""
+    global _BLADE_WORDS
+    if _BLADE_WORDS is None:
+        from data_zanpakuto import BLADE_UNLOCK
+        _BLADE_WORDS = {normalize_text(iname(b, lg)) for b in BLADE_UNLOCK for lg in ("fa", "en")}
+    return n in WORD_ACTIONS or n in WORD_RELEASE or n in _BLADE_WORDS
 
 
 async def battle_word(ctx, text):
     """Typing the released blade's name (or "Bankai") during a fight unleashes it, if the spirit gauge is full.
     Returns an Out for the chat, or None when the text is not a release word (normal routing continues)."""
     n = normalize_text(text)
-    if not n:
-        return None
+    if not n or not _maybe_battle_word(n):
+        return None  # ordinary words skip the battle lookup entirely (one database round trip less per message)
     doc = await active_pve(ctx.uid)
     if not doc:
         return None
@@ -462,6 +472,12 @@ def _final(ctx, doc, outcome):
         for uid, (rt, delta) in outcome["rating"].items():
             nm_ = doc["a_name"] if uid == doc["a_uid"] else doc["b_name"]
             lines.append(f"{esc(nm_)}: {rank_letter(rt)} {fnum(rt, L)} ({'+' if delta > 0 else ''}{fnum(delta, L)})")
+        for uid, br in (outcome.get("br") or {}).items():
+            if br:
+                nm_ = doc["a_name"] if uid == doc["a_uid"] else doc["b_name"]
+                d = br["delta"]
+                lines.append(f"🎖 {esc(nm_)}: {'+' if d >= 0 else '−'}{fnum(abs(d), L)} → {br['title_fa' if L == 'fa' else 'title_en']}"
+                             + (" ⬆️" if br.get("up") else " ⬇️" if br.get("down") else ""))
         if outcome.get("note"):
             lines.append(t(L, "duel_note_" + outcome["note"]))
         if outcome.get("bounty"):

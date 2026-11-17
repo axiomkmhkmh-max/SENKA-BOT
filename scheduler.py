@@ -42,8 +42,8 @@ async def tick(bot):
     res = await world_tick()
     if res["event_started"]:
         await handlers_world.announce_event_start(bot, res["event_started"])
-    if res["event_ended"]:
-        await handlers_world.announce_event_end(bot, res["event_ended"])
+    if res["event_ended"]:  # up to 400 private messages: in the background so the tick (boss, drops) is not held up
+        _bg_task(handlers_world.announce_event_end(bot, res["event_ended"]))
     if res["terr"]:
         await handlers_world.announce_territories(bot, res["terr"])
     if res["season"]:
@@ -118,6 +118,15 @@ async def _kenpachi_dm(bot, won: dict):
         await bot.send_message(won["user_id"], text)
     except (TelegramAPIError, TelegramForbiddenError):
         pass
+
+
+_tasks: set = set()
+
+
+def _bg_task(coro):
+    t = asyncio.ensure_future(coro)
+    _tasks.add(t)
+    t.add_done_callback(_tasks.discard)
 
 
 async def run(bot, stop: asyncio.Event):
