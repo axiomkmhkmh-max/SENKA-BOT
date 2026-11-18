@@ -50,9 +50,10 @@ GAME_DEFAULTS = {
     "boss_burst_dmg": 10000, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
     "xp_curve_k": 1.5,  # level-up difficulty: XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
-    "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
-    "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 300,
-    "start_coins": 500, "travel_cooldown": 60,
+    "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 6,
+    "xfer_fee_pct": 0.05, "xfer_daily_cap": 500000, "xfer_min_amount": 10, "xfer_min_level": 3, "xfer_confirm_over": 50000,  # coin transfer between players (reply command + Extras menu)
+    "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 180,
+    "start_coins": 500, "travel_cooldown": 20,
     "pvp_min_level": 15, "pvp_gain_min": 25, "pvp_gain_max": 40,
     "pvp_loss_min": 20, "pvp_loss_max": 30, "pvp_pair_daily_cap": 3,
     "pvp_full_xp_wins": 10, "pvp_turn_seconds": 30, "pvp_max_turns": 30,

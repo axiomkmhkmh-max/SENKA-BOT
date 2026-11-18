@@ -46,7 +46,7 @@ def deposit(acc: dict, amount: int) -> dict:
 def withdraw(acc: dict, amount: int) -> dict:
     if amount <= 0:
         raise ValueError("amount must be positive")
-    fee_pct = TIERS[tier_for(acc["balance"])][2]
+    fee_pct = TIERS[effective_tier(acc)][2]  # a paid vault upgrade also lowers the fee (it used to look at the balance only)
     fee = int(amount * fee_pct)
     total = amount + fee
     if total > acc["balance"]:
@@ -121,10 +121,17 @@ def check_default(acc: dict, day: int) -> dict | None:
     return {"seized": seized, "owed": loan["owed"]}
 
 
+MAX_INSURED_DAYS = 30
+
+
 def buy_insurance(acc: dict, days: int) -> dict:
-    cost_each = int(acc["balance"] * INSURANCE_COST_PCT)
+    if days <= 0:
+        return {"ok": False, "reason": "bad_amount"}
+    if acc["insured_days"] + days > MAX_INSURED_DAYS:
+        return {"ok": False, "reason": "max_days"}
+    cost_each = max(1, int(acc["balance"] * INSURANCE_COST_PCT))  # never free: below 50 coins it used to round to 0
     total = cost_each * days
-    if total > acc["balance"] or days <= 0:
+    if total > acc["balance"]:
         return {"ok": False, "reason": "insufficient"}
     acc["balance"] -= total
     acc["insured_days"] += days
@@ -187,6 +194,9 @@ def upgrade_vault(acc: dict, target_tier: int) -> dict:
     cost = upgrade_cost(target_tier)
     if cost > acc["balance"]:
         return {"ok": False, "reason": "insufficient", "cost": cost}
+    keep = TIERS[target_tier][1] // 2  # the upgrade only holds while the balance stays above half of the tier minimum
+    if acc["balance"] - cost < keep:
+        return {"ok": False, "reason": "balance_low", "cost": cost, "need": cost + keep}
     acc["balance"] -= cost
     acc["upgraded_to"] = target_tier
     return {"ok": True, "cost": cost, "tier": TIERS[target_tier][0]}
@@ -273,7 +283,7 @@ AUDIT_TAX = 0.05
 def transfer(sender: dict, receiver: dict, amount: int, rng: random.Random) -> dict:
     if amount <= 0:
         raise ValueError("amount must be positive")
-    fee = int(amount * TRANSFER_FEE)
+    fee = max(1, int(amount * TRANSFER_FEE))
     audit = 0
     if amount >= AUDIT_THRESHOLD and rng.random() < AUDIT_CHANCE:
         audit = int(amount * AUDIT_TAX)

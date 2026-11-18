@@ -162,11 +162,12 @@ async def add_coins(uid: int, n: int, reason: str = "") -> bool:
     return bool(r.modified_count)
 
 
-async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = True):
+async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = True, ch=None):
     """Optimistic-concurrency XP grant. Returns (character, levels_gained, xp_given)."""
     st = await game_settings()
+    fresh = ch  # a caller that just read the character passes it: the first try skips a DB read (a stale copy is caught by the update filter below and re-read)
     for _ in range(6):
-        ch = await get_char(uid)
+        ch, fresh = fresh or await get_char(uid), None
         if not ch:
             return None, 0, 0
         gain = float(amount)

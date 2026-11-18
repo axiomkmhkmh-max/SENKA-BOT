@@ -449,7 +449,7 @@ async def pve_settle(doc: dict):
                 xp *= 3
         coins = int(coins * wm["coin"])
         coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
-        ch, lv, got = await add_xp(uid, xp, "pve")
+        ch, lv, got = await add_xp(uid, xp, "pve", ch=ch0)
         # independent writes: run together instead of one after another
         await asyncio.gather(add_coins(uid, coins, "pve") if coins > 0 else asyncio.sleep(0),
                              col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{__import__('data_zanpakuto').bond_key(ch or {})}": 1, **({"zanpakuto.mastery": 1} if (ch0.get("zanpakuto") or {}).get("shikai") and int((ch0.get("zanpakuto") or {}).get("mastery", 0)) < int(gs.get("znp_mastery_cap", 1000)) else {}), **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),

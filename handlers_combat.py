@@ -181,7 +181,7 @@ async def battle_start(ctx, arg):
     from service_player import energy_now
     from database import try_cooldown
     if not await active_pve(ctx.uid):
-        wait = await try_cooldown(f"battle:{ctx.uid}", 8)
+        wait = await try_cooldown(f"battle:{ctx.uid}", 3)
         if wait:
             return Out(alert=ctx.t("wait_s", n=wait))
     return await start_pve_panel(ctx)
@@ -304,6 +304,8 @@ async def _pve_result(ctx, doc, ev, o):
         rows += war_rows(L, dgx)
     else:
         rows.append([(ctx.t("b_again"), "bs", "")])
+    if o["levels"]:  # shortcut: spend the new points right here instead of going Menu > Profile > Upgrade
+        rows.insert(0, [(ctx.t("b_upgrade"), "upg", "")])
     rows.append(nav(ctx))
     return Out("\n".join(lines), rows)
 

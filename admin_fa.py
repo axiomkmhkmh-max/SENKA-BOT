@@ -31,6 +31,8 @@ SETTING_FA = {
     "boss_dmg_mult": "ضریب آسیب باس", "boss_hp_mult": "ضریب جان باس", "boss_combo_window": "پنجره‌ی کومبوی باس",
     "boss_combo_step": "گام کومبوی باس", "boss_combo_cap": "سقف کومبوی باس", "boss_special_chance": "شانس حمله‌ی ویژه‌ی باس",
     "boss_special_mult": "ضریب حمله‌ی ویژه‌ی باس", "xp_curve_k": "ضریب منحنی تجربه",
+    "xfer_fee_pct": "کارمزد انتقال سکه", "xfer_daily_cap": "سقف روزانه‌ی انتقال سکه", "xfer_min_amount": "حداقل مبلغ انتقال",
+    "xfer_min_level": "حداقل سطح برای انتقال", "xfer_confirm_over": "انتقال بالاتر از این مبلغ تأیید می‌خواهد",
     "boss_min_minutes": "حداقل فاصله‌ی ظهور باس (دقیقه)", "boss_max_minutes": "حداکثر فاصله‌ی ظهور باس (دقیقه)",
     "boss_duration_minutes": "مدت حضور باس (دقیقه)", "boss_min_level": "حداقل سطح برای باس", "boss_hit_cooldown": "کولداون ضربه به باس",
     "energy_max": "حداکثر انرژی", "explore_cost": "هزینه‌ی کاوش", "energy_regen_seconds": "ثانیه‌ی بازیابی انرژی",

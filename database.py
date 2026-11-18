@@ -59,6 +59,7 @@ async def ensure_indexes():
         "registration": [([("user_id", ASCENDING)], U)],
         "inputs": [([("user_id", ASCENDING)], {})],
         "admin_pending": [],
+        "pending_xfers": [([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
         "cooldowns": [([("key", ASCENDING)], U), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
         "daily_claims": [([("user_id", ASCENDING), ("day", ASCENDING)], U)],
         "transactions": [([("tx_key", ASCENDING)], U), ([("user_id", ASCENDING), ("at", DESCENDING)], {})],

@@ -19,6 +19,7 @@ class Ctx:
     def __init__(self, uid, lang, chat_id, chat_type, user, bot, message=None, cb=None):
         self.uid, self.lang, self.chat_id, self.chat_type = uid, lang or "en", chat_id, chat_type
         self.user, self.bot, self.message, self.cb = user, bot, message, cb
+        self.pend = None  # the pending typed-prompt document, set by the dispatcher just before an input handler runs
 
     def t(self, key, **kw):
         return t(self.lang, key, **kw)

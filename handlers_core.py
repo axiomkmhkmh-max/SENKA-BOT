@@ -241,6 +241,7 @@ async def handle_text(message: Message, text: str):
         pend = await col("inputs").find_one_and_delete({"_id": pend["_id"]})
     if pend and pend["kind"] in INPUTS:
         if time.time() - pend["at"] < 300 and normalize_text(text) not in ("لغو", "cancel"):
+            ctx.pend = pend  # the prompt was deleted just above: a multi-step prompt reads its data from here
             return await send_out(message, ctx, await INPUTS[pend["kind"]](ctx, text))
     war = await handlers_combat.battle_word(ctx, text)  # in a fight: the blade's name releases Bankai when the gauge is full
     if war is not None:
@@ -284,6 +285,8 @@ async def on_group_text(message: Message, text: str):
     if await handlers_hunt.group_hook(message, n):
         return
     if await handlers_hollowraid.raid_hook(message, n):
+        return
+    if await handlers_bank.transfer_hook(message, text, n):  # reply + «انتقال 1000»: coins from wallet to wallet
         return
     if await handlers_viral.viral_hook(message, text, n):  # --- NEW BLEACH VIRAL SYSTEM: espada fights, hogyoku theft, quincy strikes
         return

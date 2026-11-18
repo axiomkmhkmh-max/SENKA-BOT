@@ -284,32 +284,43 @@ async def coinflip(ctx, arg):
 async def transfer_start(ctx, arg):
     if not await get_char(ctx.uid):
         return Out(ctx.t("not_registered"))
+    st = await game_settings()
+    fee, cap = int(float(st.get("xfer_fee_pct", 0.05)) * 100), int(st.get("xfer_daily_cap", 500000))
     await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "xf_tr", "at": int(time.time())}}, upsert=True)
-    return Out(head(ctx, "ttl_menu") + T(ctx, "بفرست: <code>آیدی_بازیکن مقدار</code>\nمثال: <code>123456 1000</code>\nکارمزد ۵٪ و سقف روزانه‌ی ۵۰۰هزار سکه.",
-                                         "Send: <code>player_id amount</code>\nExample: <code>123456 1000</code>\n5% fee, 500k per day cap."),
+    return Out(head(ctx, "ttl_menu") + T(ctx, f"بفرست: <code>آیدی_بازیکن مقدار</code>\nمثال: <code>123456 1000</code>\nکارمزد {fee}٪ و سقف روزانه‌ی {fnum(cap, ctx.lang)} سکه.\nدر گروه هم می‌تونی روی پیام بازیکن ریپلای کنی و بنویسی: <code>انتقال 1000</code>",
+                                         f"Send: <code>player_id amount</code>\nExample: <code>123456 1000</code>\n{fee}% fee, {fnum(cap, ctx.lang)} per day cap.\nIn a group you can also reply to a player and write: <code>transfer 1000</code>"),
                [nav(ctx, ("xf", ""))])
+
+
+_XF_ERR = {
+    "self": ("به خودت نمی‌تونی بفرستی.", "You cannot send coins to yourself."),
+    "bad_amount": ("مبلغ باید بیشتر از صفر باشه.", "The amount must be above zero."),
+    "too_small": ("این مبلغ برای انتقال خیلی کمه.", "That amount is too small to send."),
+    "no_target": ("بازیکن پیدا نشد.", "Player not found."),
+    "no_sender": ("اول ثبت‌نام کن.", "Register first."),
+    "new_acct": ("حساب تازه‌ساخته‌ست؛ چند دقیقه بعد می‌تونی سکه بفرستی.", "Your account is too new to send coins. Try again in a few minutes."),
+    "low_level": ("سطحت برای انتقال سکه کمه.", "Your level is too low to send coins."),
+    "insufficient": ("سکه‌ی کافی نداری (با کارمزد).", "Not enough coins (including fee)."),
+    "cap": ("سقف انتقال امروزت پر شده.", "Daily transfer cap reached."),
+    "busy": ("الان نشد، دوباره امتحان کن.", "Could not finish right now, try again."),
+}
 
 
 @input_handler("xf_tr")
 async def transfer_input(ctx, text):
+    """Wallet-to-wallet by player id. The rules (fee, daily cap, gates, refund on failure) live in one place:
+    service_bank.wallet_transfer, shared with the reply command in groups."""
     L = ctx.lang
+    back = [nav(ctx, ("xf", ""))]
     parts = (text or "").split()
     if len(parts) != 2 or not parts[0].isdigit() or not parts[1].isdigit():
-        return Out(T(ctx, "فرمت اشتباهه. مثال: 123456 1000", "Bad format. Example: 123456 1000"), [nav(ctx, ("xf", ""))])
-    to, amount = int(parts[0]), int(parts[1])
-    if to == ctx.uid or amount <= 0:
-        return Out(T(ctx, "این انتقال ممکن نیست.", "Transfer not allowed."), [nav(ctx, ("xf", ""))])
-    fee = max(1, amount * 5 // 100)
-    total = amount + fee
-    if not await col("characters").find_one({"user_id": to}, {"_id": 1}):
-        return Out(T(ctx, "بازیکن پیدا نشد.", "Player not found."), [nav(ctx, ("xf", ""))])
-    if not await bump_counter(f"tr:{ctx.uid}", amount, 500000, 24):
-        return Out(T(ctx, "سقف انتقال امروزت پر شده.", "Daily transfer cap reached."), [nav(ctx, ("xf", ""))])
-    res = await col("characters").find_one_and_update({"user_id": ctx.uid, "coins": {"$gte": total}}, {"$inc": {"coins": -total}})
-    if not res:
-        return Out(T(ctx, "سکه‌ی کافی نداری (با کارمزد).", "Not enough coins (including fee)."), [nav(ctx, ("xf", ""))])
-    await add_coins(to, amount, f"transfer from {ctx.uid}")
-    return Out(T(ctx, f"✅ {fnum(amount, L)} سکه فرستاده شد (کارمزد: {fnum(fee, L)})", f"✅ Sent {amount} coins (fee: {fee})"), [nav(ctx, ("xf", ""))])
+        return Out(T(ctx, "فرمت اشتباهه. مثال: 123456 1000", "Bad format. Example: 123456 1000"), back)
+    import service_bank as SB
+    r, err = await SB.wallet_transfer(ctx.uid, int(parts[0]), int(parts[1]))
+    if err:
+        fa, en = _XF_ERR.get(err, ("این انتقال ممکن نیست.", "Transfer not allowed."))
+        return Out(T(ctx, fa, en), back)
+    return Out(T(ctx, f"✅ {fnum(r['sent'], L)} سکه فرستاده شد (کارمزد: {fnum(r['fee'], L)})", f"✅ Sent {fnum(r['sent'], L)} coins (fee: {fnum(r['fee'], L)})"), back)
 
 
 @action("xf_cmp")

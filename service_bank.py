@@ -13,7 +13,8 @@ import random
 import time
 
 import engine_bank as B
-from database import col
+from database import bump_counter, col, game_settings
+from engine_xfer import fee_for
 from service_player import add_coins, get_char
 
 DAY = 86400
@@ -247,11 +248,11 @@ async def repay(uid: int):
     return acc, None
 
 
-async def _simple(uid: int, fn, ledger_key: str = None, cost_key: str = "cost"):
+async def _simple(uid: int, fn, ledger_key: str = None, cost_key: str = "cost", sign: int = -1):
     def run(acc):
         r = fn(acc)
         if r.get("ok") and ledger_key:
-            B.ledger(acc, ledger_key, -r[cost_key], _today())
+            B.ledger(acc, ledger_key, sign * r[cost_key], _today())
         return r
     acc, r = await _mutate(uid, run)
     if r is None:
@@ -262,11 +263,11 @@ async def _simple(uid: int, fn, ledger_key: str = None, cost_key: str = "cost"):
 
 
 async def open_bond(uid: int, amount: int, term: int):
-    return await _simple(uid, lambda acc: B.open_bond(acc, amount, term, _today()))
+    return await _simple(uid, lambda acc: B.open_bond(acc, amount, term, _today()), "bond_open", "principal")
 
 
 async def break_bond(uid: int, index: int):
-    return await _simple(uid, lambda acc: B.break_bond(acc, index))
+    return await _simple(uid, lambda acc: B.break_bond(acc, index), "bond_break", "returned", +1)
 
 
 async def upgrade(uid: int, target: int):
@@ -278,7 +279,7 @@ async def security(uid: int):
 
 
 async def insurance(uid: int, days: int):
-    return await _simple(uid, lambda acc: B.buy_insurance(acc, days))
+    return await _simple(uid, lambda acc: B.buy_insurance(acc, days), "insurance")
 
 
 async def transfer(sender_uid: int, receiver_uid: int, amount: int):
@@ -329,3 +330,53 @@ async def tick_all(limit: int = 200) -> int:
         await daily_tick(doc["user_id"])
         ran += 1
     return ran
+
+
+# ---- wallet-to-wallet transfer (reply command and the Extras menu share this one rule set) -------------------------
+async def _undo_counter(key: str, amount: int):
+    """Give back daily-cap room that was reserved for a transfer that did not happen."""
+    try:
+        await col("counters").update_one({"key": key}, {"$inc": {"n": -int(amount)}})
+    except Exception:
+        pass
+
+
+async def wallet_transfer(sender: int, target: int, amount: int):
+    """Move `amount` coins from one player's wallet to another's. The sender pays the fee on top.
+    Returns ({"sent", "fee", "total"}, None) or (None, reason). Reasons: self, bad_amount, too_small, no_sender, no_target,
+    new_acct, low_level, insufficient, cap, busy. Order matters: nothing is reserved or taken until every check passed,
+    the daily cap is reserved atomically before any coin moves, and a failed credit refunds the sender."""
+    st = await game_settings()
+    amount = int(amount)
+    if sender == target:
+        return None, "self"
+    if amount <= 0:
+        return None, "bad_amount"
+    if amount < int(st.get("xfer_min_amount", 10)):
+        return None, "too_small"
+    me, tg = await get_char(sender), await get_char(target)
+    if not me:
+        return None, "no_sender"
+    if not tg:
+        return None, "no_target"
+    from service_worldcore import is_new_account
+    if is_new_account(me, st):
+        return None, "new_acct"
+    if int(me["level"]) < int(st.get("xfer_min_level", 3)):
+        return None, "low_level"
+    fee = fee_for(amount, st.get("xfer_fee_pct", 0.05))
+    total = amount + fee
+    if int(me.get("coins", 0)) < total:  # checked before the cap is reserved: a refused send must not use up the day's room
+        return None, "insufficient"
+    cap = int(st.get("xfer_daily_cap", 500_000))
+    key = f"tr:{sender}"  # the same counter the Extras menu always used, so both ways share one daily cap
+    if not await bump_counter(key, amount, cap, 24):
+        return None, "cap"
+    if not await add_coins(sender, -total, f"xfer_out:{target}"):
+        await _undo_counter(key, amount)
+        return None, "insufficient"
+    if not await add_coins(target, amount, f"xfer_in:{sender}"):
+        await add_coins(sender, total, f"xfer_refund:{target}")  # the receiver could not be paid: nothing is lost
+        await _undo_counter(key, amount)
+        return None, "busy"
+    return {"sent": amount, "fee": fee, "total": total}, None
