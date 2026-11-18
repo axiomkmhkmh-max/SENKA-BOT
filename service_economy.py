@@ -19,6 +19,8 @@ from service_worldcore import mods_for
 SLOT_FIELD = {"weapon": "weapon_id", "armor": "armor_id", "ring": "acc_id", "necklace": "charm_id"}
 PETS = [("Spirit Fox", "روباه روحی"), ("Moon Cat", "گربه‌ی ماه"), ("Ember Wisp", "شراره‌ی زنده"),
         ("Tide Serpent", "مار جزرومد"), ("Hollow Pup", "توله‌ی تهی"), ("Storm Hawk", "عقاب توفان")]
+from data_extras2 import NEW_PETS  # noqa: E402
+PETS += NEW_PETS  # appended, so the species of companions already hatched (index sp) never change
 DROP_W = [50, 25, 15, 7, 2.5, 0.5]
 # Pity: this many drops in a row below the tier guarantees it. It used to be 1000 / 200 / 50, which almost nobody ever reached.
 PITY = (("legendary", 4, 150), ("epic", 3, 40), ("rare", 2, 15))
@@ -270,7 +272,8 @@ def _pick_of_rarity(ch: dict, idx: int, weapon_chance: float, rng=random):
         if roll < RACE_ARMOUR_SHARE + RACE_CARD_SHARE and cards:
             return rng.choice(cards)
         if BY_RARITY[r]:
-            return rng.choice(BY_RARITY[r])
+            from data_items import pick_shared
+            return pick_shared(r, rng)  # accessories keep their old share of drops
         if armour or cards:  # no shared item of this colour (red): the race's own armour or cards keep the colour
             return rng.choice(armour + cards)
     return rng.choice(BY_RARITY["Common"])
@@ -480,7 +483,18 @@ async def gacha_pull(uid: int, n: int = 1):
     rng = random.Random()
     results = []
     won = {}  # character id -> copies won in this pull (written with $inc, see below)
+    from data_extras2 import SUMMON_JACKPOT, SUMMON_JACKPOT_COINS
     for _ in range(n):
+        if random.random() < SUMMON_JACKPOT:  # 1 in 10,000: the summon jackpot (coins, a red accessory and an Inner World Key)
+            from data_extras2 import INNER_KEY
+            from data_items import MYTHIC_ACCESSORIES
+            jp = rng.choice(MYTHIC_ACCESSORIES) if MYTHIC_ACCESSORIES else None
+            await add_coins(uid, SUMMON_JACKPOT_COINS, "summon_jackpot")
+            for iid in [x for x in (jp, INNER_KEY) if x]:
+                await inv_add(uid, iid, 1, force=True)
+            results.append({"t": "jackpot", "id": jp, "rar": "Mythic", "coins": SUMMON_JACKPOT_COINS})
+            log_event("summon_jackpot", uid, f"🎰 جک‌پات احضار! {SUMMON_JACKPOT_COINS} سکه + {jp}", item=jp)
+            continue
         idx = rng.choices(range(6), list(GACHA_RATES.values()))[0]
         g["since_rare"] += 1
         g["since_leg"] += 1
@@ -502,9 +516,11 @@ async def gacha_pull(uid: int, n: int = 1):
             won[cid] = won.get(cid, 0) + 1
             results.append({"t": "char", "id": cid, "rar": rar, "copies": g["chars"][cid]})
         else:
-            wp = WEAPON_BY_RARITY[rar]
-            items = BY_RARITY[rar] or BY_RARITY["Legendary"]
-            iid = rng.choice(wp) if wp and rng.random() < 0.4 else rng.choice(items)
+            from data_items import MYTHIC_ACCESSORIES, pick_shared
+            if rar == "Mythic" and MYTHIC_ACCESSORIES:  # a red item roll pays one of the red accessories
+                iid = rng.choice(MYTHIC_ACCESSORIES)
+            else:
+                iid = pick_shared(rar if BY_RARITY[rar] else "Legendary", rng)
             await inv_add(uid, iid, 1, force=True)
             results.append({"t": "item", "id": iid, "rar": ALL[iid]["rarity"]})
         if results[-1]["rar"] == "Mythic":  # count what the player really received (a Mythic roll can land on a lower item)
@@ -614,7 +630,13 @@ async def forge(uid: int):
     val = {i: forge_value(ALL[i]["rarity"]) for i in mats}
     if sum(inv["items"][i] * val[i] for i in mats) < need:
         return "mats", need
+    from service_adventure import give_back_stones, stones_needed, take_stones
+    if stones_needed(plus) and int(inv["items"].get("it_t001", 0)) < stones_needed(plus):
+        return "stone", stones_needed(plus)  # +6 and up need Tempering Stones
+    if not await take_stones(uid, plus):
+        return "stone", stones_needed(plus)
     if not await add_coins(uid, -coins, "forge"):
+        await give_back_stones(uid, plus)
         return "funds", coins
     left = need
     for i in mats:

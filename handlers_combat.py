@@ -127,6 +127,13 @@ async def battle_panel(ctx, doc, events=None):
     d = doc.get("dungeon")
     if d and d.get("tower"):
         title += ctx.t("tw_floor_boss" if d["stage"] % 5 == 0 else "tw_floor", n=fnum(d["stage"], ctx.lang)) + "\n"
+    elif d and d.get("adv"):
+        from data_extras2 import ADVENTURES
+        a = ADVENTURES.get(d["id"], {})
+        title += (f"🧭 {a.get('fa' if ctx.lang == 'fa' else 'en', '')} · " + (f"مرحله‌ی {fnum(d['stage'], ctx.lang)} از {fnum(d['total'], ctx.lang)}"
+                  if ctx.lang == "fa" else f"stage {d['stage']} of {d['total']}")) + "\n"
+    elif d and d.get("lboss"):
+        title += ("👹 باس سطح" if ctx.lang == "fa" else "👹 Level boss") + "\n"
     elif d:
         title += ctx.t("dg_stage", n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang), diff=ctx.t("diff_" + d["diff"])) + "\n"
         flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
@@ -216,8 +223,12 @@ async def _pve_result(ctx, doc, ev, o):
         from handlers_battlerank import result_lines
         for line in result_lines(ctx, o.get("br")):
             text += "\n" + line
-        return Out(text, [[(ctx.t("b_again"), "bs", "")], nav(ctx)])
-    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if doc.get("dungeon")
+        dlx = doc.get("dungeon") or {}
+        again = (("🧭 ماجراجویی‌ها" if L == "fa" else "🧭 Adventures"), "avl", "") if dlx.get("adv") else \
+                (("👹 باس سطح" if L == "fa" else "👹 Level boss"), "lbs", "") if dlx.get("lboss") else (ctx.t("b_again"), "bs", "")
+        return Out(text, [[again], nav(ctx)])
+    dgx = doc.get("dungeon") or {}
+    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if dgx and not (dgx.get("adv") or dgx.get("lboss"))
                 else ctx.t("bt_win", xp=fnum(o["xp"], L), coins=fnum(o["coins"], L)))
     lines = [battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")), "", win_line]
     from handlers_battlerank import result_lines
@@ -245,6 +256,16 @@ async def _pve_result(ctx, doc, ev, o):
                       else f"💚 A breather{' before the boss' if h['boss'] else ''}: +{h['pct']}% HP and reiatsu restored."))
     if o.get("dg_coins"):
         lines.append(f"🪙 جایزه‌ی پاکسازی دانجن: +{fnum(o['dg_coins'], L)}" if L == "fa" else f"🪙 Dungeon clear bonus: +{fnum(o['dg_coins'], L)}")
+    if o.get("mini"):
+        lines.append(("👺 <b>مینی‌باس شکست خورد!</b> تجربه و سکه ×۳ · " if L == "fa" else "👺 <b>Mini-boss down!</b> XP and coins ×3 · ")
+                     + nm(o["mini"]["item"], L) + (f" · 🧬 {nm(o['mini']['relic'], L)}" if o["mini"].get("relic") else ""))
+    if o.get("adv_done"):
+        lines.append(f"🧭 ماجراجویی تمام شد! کیسه‌ی سکه: +{fnum(o['adv_done'], L)} 🪙" if L == "fa"
+                     else f"🧭 Adventure complete! Coin purse: +{fnum(o['adv_done'], L)} 🪙")
+    if o.get("lboss"):
+        lb = o["lboss"]
+        got = [nm(i, L) for i in lb.get("items", [])]
+        lines.append(("👹 <b>باس سطح شکست خورد!</b> " if L == "fa" else "👹 <b>Level boss down!</b> ") + "، ".join(got))
     if o.get("drop_full"):
         lines.append(f"🎒 کیفت پره! «{nm(o['drop_full'], L)}» دراپ شد ولی جا نداشت. کیف رو خالی کن." if L == "fa"
                      else f"🎒 Bag full! «{nm(o['drop_full'], L)}» dropped but there was no room. Free some slots.")
@@ -263,6 +284,10 @@ async def _pve_result(ctx, doc, ev, o):
             lines.append(f"💠 دانجن پوینت: +{fnum(o['dp'], L)}" if L == "fa" else f"💠 Dungeon Points: +{fnum(o['dp'], L)}")
         if o.get("special"):
             lines.append(f"🎁 آیتم مخصوص دانجن: {nm(o['special'], L)}" if L == "fa" else f"🎁 Dungeon special item: {nm(o['special'], L)}")
+    elif dgx.get("adv"):
+        rows.append([(("🧭 ماجراجویی‌ها" if L == "fa" else "🧭 Adventures"), "avl", "")])
+    elif dgx.get("lboss"):
+        rows.append([(("👹 باس سطح" if L == "fa" else "👹 Level boss"), "lbs", "")])
     else:
         rows.append([(ctx.t("b_again"), "bs", "")])
     rows.append(nav(ctx))

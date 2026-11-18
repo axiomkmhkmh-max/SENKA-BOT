@@ -130,6 +130,10 @@ async def tower_settle(doc: dict, win: bool) -> dict:
                     relic = random.choice(pool)
                     await inv_add(uid, relic, 1, force=True)
                     out["tower"]["relic"] = relic
+                if floor % 50 == 0:  # every 50th floor: a Tempering Stone too
+                    from data_extras2 import TEMPER_STONE
+                    await inv_add(uid, TEMPER_STONE, 1, force=True)
+                    out["tower"]["stone"] = True
     out["tower"]["best"] = max(best, floor)
     await col("characters").update_one({"user_id": uid}, {"$set": upd, "$inc": {"wins": 1}})
     f = state["a"]

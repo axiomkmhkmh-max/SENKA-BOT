@@ -54,7 +54,7 @@ TEXT = {
  "group_help": "Reply to a player with «duel» to challenge them. Bosses keep tearing out of the rifts here. Stay ready!\n🎁 Treasures sometimes drop here; reply to the drop and write «take». Group admins: «drops off/on».",
  # items
  "cat_weapon": "Weapon", "cat_armor": "Armor", "cat_accessory": "Accessory", "cat_material": "Material", "cat_potion": "Potion", "cat_kido_card": "Kidō card", "cat_book": "Book",
- "cat_evolution": "Evolution", "cat_cosmetic": "Cosmetic", "cat_relic": "Relic", "cat_egg": "Egg", "cat_key": "Key", "cat_dungeon": "Dungeon special",
+ "cat_evolution": "Evolution", "cat_cosmetic": "Cosmetic", "cat_relic": "Relic", "cat_egg": "Egg", "cat_key": "Key", "cat_dungeon": "Dungeon special", "cat_temper": "Tempering stone", "cat_inner_key": "Inner World key",
  "flt_a": "All", "flt_w": "Blades", "flt_e": "Gear", "flt_u": "Usable",
  "bag_body": "🎒 Slots {cap} | Items shown: {n}\n{eq}", "eq_ok": "✅ Ready for battle!", "eq_noequip": "That can't be equipped.", "eq_level": "Your level is too low.", "eq_already": "Already equipped.", "eq_missing": "You don't have it.", "eq_retry": "Try again.",
  "ueq_empty": "Nothing equipped.", "ueq_full": "Bag is full.", "ueq_retry": "Try again.",

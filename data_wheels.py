@@ -6,7 +6,7 @@ Spin cost grows with how many times a player has already spun THAT wheel:
     spins 11-40  -> base cost x2
     spins 41-90  -> base cost x4
     spins 91+    -> base cost x8
-The most expensive wheel is Ichigo (w_ichigo). The Toshiro wheel is owner-only.
+The most expensive wheel is Yamamoto (w_yamamoto), then Ichigo (w_ichigo). The Toshiro wheel is owner-only.
 """
 import random
 
@@ -171,8 +171,8 @@ _WHEEL_LIST = {
     ],
 }
 
-# Per-wheel overrides. Ichigo is the most expensive. Toshiro's wheel is owner-only.
-COST_OVERRIDE = {"w_ichigo": 60, "w_hitsugaya": 25}
+# Per-wheel overrides. Yamamoto is now the most expensive (players asked: pricier than Ichigo). Toshiro's is owner-only.
+COST_OVERRIDE = {"w_yamamoto": 75, "w_ichigo": 60, "w_hitsugaya": 25}
 OWNER_ONLY = {"w_hitsugaya"}
 
 

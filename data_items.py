@@ -289,6 +289,18 @@ _dg(10, "legendary", "Legendary", "Hōgyoku Residue", "غبار هوگیوکو",
     "ردی از گوی خواسته‌ها. مقدار زیادی تجربه‌ی فوری.",
     {"type": "xp", "amount": 2500}, 32000)
 QUINCY_DROPS = [x["_id"] for x in CURATED if x["_id"] not in ("it_q001", "it_q017")]  # raids: no eye, no seal
+# ---- accessories (rework): the 150 generated ones repeated a few names at several colours, which players found
+# confusing; they are retired (still usable by whoever owns them, a one-time migration swaps them for new ones) and
+# 500 unique Bleach accessories take their place, each with exactly one colour (data_accessories).
+for _x in ITEMS:
+    if _x["category"] == "accessory":
+        _x["retired"] = True
+        _x["tradeable"] = False
+from data_accessories import ACCESSORIES  # noqa: E402
+from data_extras2 import NEW_ITEMS, NEW_RELICS  # noqa: E402  (tempering stone, Inner World key, 40 new relics)
+ITEMS.extend(ACCESSORIES)
+ITEMS.extend(NEW_ITEMS)
+ITEMS.extend(NEW_RELICS)
 ALL = {x["_id"]: x for x in ITEMS}
 for _w in WEAPONS:
     _w.setdefault("sell_price", max(2, int(_w["base_price"] * 0.4)))
@@ -340,7 +352,33 @@ def merged(item_id: str) -> str:
 
 EVO_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "evolution"] for r in RARITIES}
 COSMETIC_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "cosmetic"] for r in RARITIES}
-BY_RARITY = {r: [merged(x["_id"]) for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "accessory", "book", "egg", "relic")] for r in RARITIES}
+BY_RARITY = {r: [merged(x["_id"]) for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "accessory", "book", "egg", "relic")
+                 and not (x["category"] == "accessory" and (x.get("retired") or x.get("special")))] for r in RARITIES}
+ACC_BY_RARITY = {r: [x["_id"] for x in ACCESSORIES if x["rarity"] == r and not x["special"]] for r in RARITIES}
+# every retired accessory has one fixed replacement of the same colour and slot (bags, equipped slots, old listings)
+ACC_SWAP = {}
+for _x in ITEMS:
+    if _x["category"] == "accessory" and _x.get("retired"):
+        _same = [a["_id"] for a in ACCESSORIES if a["rarity"] == _x["rarity"] and a["subtype"] == _x["subtype"] and not a["special"]]
+        if _same:
+            ACC_SWAP[_x["_id"]] = _same[int(_x["_id"].split("_")[1]) % len(_same)]
+MAT_MERGE.update(ACC_SWAP)  # merged() and inv_add turn an old accessory into its replacement too
+MYTHIC_ACCESSORIES = [x["_id"] for x in ACCESSORIES if x["special"]]  # red ones: jackpots, roll shop, level bosses only
+# Drop odds: accessories keep the share of a random drop they had before (there are three times more of them now,
+# picking from the flat list would have flooded the bags with accessories).
+_OLD_ACC = {r: sum(1 for x in ITEMS if x["category"] == "accessory" and x.get("retired") and x["rarity"] == r) for r in RARITIES}
+_OTHER = {r: [i for i in BY_RARITY[r] if ALL[i]["category"] != "accessory"] for r in RARITIES}
+ACC_SHARE = {r: (_OLD_ACC[r] / (_OLD_ACC[r] + len(_OTHER[r]))) if (_OLD_ACC[r] + len(_OTHER[r])) else 0.0 for r in RARITIES}
+
+
+def pick_shared(rarity: str, rng):
+    """A random shared drop of one colour, accessories at their old share. None if the colour has nothing shared."""
+    acc, other = ACC_BY_RARITY.get(rarity) or [], _OTHER.get(rarity) or []
+    if acc and (not other or rng.random() < max(ACC_SHARE.get(rarity, 0.0), 0.0 if other else 1.0)):
+        return rng.choice(acc)
+    if other:
+        return rng.choice(other)
+    return rng.choice(acc) if acc else None
 # Race-only drops: the race's own armour, and its cards (Kidō cards for Shinigami / Visored, technique cards for the rest).
 KIDO_CARD_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "kido_card"] for r in RARITIES}
 RACE_ARMOUR_BY_RARITY = {}

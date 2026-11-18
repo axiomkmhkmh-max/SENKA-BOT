@@ -87,7 +87,7 @@ GAME_DEFAULTS = {
     # ---- item roles -----------------------------------------------------------------
     "relic_slots": 2, "relic_k": 1.0, "pet_k": 1.0, "evo_bonus_pct": 0.02, "evo_trial_scale": 1.3,
     "cosmetic_fame_xp": 0.0025, "cosmetic_fame_cap": 0.05, "craft_cost_k": 1.0,
-    "temper_max": 5, "temper_def_pct": 0.05, "buff_max_minutes": 180,
+    "temper_max": 10, "temper_def_pct": 0.05, "buff_max_minutes": 180,
     # ---- territories ------------------------------------------------------------------
     "terr_enabled": True, "terr_min_members": 3, "terr_min_level": 10, "terr_min_age_hours": 24,
     "terr_daily_cap": 60, "terr_min_score": 40, "terr_buff_pct": 0.05, "terr_tax_pct": 0.05,

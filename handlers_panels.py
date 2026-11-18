@@ -80,8 +80,9 @@ async def menu2(ctx, arg):
 
 # "More" is split into four small groups of at most 4 buttons, so no screen ever shows a wall of options.
 MENU_GROUPS = {
-    "adv": [[("m_dgn", "dgn"), ("m_twr", "twr")], [("m_map", "map"), ("m_wrd", "wrd")]],
-    "grow": [[("m_gch", "gch"), ("m_crf", "crf")], [("m_dsp", "dsp"), ("m_art", "art")], [("m_inr", "inr"), ("m_sat", "sat")], [("m_div", "div"), ("m_hlf", "hlf")]],
+    "adv": [[("m_dgn", "dgn"), ("m_twr", "twr")], [("m_avl", "avl"), ("m_lbs", "lbs")], [("m_map", "map"), ("m_wrd", "wrd")]],
+    "grow": [[("m_gch", "gch"), ("m_crf", "crf")], [("m_dsp", "dsp"), ("m_art", "art")], [("m_inr", "inr"), ("m_in2", "in2")],
+             [("m_sat", "sat"), ("m_rsh", "rsh")], [("m_els", "els"), ("m_div", "div")], [("m_hlf", "hlf")]],
     "soc": [[("m_rnk", "rnk"), ("m_gld", "gld")]],
     "fun": [[("m_dly", "dly"), ("m_whl", "whl")], [("m_mgm", "mgm")]],
 }

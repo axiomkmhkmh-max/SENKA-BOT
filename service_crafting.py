@@ -92,8 +92,12 @@ async def temper(uid: int):
     if plus >= int(st["temper_max"]):
         return "max", plus
     r = temper_recipe(plus, ALL[aid])
+    from service_adventure import give_back_stones, stones_needed, take_stones
+    if not await take_stones(uid, plus):  # +6 and up need Tempering Stones (temper_max is now 10)
+        return "stone", stones_needed(plus)
     res, data = await _pay_and_consume(uid, r, st, await inv_get(uid))
     if res != "ok":
+        await give_back_stones(uid, plus)
         return res, data
     await world_adjust(reishi_loc=ch["location"], reishi=float(st["world_reishi_craft"]))
     if random.random() * 100 < r["chance"]:

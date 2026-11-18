@@ -182,7 +182,7 @@ TOPICS = {
         "📦 <b>صندوق‌های شاپ دانجن</b> (سکه + یک آیتم فقط از رنگ‌های خودش):\n"
         "🥉 برنزی ۴۰: سفید یا سبز · ۲۰٪ شانس یادگار تکامل سفید یا سبز\n"
         "🥈 نقره‌ای ۱۲۰: آبی یا بنفش · ۳۰٪ شانس یادگار آبی یا بنفش\n"
-        "🥇 طلایی ۳۶۰: طلایی یا قرمز · ۴۰٪ شانس یادگار بنفش · و یک جایزه‌ی دوم (مواد، معجون یا کتاب)\nمواد همیشه ۲ تا ۳ تایی می‌آیند.\n"
+        "🥇 طلایی ۳۶۰: طلایی یا قرمز · ۴۰٪ شانس یادگار بنفش · و یک جایزه‌ی دوم (مواد، معجون یا کتاب) · ۱۵٪ شانس سنگ آبدیده‌سازی\nمواد همیشه ۲ تا ۳ تایی می‌آیند.\n"
         "اگر چند صندوق پشت هم رنگ پایین‌تر بدهد، بعدی حتماً رنگ بالاتر است.",
         "🏯 <b>Dungeons</b>\n━━━━━━━━━━━━━━\n"
         "Dungeons pay no items (Abyss and Legendary also pay coins on a full clear). Between floors 25% HP and reiatsu come back, 40% before the boss. Each floor pays double XP (the last floor ×3 more) and a full clear pays dungeon points:\n"
@@ -190,7 +190,7 @@ TOPICS = {
         "📦 <b>Dungeon-shop chests</b> (coins + one item of their own colours only):\n"
         "🥉 Bronze 40: white or green · 20% chance of a white or green evolution relic\n"
         "🥈 Silver 120: blue or purple · 30% chance of a blue or purple relic\n"
-        "🥇 Gold 360: gold or red · 40% chance of a purple relic · plus a second prize (materials, potions or a book)\nMaterials always come 2-3 at a time.\n"
+        "🥇 Gold 360: gold or red · 40% chance of a purple relic · plus a second prize (materials, potions or a book) · 15% chance of a Tempering Stone\nMaterials always come 2-3 at a time.\n"
         "After a run of lower colours, the next chest is the higher one for sure.")),
     "boss": ("💀 باس جهانی", "💀 World boss", _t(
         "💀 <b>باس جهانی</b>\n━━━━━━━━━━━━━━\n"
@@ -208,5 +208,38 @@ TOPICS = {
         "• Free; once every 48 hours.\n• Every stat point comes back so you can spend it for the new race.\n"
         "• Your evolution stage is kept.\n• A Visored can go back to Shinigami and later become Visored again without the trial.\n"
         "• Your armour turns into the new race's (same colour) and you pick a new race weapon at the same level.")),
+    "adv": ("🧭 ماجراجویی و باس‌ها", "🧭 Adventures and bosses", _t(
+        "🧭 <b>ماجراجویی</b>\n━━━━━━━━━━━━━━\n"
+        "روزی ۳ ماجراجویی چندمرحله‌ای (۳ تا ۵ مرحله) با دشمن‌های نزدیک به لِوِل خودت. هر مرحله ۱.۶ برابر سکه و ۱.۳ برابر تجربه‌ی نبرد عادی می‌دهد و آخرش یک کیسه‌ی سکه: ۶۰۰ × (۱ + لِوِل ÷ ۱۰). مرحله‌ی آخر یک باس دارد. هر ماجراجویی از یک لِوِل باز می‌شود.\n\n"
+        "👺 <b>مینی‌باس</b>: در نبرد عادی ۲٪ شانس دارد به‌جای دشمن معمولی یک مینی‌باس دو برابر قوی‌تر بیاید. بردن آن: تجربه و سکه ×۳، یک دراپ حتمی و ۱۰٪ شانس یادگار تکامل.\n\n"
+        "👹 <b>باس سطح</b>: هر بازه‌ی لِوِل (۱–۲۰، ۲۱–۴۰، ۴۱–۶۰، ۶۱–۸۰، ۸۱–۱۰۰، ۱۰۱+) باس خودش را دارد و فقط همان بازه می‌تواند با آن بجنگد؛ روزی یک بار. جایزه: تجربه و سکه ×۴، یک آیتم هم‌رنگ بازه، ۲۵٪ یادگار تکامل، ۲۰٪ سنگ آبدیده‌سازی، ۲٪ کلید دنیای درون.",
+        "🧭 <b>Adventures</b>\n━━━━━━━━━━━━━━\n"
+        "3 a day: multi-stage journeys (3 to 5 stages) against foes near your level. Each stage pays 1.6× the coins and 1.3× the XP of a normal fight, and the end pays a coin purse: 600 × (1 + level ÷ 10). The last stage has a boss. Each adventure opens at a level.\n\n"
+        "👺 <b>Mini-boss</b>: a normal fight has a 2% chance of a mini-boss twice as strong instead. Beating it: XP and coins ×3, a guaranteed drop and a 10% chance of an evolution relic.\n\n"
+        "👹 <b>Level boss</b>: each level band (1–20, 21–40, 41–60, 61–80, 81–100, 101+) has its own boss that only that band can fight, once a day. Reward: XP and coins ×4, an item of the band's colour, 25% evolution relic, 20% Tempering Stone, 2% Inner World Key.")),
+    "shp": ("🎰 شاپ رول و نخبگان", "🎰 Roll and elite shops", _t(
+        "🎰 <b>شاپ رول</b>\n━━━━━━━━━━━━━━\n"
+        "هر رول ۳٬۰۰۰ سکه (ده تا ۲۷٬۰۰۰). جایزه: کارت کیدو (باکودو و هادو برای شینیگامی و ویزورد) یا کارت تکنیک نژادت، یا تخم روح؛ فقط آبی به بالا: آبی ۶۰٪، بنفش ۳۰٪، طلایی ۹٪، قرمز ۱٪. هر ۱۰۰ رول یک جک‌پات حتمی: اکسسوری قرمز + سنگ آبدیده‌سازی.\n\n"
+        "🏛 <b>شاپ نخبگان</b>: از لِوِل ۵۰ (و از ۱۰۰ موجودی بیشتر و بدون سقف لِوِل). آیتم‌های بنفش و طلایی و سنگ آبدیده‌سازی؛ قفسه هر روز عوض می‌شود و از هر کدام روزی ۳ تا.\n\n"
+        "🎴 <b>جک‌پات احضار</b>: هر احضار ۱ در ۱۰٬۰۰۰ شانس دارد: ۵۰۰٬۰۰۰ سکه + اکسسوری قرمز + کلید دنیای درون.\n\n"
+        "🎡 گردونه‌ی یاماموتو حالا گران‌ترین گردونه است (۷۵)، بعد ایچیگو (۶۰).",
+        "🎰 <b>Roll shop</b>\n━━━━━━━━━━━━━━\n"
+        "Each roll costs 3,000 coins (ten for 27,000). Prize: a Kidō card (Bakudō and Hadō for Shinigami and Visored) or your race's technique card, or a spirit egg; blue and up only: blue 60%, purple 30%, gold 9%, red 1%. Every 100 rolls is a guaranteed jackpot: a red accessory + a Tempering Stone.\n\n"
+        "🏛 <b>Elite shop</b>: from level 50 (bigger stock and no level cap from 100). Purple and gold items and the Tempering Stone; the shelf changes daily, up to 3 of each.\n\n"
+        "🎴 <b>Summon jackpot</b>: each summon has a 1 in 10,000 chance: 500,000 coins + a red accessory + an Inner World Key.\n\n"
+        "🎡 Yamamoto's wheel is now the most expensive (75), then Ichigo (60).")),
+    "acc": ("💍 اکسسوری، سنگ و دنیای درون ۲", "💍 Accessories, stones and Inner World 2", _t(
+        "💍 <b>اکسسوری‌ها</b>\n━━━━━━━━━━━━━━\n"
+        "۵۰۰ اکسسوری تازه از دنیای بلیچ (نشان ستوان‌ها و کاپیتان‌ها، اسپادا، اشتیرن‌ریتر، کوئینسی، زیرو دیویژن، فول‌برینگ و…). هر اسم فقط یک بار و فقط یک رنگ دارد؛ دیگر «مرحله‌ی ۱ و ۲» نیست. انگشترها در جای انگشتر و گردنبندها در جای طلسم. رنگ بالاتر = استت اصلی بیشتر و از آبی به بالا یک استت دوم یا شانس. قرمزها (۲۰ تا) فقط از جک‌پات‌ها، شاپ رول، باس سطح و احضار قرمز می‌آیند و قابل معامله نیستند.\n"
+        "اکسسوری‌های قدیمی خودکار به یک اکسسوری جدید هم‌رنگ و هم‌جا تبدیل شدند.\n\n"
+        "🪨 <b>سنگ آبدیده‌سازی</b>: برای آهنگری سلاح و آبدیده کردن زره از +۶ به بعد لازم است (+۶ یک سنگ، +۷ دو سنگ، … +۱۰ پنج سنگ). سقف هر دو حالا +۱۰ است. منبع: صندوق طلایی (۱۵٪)، باس سطح (۲۰٪)، شاپ نخبگان، جک‌پات شاپ رول و هر ۵۰ طبقه‌ی برج.\n\n"
+        "🌌 <b>دنیای درون ۲</b>: با «کلید دنیای درون» (خیلی کمیاب) هر بار یک بونوس دائمی خالص بگیر: هالو +۰.۵٪ آسیب (سقف ۵٪)، ذن +۰.۵٪ دفاع (سقف ۵٪)، نفس +۰.۰۸٪ بازسازی جان در هر نوبت (سقف ۰.۸٪)، آینه +۱٪ تجربه (سقف ۱۰٪).\n\n"
+        "🐾 <b>همراه‌ها</b>: ۱۰ روح همراه جدید و ارتقا تا ★۱۰ با سکه و مواد روحی.",
+        "💍 <b>Accessories</b>\n━━━━━━━━━━━━━━\n"
+        "500 new accessories from the Bleach world (lieutenant and captain badges, Espada, Sternritter, Quincy, Zero Division, Fullbring…). Every name exists once with one colour; no more \"stage 1 and 2\". Rings go in the ring slot and necklaces in the charm slot. A higher colour = a bigger main stat, and from blue up a second stat or luck. The 20 red ones only come from jackpots, the roll shop, level bosses and red summons, and cannot be traded.\n"
+        "Old accessories were turned into a new one of the same colour and slot automatically.\n\n"
+        "🪨 <b>Tempering Stone</b>: needed for weapon forging and armour tempering from +6 (+6 one stone, +7 two, … +10 five). Both now go to +10. Sources: gold chest (15%), level boss (20%), elite shop, roll-shop jackpot and every 50th tower floor.\n\n"
+        "🌌 <b>Inner World 2</b>: each Inner World Key (very rare) gives a small permanent pure bonus: Hollow +0.5% damage (cap 5%), Zen +0.5% defence (cap 5%), Breath +0.08% HP regen per turn (cap 0.8%), Mirror +1% XP (cap 10%).\n\n"
+        "🐾 <b>Companions</b>: 10 new spirit companions and upgrades up to ★10 with coins and spirit materials.")),
 }
-TOPIC_ORDER = ("stats", "abil", "races", "rel", "evo", "rw", "ra", "brk", "dg", "boss", "rc")
+TOPIC_ORDER = ("stats", "abil", "races", "rel", "evo", "rw", "ra", "brk", "dg", "adv", "shp", "acc", "boss", "rc")

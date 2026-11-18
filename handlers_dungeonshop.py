@@ -44,7 +44,9 @@ async def dungeon_shop_buy(ctx, arg):
     q = f" ×{fnum(res['qty'], L)}" if res.get("qty", 1) > 1 else ""
     got = (f"🎁 {name} باز شد:\n🪙 {fnum(res['coins'], L)}\n🎁 «{nm(res['item'], L)}»{q}" if fa
            else f"🎁 {name} opened:\n🪙 {fnum(res['coins'], L)}\n🎁 «{nm(res['item'], L)}»{q}")
-    if res.get("bonus"):
+    if (res.get("bonus") or {}).get("stone"):
+        got += "\n🪨 " + ("سنگ آبدیده‌سازی!" if fa else "A Tempering Stone!")
+    if (res.get("bonus") or {}).get("item"):
         got += (f"\n✨ جایزه‌ی دوم: «{nm(res['bonus']['item'], L)}» ×{fnum(res['bonus']['qty'], L)}" if fa
                 else f"\n✨ Second prize: «{nm(res['bonus']['item'], L)}» ×{fnum(res['bonus']['qty'], L)}")
     if res.get("relic"):

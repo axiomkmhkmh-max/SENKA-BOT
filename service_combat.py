@@ -94,6 +94,8 @@ async def build_player(ch: dict, name: str = None):
         armor += d
         if "stat" in it["stats"]:
             stats[it["stats"]["stat"]] += it["stats"]["bonus"]
+        if "stat2" in it["stats"]:  # the new accessories can carry a second stat
+            stats[it["stats"]["stat2"]] += it["stats"]["bonus2"]
     # --- NEW BLEACH VIRAL SYSTEM: Hogyoku doubles Reiatsu, a failed theft halves it for a while ---
     from data_artifacts import reiatsu_mult
     stats["reiatsu"] = stats["reiatsu"] * reiatsu_mult(ch)
@@ -263,6 +265,25 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         if floor % TOWER_BOSS_EVERY == 0:
             scale *= 1.5
             name = "👑 " + name
+    elif dungeon and dungeon.get("adv"):  # adventure: themed foes of a random level around the player's
+        from data_extras2 import ADVENTURES
+        a = ADVENTURES[dungeon["id"]]
+        stage, total = dungeon["stage"], dungeon["total"]
+        lvl = max(1, ch["level"] + rng.randint(-3, 4))
+        pick = a["boss"] if stage == total else rng.choice(a["foes"])
+        name = pick[0 if lang == "fa" else 1]
+        scale = 0.9 + 0.08 * (stage - 1)
+        if stage == total:
+            scale *= 1.35
+            name = "👑 " + name
+    elif dungeon and dungeon.get("lboss"):  # level boss of the player's band
+        from data_extras2 import LEVEL_BOSS_SCALE, LEVEL_BOSSES
+        b = LEVEL_BOSSES[int(dungeon["band"])]
+        lvl = max(1, min(ch["level"], b[1]) + 2)
+        pick = (b[2], b[3])
+        name = "👹 " + pick[0 if lang == "fa" else 1]
+        sig_race = b[5]
+        scale = LEVEL_BOSS_SCALE
     elif dungeon:
         stage, total = dungeon["stage"], dungeon["total"]
         mult = DIFFICULTY[dungeon["diff"]] * (1 + 0.12 * (stage - 1))
@@ -274,8 +295,15 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
             name = "⚔️ " + name
         scale = mult
     elite = bool(force_elite) or ((not dungeon) and (not trial) and rng.random() < 0.15)
+    mini = False
     if elite:
         scale, name = (1.55 if force_elite else 1.4), "💀 " + name
+    elif not dungeon and not trial:  # mini-boss: a rare, much stronger foe in a normal battle, with a big reward
+        from data_extras2 import MINI_BOSS_CHANCE, MINI_BOSS_NAMES, MINI_BOSS_SCALE
+        if rng.random() < MINI_BOSS_CHANCE:
+            mini = True
+            scale = MINI_BOSS_SCALE
+            name = "👺 " + rng.choice(MINI_BOSS_NAMES)[0 if lang == "fa" else 1]
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
     elif not tower and not fixed_dg:  # dungeons stay fixed: no world-event scaling on top
@@ -306,7 +334,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         state["cur"] = state["first"] = "a"
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
-           "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "lvl": lvl,
+           "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "mini": mini, "lvl": lvl,
            "dungeon": dungeon, "trial": trial, "loc": ch["location"], "lang": lang}
     await col("battles").insert_one(doc)
     return doc
@@ -377,7 +405,24 @@ async def pve_settle(doc: dict):
             out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop, "ms": cms}
             if cfull:
                 out["drop_full"] = out.get("drop_full") or cfull
-        if d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
+        if doc.get("mini"):  # mini-boss: triple XP and coins, a guaranteed blue-or-better item, a chance of a relic
+            from data_extras2 import MINI_BOSS_RELIC, MINI_BOSS_REWARD
+            xp, coins = int(xp * MINI_BOSS_REWARD), int(coins * MINI_BOSS_REWARD)
+            mi = await roll_drop(uid, source_mult=2.0, floor_idx=2)
+            await inv_add(uid, mi, 1, force=True)
+            out["mini"] = {"item": mi, "relic": None}
+            if random.random() < MINI_BOSS_RELIC:
+                from data_items import EVO_BY_RARITY
+                rel = random.choice(EVO_BY_RARITY["Rare"] or EVO_BY_RARITY["Common"])
+                await inv_add(uid, rel, 1, force=True)
+                out["mini"]["relic"] = rel
+        if d and d.get("adv"):  # adventures pay coins (more than a normal fight) and a bit more XP
+            from data_extras2 import ADV_COIN_K, ADV_XP_K
+            xp, coins = int(xp * ADV_XP_K), int(coins * ADV_COIN_K)
+        elif d and d.get("lboss"):  # level boss: x4 XP and coins (its loot is paid at the end)
+            from data_extras2 import LEVEL_BOSS_REWARD
+            xp, coins = int(xp * LEVEL_BOSS_REWARD), int(coins * LEVEL_BOSS_REWARD)
+        elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
             xp, coins = int(xp * DG_XP_MULT), 0
             if d["stage"] == d["total"]:
                 xp *= 3
@@ -413,6 +458,13 @@ async def pve_settle(doc: dict):
                                          "gauge": int((f.get("x") or {}).get("gauge", 0)),
                                          "shield": int(f.get("shield", 0))})  # a Bakudō barrier survives the stage change  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
+        elif d and d.get("adv"):  # adventure finished: a purse of coins
+            from data_extras2 import ADV_FINISH_COINS
+            out["adv_done"] = int(ADV_FINISH_COINS * (1 + int(doc["lvl"]) / 10))
+            await add_coins(uid, out["adv_done"], "adventure")
+        elif d and d.get("lboss"):  # level boss down: its loot
+            from service_adventure import level_boss_loot
+            out["lboss"] = await level_boss_loot(uid, int(d["band"]))
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)

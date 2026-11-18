@@ -244,6 +244,9 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     for key, buf in active_buffs(ch, now).items():
         if key in b:
             b[key] += buf["pct"]
+    for key, v in (ch.get("inner2") or {}).items():  # Inner World 2: small permanent pure bonuses (capped per path)
+        if key in b:
+            b[key] += float(v)
     for k in ("xp", "drop", "coin", "dmg", "def"):
         b[k] = min(b[k], 0.60)
     b["calm"] = min(b["calm"], 1.0)

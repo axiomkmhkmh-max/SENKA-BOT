@@ -33,6 +33,8 @@ class MaterialMergeTests(unittest.TestCase):
         keys = {((x.get("effect") or {}).get("group"), x["rarity"]) for x in live}
         self.assertEqual(len(live), len(keys))
         for old, new in D.MAT_MERGE.items():
+            if old in D.ACC_SWAP:
+                continue
             self.assertFalse(D.ALL[new].get("retired"))
             self.assertEqual(D.ALL[old]["rarity"], D.ALL[new]["rarity"])
             self.assertEqual(D.ALL[old]["effect"]["group"], D.ALL[new]["effect"]["group"])

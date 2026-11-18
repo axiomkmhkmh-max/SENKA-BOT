@@ -19,7 +19,8 @@ from service_player import add_coins, get_char, today
 from ui import GREEN, RED, Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy", "dungeon")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy", "dungeon",
+                                                                                            "temper", "inner_key")}
 
 
 def _rk(i):
@@ -132,6 +133,10 @@ async def item_view(ctx, arg):
         rows.append([(ctx.t("m_crf"), "crf" if ety == "mat" else "evo", "")])
     elif ety == "key":
         rows.append([(ctx.t("m_evt"), "evt", "")])
+    elif ety == "inner_key":
+        rows.append([(ctx.t("m_in2"), "in2", "")])
+    elif it["category"] == "temper":
+        rows.append([(ctx.t("b_forge"), "frg", "")])
     row2 = [(ctx.t("b_sell_npc"), "sl", f"{iid}:{back}")]
     if it.get("tradeable"):
         row2.append((ctx.t("b_list"), "ml", iid))
@@ -1005,6 +1010,10 @@ async def gacha_do(ctx, arg):
     lines = []
     for r in res:
         icon = RARITY_ICON[r["rar"]]
+        if r["t"] == "jackpot":  # 1 in 10,000
+            lines.append(("🎰🌟 <b>جک‌پات احضار!</b> " if L == "fa" else "🎰🌟 <b>SUMMON JACKPOT!</b> ") + f"+{fnum(r['coins'], L)} 🪙"
+                         + (f" + {nm(r['id'], L)}" if r.get("id") else "") + " + 🗝")
+            continue
         if r["t"] == "char":
             c = CHAR_BY_ID[r["id"]]
             tag = ctx.t("gch_new") if r["copies"] == 1 else ctx.t("gch_dupe", n=fnum(r["copies"], L))
@@ -1081,6 +1090,9 @@ async def forge_panel(ctx, arg):
     else:
         cost, need = forge_cost(wid, plus)
         body = ctx.t("frg_body", name=nm(wid, L), plus=fnum(plus, L), cost=fnum(cost, L), mats=fnum(need, L), chance=FORGE_CHANCE[plus])
+        from service_adventure import stones_needed
+        if stones_needed(plus):
+            body += "\n" + ctx.t("need_stone", n=fnum(stones_needed(plus), L))
         body += (f"\n⚔️ بونوس فعلی: ×{round(1 + 0.06 * plus, 2)} قدرت" if L == "fa" else f"\n⚔️ Current bonus: ×{round(1 + 0.06 * plus, 2)} attack")
         rows = [[(ctx.t("b_forge_go"), "frg", "go")], nav(ctx, ("prof", ""))]
     return Out(head(ctx, "ttl_frg") + body, rows, alert=alert)

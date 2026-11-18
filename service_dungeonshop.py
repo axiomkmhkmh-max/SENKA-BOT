@@ -110,6 +110,10 @@ async def buy_box(uid: int, key: str, rng=random):
             bq = rng.randint(2, 3) if cat == "material" else 2 if cat == "potion" else 1
             await inv_add(uid, bid, bq, force=True)
             bonus = {"item": bid, "qty": bq}
+        if rng.random() < 0.15:  # and sometimes a Tempering Stone (forge and armour past +5)
+            from data_extras2 import TEMPER_STONE
+            await inv_add(uid, TEMPER_STONE, 1, force=True)
+            bonus = dict(bonus or {}, stone=True)
     relic = None
     chance, rars = RELIC_ODDS.get(key, (0.0, ()))
     if rars and rng.random() < chance:

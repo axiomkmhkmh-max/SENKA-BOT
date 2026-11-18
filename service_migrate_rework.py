@@ -114,12 +114,13 @@ async def merge_materials_once() -> int:
     out with one atomic read-and-unset, then added to the merged item, so nothing is counted twice."""
     if await col("migrations").find_one({"_id": MAT_MERGE_ID}):
         return 0
-    from data_items import MAT_MERGE
+    from data_items import ACC_SWAP, MAT_MERGE
+    MAT_ONLY = {k: v for k, v in MAT_MERGE.items() if k not in ACC_SWAP}
     moved = 0
-    flt = {"$or": [{f"items.{i}": {"$exists": True}} for i in MAT_MERGE]}
+    flt = {"$or": [{f"items.{i}": {"$exists": True}} for i in MAT_ONLY]}
     async for inv in col("inventories").find(flt, {"user_id": 1, "items": 1}):
         uid = inv["user_id"]
-        for old, new in MAT_MERGE.items():
+        for old, new in MAT_ONLY.items():
             if old not in (inv.get("items") or {}):
                 continue
             before = await col("inventories").find_one_and_update({"user_id": uid, f"items.{old}": {"$exists": True}},
@@ -132,13 +133,41 @@ async def merge_materials_once() -> int:
     return moved
 
 
+ACC_SWAP_ID = "accessories_swap_v1"
+
+
+async def swap_accessories_once() -> int:
+    """Old accessories (the same names at several colours) become their fixed replacement of the same colour and slot:
+    in bags (atomic per stack, like merge_materials_once) and in the two equipped slots."""
+    if await col("migrations").find_one({"_id": ACC_SWAP_ID}):
+        return 0
+    from data_items import ACC_SWAP
+    moved = 0
+    flt = {"$or": [{f"items.{i}": {"$exists": True}} for i in ACC_SWAP]}
+    async for inv in col("inventories").find(flt, {"user_id": 1, "items": 1}):
+        uid = inv["user_id"]
+        for old in [i for i in (inv.get("items") or {}) if i in ACC_SWAP]:
+            before = await col("inventories").find_one_and_update({"user_id": uid, f"items.{old}": {"$exists": True}},
+                                                                  {"$unset": {f"items.{old}": ""}})
+            q = int(((before or {}).get("items") or {}).get(old, 0))
+            if q > 0:
+                await col("inventories").update_one({"user_id": uid}, {"$inc": {f"items.{ACC_SWAP[old]}": q}})
+        moved += 1
+    for slot in ("acc_id", "charm_id"):
+        async for ch in col("characters").find({slot: {"$in": list(ACC_SWAP)}}, {"user_id": 1, slot: 1}):
+            await col("characters").update_one({"user_id": ch["user_id"], slot: ch[slot]}, {"$set": {slot: ACC_SWAP[ch[slot]]}})
+            moved += 1
+    await col("migrations").update_one({"_id": ACC_SWAP_ID}, {"$set": {"at": int(time.time()), "n": moved}}, upsert=True)
+    return moved
+
+
 async def run_all() -> None:
     from service_racegear import migrate_armour_once
     from service_raceweapon import migrate_blades_once
     for name, fn in (("evolution pin", pin_evolution_once), ("race weapons", migrate_blades_once),
                      ("race armour", migrate_armour_once), ("free stat reset", free_respec_once),
                      ("battle rank fair reset", battlerank_reset_once), ("bank credit reset", bank_credit_reset_once),
-                     ("materials merge", merge_materials_once)):
+                     ("materials merge", merge_materials_once), ("accessories swap", swap_accessories_once)):
         try:
             log.info("%s: %s character(s) moved", name, await fn())
         except Exception:

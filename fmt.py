@@ -49,6 +49,9 @@ def item_card(ctx, item_id: str, qty: int = None, shop_price: int = None) -> str
         eff_line = effect_text(ctx, it)
         if eff_line:
             lines.append("✦ " + eff_line)
+    if it["category"] == "accessory" and it.get("subtype") in ("ring", "necklace"):
+        lines.append(("💍 جای نشان/انگشتر" if it["subtype"] == "ring" else "📿 جای گردن/سر") if lang == "fa"
+                     else ("💍 Badge/ring slot" if it["subtype"] == "ring" else "📿 Neck/head slot"))
     if it.get("slot") and it.get("level_req", 1) > 1:
         lines.append(f"🔒 {ctx.t('lbl_level')} {fnum(it['level_req'], lang)}")
     price = it["base_price"] if shop_price is None else shop_price  # shop shows the scarcity-adjusted price it charges

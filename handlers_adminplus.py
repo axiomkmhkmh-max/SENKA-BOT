@@ -28,9 +28,11 @@ PER = 8
 
 CAT_FA = {"kido_card": "کارت کیدو", "material": "متریال", "armor": "زره", "accessory": "اکسسوری", "key": "کلید", "weapon": "سلاح",
           "potion": "معجون", "cosmetic": "ظاهری", "relic": "یادگار", "book": "کتاب", "evolution": "تکامل", "egg": "تخم",
-          "charm": "طلسم", "quincy": "کوئینسی", "race_card": "کارت تکنیک نژادی"}
+          "charm": "طلسم", "quincy": "کوئینسی", "race_card": "کارت تکنیک نژادی",
+          "temper": "سنگ آبدیده‌سازی", "inner_key": "کلید دنیای درون"}
 CAT_ICON = {"kido_card": "🔮", "material": "🧱", "armor": "🛡", "accessory": "💍", "key": "🗝", "weapon": "⚔️", "potion": "🧪",
-            "cosmetic": "🎨", "relic": "🏺", "book": "📖", "evolution": "🧬", "egg": "🥚", "charm": "🧿", "quincy": "✝️", "race_card": "🎴"}
+            "cosmetic": "🎨", "relic": "🏺", "book": "📖", "evolution": "🧬", "egg": "🥚", "charm": "🧿", "quincy": "✝️", "race_card": "🎴",
+            "temper": "🪨", "inner_key": "🗝"}
 CATS = [c for c in CAT_FA if any(v["category"] == c for v in ALL.values())]
 TRAIT_FA = {"bleed": "خونریزی", "armor": "زره‌دار", "enrage": "خشم", "regen": "بازسازی", "dodge": "چابک", "decay": "پوسیدگی",
             "burn": "سوزش", "poison": "زهر", "illusion": "توهم"}

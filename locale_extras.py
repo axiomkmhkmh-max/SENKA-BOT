@@ -162,3 +162,16 @@ EN = {
     "inr_bond": "💞 Bond with your blade: +{n}", "inr_buff": "✨ {key} +{pct}% for {m} min",
     "buff_xp_pct": "XP", "buff_coin_pct": "Coins", "buff_drop_pct": "Drop rate",
 }
+
+
+# ---- Nov 19 batch 2 (adventures, level bosses, roll shop, elite shop, Inner World 2, companions, tempering stone) ----
+FA.update({
+    "need_stone": "🪨 برای این مرحله {n} «سنگ آبدیده‌سازی» هم لازم است (از جعبه‌ی طلایی، باس سطح، برج، شاپ رول و شاپ نخبگان).",
+    "frg_stone": "🪨 {n} سنگ آبدیده‌سازی لازم است.", "tmp_stone": "🪨 {n} سنگ آبدیده‌سازی لازم است.", "crf_e_stone": "🪨 {n} سنگ آبدیده‌سازی لازم است.",
+    "m_avl": "🧭 ماجراجویی", "m_lbs": "👹 باس سطح", "m_rsh": "🎰 شاپ رول", "m_els": "🏛 شاپ نخبگان", "m_in2": "🌌 دنیای درون ۲",
+})
+EN.update({
+    "need_stone": "🪨 This level also needs {n} Tempering Stone(s) (gold chests, level bosses, the tower, the roll shop and the elite shop).",
+    "frg_stone": "🪨 Needs {n} Tempering Stone(s).", "tmp_stone": "🪨 Needs {n} Tempering Stone(s).", "crf_e_stone": "🪨 Needs {n} Tempering Stone(s).",
+    "m_avl": "🧭 Adventures", "m_lbs": "👹 Level boss", "m_rsh": "🎰 Roll shop", "m_els": "🏛 Elite shop", "m_in2": "🌌 Inner World 2",
+})

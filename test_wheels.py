@@ -18,11 +18,12 @@ class WheelData(unittest.TestCase):
             self.assertEqual(len(items), 10, cat)
             self.assertIn(cat, CATEGORIES)
 
-    def test_ichigo_is_the_most_expensive(self):
+    def test_yamamoto_then_ichigo_are_the_most_expensive(self):
         top = max(WHEELS.values(), key=lambda w: w["base_cost"])
-        self.assertEqual(top["id"], "w_ichigo")
-        others = [w["base_cost"] for w in WHEELS.values() if w["id"] != "w_ichigo"]
+        self.assertEqual(top["id"], "w_yamamoto")
+        others = [w["base_cost"] for w in WHEELS.values() if w["id"] not in ("w_ichigo", "w_yamamoto")]
         self.assertLess(max(others), WHEELS["w_ichigo"]["base_cost"])
+        self.assertLess(WHEELS["w_ichigo"]["base_cost"], WHEELS["w_yamamoto"]["base_cost"])
 
     def test_toshiro_is_owner_only(self):
         self.assertTrue(WHEELS["w_hitsugaya"]["owner_only"])
