@@ -33,8 +33,11 @@ NOUNS = {
               ("Reishi Idol", "تندیس ریشی")],
     "egg": [("Spirit Egg", "تخم روح")], "key": [("Key", "کلید")],
 }
+# Crafting materials never split into several bag slots: every material is ONE stack however many you hold
+# (players asked for it). slots_used() = ceil(qty / stack_max), so a huge stack_max means exactly 1 slot per material.
+MAT_STACK = 10 ** 9
 # category, count, slot, stack, base price factor
-PLAN = [("material", 160, None, 99, 1.0), ("potion", 100, None, 99, 1.2), ("armor", 150, "armor", 1, 2.5),
+PLAN = [("material", 160, None, MAT_STACK, 1.0), ("potion", 100, None, 99, 1.2), ("armor", 150, "armor", 1, 2.5),
         ("ring", 75, "accessory", 1, 3.0), ("necklace", 75, "accessory", 1, 3.0), ("kido_card", 198, None, 99, 2.0),
         ("book", 40, None, 99, 2.0), ("evolution", 30, None, 99, 3.0), ("cosmetic", 80, None, 1, 1.5),
         ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 120, None, 99, 2.0),

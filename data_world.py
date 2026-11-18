@@ -36,6 +36,16 @@ EVENTS = {
                "locs": None, "mods": {"enemy": 1.20, "drop": 1.30, "xp": 1.30, "coin": 1.0},  # None = anywhere: it used to count only at level 45+ places, so most players could never add a point
                "mod_locs": ("dangai", "royal_palace", "soul_king", "precipice_world", "zero_division_hall"),
                "win": {"threat": -5.0, "stability": 15.0}, "lose": {"threat": 4.0, "stability": -8.0}},
+    # ---- v5 events: appended last so the random pick order of the older ones is untouched ----
+    "soul_festival": {"icon": "🎆", "pts": {"explore": 1, "pve_win": 1, "pvp_win": 2, "dungeon_clear": 3, "key": 1},
+                      "locs": None, "mods": {"enemy": 1.0, "drop": 1.35, "xp": 1.15, "coin": 1.50}, "mod_locs": None,
+                      "win": {"threat": -8.0, "stability": 20.0}, "lose": {"threat": 2.0, "stability": -4.0}},
+    "hogyoku_awakening": {"icon": "🔮", "pts": {"pve_win": 1, "elite_win": 4, "boss_hit": 3, "dungeon_clear": 8, "key": 2},
+                          "locs": None, "mods": {"enemy": 1.45, "drop": 1.60, "xp": 1.45, "coin": 1.15}, "mod_locs": None,
+                          "win": {"threat": -22.0, "stability": 12.0}, "lose": {"threat": 16.0, "stability": -14.0}},
+    "reishi_storm": {"icon": "⚡", "pts": {"explore": 2, "pve_win": 1, "elite_win": 2, "dungeon_clear": 4, "key": 1},
+                     "locs": None, "mods": {"enemy": 1.10, "drop": 1.25, "xp": 1.35, "coin": 1.0}, "mod_locs": None,
+                     "win": {"threat": -4.0, "stability": 14.0}, "lose": {"threat": 5.0, "stability": -6.0}},
 }
 EVENT_KINDS = list(EVENTS)
 
