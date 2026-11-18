@@ -14,7 +14,7 @@ from service_player import add_coins, get_char
 # much more; dungeons pay no coins and no items any more, so DP (and XP) is the whole reward.
 DP_BY_DIFF = {"normal": 6, "hard": 12, "nightmare": 25, "abyss": 60, "legendary": 150}
 DP_LEVEL_STEP = 20
-DP_DAILY_CAP = 1500
+DP_DAILY_CAP = 4000  # fallback only: the live value is GAME_DEFAULTS["dp_daily_cap"]
 # key -> cost in DP, the two rarity indexes the chest can hold (0 Common/white .. 5 Mythic/red), the odds of the lower
 # and the higher one, coin range, icon, names. Each chest holds only its own colours:
 # bronze = white + green, silver = blue + purple, gold = gold + red.
@@ -38,10 +38,35 @@ def dp_for_clear(dungeon: dict) -> int:
 
 async def award_dp(uid: int, dungeon: dict) -> int:
     pts = dp_for_clear(dungeon)
-    if not await bump_counter(f"dp:{uid}:{day_id()}", pts, DP_DAILY_CAP):
+    cap = int((await game_settings()).get("dp_daily_cap", DP_DAILY_CAP))
+    if not await bump_counter(f"dp:{uid}:{day_id()}", pts, cap):
         return 0  # today's cap is used up (anti-farming)
     await col("characters").update_one({"user_id": uid}, {"$inc": {"dp": pts}})
     return pts
+
+
+# Dungeon-only special items (data_items.DG_SPECIAL): chance per full clear by difficulty. Capped per player per day
+# (GAME_DEFAULTS dg_special_day_cap); the cap is only used when the roll hits, and the whole thing can be switched off
+# with dg_special_on.
+SPECIAL_CHANCE = {"normal": 0.08, "hard": 0.12, "nightmare": 0.16, "abyss": 0.22, "legendary": 0.30}
+
+
+async def roll_special(uid: int, dungeon: dict, rng=random):
+    """After a full clear: a small chance of one special item of the dungeon's difficulty. Returns the item id or None."""
+    from data_items import DG_SPECIAL
+    st = await game_settings()
+    if not int(st.get("dg_special_on", 1)):
+        return None
+    diff = dungeon.get("diff", "normal")
+    pool = DG_SPECIAL.get(diff) or []
+    if not pool or rng.random() >= SPECIAL_CHANCE.get(diff, 0.0):
+        return None
+    if not await bump_counter(f"dgsp:{uid}:{day_id()}", 1, int(st.get("dg_special_day_cap", 6))):
+        return None
+    iid = rng.choice(pool)
+    await inv_add(uid, iid, 1, force=True)  # a special item is never lost to a full bag
+    log_event("dungeon_special", uid, f"آیتم مخصوص دانجن: {iid}", item=iid, diff=diff)
+    return iid
 
 
 async def dp_balance(uid: int) -> int:

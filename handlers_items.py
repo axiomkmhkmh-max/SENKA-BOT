@@ -19,7 +19,7 @@ from service_player import add_coins, get_char, today
 from ui import GREEN, RED, Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy", "dungeon")}
 
 
 def _rk(i):

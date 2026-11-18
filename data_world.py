@@ -97,6 +97,18 @@ def boss_hp_roll(online: int, st: dict, rng) -> int:
     return int(rng.randint(min(lo, hi), max(lo, hi)) * max(1, int(online)))
 
 
+def burst_rule(dmg: int, uid: int, adapt: dict, now: float, st: dict):
+    """World-boss burst phase. -> (damage actually dealt, reduced, burst).
+    reduced: the boss is still adapted to this player (modes 2 and 3) and takes less damage from them.
+    burst: this hit reached boss_burst_dmg and opens (or renews) the special state; a reduced hit never renews it."""
+    mode = int(st["boss_burst_mode"])
+    reduced = mode in (2, 3) and bool(adapt) and adapt.get("uid") == uid and float(adapt.get("until", 0)) > now
+    if reduced:
+        dmg = max(1, int(dmg * float(st["boss_burst_reduce"])))
+    burst = int(st["boss_burst_dmg"]) > 0 and dmg >= int(st["boss_burst_dmg"]) and not reduced
+    return dmg, reduced, burst
+
+
 def boss_gap_seconds(st: dict, threat: float, rng) -> int:
     lo, hi = int(st["boss_min_minutes"]), int(st["boss_max_minutes"])
     base = rng.randint(min(lo, hi), max(lo, hi)) * 60

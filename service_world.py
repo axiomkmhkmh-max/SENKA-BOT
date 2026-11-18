@@ -9,7 +9,7 @@ from data_bosses import BOSSES, BOSS_BY_ID
 from data_crafting import tagged_name
 from data_items import ALL, EVO_BY_RARITY
 from data_weapons import ELEMENTS, RARITIES
-from data_world import boss_gap_seconds, boss_hp_roll, day_id, season_pts_boss
+from data_world import boss_gap_seconds, boss_hp_roll, burst_rule, day_id, season_pts_boss
 import engine as E
 from database import bump_counter, col, game_settings, try_cooldown
 from service_combat import build_player
@@ -147,6 +147,9 @@ async def boss_hit(uid: int, sid: str):
     special = rng.random() < float(st["boss_special_chance"])
     dmg = dmg * mult * float(st["boss_dmg_mult"]) * (1 + float(st["boss_combo_step"]) * combo) * (float(st["boss_special_mult"]) if special else 1.0)
     dmg = max(1, int(dmg))
+    # burst phase: this player already tore the boss open, so for a while it takes less damage from them (modes 2, 3)
+    mode = int(st["boss_burst_mode"])
+    dmg, reduced, burst = burst_rule(dmg, uid, sess.get("adapt") or {}, now, st)
     heal = int(sess["max_hp"] * 0.004) if trait == "regen" and sess["hp"] < sess["max_hp"] * 0.99 else 0
     heal = 0 if sess["hp"] - dmg <= 0 else min(heal, dmg // 2)  # regen can never undo a killing blow or stall the last 1%
     pname = tagged_name(ch, ALL)
@@ -154,17 +157,20 @@ async def boss_hit(uid: int, sid: str):
     doc = await col("boss_sessions").find_one_and_update(
         {"_id": sid, "active": True, "hp": {"$gt": 0}},
         {"$inc": {"hp": -dmg + heal, f"contrib.{uid}": dmg, "hits": 1},
-         "$set": {"last_hitter": uid, f"nm.{uid}": pname, "combo": combo, "last_at": now},
+         "$set": {"last_hitter": uid, f"nm.{uid}": pname, "combo": combo, "last_at": now,
+                  **({"adapt": {"uid": uid, "n": pname, "until": now + int(st["boss_burst_seconds"])}} if burst else {})},
          "$push": {"feed": {"$each": [entry], "$slice": -4}}},
         return_document=ReturnDocument.AFTER)
     if not doc:  # someone else's blow took it to 0 while this one was in flight
         dead = await col("boss_sessions").find_one({"_id": sid, "active": True, "hp": {"$lte": 0}})
         return ("dead" if dead else "gone"), None
     phase_up = phase(doc) if phase(doc) > phase(sess) else 0
+    if burst and mode in (1, 3) and doc["hp"] > 0:  # the huge hit costs this player extra cooldown ($max: never shortens one)
+        await col("cooldowns").update_one({"key": f"bosshit:{uid}"}, {"$max": {"until": now + int(st["boss_burst_cd"])}})
     await bump_quest(uid, "boss_hit", 1)
     from service_worldstate import on_action_bg
     on_action_bg(uid, "boss_hit", ch["location"])
-    return "hit", {"dmg": dmg, "crit": crit, "doc": doc, "combo": combo, "special": special, "phase_up": phase_up, "race": ch["race"]}
+    return "hit", {"dmg": dmg, "crit": crit, "doc": doc, "combo": combo, "special": special, "phase_up": phase_up, "race": ch["race"], "burst": burst and doc["hp"] > 0, "reduced": reduced}
 
 
 async def settle_boss(sid: str):

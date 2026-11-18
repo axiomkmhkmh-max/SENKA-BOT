@@ -251,6 +251,8 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("dg_done"))
         if o.get("dp"):
             lines.append(f"💠 دانجن پوینت: +{fnum(o['dp'], L)}" if L == "fa" else f"💠 Dungeon Points: +{fnum(o['dp'], L)}")
+        if o.get("special"):
+            lines.append(f"🎁 آیتم مخصوص دانجن: {nm(o['special'], L)}" if L == "fa" else f"🎁 Dungeon special item: {nm(o['special'], L)}")
     else:
         rows.append([(ctx.t("b_again"), "bs", "")])
     rows.append(nav(ctx))
@@ -561,10 +563,22 @@ async def boss_hit_cb(ctx, arg):
                 import asyncio
                 import handlers_world
                 asyncio.ensure_future(handlers_world.announce_boss_phase(ctx.bot, d, data["phase_up"]))
+            if data.get("burst"):
+                import asyncio
+                import handlers_world
+                asyncio.ensure_future(handlers_world.announce_boss_burst(ctx.bot, d, (d.get("adapt") or {}).get("n", "?")))
         head = ("✨ " + ctx.t("boss_special") + " ") if data["special"] else ""
+        from database import game_settings as _gs
+        _st = await _gs()
+        burst = ""
+        if data.get("burst"):
+            if int(_st["boss_burst_mode"]) in (1, 3):
+                burst += ctx.t("boss_burst_cd", s=fnum(int(_st["boss_burst_cd"]), ctx.lang))
+            if int(_st["boss_burst_mode"]) in (2, 3):
+                burst += ctx.t("boss_burst_red")
         tail = (" · " + ctx.t("boss_combo_s", n=fnum(data["combo"], ctx.lang))) if data["combo"] >= 2 else ""
         fin = (" " + ctx.t("boss_final_blow")) if killing else ""
-        return Out(alert=head + ctx.t("boss_hit_ok", n=fnum(data["dmg"], ctx.lang)) + crit + _call(ctx.lang, data["race"], data["special"] or killing) + tail + fin)
+        return Out(alert=head + ctx.t("boss_hit_ok", n=fnum(data["dmg"], ctx.lang)) + crit + _call(ctx.lang, data["race"], data["special"] or killing) + tail + burst + fin)
     if status == "cool":
         return Out(alert=ctx.t("wait_s", n=data))
     if status == "level":

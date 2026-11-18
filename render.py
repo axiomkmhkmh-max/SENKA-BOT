@@ -191,6 +191,9 @@ def boss_text(lang: str, d: dict, result: dict = None) -> str:
         combo = int(d.get("combo", 0))
         if combo >= 2 and time.time() - float(d.get("last_at", 0)) <= 10:
             lines.append(t(lang, "boss_combo", n=fnum(combo, lang), p=fnum(combo * 5, lang)))
+        ad = d.get("adapt") or {}
+        if ad and float(ad.get("until", 0)) > time.time():
+            lines.append(t(lang, "boss_burst_state", n=esc(ad.get("n", "?"))))
         top = sorted(d.get("contrib", {}).items(), key=lambda kv: -kv[1])[:3]
         if top:
             lines.append(t(lang, "boss_hits", n=fnum(d.get("hits", 0), lang)) + " · " + t(lang, "boss_fighters", n=fnum(len(d.get("contrib", {})), lang)))

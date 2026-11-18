@@ -406,6 +406,8 @@ async def pve_settle(doc: dict):
             await bump_quest(uid, "dungeon_clear", 1)
             from service_dungeonshop import award_dp
             out["dp"] = await award_dp(uid, d)
+            from service_dungeonshop import roll_special
+            out["special"] = await roll_special(uid, d)  # dungeon-only item, small chance
             from service_cores import on_dungeon_clear  # rare Soul Core, abyss/legendary clears only
             await on_dungeon_clear(uid, d.get("diff", "normal"), d.get("id", ""))
             from data_races import unlocks_visored

@@ -678,6 +678,13 @@ async def announce_boss_phase(bot, doc, phase_no):
     await _send_groups(bot, lambda L: t(L, "boss_phase_alert_" + str(phase_no), boss=esc(doc["name_fa" if L == "fa" else "name_en"])), (lambda m, _s=doc["_id"]: boss_kb(_s, m)))
 
 
+async def announce_boss_burst(bot, doc, name):
+    """Group message when one huge hit puts the boss in its special state."""
+    from i18n import t
+    await _send_groups(bot, lambda L: t(L, "boss_burst_alert", boss=esc(doc["name_fa" if L == "fa" else "name_en"]), n=esc(name)),
+                       (lambda m, _s=doc["_id"]: boss_kb(_s, m)))
+
+
 async def refresh_global_boss(bot, doc):
     await _edit_all(bot, doc, lambda L: boss_text(L, doc), (lambda m, _s=doc["_id"]: boss_kb(_s, m)))
 

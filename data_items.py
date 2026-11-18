@@ -231,6 +231,60 @@ CURATED.append({"_id": "it_q017", "item_id": "it_q017", "category": "quincy", "s
                 "rarity": "Legendary", "stats": {}, "effect": {"type": "znp_reset"}, "slot": None, "level_req": 1,
                 "base_price": 8000, "sell_price": 3000, "tradeable": True, "stack_max": 99})
 ITEMS += CURATED
+# Dungeon special items (real Bleach objects). They drop only from a full dungeon clear (service_dungeonshop.roll_special),
+# never from hunts, chests or summons: category "dungeon" keeps them out of every random pool. Appended at the end on
+# purpose so no older item id changes. Effects reuse types the bag already handles: buff, konpaku, xp, bond.
+DG_SPECIAL = {d: [] for d in ("normal", "hard", "nightmare", "abyss", "legendary")}
+
+
+def _dg(n, diff, rar, en, fa, d_en, d_fa, eff, price):
+    iid = f"it_d{n:03d}"
+    ITEMS.append({"_id": iid, "item_id": iid, "category": "dungeon", "subtype": "dungeon", "name_en": en, "name_fa": fa,
+                  "desc_en": d_en, "desc_fa": d_fa, "rarity": rar, "stats": {}, "effect": eff, "slot": None, "level_req": 1,
+                  "base_price": price, "sell_price": int(price * 0.4), "tradeable": True, "stack_max": 99})
+    DG_SPECIAL[diff].append(iid)
+
+
+_dg(1, "normal", "Uncommon", "Sekkiseki Fragment", "تکه‌ی سکی‌سکی",
+    "A chip of the stone that blocks spirit energy. You take less damage for 45 minutes.",
+    "تکه‌ای از سنگی که ریاتسو را مسدود می‌کند. ۴۵ دقیقه آسیب کمتری می‌بینی.",
+    {"type": "buff", "stat": "def", "pct": 0.08, "minutes": 45}, 500)
+_dg(2, "normal", "Uncommon", "Gikongan", "گیکونگان",
+    "The Mod Soul pill. In a duel you get one extra Konpaku life for 60 minutes.",
+    "قرص روح مصنوعی. ۶۰ دقیقه در دوئل یک جان کونپاکوی اضافه داری.",
+    {"type": "konpaku", "minutes": 60}, 600)
+_dg(3, "hard", "Rare", "Hollow Mask Shard", "پاره‌ی ماسک هالو",
+    "A shard of a Hollow mask. Your critical chance is higher for 60 minutes.",
+    "پاره‌ای از ماسک هالو. ۶۰ دقیقه شانس کریتیکالت بیشتر است.",
+    {"type": "buff", "stat": "crit", "pct": 0.08, "minutes": 60}, 1800)
+_dg(4, "hard", "Rare", "Substitute Soul Reaper Badge", "نشان شینیگامی جایگزین",
+    "The badge that lends a living human a Soul Reaper's power. Your strikes hit harder for 60 minutes.",
+    "نشانی که به یک انسان زنده قدرت شینیگامی می‌دهد. ۶۰ دقیقه ضربه‌هایت سنگین‌تر می‌زنند.",
+    {"type": "buff", "stat": "dmg", "pct": 0.10, "minutes": 60}, 2000)
+_dg(5, "nightmare", "Epic", "Denreishinki", "دن‌ریشینکی",
+    "The Soul Reaper communicator. It stores battle records: instant XP.",
+    "ارتباط‌دهنده‌ی شینیگامی‌ها. سوابق نبرد را نگه می‌دارد: تجربه‌ی فوری.",
+    {"type": "xp", "amount": 900}, 5000)
+_dg(6, "nightmare", "Epic", "Ginto Vial", "ویال گینتو",
+    "A vial of Quincy ginto. You take less damage for 75 minutes.",
+    "ویالی از گینتوی کوئینسی. ۷۵ دقیقه آسیب کمتری می‌بینی.",
+    {"type": "buff", "stat": "def", "pct": 0.12, "minutes": 75}, 6500)
+_dg(7, "abyss", "Legendary", "Arrancar Mask Fragment", "پاره‌ی ماسک آرانکار",
+    "What is left of an Arrancar's Hollow mask. Your critical chance is much higher for 90 minutes.",
+    "آنچه از ماسک هالوی یک آرانکار مانده. ۹۰ دقیقه شانس کریتیکالت خیلی بیشتر است.",
+    {"type": "buff", "stat": "crit", "pct": 0.12, "minutes": 90}, 22000)
+_dg(8, "abyss", "Legendary", "Hell Butterfly Cocoon", "پیله‌ی پروانه‌ی جهنمی",
+    "A cocoon of the Jigokuchō that carry souls between worlds. It grows your Zanpakutō's bond.",
+    "پیله‌ی جیگوکوچوها که ارواح را میان جهان‌ها می‌برند. پیوند زانپاکتوی تو را رشد می‌دهد.",
+    {"type": "bond", "amount": 60}, 25000)
+_dg(9, "legendary", "Legendary", "Ōken Fragment", "پاره‌ی اوکن",
+    "A splinter of the Royal Key's power. Your strikes hit much harder for 90 minutes.",
+    "ذره‌ای از قدرت کلید سلطنتی. ۹۰ دقیقه ضربه‌هایت بسیار سنگین‌تر می‌زنند.",
+    {"type": "buff", "stat": "dmg", "pct": 0.15, "minutes": 90}, 30000)
+_dg(10, "legendary", "Legendary", "Hōgyoku Residue", "غبار هوگیوکو",
+    "A trace of the orb that bends wishes. A large amount of instant XP.",
+    "ردی از گوی خواسته‌ها. مقدار زیادی تجربه‌ی فوری.",
+    {"type": "xp", "amount": 2500}, 32000)
 QUINCY_DROPS = [x["_id"] for x in CURATED if x["_id"] not in ("it_q001", "it_q017")]  # raids: no eye, no seal
 ALL = {x["_id"]: x for x in ITEMS}
 for _w in WEAPONS:

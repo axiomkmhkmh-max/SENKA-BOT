@@ -41,8 +41,12 @@ GAME_DEFAULTS = {
     # world boss feel: bigger numbers, team combos and signature strikes (all live-tunable)
     "boss_dmg_mult": 6.0, "boss_hp_mult": 4.0, "boss_combo_window": 8, "boss_combo_step": 0.05, "boss_combo_cap": 10,
     "boss_special_chance": 0.12, "boss_special_mult": 2.5,
+    # burst phase: one hit of at least boss_burst_dmg puts the boss in a special state against that player for
+    # boss_burst_seconds. mode 1 = the player gets an extra boss_burst_cd seconds of cooldown, 2 = the boss takes
+    # (1 - boss_burst_reduce) less damage from that player meanwhile, 3 = both. dmg 0 = off.
+    "boss_burst_dmg": 10000, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
     "xp_curve_k": 1.5,  # level-up difficulty: XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
-    "boss_min_minutes": 120, "boss_max_minutes": 120,
+    "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
     "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 300,
     "start_coins": 500, "travel_cooldown": 60,
@@ -52,6 +56,8 @@ GAME_DEFAULTS = {
     "market_seller_fee": 0.05, "market_buyer_fee": 0.02, "market_slots": 5,
     "market_hours": 72, "auction_snipe_seconds": 60, "auction_extend_seconds": 120,
     "gacha_cost": 1500, "gacha_pity_legendary": 80, "gacha_pity_rare": 10,
+    "dp_daily_cap": 4000,  # dungeon points one player can earn per day (was a fixed 1500)
+    "dg_special_on": 1, "dg_special_day_cap": 6,  # dungeon-only special items: on/off, most drops per player per day
     "dp_pity_bronze": 4, "dp_pity_silver": 3, "dp_pity_gold": 3,  # dungeon chests: this many in a row without a better item guarantees one (0 = off)
     "gacha_mythic_cap": 10,  # most Mythic results one player can get from summons, ever (0 = no limit)
     "guild_create_cost": 5000, "guild_min_level": 20, "squad_change_days": 7,
