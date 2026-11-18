@@ -88,14 +88,22 @@ TOPICS = {
         "Kidō is separate: it uses the Kidō stat and level, not the weapon.")),
     "rel": ("👑 رهاسازی", "👑 Release", _t(
         "👑 <b>رهاسازی</b>\n━━━━━━━━━━━━━━\n"
-        "نوار روحیه با زدن و خوردن ضربه پر می‌شود. وقتی به ۱۰۰ رسید دکمه‌ی رهاسازی می‌آید:\n"
-        "• ضربه‌ی شروع ۲ برابر\n• ۲ نوبت با ۶۰٪ آسیب بیشتر و ۳۰٪ ضربه‌ی کاری بیشتر\n• تکامل بعضی نژادها یک نوبت اضافه می‌کند\n\n"
-        "شینیگامی و ویزورد: بانکای · هالو و آرانکار: رسورکسیون · کوئینسی: فولشتندیگ · فول‌برینگر: فول‌برینگ کامل · انسان: بیداری کامل روح\n\n"
+        "نوار روحیه با زدن و خوردن ضربه پر می‌شود. فرم‌ها دیگر از اول نبرد آزاد نیستند (برای همه‌ی نژادها، آرانکار هم): "
+        "فقط وقتی روحیه به ۱۰۰ رسید دکمه‌ی 👑 رهاسازی می‌آید و همان یک دکمه هم ضربه می‌زند هم فرم را باز می‌کند:\n"
+        "• ضربه‌ی شروع ۲ برابر\n• ۲ نوبت با ۶۰٪ آسیب بیشتر و ۳۰٪ ضربه‌ی کاری بیشتر\n• تکامل بعضی نژادها یک نوبت اضافه می‌کند\n"
+        "• از لِوِل ۱۰ فرم اول باز می‌شود (۱٫۵ برابر استت، ۶ نوبت)\n"
+        "• از لِوِل ۳۰ فرم دوم (۳ برابر استت، ۵ نوبت، بعدش ۳ نوبت خستگی)\n\n"
+        "شینیگامی: شیکای ← بانکای · آرانکار و هالو: رسورکسیون ← رسورکسیون کامل · کوئینسی: هایلیگ بوگن ← لتسته اشتیل · "
+        "فول‌برینگر: فول‌برینگ ← فول‌برینگ تکامل‌یافته · انسان: بیداری روح ← اوج روح · ویزورد: ماسک هالو ← ماسک پیشرفته\n\n"
         "⚠️ با جان کمتر از ۳۰٪ ممکن است کنترل رهاسازی از دستت برود و نوبتت بسوزد.",
         "👑 <b>Release</b>\n━━━━━━━━━━━━━━\n"
-        "The spirit gauge fills as you hit and get hit. At 100 the release button appears:\n"
-        "• the opening strike is ×2\n• 2 turns of +60% damage and +30% crit\n• some evolutions add one more turn\n\n"
-        "Shinigami and Visored: Bankai · Hollow and Arrancar: Resurrección · Quincy: Vollständig · Fullbringer: Complete Fullbring · Human: Full Soul Awakening\n\n"
+        "The spirit gauge fills as you hit and get hit. Forms are no longer free at the start of a fight (every race, Arrancar too): "
+        "only at 100 does the 👑 release button appear, and that one button both strikes and opens your form:\n"
+        "• the opening strike is ×2\n• 2 turns of +60% damage and +30% crit\n• some evolutions add one more turn\n"
+        "• from level 10 it opens the first form (stats ×1.5, 6 turns)\n"
+        "• from level 30 the second form (stats ×3, 5 turns, then 3 turns of fatigue)\n\n"
+        "Shinigami: Shikai → Bankai · Arrancar and Hollow: Resurrección → Full Resurrección · Quincy: Heilig Bogen → Letzt Stil · "
+        "Fullbringer: Fullbring → Evolved Fullbring · Human: Soul Awakening → Soul Ascension · Visored: Hollow Mask → Advanced Mask\n\n"
         "⚠️ Below 30% HP the release can slip out of control and cost you the turn.")),
     "evo": ("🧬 تکامل و تکنیک‌ها", "🧬 Evolution and techniques", _t(
         "🧬 <b>تکامل</b>\n━━━━━━━━━━━━━━\n"

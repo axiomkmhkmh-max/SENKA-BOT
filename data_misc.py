@@ -9,7 +9,7 @@ FORMS = {  # race -> (form1 fa/en, form2 fa/en)
 }
 # (stat multiplier, duration, fatigue turns, reiatsu pct) per form
 FORM1 = (1.5, 6, 0, 0.20)
-FORM2 = {"default": (3.0, 5, 3, 0.30), "hollow": (4.0, 4, 4, 0.30), "arrancar": (4.0, 4, 4, 0.30)}
+FORM2 = {"default": (3.0, 5, 3, 0.30)}  # the same for every race: it now comes only with the full spirit gauge (engine "gx")
 FORM1_LEVEL, FORM2_LEVEL = 10, 30
 MASK_RAGE = 0.12  # per-turn chance a Visored loses control of an active Hollow Mask (lose that action)
 # Bankai-level special effect per weapon type: (effect, power)

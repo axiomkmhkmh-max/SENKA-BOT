@@ -16,7 +16,7 @@ from datetime import datetime
 from aiogram.types import BotCommand, BotCommandScopeChat
 
 from admin_fa import LANG_FA, ROLE_FA, setting_label
-from admin_panel_logic import adjust_setting, coerce_setting, page_bounds, parse_amount, role_ok, split_id_rest, split_target
+from admin_panel_logic import adjust_setting, coerce_setting, page_bounds, parse_amount, role_ok, split_id_rest
 from cmdlist import ADMIN_CMDS_EN, ADMIN_CMDS_FA, CMD_EN, CMD_FA
 from config import GAME_DEFAULTS, settings
 from data_items import ALL
@@ -58,13 +58,6 @@ ASK = {
 }
 
 
-REPLY_FA = "\n↩️ یا روی پیام بازیکن ریپلای کن و فقط بقیه را بنویس."
-REPLY_EN = "\n↩️ Or reply to the player's message and send only the rest."
-REPLY_ACTIONS = {"find", "ban", "unban", "warn", "give_coins", "take_coins", "give_xp", "give_cores", "take_cores",
-                 "give_item", "take_item", "reset", "addadmin", "rmadmin", "give_pick", "give_summon"}
-ONE_NUMBER = {"give_coins", "take_coins", "give_xp", "give_cores", "take_cores", "give_pick", "give_summon"}
-
-
 def T(ctx, fa, en):
     return fa if ctx.lang == "fa" else en
 
@@ -82,30 +75,8 @@ def _back(ctx, code="adm", arg=""):
 
 
 # ---- pending input state -------------------------------------------------------------------------------
-WAITING: dict = {}  # uid -> time an input button was pressed; lets group chats pick up the typed answer cheaply
-
-
-def admin_waiting(uid: int) -> bool:
-    t0 = WAITING.get(uid)
-    if t0 is None:
-        return False
-    if time.time() - t0 > PENDING_TTL:
-        WAITING.pop(uid, None)
-        return False
-    return True
-
-
-def _reply_target(ctx):
-    """The player the admin replied to (never a bot), or None."""
-    rp = getattr(ctx.message, "reply_to_message", None)
-    u = getattr(rp, "from_user", None)
-    return u.id if u is not None and not u.is_bot else None
-
-
 async def _pending_set(uid: int, action_name: str, target=None, extra=None):
     now = time.time()
-    if action_name != "bcast_ready":
-        WAITING[uid] = now
     await col("admin_pending").update_one(
         {"_id": uid}, {"$set": {"action": action_name, "target": target, "extra": extra, "at": now}}, upsert=True)
     if action_name != "bcast_ready":
@@ -120,7 +91,6 @@ async def _pending_get(uid: int):
 
 
 async def _pending_clear(uid: int):
-    WAITING.pop(uid, None)
     await col("admin_pending").delete_one({"_id": uid})
 
 
@@ -305,8 +275,7 @@ async def ask_action(ctx, arg):
                    + "\n\n" + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")),
                    [_back(ctx, back_code, back_arg)])
     await _pending_set(ctx.uid, name)
-    hint = T(ctx, REPLY_FA, REPLY_EN) if name in REPLY_ACTIONS else ""
-    return Out(head(ctx, "ttl_adm") + esc(T(ctx, fa, en)) + hint + "\n\n"
+    return Out(head(ctx, "ttl_adm") + esc(T(ctx, fa, en)) + "\n\n"
                + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")),
                [_back(ctx, back_code, back_arg)])
 
@@ -597,9 +566,9 @@ async def act_input(ctx, text):
                      "❌ Invalid input. Try again from the panel."), [_back(ctx)])
 
 
-async def _target_or_none(raw: str, lvl: int, check_level: bool, reply_id=None, single_arg: bool = False):
+async def _target_or_none(raw: str, lvl: int, check_level: bool):
     """(tid, rest, user doc) or (None, '', None) when the target is unknown or protected."""
-    tid, rest = split_target(raw, reply_id, single_arg)
+    tid, rest = split_id_rest(raw)
     if tid is None:
         raise ValueError(raw)
     u = await col("users").find_one({"telegram_id": tid})
@@ -616,15 +585,12 @@ async def _run_input(ctx, name, pend, raw):
     if name == "find":
         tid = await _resolve_user(raw)
         if tid is None:
-            tid = _reply_target(ctx)
-        if tid is None:
             return Out(T(ctx, "پیدا نشد.", "Not found."), [_back(ctx, "adu", "")])
         return await user_card(ctx, tid)
 
     if name in ("ban", "unban", "warn", "give_coins", "take_coins", "give_xp", "give_cores", "take_cores",
                 "give_item", "take_item"):
-        tid, rest, u = await _target_or_none(
-            raw, lvl, check_level=name in ("ban", "warn"), reply_id=_reply_target(ctx), single_arg=name in ONE_NUMBER)
+        tid, rest, u = await _target_or_none(raw, lvl, check_level=name in ("ban", "warn"))
         if u is None:
             return Out(T(ctx, "کاربر پیدا نشد.", "User not found."), [_back(ctx, "adu", "")])
         if u == "protected":
@@ -691,7 +657,7 @@ async def _run_input(ctx, name, pend, raw):
         return await user_card(ctx, tid)
 
     if name == "reset":
-        tid, _ = split_target(raw, _reply_target(ctx))
+        tid, _ = split_id_rest(raw)
         if tid is None or tid == settings.owner_id or await admin_level(tid) >= lvl:
             raise ValueError(raw)
         text = head(ctx, "ttl_adm") + T(
@@ -702,7 +668,7 @@ async def _run_input(ctx, name, pend, raw):
                           _back(ctx, "admo", "")])
 
     if name == "addadmin":
-        tid, rest = split_target(raw, _reply_target(ctx))
+        tid, rest = split_id_rest(raw)
         if tid is None or tid == settings.owner_id:
             raise ValueError(raw)
         role = role_ok(rest.split()[0] if rest else "", ROLE_CHOICES)
@@ -716,7 +682,7 @@ async def _run_input(ctx, name, pend, raw):
         await alog(ctx.uid, "addadmin", tid, None, role, "panel")
         return Out(T(ctx, "✅ ادمین ثبت شد.", "✅ Admin added."), [_back(ctx, "ada", "")])
     if name == "rmadmin":
-        tid, _ = split_target(raw, _reply_target(ctx))
+        tid, _ = split_id_rest(raw)
         if tid is None or tid == settings.owner_id:
             raise ValueError(raw)
         await col("admin_users").delete_one({"user_id": tid})

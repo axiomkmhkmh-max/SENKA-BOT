@@ -18,7 +18,7 @@ from data_items import ALL
 from data_weapons import RARITIES, RARITY_FA, RARITY_ICON
 from database import col, game_settings
 from handlers_admin import alog
-from handlers_adminpanel import (ASK, REPLY_EN, REPLY_FA, T, _back, _deny, _need, _pending_set, _reply_target, _target_or_none, user_card)
+from handlers_adminpanel import (ASK, T, _back, _deny, _need, _pending_set, _target_or_none, user_card)
 from i18n import esc, fnum
 from service_economy import inv_add
 from ui import Out, action, head, nav
@@ -285,7 +285,7 @@ async def item_pick_chosen(ctx, arg):
         return Out(alert="?")
     await _pending_set(ctx.uid, "give_pick", target=iid)
     need, fa_t, en_t, _b = ASK["give_pick"]
-    return Out(head(ctx, "ttl_adm") + f"{RARITY_ICON[it['rarity']]} <b>{esc(_nm(it, ctx))}</b>\n" + esc(T(ctx, fa_t, en_t)) + esc(T(ctx, REPLY_FA, REPLY_EN)) + "\n\n"
+    return Out(head(ctx, "ttl_adm") + f"{RARITY_ICON[it['rarity']]} <b>{esc(_nm(it, ctx))}</b>\n" + esc(T(ctx, fa_t, en_t)) + "\n\n"
                + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")), [_back(ctx, "adi", "")])
 
 
@@ -332,7 +332,7 @@ async def summon_pick_chosen(ctx, arg):
         return Out(alert="?")
     await _pending_set(ctx.uid, "give_summon", target=c["_id"])
     need, fa_t, en_t, _b = ASK["give_summon"]
-    return Out(head(ctx, "ttl_adm") + f"{RARITY_ICON[c['rarity']]} <b>{esc(_nm(c, ctx))}</b>\n" + esc(T(ctx, fa_t, en_t)) + esc(T(ctx, REPLY_FA, REPLY_EN)) + "\n\n"
+    return Out(head(ctx, "ttl_adm") + f"{RARITY_ICON[c['rarity']]} <b>{esc(_nm(c, ctx))}</b>\n" + esc(T(ctx, fa_t, en_t)) + "\n\n"
                + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")), [_back(ctx, "adz", "")])
 
 
@@ -341,7 +341,7 @@ async def run_input(ctx, name, pend, raw):
     """Returns an Out, or None when `name` is not one of ours."""
     if name not in ("give_pick", "give_summon"):
         return None
-    tid, rest, u = await _target_or_none(raw, 0, check_level=False, reply_id=_reply_target(ctx), single_arg=True)
+    tid, rest, u = await _target_or_none(raw, 0, check_level=False)
     if u is None:
         return Out(T(ctx, "کاربر پیدا نشد.", "User not found."), [_back(ctx, "adu", "")])
     if u == "protected":

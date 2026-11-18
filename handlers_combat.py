@@ -64,10 +64,14 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         rows.append(r2[k:k + 2])
     if E.can(f, "gt"):  # gathered: release the wave
         rows.append([mk(ctx.t("a_gt"), "gt")])
-    if E.can(f, "gx"):  # spirit gauge full: the race's release (Bankai, Resurrección, Vollständig, Complete Fullbring...)
+    if E.can(f, "gx"):  # spirit gauge full: the race's release, which also opens its form (Shikai/Bankai, Resurrección...)
         r = f.get("race")
-        rows.append([mk(ctx.t("a_gx_hollow" if r in RESURRECCION_RACES
-                              else f"a_gx_{r}" if r in ("quincy", "fullbringer", "human") else "a_gx"), "gx")])
+        n = E.release_form(f)
+        if n:  # the form this release opens at the fighter's level
+            label = f"👑 {(FORMS.get(r) or FORMS['human'])[n - 1][i]}!"
+        else:
+            label = ctx.t("a_gx_hollow" if r in RESURRECCION_RACES else f"a_gx_{r}" if r in ("quincy", "fullbringer", "human") else "a_gx")
+        rows.append([mk(label, "gx")])
     canon_row = []
     if E.can(f, "blv"):
         canon_row.append(mk(ctx.t("a_blv"), "blv"))

@@ -453,12 +453,19 @@ def can(f, action):
         return _x(f)["slash"] > 0 and f["re"] >= f["max_re"] * GETSUGA_COST
     if action == "ch":
         return best_kido(f, "had") is not None and not _x(f)["chant"]
-    if action == "f1":
-        return f["level"] >= FORM1_LEVEL and not f["form"]["on"] and not f["form"]["used"][0] and f["re"] >= f["max_re"] * FORM1[3]
-    if action == "f2":
-        c = FORM2.get(f["race"], FORM2["default"])
-        return f["level"] >= FORM2_LEVEL and not f["form"]["on"] and not f["form"]["used"][1] and f["re"] >= f["max_re"] * c[3]
+    if action in ("f1", "f2"):
+        # Shikai / Bankai, Resurrección / Full Resurrección and every race's forms are no longer free buttons at the
+        # start of a fight: they come only with the full spirit gauge, as part of the 👑 release ("gx" in do_action).
+        return False
     return False
+
+
+def release_form(f) -> int:
+    """Which form the 👑 release opens at this level: 2 (Bankai, Full Resurrección...) from FORM2_LEVEL,
+    1 (Shikai, Resurrección...) from FORM1_LEVEL, 0 below (the release strike only)."""
+    if f.get("wild"):
+        return 0
+    return 2 if f["level"] >= FORM2_LEVEL else 1 if f["level"] >= FORM1_LEVEL else 0
 
 
 def start_turn(state, rng):
@@ -802,6 +809,16 @@ def _do_action(state, action, rng, max_turns=30):
         # +1: the countdown ticks at the start of each of your turns, so this covers `turns` actions (evolution adds more)
         x["awake"] = GAUGE["turns"] + int(evb(f, "release_turns", 0)) + 1
         ev.append({"k": "unleash", "a": f["name"], "mv": f.get("mv"), "r": f.get("race")})
+        n = release_form(f)
+        if n == 2:  # the release at a full gauge opens the race's form: Bankai / Full Resurrección / Letzt Stil ...
+            c = FORM2.get(f["race"], FORM2["default"])
+            f["form"].update(on=2, mult=c[0], left=c[1] + int(evb(f, "mask_turns", 0)), fat_turns=c[2], fat=0,
+                             fx=list(FORM2_EFFECT.get(f["weapon"]["type"], ("pierce", 0.15))))
+        elif n == 1:  # below FORM2_LEVEL: Shikai / Resurrección / Fullbring ...
+            f["form"].update(on=1, mult=FORM1[0], left=FORM1[1] + int(evb(f, "mask_turns", 0)), fat_turns=FORM1[2], fat=0, fx=None)
+        if n:
+            f["form"]["used"][n - 1] = 1
+            ev.append({"k": "form", "a": f["name"], "n": n, "r": f["race"]})
         _deal(state, side, GAUGE["strike"], rng, ev, "hvy", src="abl")  # arrives with the release: Bankai is an attack, not a pause
         if f.get("mv") and ev and ev[-1].get("k") == "hit":
             ev[-1]["mv"] = f["mv"]
