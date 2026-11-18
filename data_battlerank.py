@@ -70,7 +70,7 @@ def div_title(k: int, lang: str) -> str:
 # ---- the flat, level-free rules -------------------------------------------------------------------------------------
 PVE_WIN = 20            # a normal win (same for every level and every number of rounds)
 PVE_ELITE = 25          # an elite (💀) foe
-PVE_DAILY_CAP = 400     # rank points a day from normal battles (about 20 wins); after that only duels raise the rank
+PVE_DAILY_CAP = 600     # rank points a day from normal battles (about 30 wins); after that only duels raise the rank (was 400)
 LOSS_BASE = 10          # a normal loss costs 10 at the bottom ...
 LOSS_STEP = 1.5         # ... +1.5 per division above (about 35 at the top)
 FLEE_MIN = 40           # fleeing always costs more than losing (the win chain is kept)

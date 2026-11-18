@@ -77,6 +77,13 @@ async def weapon_panel(ctx, ch, note=None):
              item_card(ctx, wid),
              T(ctx, f"🔨 فورج: +{fnum(plus, L)} (×{mult_fa} قدرت) · 🔗 پیوند: {fnum(bond_value(ch), L)}",
                f"🔨 Forge: +{plus} (×{round(1 + 0.06 * plus, 2)} attack) · 🔗 Bond: {bond_value(ch)}")]
+    from data_raceweapons import weapon_focus
+    from data_items import ALL as _ALL
+    foc = weapon_focus(_ALL.get(wid), plus)
+    if foc:
+        p100 = round(foc[1] * 100 / (2 if foc[0] in ("crit", "pierce") else 1), 1)
+        lines.append(T(ctx, f"🎯 تمرکز سلاح: +{fnum(f'{p100:g}', L).replace('.', '٫')}٪ {foc[2]} (با هر رنگ و هر فورج بیشتر)",
+                       f"🎯 Weapon focus: +{p100:g}% {foc[3]} (grows with every colour and forge level)"))
     rows = []
     nxt = ascend_need(ch)
     if nxt:

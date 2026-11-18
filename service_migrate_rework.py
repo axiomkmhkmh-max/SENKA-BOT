@@ -92,12 +92,53 @@ async def battlerank_reset_once() -> int:
     return r.modified_count
 
 
+CREDIT_RESET_ID = "bank_credit_reset_v1"
+
+
+async def bank_credit_reset_once() -> int:
+    """Credit used to rise +25 for a loan taken and repaid in the same minute, so it was farmed to the top. Every score
+    above the starting 600 goes back to 600 once (a bump of v makes a save that was loaded before this lose the race)."""
+    if await col("migrations").find_one({"_id": CREDIT_RESET_ID}):
+        return 0
+    from engine_bank import CREDIT_START
+    r = await col("bank_accounts").update_many({"credit": {"$gt": CREDIT_START}}, {"$set": {"credit": CREDIT_START}, "$inc": {"v": 1}})
+    await col("migrations").update_one({"_id": CREDIT_RESET_ID}, {"$set": {"at": int(time.time()), "n": r.modified_count}}, upsert=True)
+    return r.modified_count
+
+
+MAT_MERGE_ID = "materials_merge_v1"
+
+
+async def merge_materials_once() -> int:
+    """Move every retired material in the bags into its merged item (data_items.MAT_MERGE). Each old stack is taken
+    out with one atomic read-and-unset, then added to the merged item, so nothing is counted twice."""
+    if await col("migrations").find_one({"_id": MAT_MERGE_ID}):
+        return 0
+    from data_items import MAT_MERGE
+    moved = 0
+    flt = {"$or": [{f"items.{i}": {"$exists": True}} for i in MAT_MERGE]}
+    async for inv in col("inventories").find(flt, {"user_id": 1, "items": 1}):
+        uid = inv["user_id"]
+        for old, new in MAT_MERGE.items():
+            if old not in (inv.get("items") or {}):
+                continue
+            before = await col("inventories").find_one_and_update({"user_id": uid, f"items.{old}": {"$exists": True}},
+                                                                  {"$unset": {f"items.{old}": ""}})
+            q = int(((before or {}).get("items") or {}).get(old, 0))
+            if q > 0:
+                await col("inventories").update_one({"user_id": uid}, {"$inc": {f"items.{new}": q}})
+        moved += 1
+    await col("migrations").update_one({"_id": MAT_MERGE_ID}, {"$set": {"at": int(time.time()), "n": moved}}, upsert=True)
+    return moved
+
+
 async def run_all() -> None:
     from service_racegear import migrate_armour_once
     from service_raceweapon import migrate_blades_once
     for name, fn in (("evolution pin", pin_evolution_once), ("race weapons", migrate_blades_once),
                      ("race armour", migrate_armour_once), ("free stat reset", free_respec_once),
-                     ("battle rank fair reset", battlerank_reset_once)):
+                     ("battle rank fair reset", battlerank_reset_once), ("bank credit reset", bank_credit_reset_once),
+                     ("materials merge", merge_materials_once)):
         try:
             log.info("%s: %s character(s) moved", name, await fn())
         except Exception:

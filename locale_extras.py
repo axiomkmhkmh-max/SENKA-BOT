@@ -59,7 +59,7 @@ FA = {
     "tw_fall": "💀 در طبقه {n} سقوط کردی. بهترین رکوردت: طبقه {best}.", "tw_next": "➡️ طبقه‌ی بعد منتظر توست؛ زخم‌هایت همراهت هستند.",
     "b_tnext": "➡️ طبقه‌ی بعد", "b_tretry": "🗼 صعود دوباره",
     # ---- chain ----
-    "ch_line": "🔥 زنجیره ×{n} (+{pct}٪ پاداش)", "ch_lost": "💔 زنجیره‌ی {n} تایی شکست.", "ch_bonus": "🎁 پاداش زنجیره: {item}", "ch_shield": "🛡 سپر زنجیره این باخت را گرفت؛ زنجیره‌ات سالم ماند! (سپر بعدی فردا)",
+    "ch_line": "🔥 زنجیره ×{n} (+{pct}٪ پاداش)", "ch_lost": "💔 زنجیره نصف شد ({n} برد کم شد).", "ch_bonus": "🎁 پاداش زنجیره: {item}", "ch_shield": "🛡 سپر زنجیره این باخت را گرفت؛ زنجیره‌ات سالم ماند! (سپر بعدی فردا)",
     # ---- dispatch ----
     "ds_body": ("همراهانت را به ماموریت بفرست؛ وقتی برشکارند جایزه می‌گیری، حتی اگر آفلاین باشی.\nنقش‌ها: {roles}\n\n"
                 "اسلات‌ها: {used}/{slots}"),
@@ -141,7 +141,7 @@ EN = {
     "tw_record": "🏆 New record: floor {n}!", "tw_milestone": "🎁 Milestone bonus: +{coins} 🪙",
     "tw_fall": "💀 You fell on floor {n}. Your best: floor {best}.", "tw_next": "➡️ The next floor awaits; your wounds walk with you.",
     "b_tnext": "➡️ Next floor", "b_tretry": "🗼 Ascend again",
-    "ch_line": "🔥 Chain ×{n} (+{pct}% rewards)", "ch_lost": "💔 Your {n}-win chain is broken.", "ch_bonus": "🎁 Chain bonus: {item}", "ch_shield": "🛡 Your chain shield absorbed this loss; the chain survives! (next shield tomorrow)",
+    "ch_line": "🔥 Chain ×{n} (+{pct}% rewards)", "ch_lost": "💔 Your chain was halved ({n} wins lost).", "ch_bonus": "🎁 Chain bonus: {item}", "ch_shield": "🛡 Your chain shield absorbed this loss; the chain survives! (next shield tomorrow)",
     "ds_body": ("Send your companions on missions; they bring rewards back even while you're offline.\nRoles: {roles}\n\n"
                 "Slots: {used}/{slots}"),
     "ds_hours": "{h}h", "ds_pick_m": "Choose a mission:", "ds_pick_c": "Who goes?",

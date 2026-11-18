@@ -196,6 +196,8 @@ def _tower_result(ctx, doc, ev, o):
         lines.append(ctx.t("tw_record", n=fnum(t["floor"], L)))
     if t["milestone"]:
         lines.append(ctx.t("tw_milestone", coins=fnum(t["milestone"], L)) + " · " + nm(t["milestone_item"], L))
+    if t.get("relic"):
+        lines.append(("🧬 یادگار تکامل طبقه‌ی ده‌تایی: " if L == "fa" else "🧬 Tenth-floor evolution relic: ") + nm(t["relic"], L))
     lines.append(ctx.t("tw_next"))
     return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], nav(ctx)])
 
@@ -224,6 +226,11 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("ch_line", n=fnum(o["chain"]["n"], L), pct=fnum(o["chain"]["pct"], L)))
         if o["chain"].get("item"):
             lines.append(ctx.t("ch_bonus", item=nm(o["chain"]["item"], L)))
+        ms = o["chain"].get("ms")
+        if ms:
+            lines.append((f"🏅 <b>نقطه‌ی عطف زنجیره ×{fnum(ms['n'], L)}!</b> +{fnum(ms['coins'], L)} 🪙" if L == "fa"
+                          else f"🏅 <b>Chain milestone ×{ms['n']}!</b> +{fnum(ms['coins'], L)} 🪙")
+                         + (f" + {nm(ms['item'], L)}" if ms.get("item") else ""))
     if o["levels"]:
         lines.append(ctx.t("bt_levelup", n=fnum(o["levels"], L)))
     if o["drop"]:
@@ -233,8 +240,11 @@ async def _pve_result(ctx, doc, ev, o):
     if o.get("bonus_drop"):
         lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
     if o.get("dg_heal"):
-        lines.append(f"💚 استراحت قبل از طبقه‌ی ۳: {fnum(o['dg_heal'], L)}٪ جان برگشت." if L == "fa"
-                     else f"💚 A breather before floor 3: +{o['dg_heal']}% HP restored.")
+        h = o["dg_heal"]
+        lines.append((f"💚 استراحت{' قبل از باس' if h['boss'] else ''}: {fnum(h['pct'], L)}٪ جان و ریاتسو برگشت." if L == "fa"
+                      else f"💚 A breather{' before the boss' if h['boss'] else ''}: +{h['pct']}% HP and reiatsu restored."))
+    if o.get("dg_coins"):
+        lines.append(f"🪙 جایزه‌ی پاکسازی دانجن: +{fnum(o['dg_coins'], L)}" if L == "fa" else f"🪙 Dungeon clear bonus: +{fnum(o['dg_coins'], L)}")
     if o.get("drop_full"):
         lines.append(f"🎒 کیفت پره! «{nm(o['drop_full'], L)}» دراپ شد ولی جا نداشت. کیف رو خالی کن." if L == "fa"
                      else f"🎒 Bag full! «{nm(o['drop_full'], L)}» dropped but there was no room. Free some slots.")
@@ -440,10 +450,15 @@ async def _pvp_panel(chat_lang, ctx, doc, events, final=None):
             txt += "\n\n" + t(L, "duel_turn", name=esc(cur))
         return txt
     text = both(chat_lang, render)
+    # The buttons follow the group's language like the text. They used to follow whoever clicked last (and English
+    # after a turn timeout, where the scheduler has no player), so a duel suddenly switched language mid-fight.
+    import copy
+    bctx = copy.copy(ctx)
+    bctx.lang = chat_lang if chat_lang in ("fa", "en") else "fa"
     rows = []
     if final is None:
-        rows = _act_rows(ctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st))
-    return text, markup(ctx, rows)
+        rows = _act_rows(bctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st))
+    return text, markup(bctx, rows)
 
 
 @action("dua")

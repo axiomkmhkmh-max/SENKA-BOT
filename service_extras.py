@@ -18,9 +18,10 @@ from service_player import add_coins, add_xp, energy_now, get_char, week
 
 # ---- item pools by category ---------------------------------------------------------------------------
 BY_CAT = {}
+from data_items import merged  # noqa: E402
 for _id, _it in ALL.items():
-    if _it.get("category") != "weapon":
-        BY_CAT.setdefault(_it["category"], {}).setdefault(_it["rarity"], []).append(_id)
+    if _it.get("category") != "weapon" and (not _it.get("retired") or _it.get("merge_into")):
+        BY_CAT.setdefault(_it["category"], {}).setdefault(_it["rarity"], []).append(merged(_id))  # same odds as before
 
 
 def pick_item(cat: str, rarity_idxs, rng=random):
@@ -122,6 +123,13 @@ async def tower_settle(doc: dict, win: bool) -> dict:
             await inv_add(uid, iid, 1, force=True)
             out["tower"]["milestone"] = bonus
             out["tower"]["milestone_item"] = iid
+            if floor % 10 == 0:  # every 10th floor: an evolution relic too, better the higher the floor
+                from data_items import EVO_BY_RARITY
+                pool = EVO_BY_RARITY.get(RARITIES[min(3, floor // 30)]) or EVO_BY_RARITY["Common"]
+                if pool:
+                    relic = random.choice(pool)
+                    await inv_add(uid, relic, 1, force=True)
+                    out["tower"]["relic"] = relic
     out["tower"]["best"] = max(best, floor)
     await col("characters").update_one({"user_id": uid}, {"$set": upd, "$inc": {"wins": 1}})
     f = state["a"]
@@ -141,23 +149,62 @@ async def tower_board(limit: int = 10):
 # ===================================================================================================
 # 2. Win chain (plain PvE fights only)
 # ===================================================================================================
+# Milestones of a long chain (rework): a chest of a fixed colour and coins. Past the last one, every
+# CHAIN_MILESTONE_EVERY more wins pays the last milestone again.
+CHAIN_MILESTONES = {50: (2, 2000), 100: (3, 5000), 250: (4, 15000), 500: (5, 40000)}
+CHAIN_MILESTONE_EVERY = 500
+
+
+def chain_floor(n: int) -> int:
+    """Lowest colour of the every-5-wins chain item: green, then blue from 50, purple from 150, gold from 400."""
+    return 1 + (n >= 50) + (n >= 150) + (n >= 400)
+
+
+def chain_milestone(n: int):
+    """(colour index, coins) when win number n is a milestone, else None."""
+    if n in CHAIN_MILESTONES:
+        return CHAIN_MILESTONES[n]
+    last = max(CHAIN_MILESTONES)
+    if n > last and (n - last) % CHAIN_MILESTONE_EVERY == 0:
+        return CHAIN_MILESTONES[last]
+    return None
+
+
+def chain_after_gap(n: int, gap_s: float, expire_h: float) -> int:
+    """A chain left alone shrinks instead of vanishing: half after expire_h hours, gone after three times that."""
+    if gap_s < expire_h * 3600:
+        return n
+    if gap_s < 3 * expire_h * 3600:
+        return n // 2
+    return 0
+
+
 async def chain_win(uid: int):
-    """Returns (n, multiplier, bonus_item_id|None, item_that_did_not_fit|None)."""
+    """Returns (n, multiplier, bonus_item_id|None, item_that_did_not_fit|None, milestone|None).
+    milestone: {"n", "coins", "item"} on a milestone win."""
     st = await game_settings()
     ch = await get_char(uid)
     c = ch.get("chain") or {}
     now = int(time.time())
-    n = int(c.get("n", 0)) if now - int(c.get("at", 0)) < float(st["chain_expire_hours"]) * 3600 else 0
+    n = chain_after_gap(int(c.get("n", 0)), now - int(c.get("at", 0)), float(st["chain_expire_hours"]))
     n += 1
     await col("characters").update_one({"user_id": uid}, {"$set": {"chain.n": n, "chain.at": now, "chain.best": max(n, int(c.get("best", 0)))}})
     mult = 1 + min(n - 1, int(st["chain_cap"])) * float(st["chain_step"])
-    item = None
+    item, full, ms = None, None, None
     every = int(st["chain_bonus_every"])
     if every > 0 and n % every == 0:
-        item = await roll_drop(uid, source_mult=1.3, floor_idx=1)
+        item = await roll_drop(uid, source_mult=1.3, floor_idx=chain_floor(n))
         if not await inv_add(uid, item, 1):
-            return n, mult, None, item  # bag full: the caller tells the player instead of losing it silently
-    return n, mult, item, None
+            full, item = item, None  # bag full: the caller tells the player instead of losing it silently
+    hit = chain_milestone(n)
+    if hit:
+        colour, coins = hit
+        mitem = await roll_drop(uid, exact_idx=colour)
+        if not await inv_add(uid, mitem, 1, force=True):  # a milestone is never lost to a full bag
+            mitem = None
+        await add_coins(uid, coins, "chain_milestone")
+        ms = {"n": n, "coins": coins, "item": mitem}
+    return n, mult, item, full, ms
 
 
 async def chain_break(uid: int):
@@ -173,8 +220,9 @@ async def chain_break(uid: int):
     if n >= int(st["chain_shield_min"]) and now - int(c.get("shield_at", 0)) >= float(st["chain_shield_hours"]) * 3600:
         await col("characters").update_one({"user_id": uid}, {"$set": {"chain.shield_at": now, "chain.at": now}})
         return 0, True
-    await col("characters").update_one({"user_id": uid}, {"$set": {"chain.n": 0}})
-    return n, False
+    keep = n // 2  # a loss halves the chain instead of wiping it (a 600 chain used to drop to 0 on one loss)
+    await col("characters").update_one({"user_id": uid}, {"$set": {"chain.n": keep}})
+    return n - keep, False
 
 
 # ===================================================================================================

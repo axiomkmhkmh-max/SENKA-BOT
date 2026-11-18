@@ -112,7 +112,7 @@ GAME_DEFAULTS = {
     "quincy_ttl_minutes": 10, "quincy_lock_minutes": 60,
     "znp_train_energy": 10, "znp_train_daily": 10, "znp_train_gain": 5, "znp_mastery_cap": 1000,
     "znp_shikai_level": 20, "znp_shikai_bond": 50, "znp_bankai_level": 60, "znp_bankai_mastery": 150,
-    "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 12, "chain_bonus_every": 5,
+    "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 24, "chain_bonus_every": 5,
     "chain_shield_min": 10, "chain_shield_hours": 24,  # a long chain survives one loss per window
     "shop_disc_5": 0.05, "shop_disc_10": 0.10, "shop_disc_25": 0.15,  # Urahara bulk-buy discounts
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,

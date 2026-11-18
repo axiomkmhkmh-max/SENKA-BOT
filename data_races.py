@@ -298,6 +298,6 @@ DUNGEON_ENEMIES = {
 # Difficulty only multiplies the enemies' strength (hp, attack, defense) and, in the same direction, the rewards:
 #   DIFFICULTY = enemy power multiplier        DIFF_DROP = reward multiplier (items on a full clear; coins/XP already follow the power)
 # Tune both here. Keep the keys in sync with DIFFS in data_items / data_crafting (one key per difficulty).
-DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 3.0, "abyss": 10.0, "legendary": 30.0}
+DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 3.0, "abyss": 8.0, "legendary": 16.0}  # legendary was x30: unwinnable
 DIFF_DROP = {"normal": 1.0, "hard": 1.5, "nightmare": 3.0, "abyss": 10.0, "legendary": 30.0}
 DIFF_FA = {"normal": "عادی", "hard": "سخت", "nightmare": "کابوس", "abyss": "ورطه", "legendary": "افسانه‌ای"}

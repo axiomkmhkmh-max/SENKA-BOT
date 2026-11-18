@@ -886,7 +886,33 @@ def do_action(state, action, rng, max_turns=30):
     return ev
 
 
+NPC_RETREAT_LOW_HP = (0.35, 0.15)   # an NPC under 35% HP backs off one zone 15% of the time ...
+NPC_RETREAT_RANGED = 0.25           # ... a ranged / Cero NPC at contact backs off 25% of the time to keep its distance
+NPC_RETREAT_MAX_STREAK = 2          # never more than two retreats in a row
+NPC_RETREAT_FROM_TURN = 3           # and never in the first two turns
+
+
+def _npc_retreat(state, side, rng) -> bool:
+    """Tactical retreat for NPCs (wild enemies and bosses): the player has to chase them with Shunpo / Sonido."""
+    f = state[side]
+    if not f.get("wild") or state.get("turn", 1) < NPC_RETREAT_FROM_TURN:
+        return False
+    if _x(f).get("rt_streak", 0) >= NPC_RETREAT_MAX_STREAK or dist_of(state) >= ZONE_MAX:
+        return False
+    if f["hp"] < f["max_hp"] * NPC_RETREAT_LOW_HP[0] and rng.random() < NPC_RETREAT_LOW_HP[1]:
+        return True
+    ranged = f.get("sig") == "cero" or (f.get("weapon") or {}).get("weapon_type") == "ranged"
+    return ranged and dist_of(state) <= 1 and rng.random() < NPC_RETREAT_RANGED
+
+
 def ai_choose(state, side, rng):
+    act = "rt" if _npc_retreat(state, side, rng) else _ai_core(state, side, rng)
+    x = _x(state[side])
+    x["rt_streak"] = x.get("rt_streak", 0) + 1 if act == "rt" else 0
+    return act
+
+
+def _ai_core(state, side, rng):
     f = state[side]
     r = rng.random()
     sg = f.get("sig")

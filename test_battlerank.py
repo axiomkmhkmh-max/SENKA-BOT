@@ -58,9 +58,9 @@ class RulesTests(unittest.TestCase):
         self.assertGreater(B.win_gain(500, 3, elite=True), B.win_gain(500, 3))
 
     def test_ladder_lasts_the_season(self):
-        # even at the daily cap every day, normal battles alone cannot reach the top in under a month
-        self.assertGreater(B.THRESHOLDS[-1] / B.PVE_DAILY_CAP, 30)
-        self.assertGreaterEqual(B.width(10) / B.PVE_DAILY_CAP, 2)  # a mid sub-tier takes days
+        # even at the daily cap every day, normal battles alone need about three weeks to reach the top
+        self.assertGreater(B.THRESHOLDS[-1] / B.PVE_DAILY_CAP, 20)
+        self.assertGreaterEqual(B.width(10) / B.PVE_DAILY_CAP, 1.4)  # a mid sub-tier takes more than a day
 
     def test_losses_grow_with_rank_and_flee_costs_more(self):
         self.assertGreater(B.loss_cost(B.THRESHOLDS[16]), B.loss_cost(0))

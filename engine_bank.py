@@ -99,7 +99,12 @@ def repay_loan(acc: dict, day: int) -> dict:
         return {"ok": False, "reason": "insufficient", "owed": loan["owed"]}
     acc["balance"] -= loan["owed"]
     acc["loans"].clear()
-    acc["credit"] = credit_on_repay(acc.get("credit", CREDIT_START), on_time=day - start <= LOAN_DEFAULT_DAYS)
+    # Credit grows only for a real loan: held at least CREDIT_MIN_DAYS, and at most once a day. Taking a loan and
+    # paying it back in the same minute used to add +25 every time, so credit could be farmed to the top in minutes.
+    held = day - start
+    if held >= CREDIT_MIN_DAYS and int(acc.get("credit_day", -1)) != day:
+        acc["credit"] = credit_on_repay(acc.get("credit", CREDIT_START), on_time=held <= LOAN_DEFAULT_DAYS)
+        acc["credit_day"] = day
     return {"ok": True, "paid": loan["owed"], "balance": acc["balance"], "credit": acc["credit"]}
 
 
@@ -201,6 +206,7 @@ def effective_tier(acc: dict) -> int:
 # =====================================================================================
 
 CREDIT_MIN, CREDIT_MAX, CREDIT_START = 300, 850, 600
+CREDIT_MIN_DAYS = 1  # a loan must be held this many days before repaying it raises the credit score
 
 
 def credit_limit_pct(score: int) -> float:

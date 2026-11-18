@@ -4,6 +4,8 @@ Dungeons pay no coins and no items: a full clear pays DP (and XP). DP buys chest
 chest's own colours. Pure rules first, then the database parts."""
 import random
 
+from data_items import ALL
+
 from data_world import day_id
 from database import bump_counter, col, game_settings
 from service_economy import inv_add, roll_drop
@@ -97,7 +99,17 @@ async def buy_box(uid: int, key: str, rng=random):
     n = rng.randint(*b["coins"])
     await add_coins(uid, n, "dp_chest")
     iid = await roll_drop(uid, exact_idx=idx, rng=rng)  # exactly the rolled colour: the chest never pays outside its own
-    await inv_add(uid, iid, 1, force=True)  # a chest is never lost to a full bag
+    qty = rng.randint(2, 3) if ALL.get(iid, {}).get("category") == "material" else 1  # materials come 2-3 at a time
+    await inv_add(uid, iid, qty, force=True)  # a chest is never lost to a full bag
+    bonus = None
+    if key == "gold":  # the gold chest also holds a second prize of its colour: materials, potions or a book
+        from service_extras import pick_item
+        cat = rng.choice(("material", "material", "potion", "book"))
+        bid = pick_item(cat, [idx], rng)
+        if bid:
+            bq = rng.randint(2, 3) if cat == "material" else 2 if cat == "potion" else 1
+            await inv_add(uid, bid, bq, force=True)
+            bonus = {"item": bid, "qty": bq}
     relic = None
     chance, rars = RELIC_ODDS.get(key, (0.0, ()))
     if rars and rng.random() < chance:
@@ -106,6 +118,6 @@ async def buy_box(uid: int, key: str, rng=random):
         if pool:
             relic = rng.choice(pool)
             await inv_add(uid, relic, 1, force=True)
-    res = {"coins": n, "item": iid, "rar_idx": idx, "pity": pity, "relic": relic}
+    res = {"coins": n, "item": iid, "qty": qty, "rar_idx": idx, "pity": pity, "relic": relic, "bonus": bonus}
     log_event("dungeon_shop", uid, f"جعبه‌ی دانجن {key}: {res}", box=key)
     return "ok", res

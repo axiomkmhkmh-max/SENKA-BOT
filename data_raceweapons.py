@@ -176,5 +176,26 @@ def colour_for_rarity(rarity: str) -> int:
 # Ascension to the next colour: evolution items (count, lowest rarity index) and coins. The level gate is
 # LEVEL_BY_COLOUR of the new colour.
 def ascend_cost(colour: int):
-    """(items needed, min rarity index of those items, coins) to go from `colour` to colour + 1."""
-    return colour + 1, max(0, min(3, colour)), 2000 * (colour + 1) ** 2
+    """(items needed, min rarity index of those items, coins) to go from `colour` to colour + 1.
+    Coins were 2000 x (colour+1)^2; players found it steep, now 1400 x (colour+1)^2."""
+    return colour + 1, max(0, min(3, colour)), 1400 * (colour + 1) ** 2
+
+
+# Weapon focus: each colour and each forge level make a weapon better at what it leans to (Kidō blades: Kidō power,
+# defensive blades: defence...). Small on purpose: +1% per colour and +0.5% per forge level (10% at red +10).
+FOCUS_BY_TYPE = {"kido": ("kido", "کیدو", "Kidō"), "defensive": ("def", "دفاع", "defence"),
+                 "melee": ("dmg", "آسیب", "damage"), "elemental": ("dmg", "آسیب", "damage"), "living": ("dmg", "آسیب", "damage"),
+                 "speed": ("crit", "ضربه‌ی کاری", "crit"), "illusion": ("crit", "ضربه‌ی کاری", "crit"),
+                 "ranged": ("pierce", "نفوذ", "pierce"), "hybrid": ("pierce", "نفوذ", "pierce")}
+FOCUS_PER_COLOUR, FOCUS_PER_PLUS = 0.01, 0.005
+
+
+def weapon_focus(item: dict, plus: int = 0):
+    """(bonus key, share, fa label, en label) of a race weapon at its colour and forge level, or None."""
+    if not item or item.get("subtype") != "rweapon":
+        return None
+    f = FOCUS_BY_TYPE.get(item.get("weapon_type"))
+    if not f:
+        return None
+    pct = FOCUS_PER_COLOUR * int(item.get("rw_c", 0)) + FOCUS_PER_PLUS * int(plus or 0)
+    return (f[0], round(pct, 4), f[1], f[2]) if pct > 0 else None

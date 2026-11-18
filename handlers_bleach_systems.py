@@ -98,8 +98,34 @@ async def kido_cards(ctx,arg):
             if desc: lines.append(f"<i>{desc}</i>")
         else:
             lines.append(("🔒 ??? · " if L=="fa" else "🔒 ??? · ")+f"{d['type']} · Lv.{d['level']}")
-    rows=[nav(ctx,("kidop",""))]
+    rows=[]
+    # Kidō cards the player owns (they land in the bag) are shown here, to learn straight from the Kidō panel
+    from data_items import ALL, iname
+    from service_economy import inv_get
+    inv=await inv_get(ctx.uid)
+    owned=[(i,q) for i,q in inv["items"].items() if q>0 and ((ALL.get(i) or {}).get("effect") or {}).get("type") in ("kido","kido_book")]
+    if owned:
+        lines+=["",("🎴 <b>کارت‌های تو (در کوله)</b>" if L=="fa" else "🎴 <b>Your cards (in the bag)</b>")]
+        for i,q in sorted(owned)[:12]:
+            lines.append(f"• {iname(i,L)} ×{fnum(q,L)}")
+            rows.append([((f"📖 یادگیری: {iname(i,L)}" if L=="fa" else f"📖 Learn: {iname(i,L)}")[:60],"kidou",i)])
+    rows.append(nav(ctx,("kidop","")))
     return Out(head(ctx,"ttl_kido")+"\n".join(lines),rows)
+
+
+@action("kidou")
+async def kido_use_card(ctx,arg):
+    """Learn a Kidō card from the bag inside the Kidō panel, then show the cards again."""
+    from service_economy import use_item
+    r,extra=await use_item(ctx.uid,arg)
+    out=await kido_cards(ctx,"")
+    if r=="ok":
+        out.alert=(f"✅ کیدوی شماره‌ی {fnum(extra,ctx.lang)} یاد گرفته شد." if ctx.lang=="fa" else f"✅ Kidō #{extra} learned.")
+    elif r=="race":
+        out.alert=("📜 فقط شینیگامی و ویزورد کیدو یاد می‌گیرن." if ctx.lang=="fa" else "📜 Only Shinigami and Visored learn Kidō.")
+    else:
+        out.alert=ctx.t("us_"+r,n=extra or 0)
+    return out
 
 @action("kidol")
 async def kido_learn_action(ctx,arg):
@@ -109,7 +135,7 @@ async def kido_learn_action(ctx,arg):
     if status=="race":return Out(alert=ctx.t("kido_race"))
     return Out(alert=ctx.t("kido_unavailable"))
 
-@action("kidoc")
+@action("kidox")  # was registered as "kidoc" too, which replaced the Kidō cards panel: the cards button only showed an alert
 async def kido_cast_action(ctx,arg):
     status,data=await cast_kido(ctx.uid,arg)
     # Spells are cast by the battle engine; cast_kido only reports "combat_only"/"locked"/"race".

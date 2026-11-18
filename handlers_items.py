@@ -120,10 +120,10 @@ async def item_view(ctx, arg):
     it = ALL[iid]
     rows = []
     if it.get("slot") or it["category"] == "weapon":
-        rows.append([(ctx.t("b_equip"), "eq", iid)])
+        rows.append([(ctx.t("b_equip"), "eq", f"{iid}:{back}")])
     ety = (it.get("effect") or {}).get("type")
     if ety in ("kido", "xp", "pet", "buff", "kido_book", "bond"):
-        rows.append([(ctx.t("b_use"), "us", iid)])
+        rows.append([(ctx.t("b_use"), "us", f"{iid}:{back}")])
     elif ety == "relic":
         rows.append([(ctx.t("m_rlc"), "rlc", "")])
     elif ety == "cosmetic":
@@ -132,7 +132,7 @@ async def item_view(ctx, arg):
         rows.append([(ctx.t("m_crf"), "crf" if ety == "mat" else "evo", "")])
     elif ety == "key":
         rows.append([(ctx.t("m_evt"), "evt", "")])
-    row2 = [(ctx.t("b_sell_npc"), "sl", iid)]
+    row2 = [(ctx.t("b_sell_npc"), "sl", f"{iid}:{back}")]
     if it.get("tradeable"):
         row2.append((ctx.t("b_list"), "ml", iid))
     rows.append(row2)
@@ -140,12 +140,20 @@ async def item_view(ctx, arg):
     return Out(head(ctx, "ttl_bag") + item_card(ctx, iid, qty), rows)
 
 
+def _split_back(arg):
+    """'<item>:<page>:<filter>:<sort>' -> (item, back). The bag reopens at the same page after using an item
+    (it used to jump back to page one every time)."""
+    iid, _, back = (arg or "").partition(":")
+    return iid, (back or "0")
+
+
 @action("eq")
 async def eq(ctx, arg):
+    arg, back = _split_back(arg)
     r = await equip(ctx.uid, arg)
     if r != "ok":
         return Out(alert=ctx.t("eq_" + r))
-    out = await bag(ctx, "0")
+    out = await bag(ctx, back)
     out.alert = ctx.t("eq_ok")
     return out
 
@@ -160,16 +168,17 @@ async def ueq(ctx, arg):
 
 @action("us")
 async def use(ctx, arg):
+    arg, back = _split_back(arg)
     r, extra = await use_item(ctx.uid, arg)
     if r == "ok" and ((ALL.get(arg) or {}).get("effect") or {}).get("type") == "pet":  # egg hatched on the spot
         from service_economy import PETS
         nmx = PETS[int(extra) % len(PETS)][0 if ctx.lang != "fa" else 1]
-        out = await bag(ctx, "0")
+        out = await bag(ctx, back)
         out.alert = (f"🐣 تخم شکست و یک همراه بیرون اومد: {nmx}! از پنل همراه می‌تونی ببینیش." if ctx.lang == "fa"
                      else f"🐣 The egg hatched: {nmx}! See it in the companion panel.")
         return out
     if r == "ok":
-        out = await bag(ctx, "0")
+        out = await bag(ctx, back)
         out.alert = ctx.t("us_ok", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))
         return out
     if r in ("incubate", "incubating"):  # egg placed in the incubator (or one is already incubating)
@@ -180,7 +189,7 @@ async def use(ctx, arg):
         else:
             txt = (f"🥚 انکوباتور پر است؛ {n} اکتشاف دیگه مونده." if L == "fa"
                    else f"🥚 The incubator is busy; {n} explores left.")
-        out = await bag(ctx, "0")
+        out = await bag(ctx, back)
         out.alert = txt
         return out
     if r == "race_card":
@@ -200,10 +209,11 @@ async def use(ctx, arg):
 @action("sl")
 async def sell_npc(ctx, arg):
     inv = await inv_get(ctx.uid)
+    arg, back = _split_back(arg)
     n = await npc_sell(ctx.uid, arg, 1)
     if not n:
         return Out(alert=ctx.t("sell_fail"))
-    out = await bag(ctx, "0")
+    out = await bag(ctx, back)
     out.alert = ctx.t("sell_ok", n=fnum(n, ctx.lang))
     return out
 

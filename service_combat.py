@@ -125,6 +125,15 @@ async def build_player(ch: dict, name: str = None):
     mods["kido"] = mods.get("kido", 1.0) * (1 + pb.get("kido", 0))
     mods["crit"] = mods.get("crit", 0) + bn["crit"]
     mods["regen"] = bn["regen"] + evb.get("regen", 0.0) + perks.get("regen", 0.0)
+    from data_raceweapons import weapon_focus  # the weapon's own lean grows with its colour and forge level
+    _wid = ch.get("weapon_id") or ""
+    foc = weapon_focus(ALL.get(_wid), (ch.get("weapon_plus") or {}).get(_wid, 0))
+    if foc:
+        key, pct = foc[0], foc[1]
+        if key in ("dmg", "def", "kido"):
+            mods[key] = mods.get(key, 1.0) * (1 + pct)
+        else:  # crit / pierce: half of it as a flat chance
+            mods[key] = mods.get(key, 0.0) + pct / 2
     hp = max_hp(ch["level"], soft_stat(stats["hakuda"]), mods.get("hp", 1.0))
     re = max_reiatsu(ch["level"], soft_stat(stats["reiatsu"]))
     wid = ch.get("weapon_id") or ""
@@ -210,8 +219,10 @@ async def active_pve(uid: int):
 
 
 DG_XP_MULT = 2.0        # dungeon stages pay this much more XP than a normal fight (they pay no coins or items)
-DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
-DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
+DG_STAGE_HEAL = 0.25    # every new dungeon floor restores this share of max HP and max reiatsu (capped at full)
+DG_BOSS_HEAL = 0.40     # ... and this much before the last floor (the boss), so the boss is not met on empty
+# Full-clear coins of the two hardest difficulties (the others pay XP and DP only), x (1 + dungeon level / 20)
+DG_CLEAR_COINS = {"abyss": 2500, "legendary": 8000}
 
 
 def _is_boss_stage(dungeon, tower_floor_flag) -> bool:
@@ -361,9 +372,9 @@ async def pve_settle(doc: dict):
         if plain:  # Battle Rank: normal battles only
             out["br"] = br_res
         if plain:  # win chain: consecutive plain victories raise coin/XP rewards
-            cn, cm, cdrop, cfull = chain_res
+            cn, cm, cdrop, cfull, cms = chain_res
             xp, coins = int(xp * cm), int(coins * cm)
-            out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop}
+            out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop, "ms": cms}
             if cfull:
                 out["drop_full"] = out.get("drop_full") or cfull
         if d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
@@ -391,13 +402,14 @@ async def pve_settle(doc: dict):
                 out["drop_full"] = iid  # bag full: shown to the player (it used to vanish silently)
         if d and d["stage"] < d["total"]:
             f = st["a"]
-            hp_frac = f["hp"] / f["max_hp"]
-            if d["stage"] + 1 == DG_STAGE3_HEAL_AT and hp_frac < 1.0:
-                # stage 3 was too hard on carried-over wounds: a breather restores part of the HP on the way in
-                hp_frac = min(1.0, hp_frac + DG_STAGE3_HEAL)
-                out["dg_heal"] = int(DG_STAGE3_HEAL * 100)
+            # a breather between floors: HP and reiatsu come back a little (more before the boss floor), so the
+            # reiatsu is not gone by the time the boss arrives
+            heal = DG_BOSS_HEAL if d["stage"] + 1 == d["total"] else DG_STAGE_HEAL
+            hp_frac = min(1.0, f["hp"] / f["max_hp"] + heal)
+            re_frac = min(1.0, f["re"] / max(1, f["max_re"]) + heal)
+            out["dg_heal"] = {"pct": int(heal * 100), "boss": d["stage"] + 1 == d["total"]}
             nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": d["stage"] + 1},
-                                  carry={"hp": hp_frac, "re": f["re"] / f["max_re"],
+                                  carry={"hp": hp_frac, "re": re_frac,
                                          "gauge": int((f.get("x") or {}).get("gauge", 0)),
                                          "shield": int(f.get("shield", 0))})  # a Bakudō barrier survives the stage change  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
@@ -408,6 +420,11 @@ async def pve_settle(doc: dict):
             out["dp"] = await award_dp(uid, d)
             from service_dungeonshop import roll_special
             out["special"] = await roll_special(uid, d)  # dungeon-only item, small chance
+            if d.get("diff") in DG_CLEAR_COINS:  # the hardest dungeons pay coins on a full clear (players asked for it)
+                from data_races import DUNGEONS
+                dlv = int((DUNGEONS.get(d.get("id")) or {}).get("level", 1))
+                out["dg_coins"] = int(DG_CLEAR_COINS[d["diff"]] * (1 + dlv / 20))
+                await add_coins(uid, out["dg_coins"], "dungeon_clear")
             from service_cores import on_dungeon_clear  # rare Soul Core, abyss/legendary clears only
             await on_dungeon_clear(uid, d.get("diff", "normal"), d.get("id", ""))
             from data_races import unlocks_visored

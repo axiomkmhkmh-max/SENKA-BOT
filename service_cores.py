@@ -91,4 +91,5 @@ async def on_dungeon_clear(uid: int, diff: str, dungeon_id: str) -> bool:
     if diff not in HARDEST_DIFFS:
         return False
     st = await game_settings()
-    return await roll_core(uid, float(st["core_dungeon_chance"]), f"dungeon:{dungeon_id}:{diff}")
+    mult = {"abyss": 2.0, "legendary": 4.0}.get(diff, 1.0)  # Soul Cores come more often from the hardest clears
+    return await roll_core(uid, float(st["core_dungeon_chance"]) * mult, f"dungeon:{dungeon_id}:{diff}")

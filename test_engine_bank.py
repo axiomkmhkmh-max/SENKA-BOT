@@ -223,3 +223,24 @@ class VeryDeepBankTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CreditFarmTests(__import__("unittest").TestCase):
+    def test_same_day_repay_gives_no_credit(self):
+        import engine_bank as B
+        acc = B.new_account()
+        for _ in range(10):
+            self.assertTrue(B.take_loan(acc, 100000, 1000, 5)["ok"])
+            self.assertTrue(B.repay_loan(acc, 5)["ok"])
+        self.assertEqual(acc["credit"], B.CREDIT_START)
+
+    def test_held_loan_raises_credit_once_a_day(self):
+        import engine_bank as B
+        acc = B.new_account()
+        acc["balance"] = 10000
+        B.take_loan(acc, 100000, 1000, 5)
+        B.repay_loan(acc, 6)
+        self.assertEqual(acc["credit"], B.CREDIT_START + 25)
+        B.take_loan(acc, 100000, 1000, 5)
+        B.repay_loan(acc, 6)  # same repay day again: no second gain
+        self.assertEqual(acc["credit"], B.CREDIT_START + 25)

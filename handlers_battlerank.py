@@ -77,7 +77,7 @@ async def rank_panel(ctx, arg):
                     f"• برد در نبرد عادی: +{fnum(PVE_WIN, L)} (دشمن الیت +{fnum(PVE_ELITE, L)})؛ سقف روزانه {fnum(PVE_DAILY_CAP, L)}\n"
                     f"• دوئل رنکی: برد مقابل رتبه‌ی بالاتر بیشتر می‌دهد (۱۵ تا ۸۰)؛ بازنده حدود ۸۰٪ همان را از دست می‌دهد\n"
                     f"• با یک حریف فقط {fnum(DUEL_PAIR_DAILY, L)} دوئل اول هر روز رنک دارد؛ سقف روزانه‌ی دوئل {fnum(DUEL_DAILY_CAP, L)}\n"
-                    f"• باخت در نبرد عادی زنجیره را می‌شکند (الان −{fnum(loss_cost(rp), L)})\n"
+                    f"• باخت در نبرد عادی زنجیره را نصف می‌کند (الان −{fnum(loss_cost(rp), L)})\n"
                     f"• فرار بیشتر از باخت کم می‌کند (الان −{fnum(flee_cost(rp), L)}) ولی زنجیره نمی‌شکند\n"
                     "• هر زیررتبه چند روز طول می‌کشد؛ بالای نردبان برای کل فصل است\n• به هر زیررتبه که برسی یک‌بار در فصل جایزه می‌گیری\n"
                     f"• نفر اول فصل «{KENPACHI[0]}» می‌شود و «{KENPACHI_ART['name'][0]}» را برای همیشه می‌گیرد",
@@ -85,7 +85,7 @@ async def rank_panel(ctx, arg):
                f"• Normal win: +{PVE_WIN} (elite foe +{PVE_ELITE}); daily cap {PVE_DAILY_CAP}\n"
                "• Ranked duel: beating a higher rank pays more (15 to 80); the loser drops about 80% of it\n"
                f"• Only the first {DUEL_PAIR_DAILY} duels a day against the same opponent count; duel daily cap {DUEL_DAILY_CAP}\n"
-               f"• A normal loss breaks the chain (now −{loss_cost(rp)})\n"
+               f"• A normal loss halves the chain (now −{loss_cost(rp)})\n"
                f"• Fleeing costs more than losing (now −{flee_cost(rp)}) but keeps the chain\n"
                "• Each sub-tier takes days; the top of the ladder takes the whole season\n• Each sub-tier you reach pays once per season\n"
                f"• The season's number one becomes {KENPACHI[1]} and keeps {KENPACHI_ART['name'][1]} forever")]

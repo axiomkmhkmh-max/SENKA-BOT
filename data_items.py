@@ -304,9 +304,43 @@ for _x in ITEMS:
         _x["retired"] = True   # the old shared armour no longer drops; every race has its own twenty kinds
 for _x in RACE_ARMOUR_ITEMS + RACE_CARD_ITEMS:
     ALL[_x["_id"]] = _x
+# ---- one material per kind and colour (players asked: 160 differently named shards filled the bag) ------------------
+# Crafting asks for a material group and a minimum colour, and the forge counts any material by colour, so every
+# material of the same group and colour is interchangeable. They are merged into one item each (the lowest id keeps
+# its id and gets a plain name). The others are retired: inv_add turns them into the merged one, a one-time migration
+# moves what players already hold, and drop pools hand out the merged item as often as before.
+MAT_NAMES = {("hard", "Common"): ("Sekkiseki Chip", "تراشه‌ی سکی‌سکی"), ("hard", "Uncommon"): ("Mask Fragment", "پاره‌ی ماسک"),
+             ("hard", "Rare"): ("Zanpakutō Ore", "سنگ‌معدن زانپاکتو"), ("reishi", "Common"): ("Reishi Shard", "تکه‌ی ریشی"),
+             ("reishi", "Epic"): ("Reiatsu Dust", "غبار ریاتسو"), ("reishi", "Legendary"): ("Pure Reiatsu Dust", "غبار ریاتسوی ناب"),
+             ("spirit", "Common"): ("Spirit Thread", "نخ روحی"), ("spirit", "Uncommon"): ("Gigai Cloth", "پارچه‌ی گیگای"),
+             ("spirit", "Rare"): ("Spirit Ribbon", "نوار روحی")}
+MAT_MERGE = {}   # retired material id -> the merged material of its group and colour
+_mat_groups = {}
+for _x in ITEMS:
+    if _x["category"] == "material":
+        _mat_groups.setdefault(((_x.get("effect") or {}).get("group"), _x["rarity"]), []).append(_x)
+for _key, _xs in _mat_groups.items():
+    _xs.sort(key=lambda x: x["_id"])
+    _keep = _xs[0]
+    if _key in MAT_NAMES:
+        _keep["name_en"], _keep["name_fa"] = MAT_NAMES[_key]
+    _keep["base_price"] = int(sum(x["base_price"] for x in _xs) / len(_xs))
+    _keep["sell_price"] = max(1, int(_keep["base_price"] * 0.4))
+    for _x in _xs[1:]:
+        _x["retired"] = True
+        _x["tradeable"] = False
+        _x["merge_into"] = _keep["_id"]
+        MAT_MERGE[_x["_id"]] = _keep["_id"]
+
+
+def merged(item_id: str) -> str:
+    """The item an id stands for now (a retired material becomes the merged one)."""
+    return MAT_MERGE.get(item_id, item_id)
+
+
 EVO_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "evolution"] for r in RARITIES}
 COSMETIC_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "cosmetic"] for r in RARITIES}
-BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "accessory", "book", "egg", "relic")] for r in RARITIES}
+BY_RARITY = {r: [merged(x["_id"]) for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "accessory", "book", "egg", "relic")] for r in RARITIES}
 # Race-only drops: the race's own armour, and its cards (Kidō cards for Shinigami / Visored, technique cards for the rest).
 KIDO_CARD_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "kido_card"] for r in RARITIES}
 RACE_ARMOUR_BY_RARITY = {}

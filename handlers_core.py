@@ -33,6 +33,7 @@ import handlers_respec  # noqa: F401  (stat reset and race change)
 import handlers_raceweapon  # noqa: F401  (race weapon: choice, ascension, type switch)
 import handlers_battlerank  # noqa: F401  (Battle Rank: panel, ladder, flee)
 import handlers_gangs  # noqa: F401  (Xcution membership panel)
+import handlers_towerx  # noqa: F401  (Soul Tower, Dispatch and Gotei Seat panels)
 import handlers_items
 import handlers_panels
 import handlers_world

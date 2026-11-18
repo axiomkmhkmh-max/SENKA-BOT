@@ -38,6 +38,8 @@ def slots_used(items: dict) -> int:
 
 
 async def inv_add(uid: int, item_id: str, qty: int = 1, force: bool = False) -> bool:
+    from data_items import merged
+    item_id = merged(item_id)  # a retired material (old listing, old trade) arrives as the merged one
     if item_id not in ALL or qty <= 0:
         return False
     inv = await inv_get(uid)
@@ -283,7 +285,8 @@ def shop_stock(day: str, race: str = None):
     """Urahara's stock of the day: 56 shared items plus 8 cards of the buyer's race (Kidō cards for Shinigami / Visored,
     technique cards for the rest), so nobody is offered cards they cannot use."""
     r = random.Random("shop" + day)
-    pool = [i for i, x in ALL.items() if x["rarity"] in ("Common", "Uncommon", "Rare") and x["category"] in ("potion", "accessory", "book", "material")]
+    pool = [i for i, x in ALL.items() if x["rarity"] in ("Common", "Uncommon", "Rare") and x["category"] in ("potion", "accessory", "book", "material")
+            and not x.get("retired")]
     base = r.sample(pool, 56)
     if race:
         from data_items import race_cards
@@ -592,7 +595,7 @@ FORGE_CHANCE = [100, 95, 90, 80, 70, 60, 50, 40, 30, 20]
 
 def forge_cost(weapon_id: str, plus: int):
     need = plus + 1
-    return int(ALL[weapon_id]["base_price"] * 0.25 * need) + 300 * need, need
+    return int(ALL[weapon_id]["base_price"] * 0.18 * need) + 220 * need, need  # was 0.25 x price + 300 per level
 
 
 async def forge(uid: int):

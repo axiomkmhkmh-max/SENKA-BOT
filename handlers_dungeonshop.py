@@ -13,12 +13,12 @@ async def _shop(ctx, note=""):
     DP_DAILY_CAP = int((await game_settings())["dp_daily_cap"])
     lines = [(f"{b['icon']} {b['fa' if fa else 'en']}: {fnum(b['cost'], L)} 💠 → " +
               (f"سکه ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) + یک آیتم فقط «{rarity_name(RARITIES[b['rar'][0]], L)}» یا «{rarity_name(RARITIES[b['rar'][1]], L)}»"
-               f" + {fnum(round(RELIC_ODDS[k][0] * 100), L)}٪ شانس یادگار تکامل" if fa else
+               f" + {fnum(round(RELIC_ODDS[k][0] * 100), L)}٪ شانس یادگار تکامل" + (" + جایزه‌ی دوم (مواد، معجون یا کتاب)" if k == "gold" else "") if fa else
                f"coins ({fnum(b['coins'][0], L)}–{fnum(b['coins'][1], L)}) + one item, only {rarity_name(RARITIES[b['rar'][0]], L)} or {rarity_name(RARITIES[b['rar'][1]], L)}"
-               f" + {round(RELIC_ODDS[k][0] * 100)}% chance of an evolution relic")) for k, b in BOXES.items()]
-    info = (f"دانجن‌ها سکه نمی‌دن؛ با کلیر کامل هر دانجن دانجن پوینت و تجربه‌ی بیشتر می‌گیری و با شانس کمی آیتم مخصوص دانجن هم دراپ می‌شه (پایه: عادی {DP_BY_DIFF['normal']}، افسانه‌ای {DP_BY_DIFF['legendary']}، و هرچه سطح دانجن بالاتر، بیشتر). سقف روزانه: {fnum(DP_DAILY_CAP, L)}."
+               f" + {round(RELIC_ODDS[k][0] * 100)}% chance of an evolution relic" + (" + a second prize (materials, potions or a book)" if k == "gold" else ""))) for k, b in BOXES.items()]
+    info = (f"دانجن‌ها (جز ورطه و افسانه‌ای) سکه نمی‌دن؛ با کلیر کامل هر دانجن دانجن پوینت و تجربه‌ی بیشتر می‌گیری و با شانس کمی آیتم مخصوص دانجن هم دراپ می‌شه (پایه: عادی {DP_BY_DIFF['normal']}، افسانه‌ای {DP_BY_DIFF['legendary']}، و هرچه سطح دانجن بالاتر، بیشتر). سقف روزانه: {fnum(DP_DAILY_CAP, L)}."
             if fa else
-            f"Dungeons pay no coins: every full clear pays dungeon points and extra XP, with a small chance of a dungeon-only special item (base: normal {DP_BY_DIFF['normal']}, legendary {DP_BY_DIFF['legendary']}, more in higher-level dungeons). Daily cap: {fnum(DP_DAILY_CAP, L)}.")
+            f"Dungeons (except Abyss and Legendary) pay no coins: every full clear pays dungeon points and extra XP, with a small chance of a dungeon-only special item (base: normal {DP_BY_DIFF['normal']}, legendary {DP_BY_DIFF['legendary']}, more in higher-level dungeons). Daily cap: {fnum(DP_DAILY_CAP, L)}.")
     body = (f"💠 <b>{'شاپ دانجن' if fa else 'Dungeon Shop'}</b>\n{'موجودی' if fa else 'Balance'}: {fnum(bal, L)} 💠\n\n"
             + "\n".join(lines) + "\n\n" + info + (("\n\n" + note) if note else ""))
     rows = [[(f"{b['icon']} {b['fa' if fa else 'en']} · {fnum(b['cost'], L)}", "dpb", k)] for k, b in BOXES.items()]
@@ -41,8 +41,12 @@ async def dungeon_shop_buy(ctx, arg):
         return Out()
     b = BOXES[arg]
     name = b["fa" if fa else "en"]
-    got = (f"🎁 {name} باز شد:\n🪙 {fnum(res['coins'], L)}\n🎁 «{nm(res['item'], L)}»" if fa
-           else f"🎁 {name} opened:\n🪙 {fnum(res['coins'], L)}\n🎁 «{nm(res['item'], L)}»")
+    q = f" ×{fnum(res['qty'], L)}" if res.get("qty", 1) > 1 else ""
+    got = (f"🎁 {name} باز شد:\n🪙 {fnum(res['coins'], L)}\n🎁 «{nm(res['item'], L)}»{q}" if fa
+           else f"🎁 {name} opened:\n🪙 {fnum(res['coins'], L)}\n🎁 «{nm(res['item'], L)}»{q}")
+    if res.get("bonus"):
+        got += (f"\n✨ جایزه‌ی دوم: «{nm(res['bonus']['item'], L)}» ×{fnum(res['bonus']['qty'], L)}" if fa
+                else f"\n✨ Second prize: «{nm(res['bonus']['item'], L)}» ×{fnum(res['bonus']['qty'], L)}")
     if res.get("relic"):
         got += (f"\n🧬 بخت یارت بود: «{nm(res['relic'], L)}» (یادگار تکامل)" if fa
                 else f"\n🧬 Lucky: «{nm(res['relic'], L)}» (evolution relic)")
