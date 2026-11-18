@@ -177,3 +177,15 @@ EN.update({
     "frg_stone": "🪨 Needs {n} Tempering Stone(s).", "tmp_stone": "🪨 Needs {n} Tempering Stone(s).", "crf_e_stone": "🪨 Needs {n} Tempering Stone(s).",
     "m_war": "⚔️ Battlefield", "m_avl": "🧭 Adventures", "m_lbs": "👹 Level boss", "m_rsh": "🎰 Roll shop", "m_els": "🏛 Elite shop", "m_in2": "🌌 Inner World 2",
 })
+
+# ---- relic effect lines for the kinds that had no text (the raw key «ef_relic_def» showed in the relic panel) ----
+FA.update({
+    "ef_relic_dmg": "هم‌ساز: +{v}٪ آسیب.", "ef_relic_def": "هم‌ساز: +{v}٪ دفاع.", "ef_relic_crit": "هم‌ساز: +{v}٪ شانس ضربه‌ی کاری.",
+    "ef_relic_regen": "هم‌ساز: +{v}٪ بازسازی جان در هر نوبت.", "ef_relic_xp": "هم‌ساز: +{v}٪ تجربه.",
+    "ef_relic_hunt": "هم‌ساز: +{v}٪ تجربه و سکه‌ی شکار.",
+})
+EN.update({
+    "ef_relic_dmg": "Attune: +{v}% damage.", "ef_relic_def": "Attune: +{v}% defence.", "ef_relic_crit": "Attune: +{v}% crit chance.",
+    "ef_relic_regen": "Attune: +{v}% regeneration each turn.", "ef_relic_xp": "Attune: +{v}% XP.",
+    "ef_relic_hunt": "Attune: +{v}% hunt XP and coins.",
+})
