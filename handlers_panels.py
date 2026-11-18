@@ -324,36 +324,47 @@ async def daily(ctx, arg):
 
 
 # ---- quests ------------------------------------------------------------------------------
+QUEST_PAGE = 10  # quests per page: with 50+ quests one message cut off everything after the first ~25
+
+
 @action("qst")
 async def quests(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
     states = await quest_list(ctx.uid, ch["level"])
-    lines, rows, shown = [], [], 0
-    for s in states:
+    pages = max(1, -(-len(states) // QUEST_PAGE))
+    page = min(max(int(arg), 0), pages - 1) if (arg or "").isdigit() else 0
+    ready = sum(1 for s in states if s["done"] and not s["claimed"])
+    lines, rows = [], []
+    for s in states[page * QUEST_PAGE:(page + 1) * QUEST_PAGE]:
         q = s["q"]
         mark = "✅" if s["claimed"] else "🎁" if s["done"] else "▫️"
         lines.append(f"{mark} <b>{esc(q['name_fa' if L == 'fa' else 'name_en'])}</b> [{ctx.t('qc_' + q['cat'])}] {fnum(s['prog'], L)}/{fnum(q['count'], L)}")
-        if not s["claimed"] and shown < 6 and q.get("desc_fa"):
+        if not s["claimed"] and q.get("desc_fa"):
             lines.append("   <i>" + esc(q["desc_fa" if L == "fa" else "desc_en"]) + "</i>")
-            shown += 1
-        if s["done"] and not s["claimed"] and len(rows) < 6:
-            rows.append([(f"🎁 {esc(q['name_fa' if L == 'fa' else 'name_en'])}", "qc", q["_id"])])
+        if s["done"] and not s["claimed"]:
+            rows.append([(f"🎁 {esc(q['name_fa' if L == 'fa' else 'name_en'])}", "qc", f"{q['_id']}.{page}")])
+    foot = f"\n{'صفحه' if L == 'fa' else 'Page'} {fnum(page + 1, L)}/{fnum(pages, L)}"
+    if ready:
+        foot += f" · 🎁 {fnum(ready, L)} " + ("جایزه‌ی آماده" if L == "fa" else "rewards ready")
+    if pages > 1:
+        rows.append([("◀️", "qst", str((page - 1) % pages), False, "none"), ("▶️", "qst", str((page + 1) % pages), False, "none")])
     body, size = [], 0
     for ln in lines:  # cut on whole lines so HTML tags never break
         size += len(ln) + 1
         if size > 3500:
             break
         body.append(ln)
-    return Out(head(ctx, "ttl_qst") + "\n".join(body), rows + [nav(ctx)])
+    return Out(head(ctx, "ttl_qst") + "\n".join(body) + foot, rows + [nav(ctx)])
 
 
 @action("qc")
 async def quest_claim(ctx, arg):
-    d = await claim_quest(ctx.uid, arg)
+    qid, _, pg = (arg or "").partition(".")  # "<quest id>.<page>": come back to the page the player was on
+    d = await claim_quest(ctx.uid, qid)
     if not d:
         return Out(alert=ctx.t("qst_cant"))
-    out = await quests(ctx, "")
+    out = await quests(ctx, pg)
     out.alert = ctx.t("qst_claimed", xp=fnum(d["xp"], ctx.lang), coins=fnum(d["coins"], ctx.lang))
     return out
 

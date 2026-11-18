@@ -55,7 +55,69 @@ QUESTS = [
     _q("w_battle", "weekly", "battle_win", 30, 2000, 1500, "هفته‌ی شمشیر", "Week of the Sword"),
     _q("w_dungeon", "weekly", "dungeon_clear", 2, 2500, 2000, "دو سقوط", "Two Descents", 5),
 ]
+# ---- more quests (every goal below is already tracked by service_player.bump_quest) ----
+QUESTS += [
+    _q("m_lvl20", "main", "level", 20, 1500, 1200, "ریاتسوی بیدار", "Awakened Reiatsu", 5),
+    _q("m_lvl50", "main", "level", 50, 8000, 7000, "راه استادی", "The Road to Mastery", 10),
+    _q("m_lvl80", "main", "level", 80, 20000, 18000, "اوج ریاتسو", "Peak of Reiatsu", 10),
+    _q("s_sell", "side", "market_sell", 5, 600, 500, "تاجر ارواح", "Soul Merchant", 5),
+    _q("s_buy", "side", "market_buy", 10, 800, 600, "مشتری ثابت", "Regular Customer", 5),
+    _q("s_pvp", "side", "pvp_win", 10, 2500, 2000, "دوئلیست نام‌آور", "Renowned Duelist", 15),
+    _q("s_dungeon10", "side", "dungeon_clear", 10, 4000, 3000, "کاوشگر اعماق", "Delver of the Depths", 5),
+    _q("s_gacha25", "side", "gacha_pull", 25, 2500, 2000, "نجواگر ارواح", "Whisperer of Spirits"),
+    _q("s_mini20", "side", "minigame_win", 20, 1200, 1000, "استاد معما", "Riddle Master"),
+    _q("r_pvp25", "race", "pvp_win", 25, 6000, 5000, "قهرمان نژاد", "Champion of the Race", 15),
+    _q("w_weapon100", "weapon", "battle_win", 100, 5000, 4000, "استاد تیغه", "Master of the Blade", 10),
+    _q("b_bankai100", "bankai", "boss_hit", 100, 8000, 6000, "لبه‌ی غول‌کش", "Edge of the Giant-Slayer", 30),
+    _q("g_guild5", "guild", "guild_deposit", 5, 1500, 1200, "خزانه‌دار وفادار", "Loyal Treasurer", 20),
+    _q("e_loot500", "exploration", "explore", 500, 12000, 9000, "لبه‌ی جهان", "Edge of the World"),
+    _q("l_legend50", "legendary", "boss_kill", 50, 25000, 25000, "ویرانگر غول‌ها", "Bane of Giants", 40),
+    _q("h_hidden30", "hidden", "daily_claim", 30, 6000, 6000, "یک ماه وفاداری", "A Month of Faith"),
+    _q("d_explore8", "daily", "explore", 8, 350, 280, "گشت طولانی", "Long Patrol"),
+    _q("d_battle8", "daily", "battle_win", 8, 400, 300, "شکار سنگین", "Heavy Hunt"),
+    _q("d_sell", "daily", "market_sell", 1, 150, 120, "یک فروش", "A Fair Sale", 5),
+    _q("d_dungeon", "daily", "dungeon_clear", 1, 400, 300, "سقوط روزانه", "Daily Descent", 5),
+    _q("d_boss5", "daily", "boss_hit", 5, 500, 400, "خراج غول", "The Giant's Toll", 5),
+    _q("w_pvp", "weekly", "pvp_win", 8, 2500, 2000, "هفته‌ی دوئل", "Week of Duels", 15),
+    _q("w_gacha", "weekly", "gacha_pull", 10, 1500, 1200, "هفته‌ی فراخوان", "Week of Summons"),
+    _q("w_mini", "weekly", "minigame_win", 15, 1500, 1200, "هفته‌ی معما", "Week of Riddles"),
+    _q("w_bosshit", "weekly", "boss_hit", 20, 2500, 2000, "هفته‌ی غول", "Week of the Giant", 5),
+    _q("w_trade", "weekly", "market_sell", 5, 1500, 1200, "هفته‌ی تجارت", "Week of Trade", 5),
+    _q("w_faith", "weekly", "daily_claim", 5, 1500, 1200, "هفته‌ی وفاداری", "Week of Faith"),
+]
+# keep the quest list grouped by category (the sort is stable, so the old order inside a category is kept)
+_CAT_ORDER = ["main", "side", "race", "weapon", "bankai", "guild", "exploration", "legendary", "hidden", "daily", "weekly"]
+QUESTS.sort(key=lambda q: _CAT_ORDER.index(q["cat"]))
 QUEST_DESC = {'m_first': ('هر سفر با یک شکار شروع می\u200cشود.', 'Every journey begins with one hunt.'), 'm_battle': ('سه دشمن را بشکن؛ تیغه\u200cات باید بداند برای چه کشیده شده.', 'Defeat three foes. Your blade must learn why it was drawn.'), 'm_shop': ('از فروشگاه اوراهارا یا بازار چیزی بخر.', "Buy something from Urahara's shop or the market."), 'm_boss': ('سه ضربه به باس جهانی بزن؛ غول\u200cها هم خون دارند.', 'Land three hits on a world boss. Giants bleed too.'), 'm_lvl10': ('به سطح ۱۰ برس؛ تیغه\u200cات نامش را زمزمه می\u200cکند.', 'Reach level 10. Your blade will whisper its name.'), 'm_lvl30': ('به سطح ۳۰ برس؛ شکل نهایی بیدار می\u200cشود.', 'Reach level 30. The final form awakens.'), 's_explore': ('۲۵ بار شکار بزن و ردها را تا آخر دنبال کن.', 'Hunt 25 times and follow the traces to the end.'), 's_gacha': ('پنج بار ارواح را فرا بخوان.', 'Summon the spirits five times.'), 's_dungeon': ('یک دانجن را تا آخرین طبقه پاک کن.', 'Clear a dungeon to its last floor.'), 's_mini': ('پنج معمای درست؛ نبرد فقط با شمشیر نیست.', 'Five right answers. Battle is not only swordplay.'), 'r_pvp': ('سه دوئل را ببر؛ جنگجو بدون رقیب زنگ می\u200cزند.', 'Win three duels. A warrior without rivals rusts.'), 'w_weapon': ('با تیغه\u200cات ۲۰ نبرد را ببر؛ پیوندتان محکم می\u200cشود.', 'Win 20 battles with your blade. Your bond deepens.'), 'b_bankai': ('۲۵ ضربه به باس\u200cها؛ این قدرت با ترس نمی\u200cآید.', '25 hits on bosses. This power does not come with fear.'), 'g_guild': ('به بانک جوخه یا کلنت کمک کن.', 'Contribute to your squad or clan bank.'), 'e_loot': ('۱۰۰ شکار؛ هر گوشه\u200cی جهان را ببین.', '100 hunts. See every corner of the worlds.'), 'l_legend': ('۱۰ باس را از پا درآور و نامت را بر دیوار حک کن.', 'Bring down 10 bosses and carve your name on the wall.'), 'h_hidden': ('۷ بار هدیه\u200cی روزانه؛ بازشکارن هم نوعی قدرت است.', 'Claim the daily gift 7 times. Returning is a kind of strength.'), 'd_explore': ('سه بار شکار بزن.', 'Hunt three times.'), 'd_battle': ('سه دشمن را شکست بده.', 'Defeat three enemies.'), 'd_boss': ('دو ضربه به باس بزن.', 'Strike a boss twice.'), 'd_mini': ('دو معما را درست جواب بده.', 'Answer two riddles correctly.'), 'd_gacha': ('یک بار ارواح را فرا بخوان.', 'Call upon the spirits once.'), 'd_pvp': ('یک دوئل را ببر.', 'Win a duel.'), 'd_market': ('یک خرید از بازار.', 'Make a purchase at the market.'), 'w_explore': ('۴۰ شکار در یک هفته.', '40 hunts in a week.'), 'w_boss': ('سه باس را بکش.', 'Kill three bosses.'), 'w_battle': ('۳۰ نبرد را ببر.', 'Win 30 battles.'), 'w_dungeon': ('دو دانجن را پاک کن.', 'Clear two dungeons.')}
+QUEST_DESC.update({
+    "m_lvl20": ("به سطح ۲۰ برس؛ ریاتسویت دیگر پنهان نمی‌ماند.", "Reach level 20; your reiatsu can no longer hide."),
+    "m_lvl50": ("به سطح ۵۰ برس؛ استادی با تکرار ساخته می‌شود.", "Reach level 50; mastery is built by repetition."),
+    "m_lvl80": ("به سطح ۸۰ برس؛ کمتر کسی تا اینجا می‌رسد.", "Reach level 80; few ever climb this far."),
+    "s_sell": ("پنج آیتم در بازار بفروش.", "Sell five items on the market."),
+    "s_buy": ("ده بار از بازار خرید کن.", "Buy from the market ten times."),
+    "s_pvp": ("ده دوئل را ببر؛ نامت باید بر زبان‌ها بیفتد.", "Win ten duels; let your name be spoken."),
+    "s_dungeon10": ("ده دانجن را کامل کن.", "Fully clear ten dungeons."),
+    "s_gacha25": ("بیست‌وپنج بار ارواح را فرا بخوان.", "Call upon the spirits twenty-five times."),
+    "s_mini20": ("بیست معمای درست؛ ذهنت را تیز نگه دار.", "Twenty right riddles; keep your mind sharp."),
+    "r_pvp25": ("بیست‌وپنج دوئل را ببر؛ نژادت به تو افتخار کند.", "Win twenty-five duels; make your race proud."),
+    "w_weapon100": ("صد دشمن را با تیغه‌ات بشکن.", "Defeat a hundred foes with your blade."),
+    "b_bankai100": ("صد ضربه به غول‌های جهان بزن.", "Land a hundred hits on the world bosses."),
+    "g_guild5": ("پنج بار به خزانه‌ی گیلدت واریز کن.", "Deposit into your guild bank five times."),
+    "e_loot500": ("۵۰۰ شکار؛ تا لبه‌ی جهان برو.", "500 hunts; walk to the edge of the world."),
+    "l_legend50": ("پنجاه غول جهانی را بکش.", "Slay fifty world bosses."),
+    "h_hidden30": ("۳۰ بار هدیه‌ی روزانه را بگیر.", "Claim the daily reward thirty times."),
+    "d_explore8": ("هشت شکار انجام بده.", "Go on eight hunts."),
+    "d_battle8": ("هشت دشمن را بشکن.", "Defeat eight foes."),
+    "d_sell": ("یک آیتم در بازار بفروش.", "Sell one item on the market."),
+    "d_dungeon": ("یک دانجن را کامل کن.", "Fully clear one dungeon."),
+    "d_boss5": ("پنج ضربه به غول جهانی بزن.", "Land five hits on the world boss."),
+    "w_pvp": ("هشت دوئل را ببر.", "Win eight duels."),
+    "w_gacha": ("ده بار ارواح را فرا بخوان.", "Call upon the spirits ten times."),
+    "w_mini": ("پانزده معمای درست جواب بده.", "Answer fifteen riddles right."),
+    "w_bosshit": ("بیست ضربه به غول جهانی بزن.", "Land twenty hits on the world boss."),
+    "w_trade": ("پنج آیتم در بازار بفروش.", "Sell five items on the market."),
+    "w_faith": ("پنج بار هدیه‌ی روزانه را بگیر.", "Claim the daily reward five times."),
+})
 for _x in QUESTS:
     _x["desc_fa"], _x["desc_en"] = QUEST_DESC[_x["_id"]]
 QUEST_BY_ID = {q["_id"]: q for q in QUESTS}
