@@ -39,10 +39,27 @@ async def tower_panel(ctx, arg):
                  cost=fnum(info["cost"], L), left=fnum(info["left"], L), cap=fnum(info["cap"], L))
     body += "\n\n" + _T(ctx, "🎁 هر ۵ طبقه (رکورد جدید): سکه و یک آیتم تضمینی · هر ۱۰ طبقه: یک یادگار تکامل هم.",
                         "🎁 Every 5th floor (new record): coins and a guaranteed item · every 10th: an evolution relic too.")
-    rows = [[(_T(ctx, f"⚔️ صعود از طبقه‌ی {fnum(info['start'], L)}", f"⚔️ Climb from floor {info['start']}"), "twg", "")],
-            [(_T(ctx, "🏅 برترین‌های هفته", "🏅 This week's best"), "twl", "")],
-            nav(ctx)]
+    from service_combat import active_pve
+    cur = await active_pve(ctx.uid)
+    live = bool(cur and (cur.get("dungeon") or {}).get("tower"))
+    if live:  # a climb is already open: continue it or leave it (no penalty)
+        fl = fnum(int(cur["dungeon"]["stage"]), L)
+        rows = [[(_T(ctx, f"⚔️ ادامه‌ی نبرد طبقه‌ی {fl}", f"⚔️ Continue floor {fl}"), "twg", "")],
+                [(_T(ctx, "🚪 خروج از برج", "🚪 Leave the tower"), "twx", "")]]
+    else:
+        rows = [[(_T(ctx, f"⚔️ صعود از طبقه‌ی {fnum(info['start'], L)}", f"⚔️ Climb from floor {info['start']}"), "twg", "")]]
+    rows += [[(_T(ctx, "🏅 برترین‌های هفته", "🏅 This week's best"), "twl", "")], nav(ctx)]
     return Out(head(ctx, "m_twr") + body, rows)
+
+
+@action("twx")
+async def tower_exit(ctx, arg):
+    """Leave the Soul Tower for free: closes the open tower fight so dungeons and normal battles work again."""
+    from service_combat import abandon_tower
+    await abandon_tower(ctx.uid)
+    out = await tower_panel(ctx, "")
+    out.alert = _T(ctx, "🚪 از برج خارج شدی.", "🚪 You left the tower.")
+    return out
 
 
 @action("twg")
@@ -52,10 +69,10 @@ async def tower_go(ctx, arg):
         return Out(alert=ctx.t("tw_e_busy"))
     if status == "energy":
         return Out(alert=ctx.t("tw_e_energy"))
-    if status != "ok":
+    if status not in ("ok", "resume"):
         return Out(alert="⏳")
     from handlers_combat import battle_panel
-    return await battle_panel(ctx, doc)
+    return await battle_panel(ctx, doc, [])
 
 
 @action("twl")

@@ -227,7 +227,8 @@ async def explore(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
     st = await game_settings()
-    if await active_pve(ctx.uid):
+    from service_combat import blocking_pve
+    if await blocking_pve(ctx.uid):
         from handlers_combat import resume_battle
         return await resume_battle(ctx)
     if arg != "go":

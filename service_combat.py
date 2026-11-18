@@ -553,11 +553,28 @@ async def pve_flee(uid: int, sid: str):
     return "ok", res
 
 
+async def abandon_tower(uid: int) -> bool:
+    """Leave the Soul Tower: the open tower fight (the current or the already-waiting next floor) is closed with no
+    penalty and no reward. Before this existed, the tower fight stayed active forever and blocked every dungeon,
+    battle and new climb until the player lost it on purpose. Returns True when a tower fight was closed."""
+    r = await col("battles").update_many({"user_id": uid, "mode": "pve", "status": "active", "dungeon.tower": True},
+                                         {"$set": {"status": "fled"}})
+    return bool(r.modified_count)
+
+
+async def blocking_pve(uid: int):
+    """The active fight that really blocks other activities. An open Soul Tower fight does not: it is closed for free
+    (the tower can be re-entered), so a player is never locked out of dungeons, adventures, exploring or war by it."""
+    await abandon_tower(uid)
+    return await active_pve(uid)
+
+
 async def start_dungeon(uid: int, lang: str, dungeon_id: str, diff: str):
     ch = await get_char(uid)
     d = DUNGEONS[dungeon_id]
     if ch["level"] < d["level"]:
         return "level", None
+    await abandon_tower(uid)  # an open tower fight must never lock the player out of a dungeon
     if await active_pve(uid):
         return "busy", None
     if diff != "normal":

@@ -29,7 +29,8 @@ async def adventure_start(uid: int, aid: str, lang: str):
         return "bad", None
     if int(ch["level"]) < a["level"]:
         return "level", a["level"]
-    if await active_pve(uid):
+    from service_combat import blocking_pve
+    if await blocking_pve(uid):
         return "busy", None
     if await try_cooldown(f"adv:go:{uid}", 3):
         return "wait", None
@@ -52,7 +53,8 @@ async def level_boss_start(uid: int, lang: str):
     ch = await get_char(uid)
     if not ch:
         return "bad", None
-    if await active_pve(uid):
+    from service_combat import blocking_pve
+    if await blocking_pve(uid):
         return "busy", None
     if await try_cooldown(f"lboss:go:{uid}", 3):
         return "wait", None

@@ -267,7 +267,8 @@ async def evo_start(uid: int, lang: str):
         return "level", gate
     if plan is None:
         return "items", need
-    if await active_pve(uid):
+    from service_combat import blocking_pve
+    if await blocking_pve(uid):
         return "busy", None
     if await try_cooldown(f"evo:{uid}", 20):
         return "wait", None

@@ -130,7 +130,8 @@ async def war_fight(uid: int, kind: str, lang: str):
     m = await member(ev["_id"], uid)
     if not m:
         return "notjoined", None
-    if await active_pve(uid):
+    from service_combat import blocking_pve
+    if await blocking_pve(uid):
         return "busy", None
     if await try_cooldown(f"war:go:{uid}", 4):
         return "wait", None

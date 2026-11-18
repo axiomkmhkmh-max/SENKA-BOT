@@ -770,8 +770,11 @@ def _do_action(state, action, rng, max_turns=30):
             _x(f)["chant"] = 0
         f["shield"] += int(gain)
         ev.append({"k": "shield", "a": f["name"], "n": f["shield"], "num": n, "spell": KIDO_NAMES.get(("bak", n), "")})
-        if n >= 30 and rng.random() < 0.6:
-            o = state["b" if side == "a" else "a"]
+        # the bind chance grows with the spell number (it was gated at Bakudō 30+, which can never be learned, so no
+        # bind ever fired); bosses resist half as well, so they can be bound but not chain-locked
+        o = state["b" if side == "a" else "a"]
+        bind_p = min(0.6, 0.10 + 0.05 * n) * (0.5 if o.get("foe") == "boss" else 1.0)
+        if rng.random() < bind_p:
             add_fx(o, "skip", 1)
             ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
     elif action == "df":

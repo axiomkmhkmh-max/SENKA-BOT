@@ -81,7 +81,8 @@ def race_change_quote(ch):
 async def _busy(uid):
     from service_combat import active_pve, duel_busy
     from service_trade import busy_session
-    if await active_pve(uid):
+    from service_combat import blocking_pve
+    if await blocking_pve(uid):
         return "fighting"
     if await duel_busy(uid):
         return "fighting"

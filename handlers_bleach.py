@@ -101,7 +101,8 @@ async def hollowfy_go(ctx, arg):
     need, cost, chance = int(st["hlf_min_level"]), int(st["hlf_cost"]), float(st["hlf_chance"])
     if ch["race"] != "shinigami" or ch["level"] < need:
         return Out(alert=ctx.t("hlf_e_level", n=fnum(need, L)))
-    if await active_pve(ctx.uid):
+    from service_combat import blocking_pve
+    if await blocking_pve(ctx.uid):
         return Out(alert=ctx.t("evo_e_busy"))
     wait = await try_cooldown(f"hlf:{ctx.uid}", 6 * 3600)
     if wait:

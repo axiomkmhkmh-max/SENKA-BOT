@@ -72,7 +72,10 @@ async def tower_start(uid: int, lang: str):
     from service_combat import active_pve, pve_start
     from service_player import spend_energy
     st = await game_settings()
-    if await active_pve(uid):
+    cur = await active_pve(uid)
+    if cur and (cur.get("dungeon") or {}).get("tower"):
+        return "resume", cur  # the climb is already open: go back into it instead of a dead "busy" alert
+    if cur:
         return "busy", None
     if await try_cooldown(f"tower:go:{uid}", 3):
         return "wait", None
@@ -140,7 +143,8 @@ async def tower_settle(doc: dict, win: bool) -> dict:
     heal = float(gs["tower_heal"])
     nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": floor + 1},
                           carry={"hp": min(1.0, f["hp"] / f["max_hp"] + heal), "re": min(1.0, f["re"] / f["max_re"] + heal),
-                                 "gauge": int((f.get("x") or {}).get("gauge", 0))})
+                                 "gauge": int((f.get("x") or {}).get("gauge", 0)),
+                                 "shield": int(f.get("shield", 0))})  # a Bakudō barrier survives the floor change
     out["next"] = nxt["sid"]
     return out
 

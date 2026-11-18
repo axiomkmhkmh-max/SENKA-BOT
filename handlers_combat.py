@@ -121,6 +121,10 @@ async def _has_potion(uid):
     return best
 
 
+def _T_exit(ctx):
+    return "🚪 خروج از برج" if ctx.lang == "fa" else "🚪 Leave the tower"
+
+
 async def battle_panel(ctx, doc, events=None):
     st = doc["state"]
     title = head(ctx, "ttl_bt")
@@ -146,6 +150,8 @@ async def battle_panel(ctx, doc, events=None):
     pot = await _has_potion(ctx.uid)
     from service_combat import can_flee
     tail = [(ctx.t("b_home"), "home", "")]
+    if d and d.get("tower") and not st.get("done"):  # the Soul Tower can always be left, for free
+        tail.insert(0, (_T_exit(ctx), "twx", ""))
     if can_flee(doc) and not st.get("done"):  # normal battles only: fleeing costs Battle Rank, the chain stays
         tail.insert(0, ("🏃 " + ("فرار" if ctx.lang == "fa" else "Flee"), "bf", doc["sid"]))
     return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [tail])
@@ -159,7 +165,12 @@ async def resume_battle(ctx):
 
 
 async def start_pve_panel(ctx, scale=1.0, force_elite=False, intro=""):
-    doc = await active_pve(ctx.uid) or await pve_start(ctx.uid, ctx.lang, scale=scale, force_elite=force_elite)
+    from service_combat import abandon_tower
+    cur = await active_pve(ctx.uid)
+    if cur and (cur.get("dungeon") or {}).get("tower"):  # a normal fight must not resume the tower fight instead
+        await abandon_tower(ctx.uid)
+        cur = None
+    doc = cur or await pve_start(ctx.uid, ctx.lang, scale=scale, force_elite=force_elite)
     out = await battle_panel(ctx, doc, [])
     if intro:  # e.g. the "the soul you ignored became a Hollow" line above the fight
         out.text = intro + out.text
@@ -209,7 +220,7 @@ def _tower_result(ctx, doc, ev, o):
     if t.get("relic"):
         lines.append(("🧬 یادگار تکامل طبقه‌ی ده‌تایی: " if L == "fa" else "🧬 Tenth-floor evolution relic: ") + nm(t["relic"], L))
     lines.append(ctx.t("tw_next"))
-    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], nav(ctx)])
+    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], [(_T_exit(ctx), "twx", "")], nav(ctx)])
 
 
 async def _pve_result(ctx, doc, ev, o):
