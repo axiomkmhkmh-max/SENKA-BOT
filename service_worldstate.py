@@ -231,6 +231,12 @@ async def event_end(eid: str = None, force_success: bool = None):
             prize = None
         await season_add(uid, min(60, int(pts)) + (20 if ok else 5), ch["name"])
         rows.append({"uid": uid, "name": (doc.get("nm") or {}).get(str(uid)) or ch["name"], "pts": pts, "xp": xp, "coins": coins, "prize": prize})
+    war = None
+    try:  # the event's battlefield closes with it (paid separately: its own winners and losers)
+        from service_war import war_settle
+        war = await war_settle(doc)
+    except Exception:
+        log.exception("war settle failed for event %s", doc["_id"])
     eff = EVENTS[doc["kind"]]["win" if ok else "lose"]
     await world_adjust(threat=eff["threat"], stability=eff["stability"])
     await col("world_events").update_one({"_id": doc["_id"]}, {"$set": {"status": "done", "ended_at": int(time.time()), "success": ok,
@@ -240,7 +246,7 @@ async def event_end(eid: str = None, force_success: bool = None):
                                         {"$set": {"event_id": None, "next_event_at": now + int(st["event_min_gap_minutes"]) * 60}})
     await chronicle("event_win" if ok else "event_lose", ev_fa=t("fa", f"ev_{doc['kind']}_name"), ev_en=t("en", f"ev_{doc['kind']}_name"), n=n)
     invalidate()
-    return {"doc": doc, "ok": ok, "rows": rows, "n": n}
+    return {"doc": doc, "ok": ok, "rows": rows, "n": n, "war": war}
 
 
 async def event_contribute_key(uid: int, item_id: str):

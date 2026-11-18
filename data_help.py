@@ -241,5 +241,26 @@ TOPICS = {
         "🪨 <b>Tempering Stone</b>: needed for weapon forging and armour tempering from +6 (+6 one stone, +7 two, … +10 five). Both now go to +10. Sources: gold chest (15%), level boss (20%), elite shop, roll-shop jackpot and every 50th tower floor.\n\n"
         "🌌 <b>Inner World 2</b>: each Inner World Key (very rare) gives a small permanent pure bonus: Hollow +0.5% damage (cap 5%), Zen +0.5% defence (cap 5%), Breath +0.08% HP regen per turn (cap 0.8%), Mirror +1% XP (cap 10%).\n\n"
         "🐾 <b>Companions</b>: 10 new spirit companions and upgrades up to ★10 with coins and spirit materials.")),
+    "war": ("⚔️ میدان جنگ رویدادها", "⚔️ Event battlefield", _t(
+        "⚔️ <b>میدان جنگ</b>\n━━━━━━━━━━━━━━\n"
+        "هر رویداد جهانی یک جنگ بین دو جناح از داستان بلیچ است؛ مثلاً در جنگ زمستانی ارتش آیزن (هالو و آرانکار) در برابر گوتی ۱۳ (شینیگامی و ویزورد)، در وندن‌رایش کوئینسی‌ها در برابر گوتی، در گارگانتا هالوها در برابر همه، و در جشنواره تیم سرخ در برابر تیم سفید.\n"
+        "• نژادی که داستان جایش را مشخص کرده خودکار به جناحش می‌رود؛ بقیه یک بار طرف انتخاب می‌کنند و تا پایان جنگ عوض نمی‌شود.\n"
+        "• 🗡 سرباز دشمن (+۱، گاهی افسر +۲)، 🪞 جنگجوی واقعی دشمن (+۳): کپی هوش مصنوعی یک بازیکن واقعی جناح مقابل، هم‌سطح تو و با تجهیزات خودش. 👑 فرمانده‌ی دشمن بعد از ۵ برد، یک بار در هر جنگ (+۱۰ و جایزه).\n"
+        "• ⚖️ برنده با امتیاز «متعادل‌شده» تعیین می‌شود: امتیاز هر طرف بر اساس تعداد جنگجوهای فعالش وزن می‌گیرد، پس جناح پرجمعیت‌تر فقط به خاطر تعداد نمی‌برد.\n"
+        "• 🔥 خشم جناح: طرفی که خیلی عقب است ۲۵٪ امتیاز بیشتر برای هر برد می‌گیرد.\n"
+        "• 🪞 سایه‌ی تو وقتی آفلاینی هم می‌جنگد: اگر کسی به آن ببازد، یک امتیاز برای جناح تو (تا ۱۵ در هر جنگ).\n"
+        "• ضد فارم: هر جنگ حداکثر ۴۰ نبرد؛ بردن دوباره از همان جنگجو نصف امتیاز و بار سوم هیچ؛ حساب‌های خیلی تازه نمی‌توانند شرکت کنند.\n"
+        "• امتیاز میدان جنگ به پیشرفت خود رویداد هم اضافه می‌شود.\n"
+        "• 🎁 پایان جنگ: هر کس حداقل ۲ امتیاز دارد سکه و تجربه می‌گیرد؛ سهمت با امتیازت بزرگ می‌شود و از ۱۰ امتیاز کامل است (برنده‌ها کامل، بازنده‌ها ۴۵٪، در جشنواره ۷۰٪). سه نفر اول برنده سنگ آبدیده‌سازی، نفر اول بازنده یک سنگ (هر دو با حداقل ۱۰ امتیاز)، برنده‌های ۱۰+ امتیاز ۲۵٪ شانس آیتم بنفش به بالا، و برنده‌های ۵+ امتیاز ۲۴ ساعت +۵٪ تجربه.",
+        "⚔️ <b>Battlefield</b>\n━━━━━━━━━━━━━━\n"
+        "Every world event is a war between two factions of the Bleach story: in the Winter War, Aizen's Army (Hollows and Arrancar) against the Gotei 13 (Shinigami and Visored); in the Wandenreich war, the Quincy against the Gotei; in the Garganta, the Hollows against everyone; at the festival, the Red Team against the White Team.\n"
+        "• Races the story places join their faction automatically; the others pick a side once, locked until the war ends.\n"
+        "• 🗡 Enemy soldier (+1, sometimes an officer +2), 🪞 real enemy fighter (+3): an AI copy of a real player of the other side, near your level, with their own gear. 👑 The enemy general after 5 wins, once per war (+10 and a reward).\n"
+        "• ⚖️ The winner is decided by balanced points: each side's points are weighed by its number of active fighters, so the bigger side does not win just by being bigger.\n"
+        "• 🔥 Rally: a side far behind scores 25% more per win.\n"
+        "• 🪞 Your shadow fights while you are offline: when someone loses to it, your side gets a point (up to 15 per war).\n"
+        "• Anti-farming: 40 fights per war; beating the same fighter again pays half, a third time nothing; brand-new accounts cannot join.\n"
+        "• Battlefield points also push the event itself forward.\n"
+        "• 🎁 War end: everyone with 2+ points gets coins and XP; your share grows with your points and is full from 10 (winners in full, losers 45%, 70% at the festival). The winners' top three get Tempering Stones, the losers' best gets one (both need 10+ points), winners with 10+ points have a 25% chance of a purple-or-better item, and winners with 5+ points get +5% XP for 24 hours.")),
 }
-TOPIC_ORDER = ("stats", "abil", "races", "rel", "evo", "rw", "ra", "brk", "dg", "adv", "shp", "acc", "boss", "rc")
+TOPIC_ORDER = ("stats", "abil", "races", "rel", "evo", "rw", "ra", "brk", "dg", "war", "adv", "shp", "acc", "boss", "rc")

@@ -276,6 +276,9 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         if stage == total:
             scale *= 1.35
             name = "👑 " + name
+    elif dungeon and dungeon.get("war"):  # event battlefield: the enemy faction's soldier, officer or general (shadows below)
+        from service_war import war_foe
+        lvl, name, scale, sig_race, pick = war_foe(dungeon, int(ch["level"]), lang, rng)
     elif dungeon and dungeon.get("lboss"):  # level boss of the player's band
         from data_extras2 import LEVEL_BOSS_SCALE, LEVEL_BOSSES
         b = LEVEL_BOSSES[int(dungeon["band"])]
@@ -306,7 +309,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
             name = "👺 " + rng.choice(MINI_BOSS_NAMES)[0 if lang == "fa" else 1]
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
-    elif not tower and not fixed_dg:  # dungeons stay fixed: no world-event scaling on top
+    elif not tower and not fixed_dg and not (dungeon and dungeon.get("war")):  # dungeons and the battlefield: no world-event scaling
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
     player["x"]["bstack"] = int((ch.get("bount") or {}).get("stacks", 0))  # soul stacks: PvE only, settled in pve_settle
@@ -329,7 +332,21 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         foe["foe"] = "boss"
     else:  # every other wild enemy
         foe["foe"] = "pve"
-    state = E.new_state(player, foe, rng)
+    shadow = False
+    if dungeon and dungeon.get("war"):
+        if foe["foe"] == "boss" and dungeon.get("kind") != "general":
+            foe["foe"] = "pve"  # a battlefield soldier is not a dungeon boss (one-stage fight)
+        if dungeon.get("kind") == "shadow" and dungeon.get("tgt"):  # an AI copy of a real enemy player, with their gear
+            tch = await get_char(int(dungeon["tgt"]))
+            if tch:
+                from data_war import FACTIONS
+                foe = await build_player(tch, name="🪞 " + FACTIONS[dungeon["fac"]][2] + " " + tch["name"])
+                foe["ai"] = True
+                foe["foe"] = "pve"
+                lvl = int(tch["level"])
+                shadow = True
+    # a shadow is a real player's copy, so the fight follows duel rules (race balance of duels, Konpaku lives on both sides)
+    state = E.new_state(player, foe, rng, pvp=shadow)
     if carry:  # next dungeon stage: the player always opens, so no free enemy hit lands on carried HP / the Bakudō barrier
         state["cur"] = state["first"] = "a"
     E.run_ai(state, rng)
@@ -419,6 +436,10 @@ async def pve_settle(doc: dict):
         if d and d.get("adv"):  # adventures pay coins (more than a normal fight) and a bit more XP
             from data_extras2 import ADV_COIN_K, ADV_XP_K
             xp, coins = int(xp * ADV_XP_K), int(coins * ADV_COIN_K)
+        elif d and d.get("war"):  # battlefield: a normal fight's pay, more for officers, shadows and the general
+            from service_war import fight_k
+            kx, kc = fight_k(d)
+            xp, coins = int(xp * kx), int(coins * kc)
         elif d and d.get("lboss"):  # level boss: x4 XP and coins (its loot is paid at the end)
             from data_extras2 import LEVEL_BOSS_REWARD
             xp, coins = int(xp * LEVEL_BOSS_REWARD), int(coins * LEVEL_BOSS_REWARD)
@@ -465,6 +486,9 @@ async def pve_settle(doc: dict):
         elif d and d.get("lboss"):  # level boss down: its loot
             from service_adventure import level_boss_loot
             out["lboss"] = await level_boss_loot(uid, int(d["band"]))
+        elif d and d.get("war"):  # battlefield: war points for the player's side
+            from service_war import war_after_fight
+            out["war"] = await war_after_fight(uid, doc, True)
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)
@@ -489,6 +513,9 @@ async def pve_settle(doc: dict):
         _bg(on_action(uid, "dungeon_clear" if out["dungeon_done"] else "elite_win" if doc["elite"] else "pve_win", doc["loc"]))
     else:
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1}})
+        if (doc.get("dungeon") or {}).get("war"):  # a lost battlefield fight: an enemy shadow may score for its owner
+            from service_war import war_after_fight
+            out["war"] = await war_after_fight(uid, doc, False)
         if not doc.get("dungeon") and not doc.get("trial"):
             from service_battlerank import apply as br_apply
             out["br"] = await br_apply(uid, "loss")  # a loss costs more the higher the rank

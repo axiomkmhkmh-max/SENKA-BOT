@@ -128,7 +128,13 @@ async def event_panel(ctx, arg):
     keys = [i for i, q in inv["items"].items() if q > 0 and (ALL.get(i, {}).get("effect") or {}).get("type") == "key"]
     keys.sort(key=lambda i: -KEY_PTS.get(ALL[i]["effect"]["diff"], 1))
     rows = [[(f"🗝️ {nm(i, L)} (+{KEY_PTS.get(ALL[i]['effect']['diff'], 1)})".replace("<", "").replace(">", ""), "evk", i)] for i in keys[:5]]
-    return Out(await event_text(ctx, ev) + "\n\n" + ctx.t("evt_keyhint"), rows + [nav(ctx, ("wrd", ""))])
+    from data_war import WARS
+    text = await event_text(ctx, ev) + "\n\n" + ctx.t("evt_keyhint")
+    if ev["kind"] in WARS:  # every event is a war now: its battlefield is one tap away
+        from handlers_war import war_line
+        text += "\n\n" + war_line(L, ev["kind"])
+        rows.insert(0, [(ctx.t("m_war"), "war", "")])
+    return Out(text, rows + [nav(ctx, ("wrd", ""))])
 
 
 @action("evk")
@@ -705,8 +711,9 @@ async def end_global_boss(bot, doc, summary):
 
 async def announce_event_start(bot, ev):
     from i18n import t
+    from handlers_war import war_line
     await _send_groups(bot, lambda L: t(L, "ev_announce", ev=ev_name(L, ev["kind"]), desc=t(L, "ev_" + ev["kind"] + "_desc"), goal=fnum(ev["goal"], L),
-                                        m=fnum(_mins(ev["end_at"] - time.time()), L)))
+                                        m=fnum(_mins(ev["end_at"] - time.time()), L)) + ("\n\n" + war_line(L, ev["kind"]) if war_line(L, ev["kind"]) else ""))
 
 
 async def announce_event_end(bot, summary):
@@ -714,10 +721,25 @@ async def announce_event_end(bot, summary):
     ev, ok = summary["doc"], summary["ok"]
     nmap = {r["uid"]: r["name"] for r in summary["rows"]}
 
+    war = summary.get("war")
+
     def fn(L):
         top = ", ".join(esc(r["name"]) for r in summary["rows"][:3])
-        return t(L, "ev_end_ok" if ok else "ev_end_fail", ev=ev_name(L, ev["kind"]), n=fnum(summary["n"], L), top=top or "—")
+        txt = t(L, "ev_end_ok" if ok else "ev_end_fail", ev=ev_name(L, ev["kind"]), n=fnum(summary["n"], L), top=top or "—")
+        if war:
+            from handlers_war import war_end_line
+            txt += "\n\n" + war_end_line(L, war)
+        return txt
     await _send_groups(bot, fn)
+    if war:
+        from handlers_war import war_dm
+        for r in war["rows"][:400]:
+            try:
+                tl = await _user_lang(r["uid"])
+                await bot.send_message(r["uid"], war_dm(tl, war, r))
+            except Exception:
+                pass
+            await bulk_slot()
     for r in summary["rows"][:400]:
         try:
             tl = await _user_lang(r["uid"])

@@ -35,6 +35,7 @@ import handlers_battlerank  # noqa: F401  (Battle Rank: panel, ladder, flee)
 import handlers_gangs  # noqa: F401  (Xcution membership panel)
 import handlers_towerx  # noqa: F401  (Soul Tower, Dispatch and Gotei Seat panels)
 import handlers_adventure  # noqa: F401  (adventures, level bosses, roll shop, elite shop, Inner World 2)
+import handlers_war  # noqa: F401  (event battlefield)
 import handlers_items
 import handlers_panels
 import handlers_world

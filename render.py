@@ -44,7 +44,7 @@ def dist_event_text(lang: str, e: dict) -> str:
     fa = lang == "fa"
     a, d = esc(e.get("a", "")), esc(e.get("d", ""))
     if e["k"] == "move":
-        tech = e.get("tech", "")
+        tech = e.get("tech", "") if fa else (e.get("tech_en") or e.get("tech", ""))  # English showed the Persian name
         return (f"🏃 {a} با {esc(tech)} به فاصله‌ی {dist_label(lang, e['to'])} رسید" if fa
                 else f"🏃 {a} closes in with {esc(tech)} → {dist_label(lang, e['to'])}")
     if e["k"] == "retreat":

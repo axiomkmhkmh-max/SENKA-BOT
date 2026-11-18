@@ -110,6 +110,11 @@ async def ensure_indexes():
         "trades": [([("members", ASCENDING), ("status", ASCENDING)], {})],
         "espada": [([("holder", ASCENDING)], {})],
         "quincy_raids": [([("status", ASCENDING), ("end_at", ASCENDING)], {})],
+        # event battlefield
+        "wars": [([("status", ASCENDING), ("ended_at", DESCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
+        "war_members": [([("eid", ASCENDING), ("side", ASCENDING), ("p", DESCENDING)], {}),
+                        ([("eid", ASCENDING), ("side", ASCENDING), ("lvl", ASCENDING)], {}),
+                        ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
     }
     for name, items in specs.items():
         for keys, opts in items:

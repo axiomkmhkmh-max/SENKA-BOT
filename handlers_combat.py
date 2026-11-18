@@ -134,6 +134,9 @@ async def battle_panel(ctx, doc, events=None):
                   if ctx.lang == "fa" else f"stage {d['stage']} of {d['total']}")) + "\n"
     elif d and d.get("lboss"):
         title += ("👹 باس سطح" if ctx.lang == "fa" else "👹 Level boss") + "\n"
+    elif d and d.get("war"):
+        from handlers_war import battle_title
+        title += battle_title(ctx.lang, d)
     elif d:
         title += ctx.t("dg_stage", n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang), diff=ctx.t("diff_" + d["diff"])) + "\n"
         flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
@@ -224,11 +227,16 @@ async def _pve_result(ctx, doc, ev, o):
         for line in result_lines(ctx, o.get("br")):
             text += "\n" + line
         dlx = doc.get("dungeon") or {}
+        if dlx.get("war"):
+            from handlers_war import result_lines as war_lines, result_rows as war_rows
+            for line in war_lines(L, o):
+                text += "\n" + line
+            return Out(text, war_rows(L, dlx) + [nav(ctx)])
         again = (("🧭 ماجراجویی‌ها" if L == "fa" else "🧭 Adventures"), "avl", "") if dlx.get("adv") else \
                 (("👹 باس سطح" if L == "fa" else "👹 Level boss"), "lbs", "") if dlx.get("lboss") else (ctx.t("b_again"), "bs", "")
         return Out(text, [[again], nav(ctx)])
     dgx = doc.get("dungeon") or {}
-    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if dgx and not (dgx.get("adv") or dgx.get("lboss"))
+    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if dgx and not (dgx.get("adv") or dgx.get("lboss") or dgx.get("war"))
                 else ctx.t("bt_win", xp=fnum(o["xp"], L), coins=fnum(o["coins"], L)))
     lines = [battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")), "", win_line]
     from handlers_battlerank import result_lines
@@ -266,6 +274,9 @@ async def _pve_result(ctx, doc, ev, o):
         lb = o["lboss"]
         got = [nm(i, L) for i in lb.get("items", [])]
         lines.append(("👹 <b>باس سطح شکست خورد!</b> " if L == "fa" else "👹 <b>Level boss down!</b> ") + "، ".join(got))
+    if dgx.get("war"):
+        from handlers_war import result_lines as war_lines
+        lines += war_lines(L, o)
     if o.get("drop_full"):
         lines.append(f"🎒 کیفت پره! «{nm(o['drop_full'], L)}» دراپ شد ولی جا نداشت. کیف رو خالی کن." if L == "fa"
                      else f"🎒 Bag full! «{nm(o['drop_full'], L)}» dropped but there was no room. Free some slots.")
@@ -288,6 +299,9 @@ async def _pve_result(ctx, doc, ev, o):
         rows.append([(("🧭 ماجراجویی‌ها" if L == "fa" else "🧭 Adventures"), "avl", "")])
     elif dgx.get("lboss"):
         rows.append([(("👹 باس سطح" if L == "fa" else "👹 Level boss"), "lbs", "")])
+    elif dgx.get("war"):
+        from handlers_war import result_rows as war_rows
+        rows += war_rows(L, dgx)
     else:
         rows.append([(ctx.t("b_again"), "bs", "")])
     rows.append(nav(ctx))

@@ -76,7 +76,7 @@ def apply_move(state: dict, side: str, move: str) -> dict:
     state["dist"] = new
     if m["prep"]:  # Hirenkyaku: arrives, but the blade is not ready this turn
         f.setdefault("x", {})["open"] = m["prep"]
-    return {"k": "move", "a": f["name"], "tech": m["fa"], "from": gap_before, "to": new}
+    return {"k": "move", "a": f["name"], "tech": m["fa"], "tech_en": m["en"], "from": gap_before, "to": new}
 
 
 def apply_retreat(state: dict, side: str) -> dict:
