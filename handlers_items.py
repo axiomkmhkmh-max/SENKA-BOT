@@ -2,7 +2,7 @@
 import math
 import time
 
-from config import BAG_MAX, BAG_START, BAG_STEP
+from config import BAG_MAX, BAG_PER_LEVEL, BAG_START, BAG_STEP
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus, copies_to_level_star
 from data_items import ALL
 from data_lore import CHAR_EPI
@@ -41,9 +41,10 @@ async def bag_upgrade(ctx, arg):
     L = ctx.lang
     inv = await inv_get(ctx.uid)
     cap = max(1, inv.get("capacity", BAG_START))
-    if cap >= BAG_MAX:
+    bought = cap - BAG_PER_LEVEL * (int((await get_char(ctx.uid))["level"]) - 1)  # the level slots are not part of the upgrades
+    if bought >= BAG_MAX:
         return Out(alert="کوله‌ت به سقف رسیده." if L == "fa" else "Your bag is already at its maximum.")
-    cost = bag_upgrade_cost(cap)
+    cost = bag_upgrade_cost(bought)
     if not await add_coins(ctx.uid, -cost, "bag_upgrade"):
         return Out(alert=("سکه‌ی کافی نداری." if L == "fa" else "Not enough coins."))
     # conditional on the capacity we priced, so two taps cannot both upgrade for one payment
@@ -94,8 +95,9 @@ async def bag(ctx, arg):
     if ids:
         rows.append([("☑️ انتخاب چندتایی و حذف" if L == "fa" else "☑️ Select multiple & remove", "bqm", f"{page}:{flt}")])
     capn_now = max(1, inv.get("capacity", BAG_START))
-    if capn_now < BAG_MAX:
-        cost = bag_upgrade_cost(capn_now)
+    bought_now = capn_now - BAG_PER_LEVEL * (int(ch["level"]) - 1)
+    if bought_now < BAG_MAX:
+        cost = bag_upgrade_cost(bought_now)
         lbl = (f"⬆️ ارتقای کوله +{BAG_STEP} ({fnum(cost, L)} 🪙)" if L == "fa" else f"⬆️ Upgrade bag +{BAG_STEP} ({fnum(cost, L)} 🪙)")
         rows.append([(lbl, "bagup", "")])
     rows.append(nav(ctx))

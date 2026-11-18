@@ -122,7 +122,7 @@ async def _has_potion(uid):
 
 
 def _T_exit(ctx):
-    return "🚪 خروج از برج" if ctx.lang == "fa" else "🚪 Leave the tower"
+    return "💾 ثبت و خروج" if ctx.lang == "fa" else "💾 Register & leave"
 
 
 async def battle_panel(ctx, doc, events=None):
@@ -151,7 +151,7 @@ async def battle_panel(ctx, doc, events=None):
     from service_combat import can_flee
     tail = [(ctx.t("b_home"), "home", "")]
     if d and d.get("tower") and not st.get("done"):  # the Soul Tower can always be left, for free
-        tail.insert(0, (_T_exit(ctx), "twx", ""))
+        tail.insert(0, (_T_exit(ctx), "twx", "save"))
     if can_flee(doc) and not st.get("done"):  # normal battles only: fleeing costs Battle Rank, the chain stays
         tail.insert(0, ("🏃 " + ("فرار" if ctx.lang == "fa" else "Flee"), "bf", doc["sid"]))
     return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [tail])
@@ -220,7 +220,7 @@ def _tower_result(ctx, doc, ev, o):
     if t.get("relic"):
         lines.append(("🧬 یادگار تکامل طبقه‌ی ده‌تایی: " if L == "fa" else "🧬 Tenth-floor evolution relic: ") + nm(t["relic"], L))
     lines.append(ctx.t("tw_next"))
-    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], [(_T_exit(ctx), "twx", "")], nav(ctx)])
+    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], [(_T_exit(ctx), "twx", "save")], nav(ctx)])
 
 
 async def _pve_result(ctx, doc, ev, o):

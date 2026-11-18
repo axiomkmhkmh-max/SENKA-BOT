@@ -302,6 +302,9 @@ ITEMS.extend(ACCESSORIES)
 ITEMS.extend(NEW_ITEMS)
 ITEMS.extend(NEW_RELICS)
 ALL = {x["_id"]: x for x in ITEMS}
+for _x in ALL.values():  # copies of one item are one stack in the bag (ownership is counted per id, not per copy)
+    if _x.get("category") in ("accessory", "cosmetic", "relic") and _x.get("stack_max", 1) < 20:
+        _x["stack_max"] = 20
 for _w in WEAPONS:
     _w.setdefault("sell_price", max(2, int(_w["base_price"] * 0.4)))
     _w["retired"] = True   # the old blades no longer drop or sell; every player grows a race weapon instead

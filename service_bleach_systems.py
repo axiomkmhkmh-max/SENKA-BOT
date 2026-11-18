@@ -26,8 +26,8 @@ KIDO = {
     "hado4": {"name":"Byakurai", "type":"Hadō", "level":8, "cost":16, "power":1.55, "fa":"بیاکورای — صاعقه سفید"},
     "hado31": {"name":"Shakkahō", "type":"Hadō", "level":25, "cost":28, "power":2.05, "fa":"شاکاهو — توپ آتش سرخ"},
     "bakudo1": {"name":"Sai", "type":"Bakudō", "level":1, "cost":10, "power":0.0, "fa":"سای — مهار موقت"},
-    "bakudo4": {"name":"Hainawa", "type":"Bakudō", "level":10, "cost":18, "power":0.0, "fa":"هایناوا — طناب انرژی"},
-    "bakudo9": {"name":"Geki", "type":"Bakudō", "level":16, "cost":24, "power":0.0, "fa":"گِکی — فلج‌سازی"},
+    "bakudo4": {"name":"Hainawa", "type":"Bakudō", "level":1, "cost":18, "power":0.0, "fa":"هایناوا — طناب انرژی"},
+    "bakudo9": {"name":"Geki", "type":"Bakudō", "level":1, "cost":24, "power":0.0, "fa":"گِکی — فلج‌سازی"},
     "kaido": {"name":"Kaidō: Minor Recovery", "type":"Kaidō", "level":12, "cost":25, "power":0.0, "fa":"کایدو — بازیابی جزئی"},
 }
 

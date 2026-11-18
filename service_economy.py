@@ -284,19 +284,63 @@ async def grant_item(uid: int, item_id: str) -> bool:
 
 
 # ---- NPC shop (Urahara) ---------------------------------------------------------
+SHOP_RARITIES = ("Common", "Uncommon", "Rare")
+# (categories, how many per day). Before, the shop drew 56 items at random from potions / accessories / books / materials
+# only (295 of 428 candidates were accessories), so races' armour, relics, eggs, charms, cosmetics and evolution items
+# were never sold and potions were often missing. Every group now has its own slots, so each kind shows up daily.
+SHOP_GROUPS = ((("potion",), 14), (("accessory",), 10), (("book", "material"), 4), (("relic",), 4), (("cosmetic",), 3),
+               (("egg",), 2), (("charm",), 2), (("evolution",), 2))
+SHOP_ARMOUR_SLOTS = 8   # armour of the buyer's own race
+
+
+def _shop_draw(day: str, race: str, banned: frozenset = frozenset()) -> list:
+    """One day's draw for a buyer's race, deterministic from the date. A group never draws items in `banned` unless
+    that would leave it short."""
+    groups = [("+".join(cats), lambda x, c=cats: x["category"] in c and x.get("tradeable", True) is not False and x.get("base_price"), n)
+              for cats, n in SHOP_GROUPS]
+    if race:
+        groups.append(("armor", lambda x: x["category"] == "armor" and x.get("race") == race, SHOP_ARMOUR_SLOTS))
+    picks = []
+    for key, ok, n in groups:
+        pool = sorted(i for i, x in ALL.items() if x["rarity"] in SHOP_RARITIES and not x.get("retired") and ok(x))
+        fresh = [i for i in pool if i not in banned]
+        if len(fresh) < n:
+            fresh = pool
+        if fresh:
+            picks += random.Random(f"shop{day}{key}{race if key == 'armor' else ''}").sample(fresh, min(n, len(fresh)))
+    return picks
+
+
+def _shop_prev(day: str):
+    from datetime import date, timedelta
+    try:
+        return (date.fromisoformat(day) - timedelta(days=1)).isoformat()
+    except ValueError:
+        return None
+
+
+def _shop_shelf(day: str, race: str) -> list:
+    """The day's shared goods and race armour: today's draw without anything from yesterday's shelf, so the shop really
+    changes every day (yesterday's shelf itself avoided the day before's)."""
+    prev = _shop_prev(day)
+    if not prev:
+        return _shop_draw(day, race)
+    prev2 = _shop_prev(prev)
+    yesterday = _shop_draw(prev, race, frozenset(_shop_draw(prev2, race))) if prev2 else _shop_draw(prev, race)
+    return _shop_draw(day, race, frozenset(yesterday))
+
+
 def shop_stock(day: str, race: str = None):
-    """Urahara's stock of the day: 56 shared items plus 8 cards of the buyer's race (Kidō cards for Shinigami / Visored,
-    technique cards for the rest), so nobody is offered cards they cannot use."""
-    r = random.Random("shop" + day)
-    pool = [i for i, x in ALL.items() if x["rarity"] in ("Common", "Uncommon", "Rare") and x["category"] in ("potion", "accessory", "book", "material")
-            and not x.get("retired")]
-    base = r.sample(pool, 56)
+    """Urahara's stock of the day: goods of every kind (potions, accessories, books, relics, cosmetics, eggs, charms,
+    evolution items), the buyer's race armour, and 8 cards of the buyer's race (Kidō cards for Shinigami / Visored,
+    technique cards for the rest), so nobody is offered gear they cannot use."""
+    base = _shop_shelf(day, race)
     if race:
         from data_items import race_cards
-        cards = [c for rar in ("Common", "Uncommon", "Rare") for c in race_cards(race, rar)]
+        cards = [c for rar in SHOP_RARITIES for c in race_cards(race, rar)]
         if cards:
             base += random.Random(f"shop{day}{race}").sample(cards, min(8, len(cards)))
-    return sorted(base)
+    return sorted(set(base))
 
 
 async def price_mult() -> float:
@@ -609,9 +653,15 @@ def party_bonus(party: list, chars: dict) -> dict:
 FORGE_CHANCE = [100, 95, 90, 80, 70, 60, 50, 40, 30, 20]
 
 
+# Coins per forge step by the weapon's colour. The cost used to follow the weapon's shop price (0.18 x price), which made a
+# red weapon cost 27 000 - 272 000 per try, far out of reach of any income. Now it grows gently with the colour instead.
+FORGE_UNIT = {"Common": 240, "Uncommon": 300, "Rare": 450, "Epic": 800, "Legendary": 1400, "Mythic": 2400}
+
+
 def forge_cost(weapon_id: str, plus: int):
     need = plus + 1
-    return int(ALL[weapon_id]["base_price"] * 0.18 * need) + 220 * need, need  # was 0.25 x price + 300 per level
+    unit = FORGE_UNIT.get(ALL[weapon_id].get("rarity"), 300)
+    return unit * need, need
 
 
 async def forge(uid: int):

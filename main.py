@@ -51,6 +51,12 @@ async def migrate_world():
     from config import BAG_OLD_START, BAG_START
     if await col("world_state").find_one_and_update({"_id": "main", "bag_v2": {"$ne": True}}, {"$set": {"bag_v2": True}}):
         await col("inventories").update_many({"capacity": {"$exists": True}}, {"$inc": {"capacity": BAG_START - BAG_OLD_START}})
+    # bag grows with level: existing bags gain the slots of the levels already reached, once
+    from config import BAG_PER_LEVEL
+    if await col("world_state").find_one_and_update({"_id": "main", "bag_lvl": {"$ne": True}}, {"$set": {"bag_lvl": True}}):
+        async for c in col("characters").find({"level": {"$gt": 1}}, {"user_id": 1, "level": 1}):
+            await col("inventories").update_one({"user_id": c["user_id"], "capacity": {"$exists": True}},
+                                                {"$inc": {"capacity": BAG_PER_LEVEL * (int(c["level"]) - 1)}})
     await col("characters").update_many({"relics": {"$exists": False}}, {"$set": {"relics": [], "cosmetics": {}, "armor_plus": {}, "buffs": {}}})
     await col("characters").update_many({"seen_at": {"$exists": False}}, {"$set": {"seen_at": 0}})
 

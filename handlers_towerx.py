@@ -45,7 +45,8 @@ async def tower_panel(ctx, arg):
     if live:  # a climb is already open: continue it or leave it (no penalty)
         fl = fnum(int(cur["dungeon"]["stage"]), L)
         rows = [[(_T(ctx, f"⚔️ ادامه‌ی نبرد طبقه‌ی {fl}", f"⚔️ Continue floor {fl}"), "twg", "")],
-                [(_T(ctx, "🚪 خروج از برج", "🚪 Leave the tower"), "twx", "")]]
+                [(_T(ctx, "💾 ثبت و خروج", "💾 Register & leave"), "twx", "save")],
+                [(_T(ctx, "🚪 خروج بدون ثبت", "🚪 Leave without saving"), "twx", "")]]
     else:
         rows = [[(_T(ctx, f"⚔️ صعود از طبقه‌ی {fnum(info['start'], L)}", f"⚔️ Climb from floor {info['start']}"), "twg", "")]]
     rows += [[(_T(ctx, "🏅 برترین‌های هفته", "🏅 This week's best"), "twl", "")], nav(ctx)]
@@ -55,10 +56,13 @@ async def tower_panel(ctx, arg):
 @action("twx")
 async def tower_exit(ctx, arg):
     """Leave the Soul Tower for free: closes the open tower fight so dungeons and normal battles work again."""
-    from service_combat import abandon_tower
+    from service_combat import abandon_tower, save_tower
+    floor = await save_tower(ctx.uid) if arg == "save" else 0
     await abandon_tower(ctx.uid)
     out = await tower_panel(ctx, "")
-    out.alert = _T(ctx, "🚪 از برج خارج شدی.", "🚪 You left the tower.")
+    out.alert = (_T(ctx, f"💾 طبقه‌ی {fnum(floor, ctx.lang)} ثبت شد؛ دفعه‌ی بعد از همین‌جا شروع می‌کنی.",
+                    f"💾 Floor {floor} registered; your next climb starts there.") if floor
+                 else _T(ctx, "🚪 از برج خارج شدی.", "🚪 You left the tower."))
     return out
 
 

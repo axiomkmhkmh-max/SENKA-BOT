@@ -553,6 +553,17 @@ async def pve_flee(uid: int, sid: str):
     return "ok", res
 
 
+async def save_tower(uid: int) -> int:
+    """Register the climb: remember the floor the player is standing on, so the next climb starts exactly there instead
+    of at the start of its 5-floor block. Returns that floor (0 when no tower fight is open)."""
+    doc = await col("battles").find_one({"user_id": uid, "mode": "pve", "status": "active", "dungeon.tower": True})
+    if not doc:
+        return 0
+    floor = int(doc["dungeon"]["stage"])
+    await col("characters").update_one({"user_id": uid}, {"$set": {"tower.saved": floor}})
+    return floor
+
+
 async def abandon_tower(uid: int) -> bool:
     """Leave the Soul Tower: the open tower fight (the current or the already-waiting next floor) is closed with no
     penalty and no reward. Before this existed, the tower fight stayed active forever and blocked every dungeon,

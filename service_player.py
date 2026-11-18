@@ -190,6 +190,8 @@ async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = Tru
         if r.modified_count:
             ch.update(upd)
             if gained:
+                from config import BAG_PER_LEVEL
+                await col("inventories").update_one({"user_id": uid}, {"$inc": {"capacity": BAG_PER_LEVEL * gained}})
                 await bump_quest(uid, "level", 0, absolute=level)
                 log_event("lvl", uid, f"به سطح {level} رسید (+{gained})", level=level)
             return ch, gained, gain

@@ -64,7 +64,9 @@ async def tower_info(uid: int) -> dict:
     wk = t.get("wk_best", 0) if t.get("wk") == week() else 0
     left = max(0, int(st["tower_daily_floors"]) - await counter_get(f"tower:{uid}:{day_id()}"))
     best = int(t.get("best", 0))
-    return {"best": best, "wk": wk, "start": tower_checkpoint(best), "left": left, "cap": int(st["tower_daily_floors"]),
+    saved = int(t.get("saved", 0) or 0)  # a registered floor (never beyond the next unreached one)
+    start = saved if 1 <= saved <= best + 1 else tower_checkpoint(best)
+    return {"best": best, "wk": wk, "start": start, "left": left, "cap": int(st["tower_daily_floors"]),
             "cost": int(st["tower_energy"])}
 
 
@@ -99,7 +101,7 @@ async def tower_settle(doc: dict, win: bool) -> dict:
     t = dict(ch.get("tower") or {})
     wk = week()
     if not win:
-        await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1, "tower.runs": 1}})
+        await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1, "tower.runs": 1}, "$unset": {"tower.saved": ""}})
         out["tower"]["best"] = int(t.get("best", 0))
         return out
     if await bump_counter(f"tower:{uid}:{day_id()}", 1, int(gs["tower_daily_floors"])):

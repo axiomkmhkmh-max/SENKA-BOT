@@ -86,6 +86,12 @@ def effect_text(ctx, it: dict) -> str:
         return ctx.t("ef_almighty", m=e["minutes"])
     if ty == "konpaku":  # SENKA+ charm
         return ctx.t("ef_konpaku", m=e["minutes"])
+    if ty == "buff":  # temporary buff: its exact size and length (some descriptions only said "stronger" / "less damage")
+        names = {"dmg": ("آسیب", "damage"), "def": ("دفاع", "defence"), "crit": ("شانس ضربه‌ی بحرانی", "crit chance"),
+                 "xp": ("تجربه", "XP"), "drop": ("شانس دراپ", "drop chance")}
+        nfa, nen = names.get(e.get("stat"), (str(e.get("stat")), str(e.get("stat"))))
+        pct, mins = float(e.get("pct", 0)) * 100, int(e.get("minutes", 0))
+        return (f"+{pctf(pct, L)} {nfa} · {fnum(mins, L)} دقیقه" if L == "fa" else f"+{pctf(pct, L)} {nen} · {mins} min")
     if ty == "pet":
         return ctx.t("ef_egg")
     if ty == "key":

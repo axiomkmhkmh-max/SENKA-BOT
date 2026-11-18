@@ -322,7 +322,8 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
 def best_kido(f, branch):
     """Highest affordable spell number of a branch the fighter may cast."""
     mult = 2.5 if branch == "had" else 2.0
-    ok = [n for n in f["kido"][branch] if f["level"] >= math.ceil(n * 0.8) and f["re"] >= n * mult]
+    # Bakudō has no level gate in the fight (a learned spell is always castable if the reiatsu is there); Hadō keeps it
+    ok = [n for n in f["kido"][branch] if (branch == "bak" or f["level"] >= math.ceil(n * 0.8)) and f["re"] >= n * mult]
     return max(ok) if ok else None
 
 
