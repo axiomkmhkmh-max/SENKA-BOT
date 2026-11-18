@@ -39,11 +39,35 @@ def slots_used(items: dict) -> int:
     return sum(math.ceil(q / max(1, ALL[i]["stack_max"])) for i, q in items.items() if q > 0 and i in ALL)
 
 
-async def inv_add(uid: int, item_id: str, qty: int = 1, force: bool = False) -> bool:
+DUP_CARD_XP_BASE, DUP_CARD_XP_PER_NUM = 25, 5   # a duplicate Hadō/Bakudō card turns into 25 + 5 x its number XP (99 -> 520)
+
+
+async def _dup_kido_xp(uid: int, item_id: str, qty: int) -> bool:
+    """A Kidō card for a spell the player already knows is useless: turn it into a little XP instead of bag clutter.
+    Returns True when the card was converted (nothing goes into the bag)."""
+    eff = (ALL[item_id].get("effect") or {})
+    if eff.get("type") != "kido":
+        return False
+    ch = await get_char(uid)
+    if not ch:
+        return False
+    from data_race_rules import race_allows
+    if not race_allows(ch.get("race"), "kd"):  # other races cannot learn Kidō: the card stays an item (tradeable)
+        return False
+    if eff["num"] not in ((ch.get("kido") or {}).get(eff["branch"]) or []):
+        return False  # a spell not known yet is a real card, not a duplicate
+    await add_xp(uid, (DUP_CARD_XP_BASE + DUP_CARD_XP_PER_NUM * int(eff["num"])) * qty, "kido_dup", apply_rate=False, ch=ch)
+    return True
+
+
+async def inv_add(uid: int, item_id: str, qty: int = 1, force: bool = False, keep: bool = False) -> bool:
+    """keep=True stores the item as is: trades, refunds, mentor gifts and admin gifts never convert a duplicate card."""
     from data_items import merged
     item_id = merged(item_id)  # a retired material (old listing, old trade) arrives as the merged one
     if item_id not in ALL or qty <= 0:
         return False
+    if not keep and await _dup_kido_xp(uid, item_id, qty):
+        return True
     inv = await inv_get(uid)
     cur = inv["items"].get(item_id, 0)
     sm = max(1, ALL[item_id]["stack_max"])

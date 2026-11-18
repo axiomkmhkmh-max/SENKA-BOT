@@ -157,7 +157,7 @@ async def handle_admin_text(ctx, text: str):
                 if iid not in ALL or not n or n < 1 or n > 999:
                     return Out(ctx.t("adm_usage_give"))
                 if cmd == "give":
-                    await inv_add(tid, iid, n, force=True)
+                    await inv_add(tid, iid, n, force=True, keep=True)
                 else:
                     from service_economy import inv_remove
                     if not await inv_remove(tid, iid, n):

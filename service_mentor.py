@@ -252,8 +252,8 @@ async def gift(master_uid: int, app_uid: int, item_id: str) -> str:
         return "limit"
     if not await inv_remove(master_uid, item_id, 1):
         return "missing"
-    if not await inv_add(app_uid, item_id, 1):  # not forced: the apprentice's bag capacity counts
-        await inv_add(master_uid, item_id, 1, force=True)
+    if not await inv_add(app_uid, item_id, 1, keep=True):  # not forced: the apprentice's bag capacity counts
+        await inv_add(master_uid, item_id, 1, force=True, keep=True)
         return "full"
     day = today()
     if doc.get("gift_day") == day:

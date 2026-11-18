@@ -346,7 +346,7 @@ async def _execute(doc):
         # pair: each side receives exactly the other side's offer; group: the host-split shares
         for uid, (_, get) in plan.items():
             for i, q in get["items"].items():
-                await inv_add(uid, i, q, force=True)
+                await inv_add(uid, i, q, force=True, keep=True)
             amount = int(get.get("coins", 0))
             if amount:
                 await add_coins(uid, amount, "trade")
@@ -355,7 +355,7 @@ async def _execute(doc):
         for uid, amount in debited:
             await add_coins(uid, amount, "trade_refund")
         for uid, i, q in removed:
-            await inv_add(uid, i, q, force=True)
+            await inv_add(uid, i, q, force=True, keep=True)
         reason = "missing" if str(exc) == "missing" else "error"
         await col("trades").update_one({"_id": tid}, {"$set": {"status": "failed", "reason": reason}})
         return reason
