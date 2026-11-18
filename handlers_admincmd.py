@@ -909,3 +909,56 @@ async def gifts_panel(ctx, arg):
         out.alert = _T(ctx, "انجام شد ✅", "Done ✅") if st in ("ok", "already") else _T(ctx, "ناموفق", "Failed")
         return out
     return _deny(ctx)
+
+
+# ---- Gotei Trial tournament (service_tournament.py) -----------------------------------------------------------
+@acmd("tournament", 60, "/tournament open [hours] | here | prize coins <n> | prize item <id> | status | start [now] | cancel",
+      "تورنومنت: باز کردن تمرین / وضعیت / شروع جدول (start) / لغو",
+      "Tournament: open training / status / start bracket / cancel")
+async def c_tournament(e: Env):
+    import service_tournament as T
+    sub = e.args[0].lower() if e.args else "status"
+    if sub == "open":
+        hours = int(e.args[1]) if len(e.args) > 1 and e.args[1].isdigit() else None
+        st, d = await T.open_training(e.message.chat.id, hours)
+        if st == "active":
+            return await e.say(e.t(f"⚠️ یک تورنومنت فعال است (فاز: {d['phase']}). اول لغوش کن.",
+                                   f"⚠️ A tournament is already active (phase: {d['phase']})."))
+        return await e.say(e.t(
+            f"⚔️ تمرین تورنومنت شروع شد؛ تا {(d['train_end'] - d['train_start']) // 3600} ساعت دوئل رنکی امتیاز تورنومنت می‌دهد. "
+            "بعد از پایان، با <code>tournament start</code> جدول را شروع کن.",
+            f"⚔️ Training started; ranked duels earn tournament points for {(d['train_end'] - d['train_start']) // 3600}h. "
+            "When it ends, run <code>tournament start</code>."))
+    if sub == "start":
+        st, d = await T.start_bracket(force=len(e.args) > 1 and e.args[1].lower() == "now")
+        msgs = {"none": ("هیچ تورنومنتی نیست.", "No tournament."),
+                "training": ("تمرین هنوز تمام نشده. برای شروع زودتر: <code>tournament start now</code>",
+                             "Training is still running. To start early: <code>tournament start now</code>"),
+                "phase": ("این تورنومنت قبلاً شروع یا تمام شده.", "This tournament already started or ended."),
+                "few": ("کمتر از ۲ شرکت‌کننده؛ تورنومنت لغو شد.", "Fewer than 2 entrants; tournament cancelled.")}
+        if st in msgs:
+            return await e.say(e.t(*msgs[st]))
+        return await e.say(e.t(f"✅ جدول شروع شد: {len(d['alive'])} شرکت‌کننده. اولین دور به‌زودی.",
+                               f"✅ Bracket started: {len(d['alive'])} entrants. First round soon."))
+    if sub == "prize":
+        from data_items import ALL
+        if len(e.args) < 3 or e.args[1].lower() not in ("coins", "item"):
+            return await e.usage()
+        if e.args[1].lower() == "coins":
+            if not e.args[2].isdigit() or not 0 <= int(e.args[2]) <= MAX_COINS:
+                return await e.usage()
+            ok = await T.set_prize(coins=int(e.args[2]))
+        else:
+            if e.args[2] not in ALL:
+                return await e.say(e.t("❌ این آیتم وجود ندارد.", "❌ Unknown item id."))
+            ok = await T.set_prize(item=e.args[2])
+        return await e.say(e.t("🎁 جایزه ثبت شد.", "🎁 Prize saved.") if ok else e.t("تورنومنتی فعال نیست.", "No active tournament."))
+    if sub == "here":  # send the tournament announcements to the chat this is written in
+        ok = await T.set_chat(e.message.chat.id)
+        return await e.say(e.t("📍 اعلان‌های تورنومنت به همین چت می‌آید.", "📍 Tournament announcements go to this chat.") if ok
+                           else e.t("تورنومنتی نیست.", "No tournament."))
+    if sub == "cancel":
+        ok = await T.cancel()
+        return await e.say(e.t("🛑 تورنومنت لغو شد.", "🛑 Tournament cancelled.") if ok
+                           else e.t("چیزی برای لغو نیست.", "Nothing to cancel."))
+    return await e.say(await T.status_text())

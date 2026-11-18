@@ -31,6 +31,11 @@ INSTANCE = uuid.uuid4().hex
 
 
 async def tick(bot):
+    try:  # Gotei Trial: training end + bracket rounds
+        from service_tournament import tick as tournament_tick
+        await tournament_tick(bot)
+    except Exception:
+        log.exception("tournament tick failed")
     await settle_listings()
     await expire_bounties()
     await art_settle()

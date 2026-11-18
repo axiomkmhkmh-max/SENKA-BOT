@@ -478,6 +478,11 @@ def _pair(a: int, b: int) -> str:
     return f"{min(a, b)}:{max(a, b)}"
 
 
+async def _tour_training() -> bool:
+    from service_tournament import training_open
+    return await training_open()
+
+
 async def duel_busy(uid: int) -> bool:
     return bool(await col("battles").find_one({"mode": "pvp", "status": {"$in": ["pending", "active"]}, "$or": [{"a_uid": uid}, {"b_uid": uid}]}))
 
@@ -497,7 +502,7 @@ async def duel_challenge(chat_id: int, a_uid: int, b_uid: int, ranked: bool):
         return "busy", None
     doc = {"sid": uuid.uuid4().hex[:8], "mode": "pvp", "a_uid": a_uid, "b_uid": b_uid, "ranked": ranked, "chat_id": chat_id,
            "status": "pending", "rev": 0, "created_at": int(time.time()), "expire_at": datetime.now(timezone.utc) + timedelta(minutes=5),
-           "a_name": ca["name"], "b_name": cb["name"], "timeouts": {"a": 0, "b": 0}}
+           "a_name": ca["name"], "b_name": cb["name"], "timeouts": {"a": 0, "b": 0}, "tournament": bool(ranked and await _tour_training())}
     await col("battles").insert_one(doc)
     return "ok", doc
 
@@ -598,7 +603,11 @@ async def pvp_settle(doc: dict):
             note = "level_gap"
         elif now - cw["created_at"] < 3600 or now - cl["created_at"] < 3600:
             note = "new_account"
-    rated = doc["ranked"] and not note
+    in_tour = bool(doc.get("tournament"))
+    if in_tour and note != "new_account":  # Gotei Trial training: only tournament points, the main ladder is untouched
+        from service_tournament import record_training
+        await record_training(w_uid, l_uid, cw["name"], cl["name"], doc.get("created_at"))
+    rated = doc["ranked"] and not note and not in_tour
     if rated:
         diff = (cl["rating"] - cw["rating"]) / 800
         gain = int(random.randint(int(gs["pvp_gain_min"]), int(gs["pvp_gain_max"])) * max(0.6, min(1.5, 1 + diff)))
@@ -626,7 +635,7 @@ async def pvp_settle(doc: dict):
         await add_coins(w_uid, int((60 + cw["level"] * 4) * float(gs["coin_rate"]) * frac), "pvp")
         res["xp"][w_uid] = got
         await bump_quest(w_uid, "pvp_win", 1)
-    res["note"] = note
+    res["note"] = note or ("tour" if in_tour else None)
     from service_interact import claim_bounty
     from service_worldstate import on_action_bg
     if note not in ("pair_cap", "new_account"):  # farming the same friend must not feed events, territory or season

@@ -33,6 +33,8 @@ settings = Settings()
 # Starting values. All of them can be overridden live from the admin panel
 # (stored in MongoDB `settings` collection, document _id="game").
 GAME_DEFAULTS = {
+    "tour_train_hours": 27, "tour_round_minutes": 60, "tour_max_entrants": 32, "tour_level": 30,  # Gotei Trial tournament
+    "tour_prize_coins": 300000, "tour_evo": 2,
     "butterfly_on": 1, "butterfly_cooldown": 1800, "herald_window": 600,  # Hell Butterfly, Hollow Herald countdown (seconds)
     "maintenance": False,
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,
