@@ -59,7 +59,7 @@ async def busy_session(uid):
 
 async def _create(kind, host, members, limit_note=None):
     doc = {"kind": kind, "host": host, "members": members, "status": "open",
-           "offers": {str(u): _side(None) for u in members}, "confirm": {},
+           "offers": {str(u): _side(None) for u in members}, "confirm": {}, "rev": 0, "views": {},
            "created_at": int(time.time()), "updated_at": int(time.time())}
     res = await col("trades").insert_one(doc)
     return str(res.inserted_id)
@@ -71,7 +71,7 @@ async def open_pair(a: int, b: int):
     for uid in (a, b):
         _, err = await _eligible(uid)
         if err:
-            return None, err
+            return None, err if uid == a else f"other_{err}"  # the partner's problem must not read as yours
         if await busy_session(uid):
             return None, "busy"
     return await _create("pair", a, [a, b]), None
@@ -100,8 +100,8 @@ async def join_group(tid: str, uid: int):
     if await busy_session(uid):
         return "busy"
     await col("trades").update_one({"_id": ObjectId(tid), "status": "open"},
-                                   {"$push": {"members": uid}, "$set": {f"offers.{uid}": _side(None),
-                                                                        "confirm": {}, "updated_at": int(time.time())}})
+                                   {"$push": {"members": uid}, "$inc": {"rev": 1},
+                                    "$set": {f"offers.{uid}": _side(None), "confirm": {}, "updated_at": int(time.time())}})
     return "ok"
 
 
@@ -112,17 +112,27 @@ async def get_session(tid, uid, allow_join=False):
         return None
     if not doc:
         return None
-    if not allow_join and uid not in doc["members"]:
-        return None
+    if uid not in doc["members"] and not (allow_join and doc["kind"] == "group"):
+        return None  # only a group table can be looked at (and joined) by outsiders; a pair is private
     if time.time() - int(doc.get("updated_at", 0)) > TRADE_TTL:
         await col("trades").update_one({"_id": doc["_id"], "status": "open"}, {"$set": {"status": "expired"}})
         return None
     return doc
 
 
+async def set_view(tid, uid, chat_id, message_id):
+    """Remember which message shows this player the table, so the other side's changes can refresh it in place."""
+    try:
+        await col("trades").update_one({"_id": ObjectId(tid), "status": "open"},
+                                       {"$set": {f"views.{uid}": [int(chat_id), int(message_id)]}})
+    except Exception:
+        pass
+
+
 async def _touch(tid, changes: dict):
     return await col("trades").update_one({"_id": ObjectId(tid), "status": "open"},
-                                          {"$set": {**changes, "confirm": {}, "updated_at": int(time.time())}})
+                                          {"$set": {**changes, "confirm": {}, "updated_at": int(time.time())},
+                                           "$inc": {"rev": 1}})
 
 
 async def add_item(tid, uid, item_id):
@@ -172,19 +182,32 @@ async def set_coins(tid, uid, coins: int):
     return "ok"
 
 
-async def confirm(tid, uid):
+async def confirm(tid, uid, rev=None):
+    """Confirm the table AS THE PLAYER SAW IT. `rev` is the version printed on their button: if the other side
+    changed the offer since, the confirm is refused ("stale"), so nobody ever agrees to a deal they did not see."""
     doc = await get_session(tid, uid)
     if not doc:
         return "closed"
     if doc["kind"] == "group" and len(doc["members"]) < TRADE_GROUP_MIN:
         return "group_min"
-    await col("trades").update_one({"_id": ObjectId(tid), "status": "open"},
-                                   {"$set": {f"confirm.{uid}": True, "updated_at": int(time.time())}})
+    cur = doc.get("rev")
+    if rev is None or int(rev) != int(cur or 0):
+        return "stale"
+    r = await col("trades").update_one({"_id": ObjectId(tid), "status": "open",
+                                        "rev": cur if cur is not None else {"$exists": False}},
+                                       {"$set": {f"confirm.{uid}": True, "updated_at": int(time.time())}})
+    if not r.matched_count:
+        return "stale"  # it changed between the check and the write
     doc = await col("trades").find_one({"_id": ObjectId(tid)})
     conf = doc.get("confirm") or {}
     if not all(conf.get(str(m)) for m in doc["members"]):
         return "waiting"
-    return await _execute(doc)
+    res = await _execute(doc)
+    if res == "closed":  # the other side's confirm ran it a split second before ours: it did go through
+        now = await col("trades").find_one({"_id": ObjectId(tid)}, {"status": 1})
+        if now and now.get("status") == "done":
+            return "done"
+    return res
 
 
 def _plan_pair(doc):
@@ -281,7 +304,9 @@ async def cancel(tid, uid):
         return "closed"
     if doc["kind"] == "group" and uid != doc["host"]:
         await col("trades").update_one({"_id": ObjectId(tid), "status": "open"},
-                                       {"$pull": {"members": uid}, "$unset": {f"offers.{uid}": "", f"confirm.{uid}": ""}})
+                                       {"$pull": {"members": uid}, "$inc": {"rev": 1},
+                                        "$set": {"confirm": {}, "updated_at": int(time.time())},
+                                        "$unset": {f"offers.{uid}": "", f"views.{uid}": ""}})
         return "left"
     await col("trades").update_one({"_id": ObjectId(tid), "status": "open"}, {"$set": {"status": "cancelled"}})
     return "ok"

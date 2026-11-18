@@ -9,13 +9,20 @@ Hub (command "ترید" / "trade"): your open session if you have one, otherwise
 Callback codes: trdhub, trdnew:<uid>, trdgrp, trdjoin:<tid>, trdlog, trdv:<tid>, trdadd:<tid>, trdi:<tid>:<item>,
 trdrm:<tid>, trdr:<tid>:<item>, trdc:<tid>:<coins>, trdok:<tid>, trdx:<tid>.
 """
+import logging
+
+from bson import ObjectId
+
 from data_items import iname
 from database import col
 from i18n import esc, fnum
-from service_player import get_char
+from service_player import get_char, user_lang
 from service_trade import (TRADE_GROUP_MAX, TRADE_GROUP_MIN, add_item, busy_session, cancel, confirm, get_session,
-                           history, join_group, nearby_players, open_group, open_pair, open_tables, remove_item, set_coins)
-from ui import SEP, Out, action, head, nav
+                           history, join_group, nearby_players, open_group, open_pair, open_tables, remove_item,
+                           set_coins, set_view)
+from ui import SEP, Ctx, Out, action, head, markup, nav
+
+log = logging.getLogger("senka.trade")
 
 
 def T(ctx, fa, en):
@@ -39,6 +46,10 @@ ERR = {
     "done": ("ترید انجام شد! 🤝", "Trade complete! 🤝"),
     "error": ("ترید ناموفق بود؛ آیتم‌ها برگشتن.", "The trade failed; items were returned."),
     "noreg": ("اول ثبت‌نام کن.", "Register first."),
+    "stale": ("پیشنهاد عوض شد. دوباره نگاه کن و بعد تأیید کن.", "The offer just changed. Look again, then confirm."),
+    "other_level": ("طرف مقابل هنوز به لول ۱۰ نرسیده.", "The other player is below level 10."),
+    "other_new": ("حساب طرف مقابل تازه‌ساخته‌ست و فعلاً نمی‌تونه ترید کنه.", "The other player's account is too new to trade."),
+    "other_noreg": ("طرف مقابل ثبت‌نام نکرده.", "The other player is not registered."),
     "left": ("از میز بیرون اومدی.", "You left the table."),
     "ok": ("", ""),
 }
@@ -70,6 +81,52 @@ def _offer_lines(offer, L):
     lines = [f"• {esc(iname(i, L))} ×{fnum(q, L)}" for i, q in items.items()] or ["—"]
     lines.append(f"🪙 {fnum(int(offer.get('coins', 0)), L)}")
     return lines
+
+
+async def _member_ctx(ctx, uid, chat_id):
+    return Ctx(uid, (await user_lang(uid)) or "en", chat_id, "private", None, ctx.bot)
+
+
+async def _refresh_others(ctx, tid):
+    """The other players' open table message is re-drawn in place, so nobody keeps looking (and confirming) an
+    old offer. Best effort: a blocked bot, a deleted message or "not modified" must never break the trade."""
+    try:
+        doc = await col("trades").find_one({"_id": ObjectId(tid)})
+        for m in (doc or {}).get("members", []):
+            ref = (doc.get("views") or {}).get(str(m))
+            if m == ctx.uid or not ref:
+                continue
+            try:
+                c = await _member_ctx(ctx, m, ref[0])
+                out = await trade_view(c, tid)
+                await ctx.bot.edit_message_text(out.text, chat_id=ref[0], message_id=ref[1], reply_markup=markup(c, out.rows))
+            except Exception as e:
+                log.debug("trade refresh skipped: %s", e)
+    except Exception:
+        log.exception("trade refresh failed")
+
+
+async def _tell_others(ctx, tid, fa, en):
+    """A trade ended (done, cancelled, failed): replace the other players' table with the result, or message them."""
+    try:
+        doc = await col("trades").find_one({"_id": ObjectId(tid)})
+        for m in (doc or {}).get("members", []):
+            if m == ctx.uid:
+                continue
+            ref = (doc.get("views") or {}).get(str(m))
+            c = await _member_ctx(ctx, m, ref[0] if ref else m)
+            text, kb = (fa if c.lang == "fa" else en), markup(c, [nav(c, ("trdhub", ""))])
+            try:
+                if not ref:
+                    raise LookupError
+                await ctx.bot.edit_message_text(text, chat_id=ref[0], message_id=ref[1], reply_markup=kb)
+            except Exception:
+                try:
+                    await ctx.bot.send_message(m, text, reply_markup=kb)
+                except Exception as e:
+                    log.debug("trade notice skipped: %s", e)
+    except Exception:
+        log.exception("trade notice failed")
 
 
 @action("trdhub")
@@ -105,12 +162,15 @@ async def trade_new(ctx, arg):
     tid, err = await open_pair(ctx.uid, int(arg))
     if err:
         return Out(alert=_err(ctx, err))
-    # the other player must hear about it, or the trade looks like it never started
+    # the other player gets the live table straight away (in their language, with buttons), not a note to go look for
     try:
-        await ctx.bot.send_message(int(arg), f"🤝 {esc(ctx.user.first_name or '?')} یه ترید با تو باز کرد. از «ترید» ببین.\n"
-                                             f"🤝 {esc(ctx.user.first_name or '?')} opened a trade with you. Open «trade» to see it.")
-    except Exception:
-        pass  # the partner may never have started the bot; the trade still exists in their hub
+        c = await _member_ctx(ctx, int(arg), int(arg))
+        theirs = await trade_view(c, tid)
+        msg = await ctx.bot.send_message(int(arg), f"🔔 {esc(ctx.user.first_name or '?')}\n" + theirs.text,
+                                         reply_markup=markup(c, theirs.rows))
+        await set_view(tid, int(arg), int(arg), msg.message_id)
+    except Exception as e:
+        log.info("trade invite not delivered: %s", e)  # the partner may never have started the bot; «trade» still shows it
     return await trade_view(ctx, tid)
 
 
@@ -132,7 +192,9 @@ async def trade_join(ctx, tid):
     code = await join_group(tid, ctx.uid)
     if code not in ("ok",):
         return Out(alert=_err(ctx, code))
-    return await trade_view(ctx, tid)
+    out = await trade_view(ctx, tid)
+    await _refresh_others(ctx, tid)
+    return out
 
 
 @action("trdlog")
@@ -167,11 +229,14 @@ async def trade_view(ctx, tid):
         lines += _offer_lines(doc["offers"].get(str(m)) or {}, L)
         lines.append("")
     rows = []
+    msg = getattr(ctx.cb, "message", None) if ctx.cb is not None else None
+    if msg is not None and ctx.uid in members:
+        await set_view(tid, ctx.uid, msg.chat.id, msg.message_id)  # so the others' changes can refresh this very message
     if ctx.uid in members:
         rows.append([(T(ctx, "➕ آیتم", "➕ Item"), "trdadd", tid), (T(ctx, "➖ آیتم", "➖ Item"), "trdrm", tid)])
         rows.append([(T(ctx, "🪙 ۱۰۰", "🪙 100"), "trdc", f"{tid}:100"), (T(ctx, "🪙 ۱٬۰۰۰", "🪙 1,000"), "trdc", f"{tid}:1000"),
                      (T(ctx, "🪙 صفر", "🪙 Zero"), "trdc", f"{tid}:0")])
-        rows.append([(T(ctx, "✅ تأیید", "✅ Confirm"), "trdok", tid),
+        rows.append([(T(ctx, "✅ تأیید", "✅ Confirm"), "trdok", f"{tid}:{int(doc.get('rev', 0))}"),
                      (T(ctx, "❌ لغو / ترک", "❌ Cancel / leave"), "trdx", tid)])
     elif doc["kind"] == "group" and len(members) < TRADE_GROUP_MAX:
         rows.append([(T(ctx, "➕ پیوستن", "➕ Join"), "trdjoin", tid)])
@@ -217,7 +282,9 @@ async def trade_add_pick(ctx, arg):
     code = await add_item(tid, ctx.uid, item)
     if code != "ok":
         return Out(alert=_err(ctx, code))
-    return await trade_view(ctx, tid)
+    out = await trade_view(ctx, tid)
+    await _refresh_others(ctx, tid)
+    return out
 
 
 @action("trdrm")
@@ -237,7 +304,9 @@ async def trade_rm_pick(ctx, arg):
     code = await remove_item(tid, ctx.uid, item)
     if code != "ok":
         return Out(alert=_err(ctx, code))
-    return await trade_view(ctx, tid)
+    out = await trade_view(ctx, tid)
+    await _refresh_others(ctx, tid)
+    return out
 
 
 @action("trdc")
@@ -246,22 +315,41 @@ async def trade_coins(ctx, arg):
     code = await set_coins(tid, ctx.uid, int(amount or 0))
     if code != "ok":
         return Out(alert=_err(ctx, code))
-    return await trade_view(ctx, tid)
+    out = await trade_view(ctx, tid)
+    await _refresh_others(ctx, tid)
+    return out
 
 
 @action("trdok")
-async def trade_confirm(ctx, tid):
-    code = await confirm(tid, ctx.uid)
+async def trade_confirm(ctx, arg):
+    tid, _, rev = arg.partition(":")  # the button carries the version of the table the player was looking at
+    code = await confirm(tid, ctx.uid, int(rev) if rev.isdigit() else None)
     if code == "waiting":
-        return await trade_view(ctx, tid)
+        out = await trade_view(ctx, tid)
+        await _refresh_others(ctx, tid)  # the others see the ✅ right away
+        return out
+    if code == "stale":
+        out = await trade_view(ctx, tid)  # show the table as it is now, then let them decide again
+        out.alert = _err(ctx, "stale")
+        return out
     if code == "done":
+        await _tell_others(ctx, tid, *ERR["done"])
         return Out(_err(ctx, "done"), [nav(ctx, ("trdhub", ""))])
-    return Out(alert=_err(ctx, code)) if code != "closed" else Out(_err(ctx, "closed"), [nav(ctx, ("trdhub", ""))])
+    if code == "closed":
+        return Out(_err(ctx, "closed"), [nav(ctx, ("trdhub", ""))])
+    if code in ("missing", "race", "notrade", "error"):  # the trade ended without moving anything: both sides must know
+        await _tell_others(ctx, tid, *ERR[code])
+        return Out(_err(ctx, code), [nav(ctx, ("trdhub", ""))])
+    return Out(alert=_err(ctx, code))
 
 
 @action("trdx")
 async def trade_cancel(ctx, tid):
     code = await cancel(tid, ctx.uid)
+    if code == "closed":
+        return Out(_err(ctx, "closed"), [nav(ctx, ("trdhub", ""))])
     if code == "left":
+        await _refresh_others(ctx, tid)
         return Out(_err(ctx, "left"), [nav(ctx, ("trdhub", ""))])
+    await _tell_others(ctx, tid, "ترید توسط طرف مقابل لغو شد.", "The trade was cancelled by the other player.")
     return Out(T(ctx, "ترید لغو شد.", "Trade cancelled."), [nav(ctx, ("trdhub", ""))])
