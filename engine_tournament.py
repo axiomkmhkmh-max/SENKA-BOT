@@ -70,10 +70,13 @@ def run_tournament(entrants, rng=None):
     return {"champion": alive[0]["name"], "rounds": rounds}
 
 
-# ---- Gotei Trial helpers (pure): training points, seeding, round pairing ---------------------------------------
+# ---- Gotei Trial helpers (pure): training points, seeding, series, round pairing -----------------------------------
 TRAIN_WIN_PTS = 10      # tournament points for winning a ranked training duel
 TRAIN_LOSS_PTS = 2      # a loss still earns a little, so losing players keep training
 TRAIN_PAIR_CAP = 2      # only the first N duels of the same pair in the training window earn points
+MASTERY_PER_DUEL = 1    # stat points a counted training duel adds to the bracket fighter ...
+MASTERY_CAP_DEFAULT = 20  # ... up to this many counted duels (live key `tour_mastery_cap`; 0 = everyone strictly equal)
+NEUTRAL_RACE = "neutral"  # the one "race" every tournament fighter has: it appears in NO race table, so no race rule applies
 
 
 def training_points(won: bool, pair_count: int) -> int:
@@ -81,6 +84,12 @@ def training_points(won: bool, pair_count: int) -> int:
     if int(pair_count) >= TRAIN_PAIR_CAP:
         return 0
     return TRAIN_WIN_PTS if won else TRAIN_LOSS_PTS
+
+
+def mastery_points(duels: int, cap: int = MASTERY_CAP_DEFAULT) -> int:
+    """Training mastery: every counted training duel (win or loss) is practice. It is worth a few stat points in the
+    bracket, capped, so training makes you sharper but nobody can buy a big edge by grinding."""
+    return max(0, min(int(cap), int(duels))) * MASTERY_PER_DUEL
 
 
 def seed_bracket(seeds: list) -> list:
@@ -103,14 +112,64 @@ def pair_round(alive: list) -> list:
     return [(alive[i], alive[i + 1]) for i in range(0, len(alive) - 1, 2)]
 
 
+def best_of(left: int) -> int:
+    """Games in a series by how many fighters are still in the round: Bo3 early, Bo5 semifinals, Bo7 final.
+    A longer series only removes upsets between equal fighters; it never favours anybody."""
+    if left <= 2:
+        return 7
+    if left <= 4:
+        return 5
+    return 3
+
+
+def play_series(a, b, rng, best_of_n: int = 3, max_turns: int = 30):
+    """Fight a vs b until one side has won a majority of `best_of_n` games. -> ('a' | 'b', (wins_a, wins_b)).
+    Every game is on fresh copies, so HP, Reiatsu and the spirit gauge never carry over."""
+    need = int(best_of_n) // 2 + 1
+    wa = wb = 0
+    while wa < need and wb < need:
+        if play_match(a, b, rng, max_turns) == "a":
+            wa += 1
+        else:
+            wb += 1
+    return ("a" if wa > wb else "b"), (wa, wb)
+
+
+UNKNOWN = "?"   # a slot nobody has reached yet (drawn as a question mark, like the Call of Duty bracket)
+
+
+def bracket_columns(order: list, hist: list):
+    """Everything a bracket picture needs. `order` = round-one slots (seed_bracket output, None = bye slot), `hist` = one
+    list of {a, b, w, s} dicts per finished round, in pair order. Returns (columns, scores): columns[0] = the entrants,
+    columns[k] = the winners of round k (UNKNOWN until it is played), the last column = the champion; scores[k][j] is the
+    series score of the match that produced columns[k+1][j]."""
+    size = len(order)
+    cols, scores = [list(order)], []
+    n, r = size, 0
+    while n > 1:
+        n //= 2
+        if r < len(hist):
+            cols.append([m["w"] for m in hist[r]])
+            scores.append([str(m.get("s", "")) for m in hist[r]])
+        else:
+            cols.append([UNKNOWN] * n)
+            scores.append([""] * n)
+        r += 1
+    return cols, scores
+
+
 # ---- Standard kit: what a tournament fighter is made of (pure) ------------------------------------------------
-# Only the race (and its evolution stage, fixed for everyone) decides how two fighters differ. Level, stat points,
-# gear, blade, pets, relics, artifacts, division, buffs, Xcution rank, Hogyoku, spells and techniques of the
-# real character are never read: the fighter is built from a brand-new minimal character document.
+# NO race. The fighter is built from nothing but the level, one standard weapon, one standard armour and a stat
+# block that is the same in every stat. It has no race technique, no signature move, no race killer, no race
+# damage / defence / HP modifier, no evolution and no Kidō (the race "neutral" is in none of those tables), so the
+# only thing that differs between two fighters is the training mastery they earned in the tournament itself.
+# Level, stats, gear, blade, pets, relics, artifacts, division, buffs, Xcution rank, Hōgyoku, spells and techniques of the
+# real character are never read.
 STD_WEAPON_K = 2.6      # same level scaling as a level-appropriate enemy (service_combat.ENEMY_K["a"])
 STD_ARMOR_K = 0.9       # ... and ENEMY_K["ar"]
 STD_CRIT = 0.05
-STD_EVO = 2             # evolution stage every fighter gets (0..4)
+STD_BASE = 8.0          # every stat starts here
+STAT_KEYS = ("zanjutsu", "kido", "hakuda", "hoho", "reiatsu")
 
 
 def points_for_level(level: int) -> int:
@@ -118,22 +177,10 @@ def points_for_level(level: int) -> int:
     return sum(3 + (1 if lv % 5 == 0 else 0) for lv in range(2, int(level) + 1))
 
 
-def standard_stats(race_stats: dict, level: int) -> dict:
-    """The race's base block plus the level's points, spread in the race's own proportions.
-    Every race ends with the same total; only the shape differs."""
-    base = {k: float(v) for k, v in race_stats.items()}
-    tot = sum(base.values())
-    extra = points_for_level(level)
-    return {k: round(v + extra * v / tot, 3) for k, v in base.items()}
-
-
-def standard_char(uid: int, name: str, race: str, level: int, race_stats: dict, kido_race: bool, evo: int = STD_EVO) -> dict:
-    """A minimal character document: it carries ONLY what the standard kit needs."""
-    return {"user_id": int(uid), "name": name, "race": race, "level": int(level),
-            "stats": standard_stats(race_stats, level), "points": 0,
-            "kido_refunded": True,                      # no refund write to the real character
-            "kido": {"had": [1] if kido_race else [], "bak": [1] if kido_race else []},
-            "party": [], "zanpakuto": {}, "evo": int(evo)}
+def standard_stats(level: int, mastery: int = 0) -> dict:
+    """The same value in all five stats: STD_BASE plus the level's points and the mastery, spread evenly."""
+    each = round(STD_BASE + (points_for_level(level) + int(mastery)) / len(STAT_KEYS), 3)
+    return {k: each for k in STAT_KEYS}
 
 
 def standard_weapon(level: int) -> dict:
@@ -145,3 +192,15 @@ def standard_weapon(level: int) -> dict:
 
 def standard_armor(level: int) -> float:
     return int(level) * STD_ARMOR_K
+
+
+def standard_fighter(name: str, level: int, mastery: int = 0) -> dict:
+    """The tournament fighter: identical for everybody except for `mastery` (see mastery_points)."""
+    from data_races import soft_stat
+    from service_player import max_hp, max_reiatsu
+    st = standard_stats(level, mastery)
+    f = E.new_fighter(name, int(level), st, max_hp(int(level), soft_stat(st["hakuda"])),
+                      max_reiatsu(int(level), soft_stat(st["reiatsu"])), None, armor=standard_armor(level), mods={},
+                      kido={"had": [], "bak": []}, race=NEUTRAL_RACE, zmult=1.0, element="light")
+    f["weapon"] = standard_weapon(level)
+    return f

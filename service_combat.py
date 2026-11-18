@@ -513,12 +513,18 @@ async def duel_accept(sid: str, uid: int):
     if not doc:
         return None
     ca, cb = await get_char(doc["a_uid"]), await get_char(uid)
-    fa, fb = await build_player(ca), await build_player(cb)
+    equal = bool(doc.get("tournament")) and int(gs.get("tour_equal_training", 1))
+    if equal:  # Gotei Trial training: both fight with the standard kit (no race, no gear), exactly like the bracket
+        from engine_tournament import standard_fighter
+        lvl = int(gs.get("tour_level", 30))
+        fa, fb = standard_fighter(ca["name"], lvl), standard_fighter(cb["name"], lvl)
+    else:
+        fa, fb = await build_player(ca), await build_player(cb)
     rng = random.Random()
     state = E.new_state(fa, fb, rng, pvp=True)
     now = time.time()  # SENKA+ Konpaku charm: an active charm adds one life for this duel
     for f, c in ((fa, ca), (fb, cb)):
-        if float(c.get("konpaku_until", 0) or 0) > now:
+        if not equal and float(c.get("konpaku_until", 0) or 0) > now:
             f["lives"] = f.get("lives", 0) + 1
     E.run_ai(state, rng, ai_sides=())
     r = await col("battles").update_one({"sid": sid, "status": "pending"}, {"$set": {

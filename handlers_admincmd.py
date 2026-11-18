@@ -912,9 +912,9 @@ async def gifts_panel(ctx, arg):
 
 
 # ---- Gotei Trial tournament (service_tournament.py) -----------------------------------------------------------
-@acmd("tournament", 60, "/tournament open [hours] | here | prize coins <n> | prize item <id> | status | start [now] | cancel",
-      "تورنومنت: باز کردن تمرین / وضعیت / شروع جدول (start) / لغو",
-      "Tournament: open training / status / start bracket / cancel")
+@acmd("tournament", 60, "/tournament open [hours] | here | prize coins <n> | prize item <id> | status | top [n] | bracket | start [now] | cancel",
+      "تورنومنت: باز کردن تمرین / وضعیت / جدول امتیاز (top) / عکس جدول (bracket) / شروع جدول (start) / لغو",
+      "Tournament: open training / status / standings (top) / bracket picture / start bracket / cancel")
 async def c_tournament(e: Env):
     import service_tournament as T
     sub = e.args[0].lower() if e.args else "status"
@@ -938,8 +938,8 @@ async def c_tournament(e: Env):
                 "few": ("کمتر از ۲ شرکت‌کننده؛ تورنومنت لغو شد.", "Fewer than 2 entrants; tournament cancelled.")}
         if st in msgs:
             return await e.say(e.t(*msgs[st]))
-        return await e.say(e.t(f"✅ جدول شروع شد: {len(d['alive'])} شرکت‌کننده. اولین دور به‌زودی.",
-                               f"✅ Bracket started: {len(d['alive'])} entrants. First round soon."))
+        return await e.say(e.t(f"✅ جدول شروع شد: {sum(1 for u in d['alive'] if u is not None)} شرکت‌کننده. قرعه‌کشی و عکس جدول به‌زودی در چت تورنومنت می‌آید.",
+                               f"✅ Bracket started: {sum(1 for u in d['alive'] if u is not None)} entrants. The draw and picture will be posted in the tournament chat shortly."))
     if sub == "prize":
         from data_items import ALL
         if len(e.args) < 3 or e.args[1].lower() not in ("coins", "item"):
@@ -953,6 +953,15 @@ async def c_tournament(e: Env):
                 return await e.say(e.t("❌ این آیتم وجود ندارد.", "❌ Unknown item id."))
             ok = await T.set_prize(item=e.args[2])
         return await e.say(e.t("🎁 جایزه ثبت شد.", "🎁 Prize saved.") if ok else e.t("تورنومنتی فعال نیست.", "No active tournament."))
+    if sub == "top":  # training standings (who is qualified, who is on the bubble)
+        n = int(e.args[1]) if len(e.args) > 1 and e.args[1].isdigit() else 40
+        return await e.say(await T.top_text(n))
+    if sub == "bracket":  # the bracket picture; during training it is the projected one from the current points
+        png = await T.bracket_png()
+        if png is None:
+            return await e.say(e.t("هنوز شرکت‌کنندهٔ کافی (یا Pillow) نیست.", "Not enough entrants yet (or Pillow is missing)."))
+        from aiogram.types import BufferedInputFile
+        return await e.message.answer_photo(BufferedInputFile(png, filename="gotei_trial_bracket.png"))
     if sub == "here":  # send the tournament announcements to the chat this is written in
         ok = await T.set_chat(e.message.chat.id)
         return await e.say(e.t("📍 اعلان‌های تورنومنت به همین چت می‌آید.", "📍 Tournament announcements go to this chat.") if ok

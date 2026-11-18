@@ -34,7 +34,8 @@ settings = Settings()
 # (stored in MongoDB `settings` collection, document _id="game").
 GAME_DEFAULTS = {
     "tour_train_hours": 27, "tour_round_minutes": 60, "tour_max_entrants": 32, "tour_level": 30,  # Gotei Trial tournament
-    "tour_prize_coins": 300000, "tour_evo": 2,
+    "tour_prize_coins": 300000, "tour_evo": 2,  # tour_evo is no longer used (the standard kit has no race and no evolution)
+    "tour_draw_minutes": 5, "tour_mastery_cap": 20, "tour_equal_training": 1,  # draw -> round 1 delay; training mastery cap; training duels use the standard kit
     "butterfly_on": 1, "butterfly_cooldown": 1800, "herald_window": 600,  # Hell Butterfly, Hollow Herald countdown (seconds)
     "maintenance": False,
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,

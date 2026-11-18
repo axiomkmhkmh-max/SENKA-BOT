@@ -98,10 +98,9 @@ def tearDownModule():
 
 import engine as E  # noqa: E402
 from config import GAME_DEFAULTS  # noqa: E402
-from data_races import RACES  # noqa: E402
-from engine_tournament import (STD_EVO, TRAIN_LOSS_PTS, TRAIN_PAIR_CAP, TRAIN_WIN_PTS, pair_round, points_for_level,  # noqa: E402
-                               seed_bracket, standard_armor, standard_char, standard_stats, standard_weapon,
-                               training_points)
+from engine_tournament import (NEUTRAL_RACE, TRAIN_LOSS_PTS, TRAIN_PAIR_CAP, TRAIN_WIN_PTS, UNKNOWN, best_of,  # noqa: E402
+                               bracket_columns, mastery_points, pair_round, play_series, points_for_level, seed_bracket,
+                               standard_armor, standard_fighter, standard_stats, standard_weapon, training_points)
 
 
 def run(coro):
@@ -151,43 +150,69 @@ class Bracket(unittest.TestCase):
             self.assertEqual(alive, [1])
 
 
-# ---- the standard kit ---------------------------------------------------------------------------------------------
+# ---- series and bracket picture data -----------------------------------------------------------------------------
+class Series(unittest.TestCase):
+    def test_best_of_by_round(self):
+        self.assertEqual([best_of(n) for n in (32, 16, 8, 4, 2)], [3, 3, 3, 5, 7])
+
+    def test_series_stops_at_a_majority(self):
+        f = lambda n: standard_fighter(n, 30)
+        rng = random.Random(3)
+        for bo in (1, 3, 5, 7):
+            side, (wa, wb) = play_series(f("A"), f("B"), rng, bo)
+            self.assertEqual(max(wa, wb), bo // 2 + 1)
+            self.assertEqual(side, "a" if wa > wb else "b")
+
+    def test_columns_follow_the_history(self):
+        order = seed_bracket([1, 2, 3, 4])
+        cols, scores = bracket_columns(order, [])
+        self.assertEqual([len(c) for c in cols], [4, 2, 1])
+        self.assertTrue(all(v == UNKNOWN for v in cols[1] + cols[2]))
+        hist = [[{"a": 1, "b": 4, "w": 1, "s": "2-0"}, {"a": 2, "b": 3, "w": 3, "s": "2-1"}]]
+        cols, scores = bracket_columns(order, hist)
+        self.assertEqual(cols[1], [1, 3])
+        self.assertEqual(scores[0], ["2-0", "2-1"])
+        self.assertEqual(cols[2], [UNKNOWN])
+
+    def test_mastery_is_capped(self):
+        self.assertEqual(mastery_points(5, 20), 5)
+        self.assertEqual(mastery_points(99, 20), 20)
+        self.assertEqual(mastery_points(99, 0), 0)
+
+
+# ---- the standard kit: NO race -------------------------------------------------------------------------------------
 class StandardKit(unittest.TestCase):
     def test_points_for_level(self):
         self.assertEqual(points_for_level(1), 0)
         self.assertEqual(points_for_level(5), 3 * 4 + 1)
         self.assertEqual(points_for_level(30), 29 * 3 + 6)
 
-    def test_every_race_gets_the_same_stat_total(self):
-        totals = {r: sum(standard_stats(v["stats"], 30).values()) for r, v in RACES.items()}
-        base = {r: sum(v["stats"].values()) for r, v in RACES.items()}
-        for r, t in totals.items():  # total = race base + the level's points, to rounding
-            self.assertAlmostEqual(t, base[r] + points_for_level(30), delta=0.05)
+    def test_every_stat_is_equal_and_mastery_adds_points(self):
+        st = standard_stats(30)
+        self.assertEqual(len(set(st.values())), 1)
+        self.assertAlmostEqual(sum(standard_stats(30, 10).values()) - sum(st.values()), 10, delta=0.02)
 
-    def test_kit_carries_nothing_of_the_real_character(self):
-        kit = standard_char(7, "A", "quincy", 30, RACES["quincy"]["stats"], False)
-        self.assertEqual(set(kit), {"user_id", "name", "race", "level", "stats", "points", "kido_refunded", "kido",
-                                    "party", "zanpakuto", "evo"})
-        self.assertEqual(kit["evo"], STD_EVO)
-        self.assertEqual(kit["zanpakuto"], {})
-        self.assertEqual(kit["kido"], {"had": [], "bak": []})
+    def test_fighter_has_no_race_at_all(self):
+        from data_race_rules import RACE_ABILITIES, RACE_CONTEXT_DMG
+        from data_race_tech import ABILITY_STAT, RACE_TECH
+        from data_bleachfx import RACE_KILLER, RACE_SIG
+        f = standard_fighter("A", 30)
+        self.assertEqual(f["race"], NEUTRAL_RACE)
+        for table in (RACE_CONTEXT_DMG, ABILITY_STAT, RACE_TECH, RACE_KILLER, RACE_SIG):
+            self.assertNotIn(NEUTRAL_RACE, table)
+        self.assertIsNone(f["sig"])
+        self.assertIsNone(f["gen"])
+        self.assertEqual(f["mods"], {})
+        self.assertNotIn("evo", f)
+        for act in ("sg", "t1", "t2", "t3", "kd", "bk", "ch", "gc", "gt", "blv", "bla", "bal", "neg", "gar", "bt", "gs"):
+            self.assertFalse(E.can(f, act), act)
+        self.assertEqual(f["weapon"]["skills"], [])  # no lifesteal, no reiatsu drain, no weapon skill of any kind
+        self.assertEqual(E.race_factor(f), 1.0)
 
-    def test_kit_is_neutral_for_every_bonus_source(self):
-        from data_artifacts import reiatsu_mult
-        from data_bleach import division_bonus
-        from data_crafting import evo_stage, player_bonus
-        from data_gangs import xcution_dmg_mult
-        from data_items import ALL
-        from data_zanpakuto import bond_value
-        for race, v in RACES.items():
-            kit = standard_char(1, "X", race, 30, v["stats"], race in ("shinigami", "visored"))
-            b = player_bonus(kit, ALL, GAME_DEFAULTS)
-            self.assertTrue(all(x == 0 for x in b.values()), (race, b))
-            self.assertEqual(xcution_dmg_mult(kit), 1.0)
-            self.assertEqual(reiatsu_mult(kit), 1.0)
-            self.assertEqual(division_bonus(kit), {})
-            self.assertEqual(bond_value(kit), 0)
-            self.assertEqual(evo_stage(kit), STD_EVO)
+    def test_two_fighters_are_identical_whoever_the_player_is(self):
+        a, b = standard_fighter("A", 30), standard_fighter("B", 30)
+        a.pop("name"), b.pop("name")
+        self.assertEqual(a, b)
 
     def test_weapon_and_armor_are_level_scaled_and_equal(self):
         w = standard_weapon(30)
@@ -196,58 +221,46 @@ class StandardKit(unittest.TestCase):
         self.assertEqual(w["type"], "melee")
         self.assertEqual(w["skills"], [])
         self.assertGreater(standard_armor(40), standard_armor(30))
+        self.assertEqual(standard_fighter("A", 30)["armor"], standard_armor(30))
 
+    def test_the_mirror_match_is_fair(self):
+        """Equal fighters: side a wins about half the games (no hidden edge for the first slot)."""
+        rng = random.Random(11)
+        wins = sum(1 for _ in range(300) if play_series(standard_fighter("A", 30), standard_fighter("B", 30), rng, 1)[0] == "a")
+        self.assertTrue(110 < wins < 190, wins)
 
-# ---- the build through the real build_player ------------------------------------------------------------------------
-class BuiltFighters(unittest.TestCase):
-    def setUp(self):
-        import service_combat as SC
-        self.SC = SC
-
-        async def gacha(uid):
-            return {"chars": {}}
-
-        async def blade_ok(uid, bid):
-            return True
-        self.patches = [mock.patch.object(SC, "gacha_doc", gacha), mock.patch.object(SC, "game_settings", self._gs)]
-        for p in self.patches:
-            p.start()
-
-    async def _gs(self, force=False):
-        return dict(GAME_DEFAULTS)
-
-    def tearDown(self):
-        for p in self.patches:
-            p.stop()
-
-    def _build(self, race, name, uid):
-        from engine_tournament import standard_armor as sa, standard_weapon as sw
-        kit = standard_char(uid, name, race, 30, RACES[race]["stats"], race in self.SC.KIDO_RACES)
-        f = run(self.SC.build_player(kit, name=name))
-        f["weapon"], f["armor"] = sw(30), sa(30)
-        return f
-
-    def test_same_race_gives_identical_fighters_whoever_the_player_is(self):
-        for race in RACES:
-            a, b = self._build(race, "A", 1), self._build(race, "B", 999)
-            a.pop("name"), b.pop("name")
-            self.assertEqual(a, b, race)
-
-    def test_no_blade_no_release_bonus_no_gear(self):
-        f = self._build("shinigami", "A", 1)
-        self.assertEqual(f["zmult"], 1.0)
-        self.assertIsNone(f["mv"])
-        self.assertIsNone(f["bt"])
-        self.assertEqual(f["weapon"], standard_weapon(30))
-        self.assertEqual(f["armor"], standard_armor(30))
-        self.assertEqual(f["level"], 30)
-
-    def test_every_race_can_fight(self):
+    def test_mastery_gives_a_small_real_edge(self):
         rng = random.Random(5)
-        for race in RACES:
-            for other in ("shinigami", "hollow"):
-                from engine_tournament import play_match
-                self.assertIn(play_match(self._build(race, "A", 1), self._build(other, "B", 2), rng), ("a", "b"))
+        wins = sum(1 for _ in range(300) if play_series(standard_fighter("A", 30, 20), standard_fighter("B", 30, 0), rng, 1)[0] == "a")
+        self.assertGreater(wins, 150)
+        self.assertLess(wins, 260)  # an edge, not a guaranteed win
+
+
+class TrainingDuelKit(unittest.TestCase):
+    def test_duel_accept_uses_the_standard_kit_in_tournament_duels(self):
+        src = open(os.path.join(_ROOT, "service_combat.py"), encoding="utf-8").read()
+        self.assertIn("standard_fighter", src)
+        self.assertIn('doc.get("tournament")', src)
+
+
+class RenderPicture(unittest.TestCase):
+    def test_bracket_picture_for_every_size(self):
+        try:
+            import PIL  # noqa: F401
+        except ImportError:
+            self.skipTest("Pillow not installed")
+        import tournament_render as R
+        for n in (2, 3, 5, 8, 13, 32):
+            order = seed_bracket(list(range(1, n + 1)))
+            names = {i: f"P{i}" for i in range(1, n + 1)}
+            png = R.render_bracket(order, names, [], None, "GOTEI TRIAL", "x", "")
+            self.assertTrue(png.startswith(b"\x89PNG"), n)
+
+    def test_name_cleaning(self):
+        import tournament_render as R
+        self.assertEqual(R.clean_name("Ichigo ⚔️🔥"), "Ichigo")
+        self.assertEqual(R.clean_name("🔥"), "Player")
+        self.assertEqual(R.clean_name("ایچیگو"), "ایچیگو")
 
 
 # ---- the whole tournament on a fake DB ----------------------------------------------------------------------------
@@ -356,6 +369,9 @@ class FakeBot:
     async def send_message(self, chat_id, text, parse_mode=None):
         self.sent.append((chat_id, text))
 
+    async def send_photo(self, chat_id, photo, caption=None, parse_mode=None):
+        self.photos = getattr(self, "photos", 0) + 1
+
 
 class TournamentFlow(unittest.TestCase):
     def setUp(self):
@@ -371,12 +387,10 @@ class TournamentFlow(unittest.TestCase):
         async def gs(force=False):
             return dict(GAME_DEFAULTS)
 
-        async def fighter(uid, level, evo):
+        async def fighter(uid, name, level, mastery):
             if uid not in self.chars:
                 return None
-            f = E.new_fighter(self.chars[uid], level, {"zanjutsu": 20, "hoho": 10, "kido": 5, "hakuda": 12, "reiatsu": 10},
-                              300 + uid, 120, standard_weapon(level), armor=standard_armor(level))
-            return f
+            return standard_fighter(name, level, mastery)
 
         async def prize(uid, d):
             self.paid.append((uid, d.get("prize_coins"), d.get("prize_item")))
@@ -462,6 +476,10 @@ class TournamentFlow(unittest.TestCase):
         self.assertEqual(self.paid[0][0], doc["champion"])
         self.assertTrue(any("🏆" in t for _c, t in self.bot.sent))
         self.assertTrue(all(len(t) <= 4096 for _c, t in self.bot.sent))
+        self.assertEqual(len(doc["hist"]), doc["rounds_total"])          # every round is kept for the picture
+        self.assertTrue(all(m["s"] for rnd in doc["hist"] for m in rnd))
+        self.assertGreaterEqual(getattr(self.bot, "photos", 0), doc["rounds_total"])  # draw + every round got a picture
+        self.assertTrue(doc["draw_sent"])
 
     def test_a_round_is_never_played_twice(self):
         self._open()
@@ -487,7 +505,7 @@ class TournamentFlow(unittest.TestCase):
         run(self.T.record_training(1, 2, "P1", "P2"))
         run(self.T.start_bracket(force=True))
         self.cols["tournaments"].d["current"]["next_at"] = 0
-        with mock.patch.object(self.T, "play_match", side_effect=RuntimeError("boom")):
+        with mock.patch.object(self.T, "play_series", side_effect=RuntimeError("boom")):
             run(self.T.tick(self.bot))
         self.assertEqual(self.cols["tournaments"].d["current"]["phase"], "done")
 
