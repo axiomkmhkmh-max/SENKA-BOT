@@ -455,6 +455,12 @@ async def pve_settle(doc: dict):
                              col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{__import__('data_zanpakuto').bond_key(ch or {})}": 1, **({"zanpakuto.mastery": 1} if (ch0.get("zanpakuto") or {}).get("shikai") and int((ch0.get("zanpakuto") or {}).get("mastery", 0)) < int(gs.get("znp_mastery_cap", 1000)) else {}), **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
                              bump_quest(uid, "battle_win", 1))
         out.update(xp=got, coins=coins, levels=lv)
+        if (ch0 or {}).get("mentor"):  # an apprentice: the master earns a small EXTRA cut of this win's XP (service_mentor)
+            try:
+                from service_mentor import share_xp
+                out["mentor"] = await share_xp(uid, int(ch0["mentor"]), got, ch)
+            except Exception:
+                logging.getLogger("senka.mentor").exception("mentor xp share failed")  # must never break the fight's settlement
         from service_gangs_hook import gang_rewards  # Xcution siphon and Bount absorption (rules in data_gangs.py)
         out["gang"] = await gang_rewards(uid, doc) if not d else {}  # dungeons pay no coins (Bount absorption included)
         from service_worldstate import on_action, territory_income

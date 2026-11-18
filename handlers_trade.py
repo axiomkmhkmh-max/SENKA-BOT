@@ -1,26 +1,34 @@
 """Trade panels.
 
-Hub (command "ترید" / "trade"): your open session if you have one, otherwise the choices:
-  - one-to-one trade with a player in this place
+Hub (command "ترید" / "trade", also under More > Social): your open session if you have one, otherwise the choices:
+  - one-to-one trade: type a player's name or id, pick someone from this place, or (in a group) reply to a player
+    and write «ترید». The other player gets an INVITATION and the table only opens when they accept
+  - invitations waiting for your answer
   - open a group table (3 to 6 players, pooled and shared)
   - join an open group table in this place
   - your trade history
 
-Callback codes: trdhub, trdnew:<uid>, trdgrp, trdjoin:<tid>, trdlog, trdv:<tid>, trdadd:<tid>, trdi:<tid>:<item>,
-trdrm:<tid>, trdr:<tid>:<item>, trdc:<tid>:<coins>, trdok:<tid>, trdx:<tid>.
+Callback codes: trdhub, trdask, trdnew:<uid>, trdacc:<tid>, trdgrp, trdjoin:<tid>, trdlog, trdv:<tid>, trdadd:<tid>,
+trdi:<tid>:<item>, trdrm:<tid>, trdr:<tid:item>, trdc:<tid>:<coins>, trdok:<tid>, trdx:<tid>.
+Typed prompt: trd_who (a player name or id for a one-to-one trade).
 """
 import logging
+import time
 
 from bson import ObjectId
 
 from data_items import iname
 from database import col
+from engine_xfer import parse_number
 from i18n import esc, fnum
+from render import glang
+from security import allow
 from service_player import get_char, user_lang
-from service_trade import (TRADE_GROUP_MAX, TRADE_GROUP_MIN, add_item, busy_session, cancel, confirm, get_session,
-                           history, join_group, nearby_players, open_group, open_pair, open_tables, remove_item,
-                           set_coins, set_view)
-from ui import SEP, Ctx, Out, action, head, markup, nav
+from service_trade import (PENDING_TTL, TRADE_GROUP_MAX, TRADE_GROUP_MIN, accept_pair, add_item, busy_session, cancel,
+                           confirm, find_partner, get_session, history, invites_for, join_group, nearby_players,
+                           open_group, open_pair, open_tables, remove_item, set_coins, set_view)
+from service_world import group_doc
+from ui import SEP, Ctx, Out, action, head, input_handler, markup, nav
 
 log = logging.getLogger("senka.trade")
 
@@ -51,6 +59,10 @@ ERR = {
     "other_new": ("حساب طرف مقابل تازه‌ساخته‌ست و فعلاً نمی‌تونه ترید کنه.", "The other player's account is too new to trade."),
     "other_noreg": ("طرف مقابل ثبت‌نام نکرده.", "The other player is not registered."),
     "left": ("از میز بیرون اومدی.", "You left the table."),
+    "pending": ("طرف مقابل هنوز دعوت رو قبول نکرده.", "The other player has not accepted the invitation yet."),
+    "unknown": ("پلیری با این نام یا شناسه پیدا نشد.", "No player found with that name or id."),
+    "undeliverable": ("نتونستم دعوت رو برسونم؛ باید ربات رو توی پیوی استارت کرده باشه.",
+                      "I could not deliver the invitation; they must have started the bot in private."),
     "ok": ("", ""),
 }
 
@@ -87,19 +99,24 @@ async def _member_ctx(ctx, uid, chat_id):
     return Ctx(uid, (await user_lang(uid)) or "en", chat_id, "private", None, ctx.bot)
 
 
-async def _refresh_others(ctx, tid):
+async def _refresh_others(ctx, tid, send_new=False):
     """The other players' open table message is re-drawn in place, so nobody keeps looking (and confirming) an
-    old offer. Best effort: a blocked bot, a deleted message or "not modified" must never break the trade."""
+    old offer. `send_new`: a member with no table message yet (a one-to-one opener who typed the name) gets a fresh
+    one. Best effort: a blocked bot, a deleted message or "not modified" must never break the trade."""
     try:
         doc = await col("trades").find_one({"_id": ObjectId(tid)})
         for m in (doc or {}).get("members", []):
             ref = (doc.get("views") or {}).get(str(m))
-            if m == ctx.uid or not ref:
+            if m == ctx.uid or (not ref and not send_new):
                 continue
             try:
-                c = await _member_ctx(ctx, m, ref[0])
+                c = await _member_ctx(ctx, m, ref[0] if ref else m)
                 out = await trade_view(c, tid)
-                await ctx.bot.edit_message_text(out.text, chat_id=ref[0], message_id=ref[1], reply_markup=markup(c, out.rows))
+                if ref:
+                    await ctx.bot.edit_message_text(out.text, chat_id=ref[0], message_id=ref[1], reply_markup=markup(c, out.rows))
+                else:
+                    msg = await ctx.bot.send_message(m, out.text, reply_markup=markup(c, out.rows))
+                    await set_view(tid, m, m, msg.message_id)
             except Exception as e:
                 log.debug("trade refresh skipped: %s", e)
     except Exception:
@@ -139,11 +156,19 @@ async def trade_hub(ctx, arg):
     if not ch:
         return Out(_err(ctx, "noreg"), [nav(ctx)])
     lines = [head(ctx, "ttl_trade"),
-             T(ctx, "🤝 دو نفره: یه معامله‌ی مستقیم با یه پلیر همین‌جا.",
-               "🤝 One-to-one: a direct deal with a player here."),
+             T(ctx, "🤝 دو نفره: یه معامله‌ی مستقیم با یه پلیر. اسمش یا شناسه‌اش رو بفرست؛ بهش دعوت میره و وقتی قبول کرد میز باز میشه.",
+               "🤝 One-to-one: a direct deal with a player. Send their name or id; they get an invitation and the table opens once they accept."),
+             T(ctx, "💡 توی گروه هم می‌تونی روی پیام یه پلیر ریپلای کنی و بنویسی «ترید».",
+               "💡 In a group you can also reply to a player's message and write «trade»."),
              T(ctx, f"👥 گروهی: میز مشترک ({TRADE_GROUP_MIN} تا {TRADE_GROUP_MAX} نفر). همه چیز جمع میشه و بینشون پخش میشه.",
                f"👥 Group: a shared table ({TRADE_GROUP_MIN} to {TRADE_GROUP_MAX} players). Everything is pooled and shared out.")]
-    rows = [[(T(ctx, "👥 ساخت میز گروهی", "👥 Open a group table"), "trdgrp", "")]]
+    rows = []
+    for inv in await invites_for(ctx.uid):  # invitations waiting for my answer come first
+        who = await get_char(inv["host"])
+        rows.append([(T(ctx, f"📨 دعوت از {(who or {}).get('name', '?')}", f"📨 Invitation from {(who or {}).get('name', '?')}"),
+                      "trdv", str(inv["_id"]))])
+    rows.append([(T(ctx, "🤝 ترید دو نفره (نام یا شناسه)", "🤝 One-to-one (name or id)"), "trdask", "")])
+    rows.append([(T(ctx, "👥 ساخت میز گروهی", "👥 Open a group table"), "trdgrp", "")])
     tables = await open_tables(ch["location"])
     for t in tables:
         rows.append([(T(ctx, f"➕ پیوستن به میز ({len(t['members'])} نفر)", f"➕ Join table ({len(t['members'])})"),
@@ -157,21 +182,104 @@ async def trade_hub(ctx, arg):
     return Out("\n".join(lines), _pubify(rows + [nav(ctx)]))
 
 
+async def _send_invite(ctx, tid, target):
+    """The invitation goes to the other player straight away (their language, with Accept / Decline buttons).
+    False when it could not be delivered: the caller then closes the table so nobody is left waiting."""
+    try:
+        c = await _member_ctx(ctx, target, target)
+        theirs = await trade_view(c, tid)
+        msg = await ctx.bot.send_message(target, "🔔 " + theirs.text, reply_markup=markup(c, theirs.rows))
+        await set_view(tid, target, target, msg.message_id)
+        return True
+    except Exception as e:
+        log.info("trade invite not delivered: %s", e)  # never started the bot, or blocked it
+        return False
+
+
+async def _invite(ctx, target):
+    """-> (tid, error code). Opens the pending table and delivers the invitation; closes it again if undeliverable."""
+    tid, err = await open_pair(ctx.uid, int(target))
+    if err:
+        return None, err
+    if not await _send_invite(ctx, tid, int(target)):
+        await cancel(tid, ctx.uid)
+        return None, "undeliverable"
+    return tid, None
+
+
+@action("trdask")
+async def trade_ask(ctx, arg):
+    """Step 1 of a typed one-to-one trade: ask for the other player's name or id."""
+    if not await get_char(ctx.uid):
+        return Out(_err(ctx, "noreg"), [nav(ctx)])
+    await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "trd_who", "at": int(time.time())}}, upsert=True)
+    return Out(head(ctx, "ttl_trade") + T(ctx, "اسم پلیر یا شناسه‌ی عددیش رو بفرست.\nبرای انصراف بنویس «لغو».",
+                                          "Send the player's name or numeric id.\nWrite cancel to stop."),
+               [nav(ctx, ("trdhub", ""))])
+
+
+@input_handler("trd_who")
+async def trade_who_input(ctx, text):
+    target = await find_partner(text)
+    if target is None:
+        await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "trd_who", "at": int(time.time())}}, upsert=True)
+        return Out(_err(ctx, "unknown") + T(ctx, "\nدوباره بفرست یا بنویس «لغو».", "\nSend it again or write cancel."))
+    tid, err = await _invite(ctx, target)
+    if err:
+        return Out(_err(ctx, err), [nav(ctx, ("trdhub", ""))])
+    return await trade_view(ctx, tid)
+
+
 @action("trdnew")
 async def trade_new(ctx, arg):
-    tid, err = await open_pair(ctx.uid, int(arg))
+    tid, err = await _invite(ctx, int(arg))
     if err:
         return Out(alert=_err(ctx, err))
-    # the other player gets the live table straight away (in their language, with buttons), not a note to go look for
-    try:
-        c = await _member_ctx(ctx, int(arg), int(arg))
-        theirs = await trade_view(c, tid)
-        msg = await ctx.bot.send_message(int(arg), f"🔔 {esc(ctx.user.first_name or '?')}\n" + theirs.text,
-                                         reply_markup=markup(c, theirs.rows))
-        await set_view(tid, int(arg), int(arg), msg.message_id)
-    except Exception as e:
-        log.info("trade invite not delivered: %s", e)  # the partner may never have started the bot; «trade» still shows it
     return await trade_view(ctx, tid)
+
+
+@action("trdacc")
+async def trade_accept(ctx, tid):
+    code = await accept_pair(tid, ctx.uid)
+    if code == "closed":
+        return Out(_err(ctx, "closed"), [nav(ctx, ("trdhub", ""))])
+    if code != "ok":
+        return Out(alert=_err(ctx, code))
+    out = await trade_view(ctx, tid)
+    await _refresh_others(ctx, tid, send_new=True)  # the inviter's message turns into the live table
+    return out
+
+
+async def group_hook(message, n: str) -> bool:
+    """Group word: reply to a player and write «ترید» / «trade» to invite them to a one-to-one trade.
+    True = the message was this command and has been answered."""
+    if n not in ("ترید", "trade"):
+        return False
+    user, chat = message.from_user, message.chat
+    if not allow(user.id, "trdgrp", 3.0):
+        return True
+    ctx = Ctx(user.id, glang(await group_doc(chat.id)), chat.id, chat.type, user, message.bot, message)
+    reply = message.reply_to_message
+    target = reply.from_user if reply and reply.from_user and not reply.from_user.is_bot else None
+    if not target:
+        await message.reply(T(ctx, "برای ترید دو نفره روی پیام یه پلیر ریپلای کن و بنویس: <code>ترید</code>",
+                              "For a one-to-one trade, reply to a player's message and write: <code>trade</code>"))
+        return True
+    tid, err = await _invite(ctx, target.id)
+    if err:
+        await message.reply(_err(ctx, err))
+        return True
+    who = f'<a href="tg://user?id={int(target.id)}">{esc(target.full_name or target.first_name or target.id)}</a>'
+    await message.reply(T(ctx, f"📨 دعوت ترید برای {who} فرستاده شد. باید توی پیوی ربات قبولش کنه ({PENDING_TTL // 60} دقیقه وقت داره).",
+                          f"📨 Trade invitation sent to {who}. They must accept it in the bot's private chat ({PENDING_TTL // 60} minutes)."))
+    try:  # the inviter's own table message, so the table can be followed (and cancelled) from private
+        c = await _member_ctx(ctx, user.id, user.id)
+        out = await trade_view(c, tid)
+        msg = await message.bot.send_message(user.id, out.text, reply_markup=markup(c, out.rows))
+        await set_view(tid, user.id, user.id, msg.message_id)
+    except Exception as e:
+        log.debug("trade inviter copy skipped: %s", e)
+    return True
 
 
 @action("trdv")
@@ -210,12 +318,36 @@ async def trade_log(ctx, arg):
     return Out("\n".join(lines), [nav(ctx, ("trdhub", ""))])
 
 
+async def _pending_view(ctx, tid, doc):
+    if ctx.uid not in doc["members"]:
+        return Out(_err(ctx, "closed"), [nav(ctx)])
+    invitee, host = int(doc["pending"]), int(doc["host"])
+    hn = esc(((await get_char(host)) or {}).get("name", "?"))
+    vn = esc(((await get_char(invitee)) or {}).get("name", "?"))
+    msg = getattr(ctx.cb, "message", None) if ctx.cb is not None else None
+    if msg is not None:
+        await set_view(tid, ctx.uid, msg.chat.id, msg.message_id)
+    mins = PENDING_TTL // 60
+    if ctx.uid == invitee:
+        text = head(ctx, "ttl_trade") + T(ctx, f"📨 <b>{hn}</b> دعوتت کرده به یه ترید دو نفره.\nتا {mins} دقیقه اعتبار داره.",
+                                          f"📨 <b>{hn}</b> invited you to a one-to-one trade.\nIt is valid for {mins} minutes.")
+        rows = [[(T(ctx, "✅ قبول", "✅ Accept"), "trdacc", tid), (T(ctx, "❌ رد", "❌ Decline"), "trdx", tid)]]
+    else:
+        text = head(ctx, "ttl_trade") + T(ctx, f"⏳ منتظر قبول کردن <b>{vn}</b>…\nتا {mins} دقیقه صبر می‌کنم.",
+                                          f"⏳ Waiting for <b>{vn}</b> to accept…\nThe invitation lasts {mins} minutes.")
+        rows = [[(T(ctx, "❌ لغو دعوت", "❌ Cancel invitation"), "trdx", tid)]]
+    rows.append(nav(ctx, ("trdhub", "")))
+    return Out(text, _pubify(rows))
+
+
 async def trade_view(ctx, tid):
     L = ctx.lang
     doc = await get_session(tid, ctx.uid, allow_join=True)
     if not doc:
         return Out(_err(ctx, "closed"), [nav(ctx)])
     members = doc["members"]
+    if doc.get("pending") is not None:  # a one-to-one invitation not accepted yet
+        return await _pending_view(ctx, tid, doc)
     conf = doc.get("confirm") or {}
     lines = [head(ctx, "ttl_trade"),
              T(ctx, "میز گروهی" if doc["kind"] == "group" else "ترید دو نفره",
@@ -236,6 +368,7 @@ async def trade_view(ctx, tid):
         rows.append([(T(ctx, "➕ آیتم", "➕ Item"), "trdadd", tid), (T(ctx, "➖ آیتم", "➖ Item"), "trdrm", tid)])
         rows.append([(T(ctx, "🪙 ۱۰۰", "🪙 100"), "trdc", f"{tid}:100"), (T(ctx, "🪙 ۱٬۰۰۰", "🪙 1,000"), "trdc", f"{tid}:1000"),
                      (T(ctx, "🪙 صفر", "🪙 Zero"), "trdc", f"{tid}:0")])
+        rows.append([(T(ctx, "🪙 مبلغ دلخواه", "🪙 Custom amount"), "trdca", tid)])
         rows.append([(T(ctx, "✅ تأیید", "✅ Confirm"), "trdok", f"{tid}:{int(doc.get('rev', 0))}"),
                      (T(ctx, "❌ لغو / ترک", "❌ Cancel / leave"), "trdx", tid)])
     elif doc["kind"] == "group" and len(members) < TRADE_GROUP_MAX:
@@ -320,6 +453,48 @@ async def trade_coins(ctx, arg):
     return out
 
 
+@action("trdca")
+async def trade_coins_ask(ctx, tid):
+    """A typed coin amount for your side of the table (the buttons only cover 100 / 1,000 / zero)."""
+    doc = await get_session(tid, ctx.uid)
+    if not doc:
+        return Out(alert=_err(ctx, "closed"))
+    if doc.get("pending") is not None:
+        return Out(alert=_err(ctx, "pending"))
+    msg = getattr(ctx.cb, "message", None) if ctx.cb is not None else None
+    ref = [int(msg.chat.id), int(msg.message_id)] if msg is not None else None
+    await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "trd_coins", "tid": tid, "ref": ref, "at": int(time.time())}},
+                                   upsert=True)
+    return Out(T(ctx, "🪙 چند سکه روی میز بذارم؟ عدد بفرست (مثلاً 5000 یا 5k). برای انصراف بنویس «لغو».",
+                 "🪙 How many coins do you put on the table? Send a number (e.g. 5000 or 5k). Write cancel to stop."), new=True)
+
+
+@input_handler("trd_coins")
+async def trade_coins_input(ctx, text):
+    pend = getattr(ctx, "pend", None) or {}
+    tid = pend.get("tid")
+    if not tid:
+        return Out(_err(ctx, "closed"))
+    amount = parse_number(text)
+    if amount is None:
+        await col("inputs").update_one({"user_id": ctx.uid}, {"$set": {"kind": "trd_coins", "tid": tid, "ref": pend.get("ref"), "at": int(time.time())}},
+                                       upsert=True)
+        return Out(T(ctx, "فقط عدد بفرست. برای انصراف بنویس «لغو».", "Send a number only. Write cancel to stop."))
+    code = await set_coins(tid, ctx.uid, amount)
+    if code != "ok":
+        return Out(_err(ctx, code), [nav(ctx, ("trdv", tid))])
+    out = await trade_view(ctx, tid)
+    await _refresh_others(ctx, tid)
+    ref = pend.get("ref")
+    if ref:  # redraw the table message the player pressed the button on
+        try:
+            await ctx.bot.edit_message_text(out.text, chat_id=ref[0], message_id=ref[1], reply_markup=markup(ctx, out.rows))
+            return Out("")
+        except Exception as e:
+            log.debug("trade table redraw skipped: %s", e)
+    return out
+
+
 @action("trdok")
 async def trade_confirm(ctx, arg):
     tid, _, rev = arg.partition(":")  # the button carries the version of the table the player was looking at
@@ -345,11 +520,16 @@ async def trade_confirm(ctx, arg):
 
 @action("trdx")
 async def trade_cancel(ctx, tid):
+    doc0 = await get_session(tid, ctx.uid)
+    declined = bool(doc0 and doc0.get("pending") is not None and int(doc0["pending"]) == ctx.uid)
     code = await cancel(tid, ctx.uid)
     if code == "closed":
         return Out(_err(ctx, "closed"), [nav(ctx, ("trdhub", ""))])
     if code == "left":
         await _refresh_others(ctx, tid)
         return Out(_err(ctx, "left"), [nav(ctx, ("trdhub", ""))])
+    if declined:
+        await _tell_others(ctx, tid, "طرف مقابل دعوت ترید رو رد کرد.", "The other player declined the trade invitation.")
+        return Out(T(ctx, "دعوت رد شد.", "Invitation declined."), [nav(ctx, ("trdhub", ""))])
     await _tell_others(ctx, tid, "ترید توسط طرف مقابل لغو شد.", "The trade was cancelled by the other player.")
     return Out(T(ctx, "ترید لغو شد.", "Trade cancelled."), [nav(ctx, ("trdhub", ""))])

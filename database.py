@@ -108,7 +108,10 @@ async def ensure_indexes():
         # hot lookups that had no index (each one was a full collection scan)
         "group_members": [([("chat_id", ASCENDING), ("uid", ASCENDING)], {}), ([("chat_id", ASCENDING), ("last_seen", DESCENDING)], {})],
         "group_hunts": [([("chat_id", ASCENDING), ("status", ASCENDING)], {}), ([("status", ASCENDING), ("round_ends", ASCENDING)], {})],
-        "trades": [([("members", ASCENDING), ("status", ASCENDING)], {})],
+        "trades": [([("members", ASCENDING), ("status", ASCENDING)], {}), ([("pending", ASCENDING), ("status", ASCENDING)], {})],
+        # master / apprentice: one master per apprentice (_id = the apprentice), a pending request per apprentice
+        "mentorships": [([("master", ASCENDING)], {})],
+        "mentor_requests": [([("master", ASCENDING), ("at", DESCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],
         "espada": [([("holder", ASCENDING)], {})],
         "quincy_raids": [([("status", ASCENDING), ("end_at", ASCENDING)], {})],
         # event battlefield

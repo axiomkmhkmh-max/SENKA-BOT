@@ -29,6 +29,7 @@ import handlers_extras  # noqa: F401  (player extras: stats, quiz, coinflip, tra
 import handlers_wheel  # noqa: F401  (Urahara's wheel: panel + animated spin)
 import handlers_inner  # noqa: F401  (Inner World: weekly scene panel + choices)
 import handlers_trade  # noqa: F401  (player trading: hub, shared view, group offers)
+import handlers_mentor  # noqa: F401  (master and apprentice panels)
 import handlers_respec  # noqa: F401  (stat reset and race change)
 import handlers_raceweapon  # noqa: F401  (race weapon: choice, ascension, type switch)
 import handlers_battlerank  # noqa: F401  (Battle Rank: panel, ladder, flee)
@@ -150,7 +151,7 @@ async def on_start(message: Message, command: CommandObject):
 COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle": "battle", "bag": "bag", "market": "market",
             "quests": "quests", "summon": "gacha", "squad": "squad", "ranking": "ranking", "daily": "daily", "dungeon": "dungeon",
             "map": "adventure", "boss": "boss", "duel": "duel", "friendly": "duel_friendly", "minigame": "mini", "forge": "forge",
-            "party": "party", "trade": "trdhub", "ترید": "trdhub", "respec": "resp", "ریست استت": "resp", "تغییر نژاد": "resp", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
+            "party": "party", "trade": "trdhub", "ترید": "trdhub", "mentor": "mnt", "respec": "resp", "ریست استت": "resp", "تغییر نژاد": "resp", "settings": "settings", "help": "help", "world": "world", "craft": "craft", "season": "season", "commands": "commands",
             "zanpakuto": "zanpakuto", "znp": "zanpakuto", "kido": "kido", "racepath": "racepath", "faction": "faction", "bleach": "bleach_hub", "senkaimon": "senkaimon", "portal": "senkaimon", "tower": "tower", "dispatch": "dispatch", "wheel": "wheel", "seat": "seat", "inner": "inner", "artifact": "artifact",
             "battlerank": "battle_rank", "upgrade": "upgrade", "weapon": "race_weapon", "division": "division", "hollow": "hollow", "event": "event",
             "chronicle": "chronicle", "territory": "territory", "bounty": "bounty", "relics": "gear", "evolve": "evolution",
@@ -287,6 +288,8 @@ async def on_group_text(message: Message, text: str):
     if await handlers_hollowraid.raid_hook(message, n):
         return
     if await handlers_bank.transfer_hook(message, text, n):  # reply + «انتقال 1000»: coins from wallet to wallet
+        return
+    if await handlers_trade.group_hook(message, n):  # reply + «ترید»: a one-to-one trade invitation
         return
     if await handlers_viral.viral_hook(message, text, n):  # --- NEW BLEACH VIRAL SYSTEM: espada fights, hogyoku theft, quincy strikes
         return

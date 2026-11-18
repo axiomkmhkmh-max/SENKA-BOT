@@ -262,5 +262,30 @@ TOPICS = {
         "• Anti-farming: 40 fights per war; beating the same fighter again pays half, a third time nothing; brand-new accounts cannot join.\n"
         "• Battlefield points also push the event itself forward.\n"
         "• 🎁 War end: everyone with 2+ points gets coins and XP; your share grows with your points and is full from 10 (winners in full, losers 45%, 70% at the festival). The winners' top three get Tempering Stones, the losers' best gets one (both need 10+ points), winners with 10+ points have a 25% chance of a purple-or-better item, and winners with 5+ points get +5% XP for 24 hours.")),
+    "mnt": ("🎓 ترید و استاد و شاگرد", "🎓 Trade & master / apprentice", _t(
+        "🤝 <b>ترید دو نفره</b>\n━━━━━━━━━━━━━━\n"
+        "• منو ← اجتماعی ← «ترید»، یا بنویس «ترید».\n"
+        "• «ترید دو نفره»: اسم یا شناسه‌ی پلیر رو بفرست (یا از لیست همین مکان انتخاب کن). بهش دعوت میره و وقتی قبول کرد میز باز میشه؛ تا قبل از قبول، هیچ‌کدوم قفل نمی‌شید و دعوت بعد از ۳ دقیقه خودش می‌میره.\n"
+        "• توی گروه: روی پیام پلیر ریپلای کن و بنویس «ترید».\n"
+        "• هر کدوم آیتم و سکه می‌ذاری (سکه‌ی دلخواه هم می‌تونی تایپ کنی)؛ هر تغییری تأییدها رو پاک می‌کنه و وقتی هر دو تأیید کنید جابه‌جا میشه. حداقل لول ۱۰.\n\n"
+        "🎓 <b>استاد و شاگرد</b>\n━━━━━━━━━━━━━━\n"
+        "• منو ← اجتماعی ← «استاد و شاگرد»، یا بنویس «استاد».\n"
+        "• شاگرد: از یه پلیر قوی‌تر (لول ۲۰+ و حداقل ۱۰ لول بالاتر از تو) درخواست بده؛ درخواست میره توی پنل استاد.\n"
+        "• استاد: درخواست‌ها رو قبول یا رد می‌کنه؛ حداکثر ۳ شاگرد.\n"
+        "• از هر نبرد و دانجنی که شاگرد ببره، استاد ۳٪ تجربه‌ی اضافه می‌گیره (از تجربه‌ی شاگرد کم نمی‌شه).\n"
+        "• استاد از پنلش می‌تونه به شاگردش کتاب «رساله» و «خاطرات» هدیه بده (روزی تا ۱۰ کتاب برای هر شاگرد).\n"
+        "• وقتی شاگرد به لول استاد برسه فارغ‌التحصیل میشه؛ هر دو طرف هم هر وقت خواستن می‌تونن بند رو تموم کنن.",
+        "🤝 <b>One-to-one trade</b>\n━━━━━━━━━━━━━━\n"
+        "• More ← Social ← “Trade”, or write “trade”.\n"
+        "• “One-to-one”: send a player's name or id (or pick from the list of players here). They get an invitation and the table opens when they accept; until then neither of you is locked, and the invitation dies after 3 minutes.\n"
+        "• In a group: reply to a player's message and write “trade”.\n"
+        "• Each side puts up items and coins (you can type any coin amount); any change clears the confirmations, and when you both confirm the swap happens. Level 10 minimum.\n\n"
+        "🎓 <b>Master & apprentice</b>\n━━━━━━━━━━━━━━\n"
+        "• More ← Social ← “Master & Apprentice”, or write “mentor”.\n"
+        "• Apprentice: ask a stronger player (level 20+ and at least 10 levels above you); the request lands in the master's panel.\n"
+        "• Master: accepts or declines requests; at most 3 apprentices.\n"
+        "• For every battle and dungeon an apprentice wins, the master earns 3% extra XP (the apprentice's own XP is not reduced).\n"
+        "• From their panel a master can give apprentices “Treatise” and “Memoir” books (up to 10 books a day per apprentice).\n"
+        "• When the apprentice reaches the master's level they graduate; either side can also end the bond any time.")),
 }
-TOPIC_ORDER = ("stats", "abil", "races", "rel", "evo", "rw", "ra", "brk", "dg", "war", "adv", "shp", "acc", "boss", "rc")
+TOPIC_ORDER = ("stats", "abil", "races", "rel", "evo", "rw", "ra", "brk", "dg", "war", "adv", "shp", "acc", "boss", "rc", "mnt")

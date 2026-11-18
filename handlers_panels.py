@@ -84,7 +84,7 @@ MENU_GROUPS = {
             [("m_map", "map"), ("m_wrd", "wrd")]],
     "grow": [[("m_gch", "gch"), ("m_crf", "crf")], [("m_dsp", "dsp"), ("m_art", "art")], [("m_inr", "inr"), ("m_in2", "in2")],
              [("m_sat", "sat"), ("m_rsh", "rsh")], [("m_els", "els"), ("m_div", "div")], [("m_hlf", "hlf")]],
-    "soc": [[("m_rnk", "rnk"), ("m_gld", "gld")]],
+    "soc": [[("m_rnk", "rnk"), ("m_gld", "gld")], [("m_trd", "trdhub"), ("m_mnt", "mnt")]],
     "fun": [[("m_dly", "dly"), ("m_whl", "whl")], [("m_mgm", "mgm")]],
 }
 

@@ -103,6 +103,7 @@ RAW.update({
     "resp": ("resp", "", ["ریست استت", "تغییر نژاد", "respec", "change race", "reset stats"]),
     "trdhub": ("trdhub", "", ["ترید", "هاب ترید", "trade", "trade hub", "trading hub"]),
     "xgn": ("xgn", "", ["اکسکیوشن", "xcution", "گروه اکسکیوشن"]),
+    "mnt": ("mnt", "", ["استاد", "شاگرد", "استاد و شاگرد", "استاد شاگرد", "mentor", "mentorship", "master", "apprentice"]),
 })
 GROUP_OK = {"duel", "duel_friendly", "boss", "battle", "kido", "help", "home", "chronicle", "commands", "event",
             "bankai_word", "shikai_word", "mask_word", "bleach_status", "steal_hogyoku", "wanted_list", "espada_board"}

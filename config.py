@@ -40,6 +40,7 @@ GAME_DEFAULTS = {
     "tour_draw_minutes": 5, "tour_mastery_cap": 20, "tour_equal_training": 1,  # draw -> round 1 delay; training mastery cap; training duels use the standard kit
     "butterfly_on": 1, "butterfly_cooldown": 1800, "herald_window": 600,  # Hell Butterfly, Hollow Herald countdown (seconds)
     "maintenance": False,
+    "mentor_xp_pct": 3.0,  # master & apprentice: percent of an apprentice's battle / dungeon XP the master earns on top
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,
     "div_min_level": 10, "div_change_cost": 3000, "div_k": 1.0,  # allegiance: min level, change price, bonus strength
     "hlf_min_level": 40, "hlf_cost": 15000, "hlf_chance": 0.65,  # Hollowfication ritual (Shinigami -> Visored)

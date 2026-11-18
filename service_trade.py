@@ -1,7 +1,9 @@
 """Player trading: one-to-one trades and group trade tables.
 
 Two kinds of session share one model (collection `trades`):
-- "pair": two players swap their offers exactly as written (several item stacks + coins each).
+- "pair": two players swap their offers exactly as written (several item stacks + coins each). The opener sends an
+  INVITATION (the other player is only locked once they press Accept, so nobody can freeze a stranger's trading by
+  opening a table with them; an unanswered invitation dies after PENDING_TTL).
 - "group": a table of 3 to TRADE_GROUP_MAX players. Everyone puts an offer on the table; when every member confirms
   the SAME table, all offers are pooled and shared out evenly (items round-robin, coins split equally, the
   remainder goes to the table host). Good for a shared drop or a big bundle among friends.
@@ -24,6 +26,7 @@ TRADE_MIN_LEVEL = 10
 TRADE_MAX_LINES = 8          # item stacks per side
 TRADE_MAX_COINS = 10_000_000
 TRADE_TTL = 15 * 60
+PENDING_TTL = 3 * 60         # an invitation nobody answered
 TRADE_GROUP_MAX = 6
 TRADE_GROUP_MIN = 3
 
@@ -45,36 +48,91 @@ async def _eligible(uid):
 
 async def busy_session(uid):
     """The player's live open session. Idle ones past TRADE_TTL are closed here: they used to stay `open` until
-    their own owner looked at them, and in the meantime they blocked every new trade ("one of you already has an
-    open trade")."""
-    for _ in range(5):
-        doc = await col("trades").find_one({"status": "open", "members": uid})
-        if not doc:
-            return None
-        if time.time() - int(doc.get("updated_at", 0)) <= TRADE_TTL:
-            return doc
-        await col("trades").update_one({"_id": doc["_id"], "status": "open"}, {"$set": {"status": "expired"}})
+    their own owner looked at them, and in the meantime they blocked every new trade (\"one of you already has an
+    open trade\"). An invitation that is still waiting for MY answer does not count: it must not lock me."""
+    now = time.time()
+    docs = [d async for d in col("trades").find({"status": "open", "members": uid})]
+    for doc in docs:
+        pend = doc.get("pending")
+        age = now - int(doc.get("created_at", 0) if pend else doc.get("updated_at", 0))
+        if age > (PENDING_TTL if pend else TRADE_TTL):
+            await col("trades").update_one({"_id": doc["_id"], "status": "open"}, {"$set": {"status": "expired"}})
+            continue
+        if pend and int(pend) == uid:
+            continue
+        return doc
     return None
 
 
-async def _create(kind, host, members, limit_note=None):
+async def invites_for(uid):
+    """Live invitations waiting for this player's answer (newest first)."""
+    now = time.time()
+    out = []
+    docs = [d async for d in col("trades").find({"status": "open", "pending": uid})]
+    for doc in sorted(docs, key=lambda d: -int(d.get("created_at", 0))):
+        if now - int(doc.get("created_at", 0)) > PENDING_TTL:
+            await col("trades").update_one({"_id": doc["_id"], "status": "open"}, {"$set": {"status": "expired"}})
+            continue
+        out.append(doc)
+    return out
+
+
+async def _create(kind, host, members, pending=None):
     doc = {"kind": kind, "host": host, "members": members, "status": "open",
            "offers": {str(u): _side(None) for u in members}, "confirm": {}, "rev": 0, "views": {},
            "created_at": int(time.time()), "updated_at": int(time.time())}
+    if pending is not None:
+        doc["pending"] = int(pending)  # the invited player; absent once they accepted
     res = await col("trades").insert_one(doc)
     return str(res.inserted_id)
 
 
 async def open_pair(a: int, b: int):
+    """`a` invites `b`. Both must be able to trade; only the inviter must be free right now (the invitee is
+    checked again when they accept)."""
     if a == b:
         return None, "self"
     for uid in (a, b):
         _, err = await _eligible(uid)
         if err:
             return None, err if uid == a else f"other_{err}"  # the partner's problem must not read as yours
-        if await busy_session(uid):
-            return None, "busy"
-    return await _create("pair", a, [a, b]), None
+    if await busy_session(a):
+        return None, "busy"
+    return await _create("pair", a, [a, b], pending=b), None
+
+
+async def accept_pair(tid: str, uid: int):
+    """The invited player accepts: the table goes live for both. -> 'ok' | 'closed' | 'busy' | an eligibility code."""
+    try:
+        doc = await col("trades").find_one({"_id": ObjectId(tid), "status": "open"})
+    except Exception:
+        return "closed"
+    if not doc or doc.get("kind") != "pair" or doc.get("pending") is None or int(doc["pending"]) != uid:
+        return "closed"
+    if time.time() - int(doc.get("created_at", 0)) > PENDING_TTL:
+        await col("trades").update_one({"_id": doc["_id"], "status": "open"}, {"$set": {"status": "expired"}})
+        return "closed"
+    _, err = await _eligible(uid)
+    if err:
+        return err
+    if await busy_session(uid):
+        return "busy"
+    r = await col("trades").update_one({"_id": doc["_id"], "status": "open", "pending": uid},
+                                       {"$unset": {"pending": ""}, "$inc": {"rev": 1},
+                                        "$set": {"confirm": {}, "updated_at": int(time.time())}})
+    return "ok" if r.modified_count else "closed"
+
+
+async def find_partner(text: str):
+    """A typed player name or numeric id -> user id (or None)."""
+    text = (text or "").strip()
+    if not text:
+        return None
+    if text.lstrip("-").isdigit():
+        ch = await get_char(int(text))
+        return int(text) if ch else None
+    doc = await col("characters").find_one({"name_key": text.casefold()}, {"user_id": 1})
+    return int(doc["user_id"]) if doc else None
 
 
 async def open_group(host: int):
@@ -114,7 +172,8 @@ async def get_session(tid, uid, allow_join=False):
         return None
     if uid not in doc["members"] and not (allow_join and doc["kind"] == "group"):
         return None  # only a group table can be looked at (and joined) by outsiders; a pair is private
-    if time.time() - int(doc.get("updated_at", 0)) > TRADE_TTL:
+    pend = doc.get("pending") is not None
+    if time.time() - int(doc.get("created_at" if pend else "updated_at", 0)) > (PENDING_TTL if pend else TRADE_TTL):
         await col("trades").update_one({"_id": doc["_id"], "status": "open"}, {"$set": {"status": "expired"}})
         return None
     return doc
@@ -139,6 +198,8 @@ async def add_item(tid, uid, item_id):
     doc = await get_session(tid, uid)
     if not doc:
         return "closed"
+    if doc.get("pending") is not None:
+        return "pending"
     if not (ALL.get(item_id) or {}).get("tradeable"):  # keys, Mythic blades... are bound to their owner (same rule as the market)
         return "notrade"
     inv = await inv_get(uid)
@@ -158,6 +219,8 @@ async def remove_item(tid, uid, item_id):
     doc = await get_session(tid, uid)
     if not doc:
         return "closed"
+    if doc.get("pending") is not None:
+        return "pending"
     offer = _side(doc["offers"].get(str(uid)))
     if item_id not in offer["items"]:
         return "missing"
@@ -172,6 +235,8 @@ async def set_coins(tid, uid, coins: int):
     doc = await get_session(tid, uid)
     if not doc:
         return "closed"
+    if doc.get("pending") is not None:
+        return "pending"
     coins = max(0, min(int(coins), TRADE_MAX_COINS))
     ch = await get_char(uid)
     if coins > int(ch.get("coins", 0)):
@@ -188,6 +253,8 @@ async def confirm(tid, uid, rev=None):
     doc = await get_session(tid, uid)
     if not doc:
         return "closed"
+    if doc.get("pending") is not None:
+        return "pending"
     if doc["kind"] == "group" and len(doc["members"]) < TRADE_GROUP_MIN:
         return "group_min"
     cur = doc.get("rev")
