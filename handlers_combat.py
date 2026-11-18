@@ -180,6 +180,8 @@ async def start_pve_panel(ctx, scale=1.0, force_elite=False, intro=""):
 @action("bt")
 async def battle_menu(ctx, arg):
     doc = await active_pve(ctx.uid)
+    if doc and (doc.get("dungeon") or {}).get("tower"):
+        doc = None  # an open Soul Tower fight is resumed from the tower panel only, never from the Fight button / «حمله»
     if doc:
         return await battle_panel(ctx, doc, [])
     rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "")], nav(ctx)]
@@ -394,6 +396,8 @@ async def battle_word(ctx, text):
     n = normalize_text(text)
     if not n or not _maybe_battle_word(n):
         return None  # ordinary words skip the battle lookup entirely (one database round trip less per message)
+    if not ctx.private:
+        return None  # a fight lives in the private chat: «حمله» typed in a group is for the world boss, never a hidden fight
     doc = await active_pve(ctx.uid)
     if not doc:
         return None

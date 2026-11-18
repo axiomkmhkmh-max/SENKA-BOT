@@ -194,6 +194,8 @@ class WordReleaseTests(unittest.TestCase):
     """The blade's name, typed mid-fight, releases Bankai when the gauge is full (handlers_combat.battle_word)."""
 
     class Ctx:
+        private = True  # a fight is played in the private chat (battle_word ignores groups)
+
         def __init__(self, uid=7, lang="en"):
             self.uid, self.lang = uid, lang
 
