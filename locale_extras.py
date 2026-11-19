@@ -29,9 +29,6 @@ FA = {
     "hlf_fail": "💥 هالوی درونت پیروز شد و مراسم شکست خورد. {n} 🪙 برشکار؛ بعد از ۶ ساعت دوباره تلاش کن.",
     "ev_winter_war_name": "جنگ زمستانی", "ev_winter_war_desc": "آسمان کاراکورا شکافته؛ آرانکارها و ارتش آیزن از هوئکو موندو می‌رسند. در کاراکورا و سرزمین‌های هالو بجنگ تا شهر نیفتد.",
     "ev_dangai_name": "گذرگاه دنگای", "ev_dangai_desc": "راه میان جهان‌ها بی‌ثبات شده. از دنگای تا کاخ سلطنتی کاوش کن و دانجن‌ها را پاک کن تا گذرگاه نبندد.",
-    "ev_soul_festival_name": "جشن ارواح", "ev_soul_festival_desc": "سیرایتی پر از فانوس و آتش‌بازیه! سکه‌ها دو برابر می‌چرخن و دراپ‌ها بیشتر میشن. بگرد، بجنگ و دانجن پاک کن تا جشن به اوج برسه.",
-    "ev_hogyoku_awakening_name": "بیداری هوگیوکو", "ev_hogyoku_awakening_desc": "هوگیوکو بیدار شده و دنیا می‌لرزه. دشمن‌ها وحشی‌ترن ولی دراپ و تجربه خیلی بیشتره. باس‌ها و دانجن‌ها رو بزن تا قبل از اینکه کنترل از دست بره مهارش کنیم.",
-    "ev_reishi_storm_name": "طوفان ریشی", "ev_reishi_storm_desc": "ابرهای ریشی روی همه‌جا نشسته‌ان. هر کاوش امتیاز دوبل می‌ده و تجربه بالاست. کاوش کن و دانجن پاک کن تا طوفان آروم بشه.",
     "m_div": "🏯 جوخه / مقام", "ttl_div": "وابستگی", "b_div_pick": "✅ انتخاب",
     "div_e_level": "از سطح {n} می‌توانی وابستگی انتخاب کنی.", "div_e_bad": "این گزینه برای نژاد تو نیست.", "div_e_same": "همین الان عضوی.",
     "div_e_funds": "{n} 🪙 لازم است.", "div_none": "هنوز به <b>{faction}</b> نپیوسته‌ای. اولین انتخاب رایگان است؛ هر کدام پاداش مخصوص دارد.",
@@ -39,8 +36,7 @@ FA = {
     "div_ok": "✅ حالا عضو {name} هستی!\n🧿 {bonus}",
     "mg_adv": "🗺️ ماجراجویی", "mg_grow": "⚒️ پیشرفت", "mg_soc": "🏆 رقابت", "mg_fun": "🎁 جایزه و سرگرمی",
     "mg_adv_body": "جاهایی که می‌شود رفت و جنگید.", "mg_grow_body": "قوی‌تر شو: احضار، ساخت، همراهان و درجه.",
-    "ttl_mentor": "🎓 استاد و شاگرد", "m_trd": "🤝 ترید", "m_mnt": "🎓 استاد و شاگرد",
-    "mg_soc_body": "رتبه‌بندی، جوخه، ترید و استاد و شاگرد.", "mg_fun_body": "جایزه‌ی روزانه، چرخ شانس و مینی‌گیم.",
+    "mg_soc_body": "رتبه‌بندی و جوخه.", "mg_fun_body": "جایزه‌ی روزانه، چرخ شانس و مینی‌گیم.",
     "home_tip": "👉 <b>شروع:</b> «شکار» را بزن تا ماجرا پیدا کنی، «نبرد» برای جنگیدن و تجربه. با هر پیروزی قوی‌تر می‌شوی؛ بقیه‌ی بخش‌ها زیر «➕ بیشتر» است.",
     # ---- menu / titles / buttons ----
     "m_twr": "🗼 برج روح", "m_dsp": "🧭 اعزام", "m_whl": "🎡 چرخ اوراهارا", "m_sat": "🎖️ درجه‌ی گوتی", "m_inr": "🌌 دنیای درون",
@@ -60,7 +56,7 @@ FA = {
     "tw_fall": "💀 در طبقه {n} سقوط کردی. بهترین رکوردت: طبقه {best}.", "tw_next": "➡️ طبقه‌ی بعد منتظر توست؛ زخم‌هایت همراهت هستند.",
     "b_tnext": "➡️ طبقه‌ی بعد", "b_tretry": "🗼 صعود دوباره",
     # ---- chain ----
-    "ch_line": "🔥 زنجیره ×{n} (+{pct}٪ پاداش)", "ch_lost": "💔 زنجیره نصف شد ({n} برد کم شد).", "ch_bonus": "🎁 پاداش زنجیره: {item}", "ch_shield": "🛡 سپر زنجیره این باخت را گرفت؛ زنجیره‌ات سالم ماند! (سپر بعدی فردا)",
+    "ch_line": "🔥 زنجیره ×{n} (+{pct}٪ پاداش)", "ch_lost": "💔 زنجیره‌ی {n} تایی شکست.", "ch_bonus": "🎁 پاداش زنجیره: {item}", "ch_shield": "🛡 سپر زنجیره این باخت را گرفت؛ زنجیره‌ات سالم ماند! (سپر بعدی فردا)",
     # ---- dispatch ----
     "ds_body": ("همراهانت را به ماموریت بفرست؛ وقتی برشکارند جایزه می‌گیری، حتی اگر آفلاین باشی.\nنقش‌ها: {roles}\n\n"
                 "اسلات‌ها: {used}/{slots}"),
@@ -115,9 +111,6 @@ EN = {
     "hlf_fail": "💥 The Hollow within won and the ritual failed. {n} 🪙 refunded; try again in 6 hours.",
     "ev_winter_war_name": "The Winter War", "ev_winter_war_desc": "The sky above Karakura is torn open; Arrancar and Aizen's army pour in from Hueco Mundo. Fight in Karakura and the Hollow lands so the town does not fall.",
     "ev_dangai_name": "Dangai Precipice", "ev_dangai_desc": "The road between worlds has turned unstable. Explore from Dangai to the Royal Palace and clear dungeons to keep the passage from closing.",
-    "ev_soul_festival_name": "Soul Festival", "ev_soul_festival_desc": "Seireitei is full of lanterns and fireworks! Coins flow at 1.5x and drops are richer. Explore, fight and clear dungeons to push the festival to its peak.",
-    "ev_hogyoku_awakening_name": "Hōgyoku Awakening", "ev_hogyoku_awakening_desc": "The Hōgyoku has awakened and the world shakes. Enemies are fiercer, but drops and XP are far higher. Hit bosses, elites and dungeons to contain it before it runs wild.",
-    "ev_reishi_storm_name": "Reishi Storm", "ev_reishi_storm_desc": "Reishi clouds cover the land. Every exploration counts double and XP runs high. Explore and clear dungeons to calm the storm.",
     "m_div": "🏯 Division / Rank", "ttl_div": "Allegiance", "b_div_pick": "✅ Choose",
     "div_e_level": "You can choose an allegiance from level {n}.", "div_e_bad": "That choice is not for your race.", "div_e_same": "You are already a member.",
     "div_e_funds": "You need {n} 🪙.", "div_none": "You have not joined the <b>{faction}</b> yet. The first choice is free; each one has its own perk.",
@@ -125,8 +118,7 @@ EN = {
     "div_ok": "✅ You now belong to {name}!\n🧿 {bonus}",
     "mg_adv": "🗺️ Adventure", "mg_grow": "⚒️ Growth", "mg_soc": "🏆 Compete", "mg_fun": "🎁 Rewards & fun",
     "mg_adv_body": "Places to explore and fight.", "mg_grow_body": "Get stronger: summon, craft, companions and rank.",
-    "ttl_mentor": "🎓 Master & Apprentice", "m_trd": "🤝 Trade", "m_mnt": "🎓 Master & Apprentice",
-    "mg_soc_body": "Leaderboards, your squad, trading and master & apprentice.", "mg_fun_body": "Daily reward, the wheel and mini-games.",
+    "mg_soc_body": "Leaderboards and your squad.", "mg_fun_body": "Daily reward, the wheel and mini-games.",
     "home_tip": "👉 <b>Start here:</b> tap “Explore” to find adventure and “Battle” to fight for XP. Everything else is under “➕ More”.",
     "m_twr": "🗼 Soul Tower", "m_dsp": "🧭 Dispatch", "m_whl": "🎡 Urahara's Wheel", "m_sat": "🎖️ Gotei Seat", "m_inr": "🌌 Inner World",
     "ttl_twr": "Soul Tower", "ttl_dsp": "Dispatch", "ttl_whl": "Urahara's Wheel", "ttl_sat": "Gotei Seat", "ttl_inr": "Inner World",
@@ -143,7 +135,7 @@ EN = {
     "tw_record": "🏆 New record: floor {n}!", "tw_milestone": "🎁 Milestone bonus: +{coins} 🪙",
     "tw_fall": "💀 You fell on floor {n}. Your best: floor {best}.", "tw_next": "➡️ The next floor awaits; your wounds walk with you.",
     "b_tnext": "➡️ Next floor", "b_tretry": "🗼 Ascend again",
-    "ch_line": "🔥 Chain ×{n} (+{pct}% rewards)", "ch_lost": "💔 Your chain was halved ({n} wins lost).", "ch_bonus": "🎁 Chain bonus: {item}", "ch_shield": "🛡 Your chain shield absorbed this loss; the chain survives! (next shield tomorrow)",
+    "ch_line": "🔥 Chain ×{n} (+{pct}% rewards)", "ch_lost": "💔 Your {n}-win chain is broken.", "ch_bonus": "🎁 Chain bonus: {item}", "ch_shield": "🛡 Your chain shield absorbed this loss; the chain survives! (next shield tomorrow)",
     "ds_body": ("Send your companions on missions; they bring rewards back even while you're offline.\nRoles: {roles}\n\n"
                 "Slots: {used}/{slots}"),
     "ds_hours": "{h}h", "ds_pick_m": "Choose a mission:", "ds_pick_c": "Who goes?",
@@ -164,28 +156,3 @@ EN = {
     "inr_bond": "💞 Bond with your blade: +{n}", "inr_buff": "✨ {key} +{pct}% for {m} min",
     "buff_xp_pct": "XP", "buff_coin_pct": "Coins", "buff_drop_pct": "Drop rate",
 }
-
-
-# ---- Nov 19 batch 2 (adventures, level bosses, roll shop, elite shop, Inner World 2, companions, tempering stone) ----
-FA.update({
-    "need_stone": "🪨 برای این مرحله {n} «سنگ آبدیده‌سازی» هم لازم است (از جعبه‌ی طلایی، باس سطح، برج، شاپ رول و شاپ نخبگان).",
-    "frg_stone": "🪨 {n} سنگ آبدیده‌سازی لازم است.", "tmp_stone": "🪨 {n} سنگ آبدیده‌سازی لازم است.", "crf_e_stone": "🪨 {n} سنگ آبدیده‌سازی لازم است.",
-    "m_war": "⚔️ میدان جنگ", "m_avl": "🧭 ماجراجویی", "m_lbs": "👹 باس سطح", "m_rsh": "🎰 شاپ رول", "m_els": "🏛 شاپ نخبگان", "m_in2": "🌌 دنیای درون ۲",
-})
-EN.update({
-    "need_stone": "🪨 This level also needs {n} Tempering Stone(s) (gold chests, level bosses, the tower, the roll shop and the elite shop).",
-    "frg_stone": "🪨 Needs {n} Tempering Stone(s).", "tmp_stone": "🪨 Needs {n} Tempering Stone(s).", "crf_e_stone": "🪨 Needs {n} Tempering Stone(s).",
-    "m_war": "⚔️ Battlefield", "m_avl": "🧭 Adventures", "m_lbs": "👹 Level boss", "m_rsh": "🎰 Roll shop", "m_els": "🏛 Elite shop", "m_in2": "🌌 Inner World 2",
-})
-
-# ---- relic effect lines for the kinds that had no text (the raw key «ef_relic_def» showed in the relic panel) ----
-FA.update({
-    "ef_relic_dmg": "هم‌ساز: +{v}٪ آسیب.", "ef_relic_def": "هم‌ساز: +{v}٪ دفاع.", "ef_relic_crit": "هم‌ساز: +{v}٪ شانس ضربه‌ی کاری.",
-    "ef_relic_regen": "هم‌ساز: +{v}٪ بازسازی جان در هر نوبت.", "ef_relic_xp": "هم‌ساز: +{v}٪ تجربه.",
-    "ef_relic_hunt": "هم‌ساز: +{v}٪ تجربه و سکه‌ی شکار.",
-})
-EN.update({
-    "ef_relic_dmg": "Attune: +{v}% damage.", "ef_relic_def": "Attune: +{v}% defence.", "ef_relic_crit": "Attune: +{v}% crit chance.",
-    "ef_relic_regen": "Attune: +{v}% regeneration each turn.", "ef_relic_xp": "Attune: +{v}% XP.",
-    "ef_relic_hunt": "Attune: +{v}% hunt XP and coins.",
-})

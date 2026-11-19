@@ -94,8 +94,6 @@ async def build_player(ch: dict, name: str = None):
         armor += d
         if "stat" in it["stats"]:
             stats[it["stats"]["stat"]] += it["stats"]["bonus"]
-        if "stat2" in it["stats"]:  # the new accessories can carry a second stat
-            stats[it["stats"]["stat2"]] += it["stats"]["bonus2"]
     # --- NEW BLEACH VIRAL SYSTEM: Hogyoku doubles Reiatsu, a failed theft halves it for a while ---
     from data_artifacts import reiatsu_mult
     stats["reiatsu"] = stats["reiatsu"] * reiatsu_mult(ch)
@@ -127,15 +125,6 @@ async def build_player(ch: dict, name: str = None):
     mods["kido"] = mods.get("kido", 1.0) * (1 + pb.get("kido", 0))
     mods["crit"] = mods.get("crit", 0) + bn["crit"]
     mods["regen"] = bn["regen"] + evb.get("regen", 0.0) + perks.get("regen", 0.0)
-    from data_raceweapons import weapon_focus  # the weapon's own lean grows with its colour and forge level
-    _wid = ch.get("weapon_id") or ""
-    foc = weapon_focus(ALL.get(_wid), (ch.get("weapon_plus") or {}).get(_wid, 0))
-    if foc:
-        key, pct = foc[0], foc[1]
-        if key in ("dmg", "def", "kido"):
-            mods[key] = mods.get(key, 1.0) * (1 + pct)
-        else:  # crit / pierce: half of it as a flat chance
-            mods[key] = mods.get(key, 0.0) + pct / 2
     hp = max_hp(ch["level"], soft_stat(stats["hakuda"]), mods.get("hp", 1.0))
     re = max_reiatsu(ch["level"], soft_stat(stats["reiatsu"]))
     wid = ch.get("weapon_id") or ""
@@ -221,10 +210,8 @@ async def active_pve(uid: int):
 
 
 DG_XP_MULT = 2.0        # dungeon stages pay this much more XP than a normal fight (they pay no coins or items)
-DG_STAGE_HEAL = 0.25    # every new dungeon floor restores this share of max HP and max reiatsu (capped at full)
-DG_BOSS_HEAL = 0.40     # ... and this much before the last floor (the boss), so the boss is not met on empty
-# Full-clear coins of the two hardest difficulties (the others pay XP and DP only), x (1 + dungeon level / 20)
-DG_CLEAR_COINS = {"abyss": 2500, "legendary": 8000}
+DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
+DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
 
 
 def _is_boss_stage(dungeon, tower_floor_flag) -> bool:
@@ -265,28 +252,6 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         if floor % TOWER_BOSS_EVERY == 0:
             scale *= 1.5
             name = "👑 " + name
-    elif dungeon and dungeon.get("adv"):  # adventure: themed foes of a random level around the player's
-        from data_extras2 import ADVENTURES
-        a = ADVENTURES[dungeon["id"]]
-        stage, total = dungeon["stage"], dungeon["total"]
-        lvl = max(1, ch["level"] + rng.randint(-3, 4))
-        pick = a["boss"] if stage == total else rng.choice(a["foes"])
-        name = pick[0 if lang == "fa" else 1]
-        scale = 0.9 + 0.08 * (stage - 1)
-        if stage == total:
-            scale *= 1.35
-            name = "👑 " + name
-    elif dungeon and dungeon.get("war"):  # event battlefield: the enemy faction's soldier, officer or general (shadows below)
-        from service_war import war_foe
-        lvl, name, scale, sig_race, pick = war_foe(dungeon, int(ch["level"]), lang, rng)
-    elif dungeon and dungeon.get("lboss"):  # level boss of the player's band
-        from data_extras2 import LEVEL_BOSS_SCALE, LEVEL_BOSSES
-        b = LEVEL_BOSSES[int(dungeon["band"])]
-        lvl = max(1, min(ch["level"], b[1]) + 2)
-        pick = (b[2], b[3])
-        name = "👹 " + pick[0 if lang == "fa" else 1]
-        sig_race = b[5]
-        scale = LEVEL_BOSS_SCALE
     elif dungeon:
         stage, total = dungeon["stage"], dungeon["total"]
         mult = DIFFICULTY[dungeon["diff"]] * (1 + 0.12 * (stage - 1))
@@ -298,18 +263,11 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
             name = "⚔️ " + name
         scale = mult
     elite = bool(force_elite) or ((not dungeon) and (not trial) and rng.random() < 0.15)
-    mini = False
     if elite:
         scale, name = (1.55 if force_elite else 1.4), "💀 " + name
-    elif not dungeon and not trial:  # mini-boss: a rare, much stronger foe in a normal battle, with a big reward
-        from data_extras2 import MINI_BOSS_CHANCE, MINI_BOSS_NAMES, MINI_BOSS_SCALE
-        if rng.random() < MINI_BOSS_CHANCE:
-            mini = True
-            scale = MINI_BOSS_SCALE
-            name = "👺 " + rng.choice(MINI_BOSS_NAMES)[0 if lang == "fa" else 1]
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
-    elif not tower and not fixed_dg and not (dungeon and dungeon.get("war")):  # dungeons and the battlefield: no world-event scaling
+    elif not tower and not fixed_dg:  # dungeons stay fixed: no world-event scaling on top
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
     player["x"]["bstack"] = int((ch.get("bount") or {}).get("stacks", 0))  # soul stacks: PvE only, settled in pve_settle
@@ -332,26 +290,12 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         foe["foe"] = "boss"
     else:  # every other wild enemy
         foe["foe"] = "pve"
-    shadow = False
-    if dungeon and dungeon.get("war"):
-        if foe["foe"] == "boss" and dungeon.get("kind") != "general":
-            foe["foe"] = "pve"  # a battlefield soldier is not a dungeon boss (one-stage fight)
-        if dungeon.get("kind") == "shadow" and dungeon.get("tgt"):  # an AI copy of a real enemy player, with their gear
-            tch = await get_char(int(dungeon["tgt"]))
-            if tch:
-                from data_war import FACTIONS
-                foe = await build_player(tch, name="🪞 " + FACTIONS[dungeon["fac"]][2] + " " + tch["name"])
-                foe["ai"] = True
-                foe["foe"] = "pve"
-                lvl = int(tch["level"])
-                shadow = True
-    # a shadow is a real player's copy, so the fight follows duel rules (race balance of duels, Konpaku lives on both sides)
-    state = E.new_state(player, foe, rng, pvp=shadow)
+    state = E.new_state(player, foe, rng)
     if carry:  # next dungeon stage: the player always opens, so no free enemy hit lands on carried HP / the Bakudō barrier
         state["cur"] = state["first"] = "a"
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
-           "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "mini": mini, "lvl": lvl,
+           "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "lvl": lvl,
            "dungeon": dungeon, "trial": trial, "loc": ch["location"], "lang": lang}
     await col("battles").insert_one(doc)
     return doc
@@ -417,50 +361,23 @@ async def pve_settle(doc: dict):
         if plain:  # Battle Rank: normal battles only
             out["br"] = br_res
         if plain:  # win chain: consecutive plain victories raise coin/XP rewards
-            cn, cm, cdrop, cfull, cms = chain_res
+            cn, cm, cdrop, cfull = chain_res
             xp, coins = int(xp * cm), int(coins * cm)
-            out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop, "ms": cms}
+            out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop}
             if cfull:
                 out["drop_full"] = out.get("drop_full") or cfull
-        if doc.get("mini"):  # mini-boss: triple XP and coins, a guaranteed blue-or-better item, a chance of a relic
-            from data_extras2 import MINI_BOSS_RELIC, MINI_BOSS_REWARD
-            xp, coins = int(xp * MINI_BOSS_REWARD), int(coins * MINI_BOSS_REWARD)
-            mi = await roll_drop(uid, source_mult=2.0, floor_idx=2)
-            await inv_add(uid, mi, 1, force=True)
-            out["mini"] = {"item": mi, "relic": None}
-            if random.random() < MINI_BOSS_RELIC:
-                from data_items import EVO_BY_RARITY
-                rel = random.choice(EVO_BY_RARITY["Rare"] or EVO_BY_RARITY["Common"])
-                await inv_add(uid, rel, 1, force=True)
-                out["mini"]["relic"] = rel
-        if d and d.get("adv"):  # adventures pay coins (more than a normal fight) and a bit more XP
-            from data_extras2 import ADV_COIN_K, ADV_XP_K
-            xp, coins = int(xp * ADV_XP_K), int(coins * ADV_COIN_K)
-        elif d and d.get("war"):  # battlefield: a normal fight's pay, more for officers, shadows and the general
-            from service_war import fight_k
-            kx, kc = fight_k(d)
-            xp, coins = int(xp * kx), int(coins * kc)
-        elif d and d.get("lboss"):  # level boss: x4 XP and coins (its loot is paid at the end)
-            from data_extras2 import LEVEL_BOSS_REWARD
-            xp, coins = int(xp * LEVEL_BOSS_REWARD), int(coins * LEVEL_BOSS_REWARD)
-        elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
+        if d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
             xp, coins = int(xp * DG_XP_MULT), 0
             if d["stage"] == d["total"]:
                 xp *= 3
         coins = int(coins * wm["coin"])
         coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
-        ch, lv, got = await add_xp(uid, xp, "pve", ch=ch0)
+        ch, lv, got = await add_xp(uid, xp, "pve")
         # independent writes: run together instead of one after another
         await asyncio.gather(add_coins(uid, coins, "pve") if coins > 0 else asyncio.sleep(0),
                              col("characters").update_one({"user_id": uid}, {"$inc": {"wins": 1, f"bond.{__import__('data_zanpakuto').bond_key(ch or {})}": 1, **({"zanpakuto.mastery": 1} if (ch0.get("zanpakuto") or {}).get("shikai") and int((ch0.get("zanpakuto") or {}).get("mastery", 0)) < int(gs.get("znp_mastery_cap", 1000)) else {}), **({"race_progress.hunts": 1} if (ch or {}).get("race") in ("hollow", "arrancar") else {})}}),
                              bump_quest(uid, "battle_win", 1))
         out.update(xp=got, coins=coins, levels=lv)
-        if (ch0 or {}).get("mentor"):  # an apprentice: the master earns a small EXTRA cut of this win's XP (service_mentor)
-            try:
-                from service_mentor import share_xp
-                out["mentor"] = await share_xp(uid, int(ch0["mentor"]), got, ch)
-            except Exception:
-                logging.getLogger("senka.mentor").exception("mentor xp share failed")  # must never break the fight's settlement
         from service_gangs_hook import gang_rewards  # Xcution siphon and Bount absorption (rules in data_gangs.py)
         out["gang"] = await gang_rewards(uid, doc) if not d else {}  # dungeons pay no coins (Bount absorption included)
         from service_worldstate import on_action, territory_income
@@ -474,27 +391,16 @@ async def pve_settle(doc: dict):
                 out["drop_full"] = iid  # bag full: shown to the player (it used to vanish silently)
         if d and d["stage"] < d["total"]:
             f = st["a"]
-            # a breather between floors: HP and reiatsu come back a little (more before the boss floor), so the
-            # reiatsu is not gone by the time the boss arrives
-            heal = DG_BOSS_HEAL if d["stage"] + 1 == d["total"] else DG_STAGE_HEAL
-            hp_frac = min(1.0, f["hp"] / f["max_hp"] + heal)
-            re_frac = min(1.0, f["re"] / max(1, f["max_re"]) + heal)
-            out["dg_heal"] = {"pct": int(heal * 100), "boss": d["stage"] + 1 == d["total"]}
+            hp_frac = f["hp"] / f["max_hp"]
+            if d["stage"] + 1 == DG_STAGE3_HEAL_AT and hp_frac < 1.0:
+                # stage 3 was too hard on carried-over wounds: a breather restores part of the HP on the way in
+                hp_frac = min(1.0, hp_frac + DG_STAGE3_HEAL)
+                out["dg_heal"] = int(DG_STAGE3_HEAL * 100)
             nxt = await pve_start(uid, doc.get("lang", "en"), dungeon={**d, "stage": d["stage"] + 1},
-                                  carry={"hp": hp_frac, "re": re_frac,
+                                  carry={"hp": hp_frac, "re": f["re"] / f["max_re"],
                                          "gauge": int((f.get("x") or {}).get("gauge", 0)),
                                          "shield": int(f.get("shield", 0))})  # a Bakudō barrier survives the stage change  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
-        elif d and d.get("adv"):  # adventure finished: a purse of coins
-            from data_extras2 import ADV_FINISH_COINS
-            out["adv_done"] = int(ADV_FINISH_COINS * (1 + int(doc["lvl"]) / 10))
-            await add_coins(uid, out["adv_done"], "adventure")
-        elif d and d.get("lboss"):  # level boss down: its loot
-            from service_adventure import level_boss_loot
-            out["lboss"] = await level_boss_loot(uid, int(d["band"]))
-        elif d and d.get("war"):  # battlefield: war points for the player's side
-            from service_war import war_after_fight
-            out["war"] = await war_after_fight(uid, doc, True)
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)
@@ -502,11 +408,6 @@ async def pve_settle(doc: dict):
             out["dp"] = await award_dp(uid, d)
             from service_dungeonshop import roll_special
             out["special"] = await roll_special(uid, d)  # dungeon-only item, small chance
-            if d.get("diff") in DG_CLEAR_COINS:  # the hardest dungeons pay coins on a full clear (players asked for it)
-                from data_races import DUNGEONS
-                dlv = int((DUNGEONS.get(d.get("id")) or {}).get("level", 1))
-                out["dg_coins"] = int(DG_CLEAR_COINS[d["diff"]] * (1 + dlv / 20))
-                await add_coins(uid, out["dg_coins"], "dungeon_clear")
             from service_cores import on_dungeon_clear  # rare Soul Core, abyss/legendary clears only
             await on_dungeon_clear(uid, d.get("diff", "normal"), d.get("id", ""))
             from data_races import unlocks_visored
@@ -519,9 +420,6 @@ async def pve_settle(doc: dict):
         _bg(on_action(uid, "dungeon_clear" if out["dungeon_done"] else "elite_win" if doc["elite"] else "pve_win", doc["loc"]))
     else:
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1}})
-        if (doc.get("dungeon") or {}).get("war"):  # a lost battlefield fight: an enemy shadow may score for its owner
-            from service_war import war_after_fight
-            out["war"] = await war_after_fight(uid, doc, False)
         if not doc.get("dungeon") and not doc.get("trial"):
             from service_battlerank import apply as br_apply
             out["br"] = await br_apply(uid, "loss")  # a loss costs more the higher the rank
@@ -559,39 +457,11 @@ async def pve_flee(uid: int, sid: str):
     return "ok", res
 
 
-async def save_tower(uid: int) -> int:
-    """Register the climb: remember the floor the player is standing on, so the next climb starts exactly there instead
-    of at the start of its 5-floor block. Returns that floor (0 when no tower fight is open)."""
-    doc = await col("battles").find_one({"user_id": uid, "mode": "pve", "status": "active", "dungeon.tower": True})
-    if not doc:
-        return 0
-    floor = int(doc["dungeon"]["stage"])
-    await col("characters").update_one({"user_id": uid}, {"$set": {"tower.saved": floor}})
-    return floor
-
-
-async def abandon_tower(uid: int) -> bool:
-    """Leave the Soul Tower: the open tower fight (the current or the already-waiting next floor) is closed with no
-    penalty and no reward. Before this existed, the tower fight stayed active forever and blocked every dungeon,
-    battle and new climb until the player lost it on purpose. Returns True when a tower fight was closed."""
-    r = await col("battles").update_many({"user_id": uid, "mode": "pve", "status": "active", "dungeon.tower": True},
-                                         {"$set": {"status": "fled"}})
-    return bool(r.modified_count)
-
-
-async def blocking_pve(uid: int):
-    """The active fight that really blocks other activities. An open Soul Tower fight does not: it is closed for free
-    (the tower can be re-entered), so a player is never locked out of dungeons, adventures, exploring or war by it."""
-    await abandon_tower(uid)
-    return await active_pve(uid)
-
-
 async def start_dungeon(uid: int, lang: str, dungeon_id: str, diff: str):
     ch = await get_char(uid)
     d = DUNGEONS[dungeon_id]
     if ch["level"] < d["level"]:
         return "level", None
-    await abandon_tower(uid)  # an open tower fight must never lock the player out of a dungeon
     if await active_pve(uid):
         return "busy", None
     if diff != "normal":
@@ -606,11 +476,6 @@ async def start_dungeon(uid: int, lang: str, dungeon_id: str, diff: str):
 # ---- PvP -----------------------------------------------------------------------------
 def _pair(a: int, b: int) -> str:
     return f"{min(a, b)}:{max(a, b)}"
-
-
-async def _tour_training() -> bool:
-    from service_tournament import training_open
-    return await training_open()
 
 
 async def duel_busy(uid: int) -> bool:
@@ -632,7 +497,7 @@ async def duel_challenge(chat_id: int, a_uid: int, b_uid: int, ranked: bool):
         return "busy", None
     doc = {"sid": uuid.uuid4().hex[:8], "mode": "pvp", "a_uid": a_uid, "b_uid": b_uid, "ranked": ranked, "chat_id": chat_id,
            "status": "pending", "rev": 0, "created_at": int(time.time()), "expire_at": datetime.now(timezone.utc) + timedelta(minutes=5),
-           "a_name": ca["name"], "b_name": cb["name"], "timeouts": {"a": 0, "b": 0}, "tournament": bool(ranked and await _tour_training())}
+           "a_name": ca["name"], "b_name": cb["name"], "timeouts": {"a": 0, "b": 0}}
     await col("battles").insert_one(doc)
     return "ok", doc
 
@@ -643,18 +508,12 @@ async def duel_accept(sid: str, uid: int):
     if not doc:
         return None
     ca, cb = await get_char(doc["a_uid"]), await get_char(uid)
-    equal = bool(doc.get("tournament")) and int(gs.get("tour_equal_training", 1))
-    if equal:  # Gotei Trial training: both fight with the standard kit (no race, no gear), exactly like the bracket
-        from engine_tournament import standard_fighter
-        lvl = int(gs.get("tour_level", 30))
-        fa, fb = standard_fighter(ca["name"], lvl), standard_fighter(cb["name"], lvl)
-    else:
-        fa, fb = await build_player(ca), await build_player(cb)
+    fa, fb = await build_player(ca), await build_player(cb)
     rng = random.Random()
     state = E.new_state(fa, fb, rng, pvp=True)
     now = time.time()  # SENKA+ Konpaku charm: an active charm adds one life for this duel
     for f, c in ((fa, ca), (fb, cb)):
-        if not equal and float(c.get("konpaku_until", 0) or 0) > now:
+        if float(c.get("konpaku_until", 0) or 0) > now:
             f["lives"] = f.get("lives", 0) + 1
     E.run_ai(state, rng, ai_sides=())
     r = await col("battles").update_one({"sid": sid, "status": "pending"}, {"$set": {
@@ -739,11 +598,7 @@ async def pvp_settle(doc: dict):
             note = "level_gap"
         elif now - cw["created_at"] < 3600 or now - cl["created_at"] < 3600:
             note = "new_account"
-    in_tour = bool(doc.get("tournament"))
-    if in_tour and note != "new_account":  # Gotei Trial training: only tournament points, the main ladder is untouched
-        from service_tournament import record_training
-        await record_training(w_uid, l_uid, cw["name"], cl["name"], doc.get("created_at"))
-    rated = doc["ranked"] and not note and not in_tour
+    rated = doc["ranked"] and not note
     if rated:
         diff = (cl["rating"] - cw["rating"]) / 800
         gain = int(random.randint(int(gs["pvp_gain_min"]), int(gs["pvp_gain_max"])) * max(0.6, min(1.5, 1 + diff)))
@@ -771,7 +626,7 @@ async def pvp_settle(doc: dict):
         await add_coins(w_uid, int((60 + cw["level"] * 4) * float(gs["coin_rate"]) * frac), "pvp")
         res["xp"][w_uid] = got
         await bump_quest(w_uid, "pvp_win", 1)
-    res["note"] = note or ("tour" if in_tour else None)
+    res["note"] = note
     from service_interact import claim_bounty
     from service_worldstate import on_action_bg
     if note not in ("pair_cap", "new_account"):  # farming the same friend must not feed events, territory or season

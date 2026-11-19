@@ -2,7 +2,7 @@
 import math
 import time
 
-from config import BAG_MAX, BAG_PER_LEVEL, BAG_START, BAG_STEP
+from config import BAG_MAX, BAG_START, BAG_STEP
 from data_chars import CHAR_BY_ID, CHARS, GACHA_RATES, char_bonus, copies_to_level_star
 from data_items import ALL
 from data_lore import CHAR_EPI
@@ -19,8 +19,7 @@ from service_player import add_coins, get_char, today
 from ui import GREEN, RED, Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy", "dungeon",
-                                                                                            "temper", "inner_key")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy", "dungeon")}
 
 
 def _rk(i):
@@ -41,10 +40,9 @@ async def bag_upgrade(ctx, arg):
     L = ctx.lang
     inv = await inv_get(ctx.uid)
     cap = max(1, inv.get("capacity", BAG_START))
-    bought = cap - BAG_PER_LEVEL * (int((await get_char(ctx.uid))["level"]) - 1)  # the level slots are not part of the upgrades
-    if bought >= BAG_MAX:
+    if cap >= BAG_MAX:
         return Out(alert="کوله‌ت به سقف رسیده." if L == "fa" else "Your bag is already at its maximum.")
-    cost = bag_upgrade_cost(bought)
+    cost = bag_upgrade_cost(cap)
     if not await add_coins(ctx.uid, -cost, "bag_upgrade"):
         return Out(alert=("سکه‌ی کافی نداری." if L == "fa" else "Not enough coins."))
     # conditional on the capacity we priced, so two taps cannot both upgrade for one payment
@@ -95,9 +93,8 @@ async def bag(ctx, arg):
     if ids:
         rows.append([("☑️ انتخاب چندتایی و حذف" if L == "fa" else "☑️ Select multiple & remove", "bqm", f"{page}:{flt}")])
     capn_now = max(1, inv.get("capacity", BAG_START))
-    bought_now = capn_now - BAG_PER_LEVEL * (int(ch["level"]) - 1)
-    if bought_now < BAG_MAX:
-        cost = bag_upgrade_cost(bought_now)
+    if capn_now < BAG_MAX:
+        cost = bag_upgrade_cost(capn_now)
         lbl = (f"⬆️ ارتقای کوله +{BAG_STEP} ({fnum(cost, L)} 🪙)" if L == "fa" else f"⬆️ Upgrade bag +{BAG_STEP} ({fnum(cost, L)} 🪙)")
         rows.append([(lbl, "bagup", "")])
     rows.append(nav(ctx))
@@ -123,10 +120,10 @@ async def item_view(ctx, arg):
     it = ALL[iid]
     rows = []
     if it.get("slot") or it["category"] == "weapon":
-        rows.append([(ctx.t("b_equip"), "eq", f"{iid}:{back}")])
+        rows.append([(ctx.t("b_equip"), "eq", iid)])
     ety = (it.get("effect") or {}).get("type")
     if ety in ("kido", "xp", "pet", "buff", "kido_book", "bond"):
-        rows.append([(ctx.t("b_use"), "us", f"{iid}:{back}")])
+        rows.append([(ctx.t("b_use"), "us", iid)])
     elif ety == "relic":
         rows.append([(ctx.t("m_rlc"), "rlc", "")])
     elif ety == "cosmetic":
@@ -135,11 +132,7 @@ async def item_view(ctx, arg):
         rows.append([(ctx.t("m_crf"), "crf" if ety == "mat" else "evo", "")])
     elif ety == "key":
         rows.append([(ctx.t("m_evt"), "evt", "")])
-    elif ety == "inner_key":
-        rows.append([(ctx.t("m_in2"), "in2", "")])
-    elif it["category"] == "temper":
-        rows.append([(ctx.t("b_forge"), "frg", "")])
-    row2 = [(ctx.t("b_sell_npc"), "sl", f"{iid}:{back}")]
+    row2 = [(ctx.t("b_sell_npc"), "sl", iid)]
     if it.get("tradeable"):
         row2.append((ctx.t("b_list"), "ml", iid))
     rows.append(row2)
@@ -147,20 +140,12 @@ async def item_view(ctx, arg):
     return Out(head(ctx, "ttl_bag") + item_card(ctx, iid, qty), rows)
 
 
-def _split_back(arg):
-    """'<item>:<page>:<filter>:<sort>' -> (item, back). The bag reopens at the same page after using an item
-    (it used to jump back to page one every time)."""
-    iid, _, back = (arg or "").partition(":")
-    return iid, (back or "0")
-
-
 @action("eq")
 async def eq(ctx, arg):
-    arg, back = _split_back(arg)
     r = await equip(ctx.uid, arg)
     if r != "ok":
         return Out(alert=ctx.t("eq_" + r))
-    out = await bag(ctx, back)
+    out = await bag(ctx, "0")
     out.alert = ctx.t("eq_ok")
     return out
 
@@ -175,17 +160,16 @@ async def ueq(ctx, arg):
 
 @action("us")
 async def use(ctx, arg):
-    arg, back = _split_back(arg)
     r, extra = await use_item(ctx.uid, arg)
     if r == "ok" and ((ALL.get(arg) or {}).get("effect") or {}).get("type") == "pet":  # egg hatched on the spot
         from service_economy import PETS
         nmx = PETS[int(extra) % len(PETS)][0 if ctx.lang != "fa" else 1]
-        out = await bag(ctx, back)
+        out = await bag(ctx, "0")
         out.alert = (f"🐣 تخم شکست و یک همراه بیرون اومد: {nmx}! از پنل همراه می‌تونی ببینیش." if ctx.lang == "fa"
                      else f"🐣 The egg hatched: {nmx}! See it in the companion panel.")
         return out
     if r == "ok":
-        out = await bag(ctx, back)
+        out = await bag(ctx, "0")
         out.alert = ctx.t("us_ok", n=fnum(extra if isinstance(extra, int) else 0, ctx.lang))
         return out
     if r in ("incubate", "incubating"):  # egg placed in the incubator (or one is already incubating)
@@ -196,7 +180,7 @@ async def use(ctx, arg):
         else:
             txt = (f"🥚 انکوباتور پر است؛ {n} اکتشاف دیگه مونده." if L == "fa"
                    else f"🥚 The incubator is busy; {n} explores left.")
-        out = await bag(ctx, back)
+        out = await bag(ctx, "0")
         out.alert = txt
         return out
     if r == "race_card":
@@ -216,11 +200,10 @@ async def use(ctx, arg):
 @action("sl")
 async def sell_npc(ctx, arg):
     inv = await inv_get(ctx.uid)
-    arg, back = _split_back(arg)
     n = await npc_sell(ctx.uid, arg, 1)
     if not n:
         return Out(alert=ctx.t("sell_fail"))
-    out = await bag(ctx, back)
+    out = await bag(ctx, "0")
     out.alert = ctx.t("sell_ok", n=fnum(n, ctx.lang))
     return out
 
@@ -1012,10 +995,6 @@ async def gacha_do(ctx, arg):
     lines = []
     for r in res:
         icon = RARITY_ICON[r["rar"]]
-        if r["t"] == "jackpot":  # 1 in 10,000
-            lines.append(("🎰🌟 <b>جک‌پات احضار!</b> " if L == "fa" else "🎰🌟 <b>SUMMON JACKPOT!</b> ") + f"+{fnum(r['coins'], L)} 🪙"
-                         + (f" + {nm(r['id'], L)}" if r.get("id") else "") + " + 🗝")
-            continue
         if r["t"] == "char":
             c = CHAR_BY_ID[r["id"]]
             tag = ctx.t("gch_new") if r["copies"] == 1 else ctx.t("gch_dupe", n=fnum(r["copies"], L))
@@ -1092,9 +1071,6 @@ async def forge_panel(ctx, arg):
     else:
         cost, need = forge_cost(wid, plus)
         body = ctx.t("frg_body", name=nm(wid, L), plus=fnum(plus, L), cost=fnum(cost, L), mats=fnum(need, L), chance=FORGE_CHANCE[plus])
-        from service_adventure import stones_needed
-        if stones_needed(plus):
-            body += "\n" + ctx.t("need_stone", n=fnum(stones_needed(plus), L))
         body += (f"\n⚔️ بونوس فعلی: ×{round(1 + 0.06 * plus, 2)} قدرت" if L == "fa" else f"\n⚔️ Current bonus: ×{round(1 + 0.06 * plus, 2)} attack")
         rows = [[(ctx.t("b_forge_go"), "frg", "go")], nav(ctx, ("prof", ""))]
     return Out(head(ctx, "ttl_frg") + body, rows, alert=alert)

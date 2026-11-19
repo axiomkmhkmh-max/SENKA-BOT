@@ -60,8 +60,6 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         r2.append(mk(ctx.t("a_kd", n=E.best_kido(f, "had"), spell=KIDO_NAMES.get(("had", E.best_kido(f, "had")), "")), "kd"))
     if E.can(f, "bk"):
         r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
-    if not pub and (E.can(f, "kd") or E.can(f, "bk")):  # pick the spell yourself (Bleach style): Shakkahō, Rikujōkōrō, Danku ...
-        r2.append(mk(ctx.t("kd_menu"), "km"))
     for k in range(0, len(r2), 2):  # at most two long labels per line, so they stay readable on a phone
         rows.append(r2[k:k + 2])
     if E.can(f, "gt"):  # gathered: release the wave
@@ -123,26 +121,12 @@ async def _has_potion(uid):
     return best
 
 
-def _T_exit(ctx):
-    return "💾 ثبت و خروج" if ctx.lang == "fa" else "💾 Register & leave"
-
-
 async def battle_panel(ctx, doc, events=None):
     st = doc["state"]
     title = head(ctx, "ttl_bt")
     d = doc.get("dungeon")
     if d and d.get("tower"):
         title += ctx.t("tw_floor_boss" if d["stage"] % 5 == 0 else "tw_floor", n=fnum(d["stage"], ctx.lang)) + "\n"
-    elif d and d.get("adv"):
-        from data_extras2 import ADVENTURES
-        a = ADVENTURES.get(d["id"], {})
-        title += (f"🧭 {a.get('fa' if ctx.lang == 'fa' else 'en', '')} · " + (f"مرحله‌ی {fnum(d['stage'], ctx.lang)} از {fnum(d['total'], ctx.lang)}"
-                  if ctx.lang == "fa" else f"stage {d['stage']} of {d['total']}")) + "\n"
-    elif d and d.get("lboss"):
-        title += ("👹 باس سطح" if ctx.lang == "fa" else "👹 Level boss") + "\n"
-    elif d and d.get("war"):
-        from handlers_war import battle_title
-        title += battle_title(ctx.lang, d)
     elif d:
         title += ctx.t("dg_stage", n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang), diff=ctx.t("diff_" + d["diff"])) + "\n"
         flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
@@ -152,8 +136,6 @@ async def battle_panel(ctx, doc, events=None):
     pot = await _has_potion(ctx.uid)
     from service_combat import can_flee
     tail = [(ctx.t("b_home"), "home", "")]
-    if d and d.get("tower") and not st.get("done"):  # the Soul Tower can always be left, for free
-        tail.insert(0, (_T_exit(ctx), "twx", "save"))
     if can_flee(doc) and not st.get("done"):  # normal battles only: fleeing costs Battle Rank, the chain stays
         tail.insert(0, ("🏃 " + ("فرار" if ctx.lang == "fa" else "Flee"), "bf", doc["sid"]))
     return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [tail])
@@ -167,12 +149,7 @@ async def resume_battle(ctx):
 
 
 async def start_pve_panel(ctx, scale=1.0, force_elite=False, intro=""):
-    from service_combat import abandon_tower
-    cur = await active_pve(ctx.uid)
-    if cur and (cur.get("dungeon") or {}).get("tower"):  # a normal fight must not resume the tower fight instead
-        await abandon_tower(ctx.uid)
-        cur = None
-    doc = cur or await pve_start(ctx.uid, ctx.lang, scale=scale, force_elite=force_elite)
+    doc = await active_pve(ctx.uid) or await pve_start(ctx.uid, ctx.lang, scale=scale, force_elite=force_elite)
     out = await battle_panel(ctx, doc, [])
     if intro:  # e.g. the "the soul you ignored became a Hollow" line above the fight
         out.text = intro + out.text
@@ -182,11 +159,9 @@ async def start_pve_panel(ctx, scale=1.0, force_elite=False, intro=""):
 @action("bt")
 async def battle_menu(ctx, arg):
     doc = await active_pve(ctx.uid)
-    if doc and (doc.get("dungeon") or {}).get("tower"):
-        doc = None  # an open Soul Tower fight is resumed from the tower panel only, never from the Fight button / «حمله»
     if doc:
         return await battle_panel(ctx, doc, [])
-    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "b")], nav(ctx)]  # "b": opened from the battle menu, so Back returns there
+    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "")], nav(ctx)]
     return Out(head(ctx, "ttl_bt") + ctx.t("bt_body"), rows)
 
 
@@ -196,7 +171,7 @@ async def battle_start(ctx, arg):
     from service_player import energy_now
     from database import try_cooldown
     if not await active_pve(ctx.uid):
-        wait = await try_cooldown(f"battle:{ctx.uid}", 3)
+        wait = await try_cooldown(f"battle:{ctx.uid}", 8)
         if wait:
             return Out(alert=ctx.t("wait_s", n=wait))
     return await start_pve_panel(ctx)
@@ -221,10 +196,8 @@ def _tower_result(ctx, doc, ev, o):
         lines.append(ctx.t("tw_record", n=fnum(t["floor"], L)))
     if t["milestone"]:
         lines.append(ctx.t("tw_milestone", coins=fnum(t["milestone"], L)) + " · " + nm(t["milestone_item"], L))
-    if t.get("relic"):
-        lines.append(("🧬 یادگار تکامل طبقه‌ی ده‌تایی: " if L == "fa" else "🧬 Tenth-floor evolution relic: ") + nm(t["relic"], L))
     lines.append(ctx.t("tw_next"))
-    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], [(_T_exit(ctx), "twx", "save")], nav(ctx)])
+    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], nav(ctx)])
 
 
 async def _pve_result(ctx, doc, ev, o):
@@ -241,17 +214,8 @@ async def _pve_result(ctx, doc, ev, o):
         from handlers_battlerank import result_lines
         for line in result_lines(ctx, o.get("br")):
             text += "\n" + line
-        dlx = doc.get("dungeon") or {}
-        if dlx.get("war"):
-            from handlers_war import result_lines as war_lines, result_rows as war_rows
-            for line in war_lines(L, o):
-                text += "\n" + line
-            return Out(text, war_rows(L, dlx) + [nav(ctx)])
-        again = (("🧭 ماجراجویی‌ها" if L == "fa" else "🧭 Adventures"), "avl", "") if dlx.get("adv") else \
-                (("👹 باس سطح" if L == "fa" else "👹 Level boss"), "lbs", "") if dlx.get("lboss") else (ctx.t("b_again"), "bs", "")
-        return Out(text, [[again], nav(ctx)])
-    dgx = doc.get("dungeon") or {}
-    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if dgx and not (dgx.get("adv") or dgx.get("lboss") or dgx.get("war"))
+        return Out(text, [[(ctx.t("b_again"), "bs", "")], nav(ctx)])
+    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if doc.get("dungeon")
                 else ctx.t("bt_win", xp=fnum(o["xp"], L), coins=fnum(o["coins"], L)))
     lines = [battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")), "", win_line]
     from handlers_battlerank import result_lines
@@ -260,11 +224,6 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("ch_line", n=fnum(o["chain"]["n"], L), pct=fnum(o["chain"]["pct"], L)))
         if o["chain"].get("item"):
             lines.append(ctx.t("ch_bonus", item=nm(o["chain"]["item"], L)))
-        ms = o["chain"].get("ms")
-        if ms:
-            lines.append((f"🏅 <b>نقطه‌ی عطف زنجیره ×{fnum(ms['n'], L)}!</b> +{fnum(ms['coins'], L)} 🪙" if L == "fa"
-                          else f"🏅 <b>Chain milestone ×{ms['n']}!</b> +{fnum(ms['coins'], L)} 🪙")
-                         + (f" + {nm(ms['item'], L)}" if ms.get("item") else ""))
     if o["levels"]:
         lines.append(ctx.t("bt_levelup", n=fnum(o["levels"], L)))
     if o["drop"]:
@@ -274,24 +233,8 @@ async def _pve_result(ctx, doc, ev, o):
     if o.get("bonus_drop"):
         lines.append(ctx.t("bt_drop", item=nm(o["bonus_drop"], L)))
     if o.get("dg_heal"):
-        h = o["dg_heal"]
-        lines.append((f"💚 استراحت{' قبل از باس' if h['boss'] else ''}: {fnum(h['pct'], L)}٪ جان و ریاتسو برگشت." if L == "fa"
-                      else f"💚 A breather{' before the boss' if h['boss'] else ''}: +{h['pct']}% HP and reiatsu restored."))
-    if o.get("dg_coins"):
-        lines.append(f"🪙 جایزه‌ی پاکسازی دانجن: +{fnum(o['dg_coins'], L)}" if L == "fa" else f"🪙 Dungeon clear bonus: +{fnum(o['dg_coins'], L)}")
-    if o.get("mini"):
-        lines.append(("👺 <b>مینی‌باس شکست خورد!</b> تجربه و سکه ×۳ · " if L == "fa" else "👺 <b>Mini-boss down!</b> XP and coins ×3 · ")
-                     + nm(o["mini"]["item"], L) + (f" · 🧬 {nm(o['mini']['relic'], L)}" if o["mini"].get("relic") else ""))
-    if o.get("adv_done"):
-        lines.append(f"🧭 ماجراجویی تمام شد! کیسه‌ی سکه: +{fnum(o['adv_done'], L)} 🪙" if L == "fa"
-                     else f"🧭 Adventure complete! Coin purse: +{fnum(o['adv_done'], L)} 🪙")
-    if o.get("lboss"):
-        lb = o["lboss"]
-        got = [nm(i, L) for i in lb.get("items", [])]
-        lines.append(("👹 <b>باس سطح شکست خورد!</b> " if L == "fa" else "👹 <b>Level boss down!</b> ") + "، ".join(got))
-    if dgx.get("war"):
-        from handlers_war import result_lines as war_lines
-        lines += war_lines(L, o)
+        lines.append(f"💚 استراحت قبل از طبقه‌ی ۳: {fnum(o['dg_heal'], L)}٪ جان برگشت." if L == "fa"
+                     else f"💚 A breather before floor 3: +{o['dg_heal']}% HP restored.")
     if o.get("drop_full"):
         lines.append(f"🎒 کیفت پره! «{nm(o['drop_full'], L)}» دراپ شد ولی جا نداشت. کیف رو خالی کن." if L == "fa"
                      else f"🎒 Bag full! «{nm(o['drop_full'], L)}» dropped but there was no room. Free some slots.")
@@ -310,17 +253,8 @@ async def _pve_result(ctx, doc, ev, o):
             lines.append(f"💠 دانجن پوینت: +{fnum(o['dp'], L)}" if L == "fa" else f"💠 Dungeon Points: +{fnum(o['dp'], L)}")
         if o.get("special"):
             lines.append(f"🎁 آیتم مخصوص دانجن: {nm(o['special'], L)}" if L == "fa" else f"🎁 Dungeon special item: {nm(o['special'], L)}")
-    elif dgx.get("adv"):
-        rows.append([(("🧭 ماجراجویی‌ها" if L == "fa" else "🧭 Adventures"), "avl", "")])
-    elif dgx.get("lboss"):
-        rows.append([(("👹 باس سطح" if L == "fa" else "👹 Level boss"), "lbs", "")])
-    elif dgx.get("war"):
-        from handlers_war import result_rows as war_rows
-        rows += war_rows(L, dgx)
     else:
         rows.append([(ctx.t("b_again"), "bs", "")])
-    if o["levels"]:  # shortcut: spend the new points right here instead of going Menu > Profile > Upgrade
-        rows.insert(0, [(ctx.t("b_upgrade"), "upg", "")])
     rows.append(nav(ctx))
     return Out("\n".join(lines), rows)
 
@@ -347,72 +281,10 @@ async def _potion_picker(ctx, sid: str):
     return Out(("🧪 کدام معجون را بخوری؟" if fa else "🧪 Which potion do you drink?"), rows)
 
 
-KM_PAGE = 6   # spells per page of the spell menu
-
-
-async def _spell_menu(ctx, sid: str, page: int = 0):
-    """Every spell the fighter knows, by name. Castable ones cast on tap; the ones that wait for the incantation
-    (Hadō 80+, 📿) show locked until a chant has been spoken. Cooling-down spells show their turns."""
-    import data_kido as KD
-    doc = await active_pve(ctx.uid)
-    if not doc or doc.get("sid") != sid or doc["state"].get("done"):
-        return Out(alert=ctx.t("bt_gone"))
-    f, fa = doc["state"]["a"], ctx.lang == "fa"
-    entries = []
-    for branch, icon in (("had", "🔮"), ("bak", "🛡️")):
-        for n in sorted(set(f["kido"][branch]), reverse=True):
-            if E.kido_castable(f, branch, n):
-                state = "ok"
-            elif KD.needs_chant(n, branch) and not E._x(f)["chant"] and E.kido_castable({**f, "x": {**E._x(f), "chant": 1}}, branch, n):
-                state = "chant"
-            elif E._kcd(f).get(KD.key(branch, n), 0) > 0:
-                state = "cd"
-            else:
-                continue  # not affordable / below the level gate: not shown
-            entries.append((branch, icon, n, state))
-    entries.sort(key=lambda e: (e[3] != "ok", e[0] != "had", -e[2]))
-    pages = max(1, -(-len(entries) // KM_PAGE))
-    page = max(0, min(page, pages - 1))
-    rows = []
-    for branch, icon, n, state in entries[page * KM_PAGE:(page + 1) * KM_PAGE]:
-        name = KIDO_NAMES.get((branch, n), "")
-        tag = KD.icons(branch, n)
-        if state == "ok":
-            rows.append([(f"{icon} {n} {name} {tag} · {KD.cost(branch, n)}", "ba", f"{sid}.{'kd' if branch == 'had' else 'bk'}:{n}")])
-        elif state == "chant":
-            rows.append([(f"📿 {n} {name} " + ("(اول چنت)" if fa else "(chant first)"), "ba", f"{sid}.kmx")])
-        else:
-            rows.append([(f"⏳ {n} {name} · {E._kcd(f).get(KD.key(branch, n), 0)}", "ba", f"{sid}.kmx")])
-    if pages > 1:
-        nav_row = []
-        if page > 0:
-            nav_row.append(("◀️", "ba", f"{sid}.km:{page - 1}"))
-        nav_row.append((f"{page + 1}/{pages}", "ba", f"{sid}.kmx"))
-        if page < pages - 1:
-            nav_row.append(("▶️", "ba", f"{sid}.km:{page + 1}"))
-        rows.append(nav_row)
-    if E.can(f, "ch"):
-        rows.append([(("📿 چنت" if fa else "📿 Chant"), "ba", f"{sid}.ch")])
-    rows.append([("⬅️ برگشت" if fa else "⬅️ Back", "ba", f"{sid}.kmb")])
-    text = ((f"📖 <b>فن‌های کیدو</b>\nریاتسو: {fnum(f['re'], ctx.lang)}/{fnum(f['max_re'], ctx.lang)}\n"
-             "🎯 زره‌شکن · 🔥 سوختن · ⚡ گیجی · 🔻 تضعیف · 🔗 بند · 🧱 دیوار · 📿 نیازمند چنت\n"
-             "فن‌های ۸۰ به بالا فقط با چنت پرتاب می‌شن؛ از ۶۰ به بالا بدون چنت ضعیف‌تر می‌زنن؛ فن‌های بزرگ بعد از پرتاب چند نوبت کولداون دارن.") if fa else
-            (f"📖 <b>Kidō spells</b>\nReiatsu: {fnum(f['re'], ctx.lang)}/{fnum(f['max_re'], ctx.lang)}\n"
-             "🎯 pierces armour · 🔥 burn · ⚡ stun · 🔻 weaken · 🔗 bind · 🧱 wall · 📿 needs the chant\n"
-             "Spells from 80 up need the incantation; from 60 up they hit weaker without it; big spells cool down for a few turns after a cast."))
-    return Out(text, rows)
-
-
 @action("ba")
 async def battle_action(ctx, arg):
     sid, _, act = arg.partition(".")
     potion = None
-    if act == "km" or act.startswith("km:"):
-        return await _spell_menu(ctx, sid, int(act[3:]) if act.startswith("km:") and act[3:].isdigit() else 0)
-    if act == "kmx":  # a locked / cooling spell or the page counter
-        return Out(alert=("📿 اول چنت بخون، یا فن هنوز آماده نیست." if ctx.lang == "fa" else "📿 Chant first, or the spell is not ready yet."))
-    if act == "kmb":  # back from the spell menu: nothing is cast
-        return await battle_menu(ctx, "")
     if act == "pot":
         return await _potion_picker(ctx, sid)
     if act == "potb":  # back from the picker: nothing is used
@@ -460,8 +332,6 @@ async def battle_word(ctx, text):
     n = normalize_text(text)
     if not n or not _maybe_battle_word(n):
         return None  # ordinary words skip the battle lookup entirely (one database round trip less per message)
-    if not ctx.private:
-        return None  # a fight lives in the private chat: «حمله» typed in a group is for the world boss, never a hidden fight
     doc = await active_pve(ctx.uid)
     if not doc:
         return None
@@ -503,13 +373,12 @@ async def battle_word(ctx, text):
 async def dungeons(ctx, arg):
     ch = await get_char(ctx.uid)
     L = ctx.lang
-    org = "@b" if arg == "b" else ""  # where the player came from: the battle menu ("b") or the Adventures group
     rows = []
     for did, d in DUNGEONS.items():
         ok = ch["level"] >= d["level"]
-        rows.append([(("🕳️ " if ok else "🔒 ") + f"{d['fa' if L == 'fa' else 'en']} ({fnum(d['level'], L)})", "dgd" if ok else "noop", did + org)])
+        rows.append([(("🕳️ " if ok else "🔒 ") + f"{d['fa' if L == 'fa' else 'en']} ({fnum(d['level'], L)})", "dgd" if ok else "noop", did)])
     rows.append([(("💠 شاپ دانجن" if L == "fa" else "💠 Dungeon Shop"), "dps", "")])
-    rows.append(nav(ctx, ("bt", "") if arg == "b" else ("mg", "adv")))  # Back goes to where the player came from, not the first page
+    rows.append(nav(ctx))
     dp = int(ch.get("dp", 0) or 0)
     return Out(head(ctx, "ttl_dgn") + ctx.t("dgn_body") + (f"\n\n💠 دانجن پوینت: {fnum(dp, L)}" if L == "fa" else f"\n\n💠 Dungeon Points: {fnum(dp, L)}"), rows)
 
@@ -517,12 +386,11 @@ async def dungeons(ctx, arg):
 @action("dgd")
 async def dungeon_diff(ctx, arg):
     L = ctx.lang
-    arg, _, org = arg.partition("@")
     d = DUNGEONS.get(arg)
     if not d:
         return Out()
     rows = [[(ctx.t("diff_" + k) + f" ×{DIFFICULTY[k]:g}" + (" 🔑" if k != "normal" else ""), "dgs", f"{arg}.{k}")] for k in DIFFICULTY]
-    rows.append(nav(ctx, ("dgn", org)))
+    rows.append(nav(ctx, ("dgn", "")))
     lvl_line = (f"\n🎚 سطح دشمنان ثابت: {fnum(d['level'], L)} — ضریب سختی روی قدرت دشمن و پاداش اثر می‌گذارد."
                 if L == "fa" else f"\n🎚 Fixed enemy level: {d['level']}. The difficulty multiplier scales enemy power and rewards.")
     return Out(head(ctx, "ttl_dgn") + f"<b>{d['fa' if L == 'fa' else 'en']}</b>\n<i>{dungeon_line(arg, 1, d['stages'], L)}</i>\n" + ctx.t("dgn_pick", n=fnum(d["stages"], L)) + lvl_line, rows)
@@ -572,15 +440,10 @@ async def _pvp_panel(chat_lang, ctx, doc, events, final=None):
             txt += "\n\n" + t(L, "duel_turn", name=esc(cur))
         return txt
     text = both(chat_lang, render)
-    # The buttons follow the group's language like the text. They used to follow whoever clicked last (and English
-    # after a turn timeout, where the scheduler has no player), so a duel suddenly switched language mid-fight.
-    import copy
-    bctx = copy.copy(ctx)
-    bctx.lang = chat_lang if chat_lang in ("fa", "en") else "fa"
     rows = []
     if final is None:
-        rows = _act_rows(bctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st))
-    return text, markup(bctx, rows)
+        rows = _act_rows(ctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st))
+    return text, markup(ctx, rows)
 
 
 @action("dua")

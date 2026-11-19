@@ -6,7 +6,6 @@ FORMS = {  # race -> (form1 fa/en, form2 fa/en)
     "fullbringer": (("فول‌برینگ", "Fullbring"), ("فول‌برینگ تکامل‌یافته", "Evolved Fullbring")),
     "human": (("بیداری روح", "Soul Awakening"), ("اوج روح", "Soul Ascension")),
     "visored": (("ماسک هالو", "Hollow Mask"), ("ماسک پیشرفته", "Advanced Mask")),
-    "neutral": (("بیداری", "Awakening"), ("اوج بیداری", "Ascension")),  # the raceless tournament fighter
 }
 # (stat multiplier, duration, fatigue turns, reiatsu pct) per form
 FORM1 = (1.5, 6, 0, 0.20)

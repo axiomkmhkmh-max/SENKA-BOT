@@ -33,11 +33,8 @@ NOUNS = {
               ("Reishi Idol", "تندیس ریشی")],
     "egg": [("Spirit Egg", "تخم روح")], "key": [("Key", "کلید")],
 }
-# Crafting materials never split into several bag slots: every material is ONE stack however many you hold
-# (players asked for it). slots_used() = ceil(qty / stack_max), so a huge stack_max means exactly 1 slot per material.
-MAT_STACK = 10 ** 9
 # category, count, slot, stack, base price factor
-PLAN = [("material", 160, None, MAT_STACK, 1.0), ("potion", 100, None, 99, 1.2), ("armor", 150, "armor", 1, 2.5),
+PLAN = [("material", 160, None, 99, 1.0), ("potion", 100, None, 99, 1.2), ("armor", 150, "armor", 1, 2.5),
         ("ring", 75, "accessory", 1, 3.0), ("necklace", 75, "accessory", 1, 3.0), ("kido_card", 198, None, 99, 2.0),
         ("book", 40, None, 99, 2.0), ("evolution", 30, None, 99, 3.0), ("cosmetic", 80, None, 1, 1.5),
         ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 120, None, 99, 2.0),
@@ -289,22 +286,7 @@ _dg(10, "legendary", "Legendary", "Hōgyoku Residue", "غبار هوگیوکو",
     "ردی از گوی خواسته‌ها. مقدار زیادی تجربه‌ی فوری.",
     {"type": "xp", "amount": 2500}, 32000)
 QUINCY_DROPS = [x["_id"] for x in CURATED if x["_id"] not in ("it_q001", "it_q017")]  # raids: no eye, no seal
-# ---- accessories (rework): the 150 generated ones repeated a few names at several colours, which players found
-# confusing; they are retired (still usable by whoever owns them, a one-time migration swaps them for new ones) and
-# 500 unique Bleach accessories take their place, each with exactly one colour (data_accessories).
-for _x in ITEMS:
-    if _x["category"] == "accessory":
-        _x["retired"] = True
-        _x["tradeable"] = False
-from data_accessories import ACCESSORIES  # noqa: E402
-from data_extras2 import NEW_ITEMS, NEW_RELICS  # noqa: E402  (tempering stone, Inner World key, 40 new relics)
-ITEMS.extend(ACCESSORIES)
-ITEMS.extend(NEW_ITEMS)
-ITEMS.extend(NEW_RELICS)
 ALL = {x["_id"]: x for x in ITEMS}
-for _x in ALL.values():  # copies of one item are one stack in the bag (ownership is counted per id, not per copy)
-    if _x.get("category") in ("accessory", "cosmetic", "relic") and _x.get("stack_max", 1) < 20:
-        _x["stack_max"] = 20
 for _w in WEAPONS:
     _w.setdefault("sell_price", max(2, int(_w["base_price"] * 0.4)))
     _w["retired"] = True   # the old blades no longer drop or sell; every player grows a race weapon instead
@@ -319,69 +301,9 @@ for _x in ITEMS:
         _x["retired"] = True   # the old shared armour no longer drops; every race has its own twenty kinds
 for _x in RACE_ARMOUR_ITEMS + RACE_CARD_ITEMS:
     ALL[_x["_id"]] = _x
-# ---- one material per kind and colour (players asked: 160 differently named shards filled the bag) ------------------
-# Crafting asks for a material group and a minimum colour, and the forge counts any material by colour, so every
-# material of the same group and colour is interchangeable. They are merged into one item each (the lowest id keeps
-# its id and gets a plain name). The others are retired: inv_add turns them into the merged one, a one-time migration
-# moves what players already hold, and drop pools hand out the merged item as often as before.
-MAT_NAMES = {("hard", "Common"): ("Sekkiseki Chip", "تراشه‌ی سکی‌سکی"), ("hard", "Uncommon"): ("Mask Fragment", "پاره‌ی ماسک"),
-             ("hard", "Rare"): ("Zanpakutō Ore", "سنگ‌معدن زانپاکتو"), ("reishi", "Common"): ("Reishi Shard", "تکه‌ی ریشی"),
-             ("reishi", "Epic"): ("Reiatsu Dust", "غبار ریاتسو"), ("reishi", "Legendary"): ("Pure Reiatsu Dust", "غبار ریاتسوی ناب"),
-             ("spirit", "Common"): ("Spirit Thread", "نخ روحی"), ("spirit", "Uncommon"): ("Gigai Cloth", "پارچه‌ی گیگای"),
-             ("spirit", "Rare"): ("Spirit Ribbon", "نوار روحی")}
-MAT_MERGE = {}   # retired material id -> the merged material of its group and colour
-_mat_groups = {}
-for _x in ITEMS:
-    if _x["category"] == "material":
-        _mat_groups.setdefault(((_x.get("effect") or {}).get("group"), _x["rarity"]), []).append(_x)
-for _key, _xs in _mat_groups.items():
-    _xs.sort(key=lambda x: x["_id"])
-    _keep = _xs[0]
-    if _key in MAT_NAMES:
-        _keep["name_en"], _keep["name_fa"] = MAT_NAMES[_key]
-    _keep["base_price"] = int(sum(x["base_price"] for x in _xs) / len(_xs))
-    _keep["sell_price"] = max(1, int(_keep["base_price"] * 0.4))
-    for _x in _xs[1:]:
-        _x["retired"] = True
-        _x["tradeable"] = False
-        _x["merge_into"] = _keep["_id"]
-        MAT_MERGE[_x["_id"]] = _keep["_id"]
-
-
-def merged(item_id: str) -> str:
-    """The item an id stands for now (a retired material becomes the merged one)."""
-    return MAT_MERGE.get(item_id, item_id)
-
-
 EVO_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "evolution"] for r in RARITIES}
 COSMETIC_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "cosmetic"] for r in RARITIES}
-BY_RARITY = {r: [merged(x["_id"]) for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "accessory", "book", "egg", "relic")
-                 and not (x["category"] == "accessory" and (x.get("retired") or x.get("special")))] for r in RARITIES}
-ACC_BY_RARITY = {r: [x["_id"] for x in ACCESSORIES if x["rarity"] == r and not x["special"]] for r in RARITIES}
-# every retired accessory has one fixed replacement of the same colour and slot (bags, equipped slots, old listings)
-ACC_SWAP = {}
-for _x in ITEMS:
-    if _x["category"] == "accessory" and _x.get("retired"):
-        _same = [a["_id"] for a in ACCESSORIES if a["rarity"] == _x["rarity"] and a["subtype"] == _x["subtype"] and not a["special"]]
-        if _same:
-            ACC_SWAP[_x["_id"]] = _same[int(_x["_id"].split("_")[1]) % len(_same)]
-MAT_MERGE.update(ACC_SWAP)  # merged() and inv_add turn an old accessory into its replacement too
-MYTHIC_ACCESSORIES = [x["_id"] for x in ACCESSORIES if x["special"]]  # red ones: jackpots, roll shop, level bosses only
-# Drop odds: accessories keep the share of a random drop they had before (there are three times more of them now,
-# picking from the flat list would have flooded the bags with accessories).
-_OLD_ACC = {r: sum(1 for x in ITEMS if x["category"] == "accessory" and x.get("retired") and x["rarity"] == r) for r in RARITIES}
-_OTHER = {r: [i for i in BY_RARITY[r] if ALL[i]["category"] != "accessory"] for r in RARITIES}
-ACC_SHARE = {r: (_OLD_ACC[r] / (_OLD_ACC[r] + len(_OTHER[r]))) if (_OLD_ACC[r] + len(_OTHER[r])) else 0.0 for r in RARITIES}
-
-
-def pick_shared(rarity: str, rng):
-    """A random shared drop of one colour, accessories at their old share. None if the colour has nothing shared."""
-    acc, other = ACC_BY_RARITY.get(rarity) or [], _OTHER.get(rarity) or []
-    if acc and (not other or rng.random() < max(ACC_SHARE.get(rarity, 0.0), 0.0 if other else 1.0)):
-        return rng.choice(acc)
-    if other:
-        return rng.choice(other)
-    return rng.choice(acc) if acc else None
+BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] in ("material", "potion", "accessory", "book", "egg", "relic")] for r in RARITIES}
 # Race-only drops: the race's own armour, and its cards (Kidō cards for Shinigami / Visored, technique cards for the rest).
 KIDO_CARD_BY_RARITY = {r: [x["_id"] for x in ITEMS if x["rarity"] == r and x["category"] == "kido_card"] for r in RARITIES}
 RACE_ARMOUR_BY_RARITY = {}

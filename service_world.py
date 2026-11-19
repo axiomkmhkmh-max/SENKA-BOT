@@ -149,7 +149,7 @@ async def boss_hit(uid: int, sid: str):
     dmg = max(1, int(dmg))
     # burst phase: this player already tore the boss open, so for a while it takes less damage from them (modes 2, 3)
     mode = int(st["boss_burst_mode"])
-    dmg, reduced, burst = burst_rule(dmg, uid, sess.get("adapt") or {}, now, st)
+    dmg, reduced, burst = burst_rule(dmg, uid, sess.get("adapt") or {}, now, st, sess["max_hp"])
     heal = int(sess["max_hp"] * 0.004) if trait == "regen" and sess["hp"] < sess["max_hp"] * 0.99 else 0
     heal = 0 if sess["hp"] - dmg <= 0 else min(heal, dmg // 2)  # regen can never undo a killing blow or stall the last 1%
     pname = tagged_name(ch, ALL)

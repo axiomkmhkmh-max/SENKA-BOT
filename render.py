@@ -44,7 +44,7 @@ def dist_event_text(lang: str, e: dict) -> str:
     fa = lang == "fa"
     a, d = esc(e.get("a", "")), esc(e.get("d", ""))
     if e["k"] == "move":
-        tech = e.get("tech", "") if fa else (e.get("tech_en") or e.get("tech", ""))  # English showed the Persian name
+        tech = e.get("tech", "")
         return (f"🏃 {a} با {esc(tech)} به فاصله‌ی {dist_label(lang, e['to'])} رسید" if fa
                 else f"🏃 {a} closes in with {esc(tech)} → {dist_label(lang, e['to'])}")
     if e["k"] == "retreat":
@@ -78,8 +78,6 @@ def events_text(lang: str, events: list) -> str:
                 line = pick(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
             if e.get("chant"):  # a chanted spell is announced before it lands
                 line = pick(lang, "lg_chant_line", a=a) + "\n" + line
-            elif e.get("short"):  # a high spell cast without the incantation lands weaker
-                line += " " + t(lang, "lg_nochant")
             if e.get("c"):
                 line += " " + pick(lang, "lg_crit")
             if e.get("em", 1) > 1.4:

@@ -3,8 +3,6 @@ import os
 
 # bag slots: what a new player starts with, slots per upgrade, ceiling (BAG_OLD_START is the pre-v2 start, used once by the migration)
 BAG_START, BAG_STEP, BAG_MAX, BAG_OLD_START = 100, 20, 300, 50
-# every level gained adds this many bag slots on top of the bought upgrades (BAG_MAX only limits the bought part)
-BAG_PER_LEVEL = 3
 
 
 def _int(name, default):
@@ -35,12 +33,8 @@ settings = Settings()
 # Starting values. All of them can be overridden live from the admin panel
 # (stored in MongoDB `settings` collection, document _id="game").
 GAME_DEFAULTS = {
-    "tour_train_hours": 27, "tour_round_minutes": 60, "tour_max_entrants": 32, "tour_level": 30,  # Gotei Trial tournament
-    "tour_prize_coins": 300000, "tour_evo": 2,  # tour_evo is no longer used (the standard kit has no race and no evolution)
-    "tour_draw_minutes": 5, "tour_mastery_cap": 20, "tour_equal_training": 1,  # draw -> round 1 delay; training mastery cap; training duels use the standard kit
     "butterfly_on": 1, "butterfly_cooldown": 1800, "herald_window": 600,  # Hell Butterfly, Hollow Herald countdown (seconds)
     "maintenance": False,
-    "mentor_xp_pct": 3.0,  # master & apprentice: percent of an apprentice's battle / dungeon XP the master earns on top
     "xp_rate": 1.0, "coin_rate": 1.0, "drop_rate": 1.0,
     "div_min_level": 10, "div_change_cost": 3000, "div_k": 1.0,  # allegiance: min level, change price, bonus strength
     "hlf_min_level": 40, "hlf_cost": 15000, "hlf_chance": 0.65,  # Hollowfication ritual (Shinigami -> Visored)
@@ -48,15 +42,15 @@ GAME_DEFAULTS = {
     "boss_dmg_mult": 6.0, "boss_hp_mult": 4.0, "boss_combo_window": 8, "boss_combo_step": 0.05, "boss_combo_cap": 10,
     "boss_special_chance": 0.12, "boss_special_mult": 2.5,
     # burst phase: one hit of at least boss_burst_dmg puts the boss in a special state against that player for
-    # boss_burst_seconds. mode 1 = the player gets an extra boss_burst_cd seconds of cooldown, 2 = the boss takes
-    # (1 - boss_burst_reduce) less damage from that player meanwhile, 3 = both. dmg 0 = off.
-    "boss_burst_dmg": 10000, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
+    # boss_burst_seconds. The bar is the larger of boss_burst_dmg and boss_burst_pct of the boss's max HP, so it grows with the boss.
+    # mode 1 = the player gets an extra boss_burst_cd seconds of cooldown, 2 = the boss takes
+    # (1 - boss_burst_reduce) less damage from that player meanwhile, 3 = both. boss_burst_dmg 0 AND boss_burst_pct 0 = off.
+    "boss_burst_dmg": 50000, "boss_burst_pct": 0.05, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
     "xp_curve_k": 1.5,  # level-up difficulty: XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
-    "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 6,
-    "xfer_fee_pct": 0.05, "xfer_daily_cap": 500000, "xfer_min_amount": 10, "xfer_min_level": 3, "xfer_confirm_over": 50000,  # coin transfer between players (reply command + Extras menu)
-    "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 180,
-    "start_coins": 500, "travel_cooldown": 20,
+    "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
+    "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 300,
+    "start_coins": 500, "travel_cooldown": 60,
     "pvp_min_level": 15, "pvp_gain_min": 25, "pvp_gain_max": 40,
     "pvp_loss_min": 20, "pvp_loss_max": 30, "pvp_pair_daily_cap": 3,
     "pvp_full_xp_wins": 10, "pvp_turn_seconds": 30, "pvp_max_turns": 30,
@@ -91,7 +85,7 @@ GAME_DEFAULTS = {
     # ---- item roles -----------------------------------------------------------------
     "relic_slots": 2, "relic_k": 1.0, "pet_k": 1.0, "evo_bonus_pct": 0.02, "evo_trial_scale": 1.3,
     "cosmetic_fame_xp": 0.0025, "cosmetic_fame_cap": 0.05, "craft_cost_k": 1.0,
-    "temper_max": 10, "temper_def_pct": 0.05, "buff_max_minutes": 180,
+    "temper_max": 5, "temper_def_pct": 0.05, "buff_max_minutes": 180,
     # ---- territories ------------------------------------------------------------------
     "terr_enabled": True, "terr_min_members": 3, "terr_min_level": 10, "terr_min_age_hours": 24,
     "terr_daily_cap": 60, "terr_min_score": 40, "terr_buff_pct": 0.05, "terr_tax_pct": 0.05,
@@ -116,7 +110,7 @@ GAME_DEFAULTS = {
     "quincy_ttl_minutes": 10, "quincy_lock_minutes": 60,
     "znp_train_energy": 10, "znp_train_daily": 10, "znp_train_gain": 5, "znp_mastery_cap": 1000,
     "znp_shikai_level": 20, "znp_shikai_bond": 50, "znp_bankai_level": 60, "znp_bankai_mastery": 150,
-    "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 24, "chain_bonus_every": 5,
+    "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 12, "chain_bonus_every": 5,
     "chain_shield_min": 10, "chain_shield_hours": 24,  # a long chain survives one loss per window
     "shop_disc_5": 0.05, "shop_disc_10": 0.10, "shop_disc_25": 0.15,  # Urahara bulk-buy discounts
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,

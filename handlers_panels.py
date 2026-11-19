@@ -80,11 +80,9 @@ async def menu2(ctx, arg):
 
 # "More" is split into four small groups of at most 4 buttons, so no screen ever shows a wall of options.
 MENU_GROUPS = {
-    "adv": [[("m_dgn", "dgn"), ("m_twr", "twr")], [("m_avl", "avl"), ("m_lbs", "lbs")], [("m_war", "war"), ("m_evt", "evt")],
-            [("m_map", "map"), ("m_wrd", "wrd")]],
-    "grow": [[("m_gch", "gch"), ("m_crf", "crf")], [("m_dsp", "dsp"), ("m_art", "art")], [("m_inr", "inr"), ("m_in2", "in2")],
-             [("m_sat", "sat"), ("m_rsh", "rsh")], [("m_els", "els"), ("m_div", "div")], [("m_hlf", "hlf")]],
-    "soc": [[("m_rnk", "rnk"), ("m_gld", "gld")], [("m_trd", "trdhub"), ("m_mnt", "mnt")]],
+    "adv": [[("m_dgn", "dgn"), ("m_twr", "twr")], [("m_map", "map"), ("m_wrd", "wrd")]],
+    "grow": [[("m_gch", "gch"), ("m_crf", "crf")], [("m_dsp", "dsp"), ("m_art", "art")], [("m_inr", "inr"), ("m_sat", "sat")], [("m_div", "div"), ("m_hlf", "hlf")]],
+    "soc": [[("m_rnk", "rnk"), ("m_gld", "gld")]],
     "fun": [[("m_dly", "dly"), ("m_whl", "whl")], [("m_mgm", "mgm")]],
 }
 
@@ -227,8 +225,7 @@ async def explore(ctx, arg):
     ch = await need_char(ctx)
     L = ctx.lang
     st = await game_settings()
-    from service_combat import blocking_pve
-    if await blocking_pve(ctx.uid):
+    if await active_pve(ctx.uid):
         from handlers_combat import resume_battle
         return await resume_battle(ctx)
     if arg != "go":

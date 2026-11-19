@@ -17,18 +17,28 @@ def st(**kw):
 
 
 class BurstTests(unittest.TestCase):
+    def test_defaults_do_not_fire_on_a_normal_hit(self):
+        # live players hit for about 30k: a normal hit must never open the special state
+        self.assertGreater(max(GAME_DEFAULTS["boss_burst_dmg"], 0), 30000 * 1.5)
+        self.assertEqual(burst_rule(30000, 1, {}, NOW, st(), 150000), (30000, False, False))
+
+    def test_bar_grows_with_boss_hp(self):
+        s = st(boss_burst_dmg=50000, boss_burst_pct=0.05)
+        self.assertEqual(burst_rule(60000, 1, {}, NOW, s, 400000)[2], True)    # bar = 50000
+        self.assertEqual(burst_rule(60000, 1, {}, NOW, s, 2000000)[2], False)  # bar = 100000
+        self.assertEqual(burst_rule(100000, 1, {}, NOW, s, 2000000)[2], True)
+
     def test_defaults(self):
-        self.assertEqual(GAME_DEFAULTS["boss_burst_dmg"], 10000)
         self.assertEqual(GAME_DEFAULTS["boss_burst_cd"], 20)
 
     def test_small_hit_does_not_burst(self):
-        self.assertEqual(burst_rule(9999, 1, {}, NOW, st()), (9999, False, False))
+        self.assertEqual(burst_rule(49999, 1, {}, NOW, st()), (49999, False, False))
 
     def test_big_hit_bursts(self):
-        self.assertEqual(burst_rule(10000, 1, {}, NOW, st()), (10000, False, True))
+        self.assertEqual(burst_rule(50000, 1, {}, NOW, st()), (50000, False, True))
 
     def test_off_when_zero(self):
-        self.assertEqual(burst_rule(10 ** 6, 1, {}, NOW, st(boss_burst_dmg=0)), (10 ** 6, False, False))
+        self.assertEqual(burst_rule(10 ** 6, 1, {}, NOW, st(boss_burst_dmg=0, boss_burst_pct=0)), (10 ** 6, False, False))
 
     def test_cooldown_mode_never_reduces(self):
         ad = {"uid": 1, "until": NOW + 10}

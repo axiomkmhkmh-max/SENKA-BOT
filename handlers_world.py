@@ -128,13 +128,7 @@ async def event_panel(ctx, arg):
     keys = [i for i, q in inv["items"].items() if q > 0 and (ALL.get(i, {}).get("effect") or {}).get("type") == "key"]
     keys.sort(key=lambda i: -KEY_PTS.get(ALL[i]["effect"]["diff"], 1))
     rows = [[(f"🗝️ {nm(i, L)} (+{KEY_PTS.get(ALL[i]['effect']['diff'], 1)})".replace("<", "").replace(">", ""), "evk", i)] for i in keys[:5]]
-    from data_war import WARS
-    text = await event_text(ctx, ev) + "\n\n" + ctx.t("evt_keyhint")
-    if ev["kind"] in WARS:  # every event is a war now: its battlefield is one tap away
-        from handlers_war import war_line
-        text += "\n\n" + war_line(L, ev["kind"])
-        rows.insert(0, [(ctx.t("m_war"), "war", "")])
-    return Out(text, rows + [nav(ctx, ("wrd", ""))])
+    return Out(await event_text(ctx, ev) + "\n\n" + ctx.t("evt_keyhint"), rows + [nav(ctx, ("wrd", ""))])
 
 
 @action("evk")
@@ -401,9 +395,6 @@ async def temper_view(ctx, arg):
     inv = await inv_get(ctx.uid)
     text = (head(ctx, "ttl_crf") + ctx.t("tmp_body", item=nm(aid, L), plus=fnum(plus, L), nxt=fnum(plus + 1, L), pct=fnum(round(float(st["temper_def_pct"]) * 100), L),
                                          chance=fnum(r["chance"], L)) + "\n" + "\n".join(_req_lines(ctx, r["in"], inv["items"])) + f"\n🪙 {fnum(scaled_coins(r, st), L)}")
-    from service_adventure import stones_needed
-    if stones_needed(plus):
-        text += "\n" + ctx.t("need_stone", n=fnum(stones_needed(plus), L))
     return Out(text, [[(ctx.t("b_temper"), "crt", "")], nav(ctx, ("crf", ""))])
 
 
@@ -597,12 +588,6 @@ async def pet_panel(ctx, arg):
         rows.append(row)
     if not pets:
         lines.append(ctx.t("pet_none"))
-    else:  # the active companion can be raised one star at a time (coins + spirit materials)
-        from handlers_adventure import pet_up_line
-        up = pet_up_line(ctx, int(pets[0].get("tier", 0)))
-        if up:
-            lines.append(up)
-            rows.insert(0, [(("⬆️ ارتقای همراه" if L == "fa" else "⬆️ Upgrade companion"), "pup", "")])
     inc = ch.get("incubator")  # an egg put in before eggs started hatching instantly: it still finishes by exploring
     if inc:
         n = fnum(max(0, int(inc.get("left", 0))), L)
@@ -711,9 +696,8 @@ async def end_global_boss(bot, doc, summary):
 
 async def announce_event_start(bot, ev):
     from i18n import t
-    from handlers_war import war_line
     await _send_groups(bot, lambda L: t(L, "ev_announce", ev=ev_name(L, ev["kind"]), desc=t(L, "ev_" + ev["kind"] + "_desc"), goal=fnum(ev["goal"], L),
-                                        m=fnum(_mins(ev["end_at"] - time.time()), L)) + ("\n\n" + war_line(L, ev["kind"]) if war_line(L, ev["kind"]) else ""))
+                                        m=fnum(_mins(ev["end_at"] - time.time()), L)))
 
 
 async def announce_event_end(bot, summary):
@@ -721,25 +705,10 @@ async def announce_event_end(bot, summary):
     ev, ok = summary["doc"], summary["ok"]
     nmap = {r["uid"]: r["name"] for r in summary["rows"]}
 
-    war = summary.get("war")
-
     def fn(L):
         top = ", ".join(esc(r["name"]) for r in summary["rows"][:3])
-        txt = t(L, "ev_end_ok" if ok else "ev_end_fail", ev=ev_name(L, ev["kind"]), n=fnum(summary["n"], L), top=top or "—")
-        if war:
-            from handlers_war import war_end_line
-            txt += "\n\n" + war_end_line(L, war)
-        return txt
+        return t(L, "ev_end_ok" if ok else "ev_end_fail", ev=ev_name(L, ev["kind"]), n=fnum(summary["n"], L), top=top or "—")
     await _send_groups(bot, fn)
-    if war:
-        from handlers_war import war_dm
-        for r in war["rows"][:400]:
-            try:
-                tl = await _user_lang(r["uid"])
-                await bot.send_message(r["uid"], war_dm(tl, war, r))
-            except Exception:
-                pass
-            await bulk_slot()
     for r in summary["rows"][:400]:
         try:
             tl = await _user_lang(r["uid"])
