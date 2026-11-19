@@ -355,8 +355,22 @@ def kido_list(f, branch) -> list:
     return sorted({n for n in f["kido"][branch] if kido_castable(f, branch, n)}, reverse=True)
 
 
+def kido_menu(f, branch) -> list:
+    """The spell menu: [(number, cost share of max reiatsu in %)] for every spell of the branch castable right now,
+    highest number first. The player picks one of these (the button sends \"kd:<n>\" / \"bk:<n>\")."""
+    return [(n, KD.cost_pct(branch, n)) for n in kido_list(f, branch)]
+
+
+def kido_chant_locked(f, branch) -> bool:
+    """True when the fighter knows a spell of the branch that only waits for the incantation (91+, no chant spoken yet)."""
+    if _x(f)["chant"]:
+        return False
+    return any(KD.needs_chant(n, branch) and f["re"] >= KD.cost(branch, n, f["max_re"]) and _kcd(f).get(KD.key(branch, n), 0) <= 0
+               for n in f["kido"][branch])
+
+
 def chant_wanted(f) -> bool:
-    """True when the fighter knows a spell that is blocked only by the missing incantation (Hadō 80+, Bakudō 90+):
+    """True when the fighter knows a spell that is blocked only by the missing incantation (Hadō and Bakudō 91+):
     enough reiatsu, level gate passed, not cooling down. Without this the 📿 button never showed for a Bakudō caster,
     the 98 could not be cast and the fight silently fell back to a weaker 82 / 79."""
     for branch in ("had", "bak"):
@@ -960,8 +974,10 @@ def do_action(state, action, rng, max_turns=30):
         lo, hi = band
         d = dist_of(state)
         if d > hi:  # out of reach: the turn closes the gap instead of striking
+            _x(f)["pick"] = None  # the picked spell is not cast this turn: forget it
             return _finish(state, [_close_in(state, side, hi)], max_turns)
         if d < lo:  # too close for this weapon: the turn backs off
+            _x(f)["pick"] = None
             return _finish(state, [apply_retreat(state, side)], max_turns)
     # a fighter who was just knocked back is not knocked again until they have struck back
     kbl = state.setdefault("kbl", {"a": False, "b": False})

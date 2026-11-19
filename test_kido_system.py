@@ -174,5 +174,35 @@ class SpellEffects(unittest.TestCase):
             self.assertIn(("bak", n), KIDO_NAMES, n)
 
 
+class SpellMenu(unittest.TestCase):
+    def test_menu_lists_every_castable_spell_highest_first(self):
+        st = battle()
+        menu = E.kido_menu(st["a"], "had")
+        self.assertEqual([n for n, _ in menu], [90, 88, 63, 31, 4, 1])      # 96 waits for the chant
+        self.assertEqual([n for n, _ in E.kido_menu(st["a"], "bak")], [81, 63, 61, 1])
+        self.assertEqual(dict(menu)[31], KD.cost_pct("had", 31))
+
+    def test_chant_locked_hint_and_chanted_menu(self):
+        st = battle()
+        self.assertTrue(E.kido_chant_locked(st["a"], "had"))
+        self.assertFalse(E.kido_chant_locked(st["a"], "bak"))
+        cast(st, "ch")
+        self.assertFalse(E.kido_chant_locked(st["a"], "had"))
+        self.assertIn(96, [n for n, _ in E.kido_menu(st["a"], "had")])
+
+    def test_picking_a_cheap_spell_does_not_cast_the_best(self):
+        st = battle()
+        ev = cast(st, "kd:1")
+        self.assertEqual([e["num"] for e in ev if e.get("num")], [1])
+        ev = cast(st, "bk:61")
+        self.assertEqual([e["num"] for e in ev if e.get("num")], [61])
+
+    def test_pick_is_forgotten_when_the_turn_only_closes_the_gap(self):
+        st = battle()
+        st["dist"] = 5
+        cast(st, "kd:1")
+        self.assertIsNone(E._x(st["a"])["pick"])
+
+
 if __name__ == "__main__":
     unittest.main()

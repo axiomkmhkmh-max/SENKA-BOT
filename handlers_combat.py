@@ -42,8 +42,10 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
             return "⬅️ " + label
         return label
 
-    mk = lambda label, act: (reach_tag(label, act) if act in ("atk", "hvy", "kd", "gt", "gx", "sg", "t1", "t2", "t3") else label,
-                             "pa" if pub else "ba", f"{sid}.{act}", pub)
+    def mk(label, act):
+        base = {"kdm": "kd", "bkm": "bk"}.get(act.split(":")[0], act.split(":")[0])  # "kd:31" / "kdm:0" press the kidō button
+        return (reach_tag(label, base) if base in ("atk", "hvy", "kd", "gt", "gx", "sg", "t1", "t2", "t3") else label,
+                "pa" if pub else "ba", f"{sid}.{act}", pub)
     rows = [[mk(ctx.t("a_atk"), "atk")]]
     rows.append([mk("🏃 شونپو" if L == "fa" else "🏃 Shunpo", "mvs"),
                  mk("⚡ سونیدو" if L == "fa" else "⚡ Sonido", "mvn"),
@@ -56,10 +58,15 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         r2.append(mk(ctx.t("a_gc"), "gc"))
     if E.can(f, "ch"):  # Kidō chanting: costs the turn, leaves you open, boosts the next spell
         r2.append(mk(ctx.t("a_ch"), "ch"))
-    if E.can(f, "kd"):
-        r2.append(mk(ctx.t("a_kd", n=E.best_kido(f, "had"), spell=KIDO_NAMES.get(("had", E.best_kido(f, "had")), "")), "kd"))
-    if E.can(f, "bk"):
-        r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
+    for branch, can_act, pre in (("had", "kd", "kd"), ("bak", "bk", "bk")):
+        if not E.can(f, can_act):
+            continue
+        spells = E.kido_list(f, branch)
+        if len(spells) > 1:  # several spells castable: the button opens the spell menu
+            r2.append(mk(("🔮 هادو ▾" if L == "fa" else "🔮 Hadō ▾") if branch == "had" else ("🛡️ باکودو ▾" if L == "fa" else "🛡️ Bakudō ▾"), f"{pre}m:0"))
+        else:  # only one: cast it directly
+            n = spells[0]
+            r2.append(mk(ctx.t("a_" + can_act, n=n, spell=KIDO_NAMES.get((branch, n), "")), f"{pre}:{n}"))
     for k in range(0, len(r2), 2):  # at most two long labels per line, so they stay readable on a phone
         rows.append(r2[k:k + 2])
     if E.can(f, "gt"):  # gathered: release the wave
@@ -109,6 +116,54 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
     if pot:
         rows.append([mk(ctx.t("a_pot"), "pot")])
     return rows
+
+
+KIDO_PAGE = 10   # spells per menu page (two per row)
+
+
+def _kido_menu(ctx, f, sid, branch, page, pub):
+    """The spell menu: every spell the fighter can cast now, highest first, each with its effect icons and its reiatsu
+    cost (% of max reiatsu). A tap sends kd:<n> / bk:<n>. Returns (header text, rows)."""
+    import data_kido as KD
+    fa = ctx.lang == "fa"
+    code, pre = ("pa" if pub else "ba"), ("kd" if branch == "had" else "bk")
+    menu = E.kido_menu(f, branch)
+    pages = max(1, -(-len(menu) // KIDO_PAGE))
+    page = min(max(page, 0), pages - 1)
+    btns = []
+    for n, pct in menu[page * KIDO_PAGE:(page + 1) * KIDO_PAGE]:
+        name = KIDO_NAMES.get((branch, n), "")
+        tag = KD.icons(branch, n)
+        btns.append((" ".join(x for x in (tag, str(n), name) if x) + f" · {pct:g}%", code, f"{sid}.{pre}:{n}", pub))
+    rows = chunk(btns, 2)
+    if pages > 1:
+        nv = []
+        if page > 0:
+            nv.append(("◀️", code, f"{sid}.{pre}m:{page - 1}", pub))
+        if page < pages - 1:
+            nv.append(("▶️", code, f"{sid}.{pre}m:{page + 1}", pub))
+        rows.append(nv)
+    rows.append([("⬅️ برگشت" if fa else "⬅️ Back", code, f"{sid}.kdb", pub)])
+    title = (("🔮 کدام هادو را می‌خوانی؟" if fa else "🔮 Which Hadō do you cast?") if branch == "had"
+             else ("🛡️ کدام باکودو را می‌خوانی؟" if fa else "🛡️ Which Bakudō do you cast?"))
+    text = f"{title}\n💠 {fnum(f['re'], ctx.lang)}/{fnum(f['max_re'], ctx.lang)}"
+    if pages > 1:
+        text += f" · {fnum(page + 1, ctx.lang)}/{fnum(pages, ctx.lang)}"
+    if E._x(f)["chant"]:
+        text += "\n" + ("📿 ورد خوانده شده؛ اولین کیدو با قدرت کامل زده می‌شه." if fa else "📿 Chant spoken: your next spell hits at full power.")
+    elif E.kido_chant_locked(f, branch):
+        text += "\n" + ("📿 اسپل‌های ۹۱ به بالا بعد از «ورد کیدو» باز می‌شن." if fa else "📿 Spells 91+ unlock after a Chant Kidō turn.")
+    return text, rows
+
+
+def _kido_act(act):
+    """\"kdm:2\" / \"bkm:0\" -> (branch, page), anything else -> None."""
+    if act[:4] in ("kdm:", "bkm:"):
+        try:
+            return ("had" if act[0] == "k" else "bak"), int(act[4:])
+        except ValueError:
+            return ("had" if act[0] == "k" else "bak"), 0
+    return None
 
 
 async def _has_potion(uid):
@@ -292,8 +347,20 @@ async def battle_action(ctx, arg):
     potion = None
     if act == "pot":
         return await _potion_picker(ctx, sid)
-    if act == "potb":  # back from the picker: nothing is used
+    if act == "potb" or act == "kdb":  # back from the picker / spell menu: nothing is used
         return await battle_menu(ctx, "")
+    km = _kido_act(act)
+    if km:  # the spell menu (no turn is spent)
+        doc = await active_pve(ctx.uid)
+        if not doc or doc["sid"] != sid:
+            return Out(alert=ctx.t("bt_gone"))
+        st = doc["state"]
+        if st["cur"] != "a" or not st.get("awaiting") or st.get("done"):
+            return Out(alert=ctx.t("bt_notturn"))
+        if not E.kido_menu(st["a"], km[0]):
+            return Out(alert=ctx.t("bt_notturn"))
+        text, rows = _kido_menu(ctx, st["a"], sid, km[0], km[1], False)
+        return Out(battle_text(ctx.lang, st, [], head(ctx, "ttl_bt")) + "\n\n" + text, rows)
     if act.startswith("pot:"):
         iid = act[4:]
         if ((ALL.get(iid) or {}).get("effect") or {}).get("type") != "hp" or not await inv_remove(ctx.uid, iid, 1):
@@ -500,6 +567,9 @@ def _final(ctx, doc, outcome):
 @action("pa")
 async def pvp_action(ctx, arg):
     sid, _, act = arg.partition(".")
+    km = _kido_act(act)
+    if km or act == "kdb":  # spell menu / back from it: no turn is spent
+        return await _pvp_kido_menu(ctx, sid, km, act)
     status, doc, data = await pvp_act(ctx.uid, sid, act)
     if status != "ok":
         return Out(alert=ctx.t("bt_" + status if status != "notplayer" else "duel_notplayer"))
@@ -507,6 +577,27 @@ async def pvp_action(ctx, arg):
     g = await group_doc(doc["chat_id"])
     final = _final(ctx, doc, outcome) if doc["state"]["done"] else None
     text, kb = await _pvp_panel(glang(g), ctx, doc, ev, final)
+    await _edit(ctx, text, kb)
+    return Out()
+
+
+async def _pvp_kido_menu(ctx, sid, km, act):
+    doc = await col("battles").find_one({"sid": sid, "mode": "pvp", "status": "active"})
+    if not doc:
+        return Out(alert=ctx.t("bt_gone"))
+    st = doc["state"]
+    side = "a" if ctx.uid == doc["a_uid"] else "b" if ctx.uid == doc["b_uid"] else None
+    if side is None:
+        return Out(alert=ctx.t("duel_notplayer"))
+    if st.get("done") or st["cur"] != side or not st.get("awaiting"):
+        return Out(alert=ctx.t("bt_notturn"))
+    g = await group_doc(doc["chat_id"])
+    text, kb = await _pvp_panel(glang(g), ctx, doc, [])
+    if km:
+        if not E.kido_menu(st[side], km[0]):
+            return Out(alert=ctx.t("bt_notturn"))
+        mtext, rows = _kido_menu(ctx, st[side], sid, km[0], km[1], True)
+        text, kb = text + "\n\n" + mtext, markup(ctx, rows)
     await _edit(ctx, text, kb)
     return Out()
 
