@@ -141,13 +141,22 @@ class SpellEffects(unittest.TestCase):
         self.assertFalse(E.has_fx(danku["b"], "skip"))
 
     def test_sho_is_cheap(self):
-        self.assertLess(KD.cost("had", 1), int(1 * KD.HADO_COST))
-        self.assertEqual(KD.cost("had", 31), int(31 * KD.HADO_COST))
-        self.assertEqual(KD.cost("bak", 61), int(61 * KD.BAK_COST))
+        self.assertLess(KD.cost("had", 1, 1000), int(1000 * 1 * KD.HADO_COST_PCT))
+        self.assertEqual(KD.cost("had", 31, 1000), int(1000 * 31 * KD.HADO_COST_PCT))
+        self.assertEqual(KD.cost("bak", 61, 1000), int(1000 * 61 * KD.BAK_COST_PCT))
+
+    def test_cost_is_a_share_of_max_reiatsu_and_no_level_gate(self):
+        for lvl, mx in ((1, 200), (59, 1000)):
+            st = battle()
+            f = st["a"]; f["level"] = lvl; f["max_re"] = mx; f["re"] = mx
+            f["kido"] = {"had": list(range(1, 100)), "bak": list(range(1, 100))}
+            f["x"] = {"chant": 0}
+            self.assertEqual(E.kido_list(f, "had")[0], 90)
+            self.assertEqual(E.kido_list(f, "bak")[0], 90)
 
     def test_spell_without_enough_reiatsu_is_not_castable(self):
         st = battle()
-        st["a"]["re"] = KD.cost("had", 31) - 1
+        st["a"]["re"] = KD.cost("had", 31, st["a"]["max_re"]) - 1
         self.assertFalse(E.kido_castable(st["a"], "had", 31))
         self.assertTrue(E.kido_castable(st["a"], "had", 1))
 

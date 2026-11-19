@@ -330,13 +330,11 @@ def _kcd(f) -> dict:
 
 
 def kido_castable(f, branch, n) -> bool:
-    """Can this fighter cast spell n of the branch right now? Known, level gate (Hadō only), enough reiatsu, the spell is
-    not cooling down, and from number 80 up the incantation must have been spoken."""
+    """Can this fighter cast spell n of the branch right now? Known, enough reiatsu (cost = share of max reiatsu), the spell
+    is not cooling down, and from number 91 up the incantation must have been spoken. No level gate in the fight."""
     if n not in f["kido"][branch]:
         return False
-    if branch == "had" and f["level"] < math.ceil(n * 0.8):  # Bakudō has no level gate in the fight
-        return False
-    if f["re"] < KD.cost(branch, n) or _kcd(f).get(KD.key(branch, n), 0) > 0:
+    if f["re"] < KD.cost(branch, n, f["max_re"]) or _kcd(f).get(KD.key(branch, n), 0) > 0:
         return False
     return not KD.needs_chant(n, branch) or bool(_x(f)["chant"])
 
@@ -365,9 +363,7 @@ def chant_wanted(f) -> bool:
         for n in f["kido"][branch]:
             if not KD.needs_chant(n, branch):
                 continue
-            if branch == "had" and f["level"] < math.ceil(n * 0.8):
-                continue
-            if f["re"] >= KD.cost(branch, n) and _kcd(f).get(KD.key(branch, n), 0) <= 0:
+            if f["re"] >= KD.cost(branch, n, f["max_re"]) and _kcd(f).get(KD.key(branch, n), 0) <= 0:
                 return True
     return False
 
@@ -809,7 +805,7 @@ def _do_action(state, action, rng, max_turns=30):
     elif action == "kd":
         n = best_kido(f, "had")
         P = KD.hado_params(n)
-        f["re"] -= KD.cost("had", n)
+        f["re"] -= KD.cost("had", n, f["max_re"])
         if KD.spell_cd(n):
             _kcd(f)[KD.key("had", n)] = KD.spell_cd(n)
         o = state["b" if side == "a" else "a"]
@@ -838,7 +834,7 @@ def _do_action(state, action, rng, max_turns=30):
     elif action == "bk":
         n = best_kido(f, "bak")
         P = KD.bakudo_params(n)
-        f["re"] -= KD.cost("bak", n)
+        f["re"] -= KD.cost("bak", n, f["max_re"])
         if KD.spell_cd(n):
             _kcd(f)[KD.key("bak", n)] = KD.spell_cd(n)
         gain = (eff(f, "kido") * (n / 10) * 2.5 + 10 + f["max_hp"] * 0.05) * P["shield"]

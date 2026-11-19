@@ -82,10 +82,12 @@ def effect_text(ctx, it: dict) -> str:
         import math
         n = int(e["num"])
         if e["branch"] == "had":
-            return (f"هادو {n}: جادوی تهاجمی؛ ضریب آسیب ×{0.7 + 0.3 * n:.1f}؛ هزینه {int(n * 2.5)} ریاتسو؛ از لول {math.ceil(n * 0.8)}"
-                    if L == "fa" else f"Hadō {n}: attack spell; damage ×{0.7 + 0.3 * n:.1f}; costs {int(n * 2.5)} reiatsu; from level {math.ceil(n * 0.8)}")
-        return (f"باکودو {n}: سپر محافظ + {min(60, 10 + 5 * n)}٪ شانس بستن دشمن (نصف روی باس)؛ هزینه {int(n * 2)} ریاتسو"
-                if L == "fa" else f"Bakudō {n}: a shield + {min(60, 10 + 5 * n)}% chance to bind the foe (half on bosses); costs {int(n * 2)} reiatsu")
+            import data_kido as _KD
+            return (f"هادو {n}: جادوی تهاجمی؛ ضریب آسیب ×{0.7 + 0.3 * n:.1f}؛ هزینه {_KD.cost_pct('had', n):g}٪ ریاتسوی حداکثر"
+                    if L == "fa" else f"Hadō {n}: attack spell; damage ×{0.7 + 0.3 * n:.1f}; costs {_KD.cost_pct('had', n):g}% of max reiatsu")
+        import data_kido as _KD
+        return (f"باکودو {n}: سپر محافظ + {min(60, 10 + 5 * n)}٪ شانس بستن دشمن (نصف روی باس)؛ هزینه {_KD.cost_pct('bak', n):g}٪ ریاتسوی حداکثر"
+                if L == "fa" else f"Bakudō {n}: a shield + {min(60, 10 + 5 * n)}% chance to bind the foe (half on bosses); costs {_KD.cost_pct('bak', n):g}% of max reiatsu")
     if ty == "kido_book":
         br = ("هادو" if e["branch"] == "had" else "باکودو") if L == "fa" else ("Hadō" if e["branch"] == "had" else "Bakudō")
         return (f"کوچک‌ترین {br}ی یادنگرفته را تا شماره‌ی {e['cap']} یاد می‌دهد." if L == "fa"

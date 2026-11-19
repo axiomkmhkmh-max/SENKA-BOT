@@ -9,6 +9,9 @@ What the anime shows, and what the fight does with it:
   * Each spell does its own thing: Byakurai pierces, Shakkahō burns, Raikōhō stuns; Sai and Hainawa bind, Rikujōkōrō
     holds fast, Sajō Sabaku holds longer, Enkōsen and Danku are walls.
   * No cooldown: any spell can be cast again right away (spell_cd is always 0; the only limit is reiatsu).
+  * No level gate in the fight: every spell the fighter knows (Hadō and Bakudō alike) is castable at any level.
+  * Reiatsu cost is a share of the caster's MAX reiatsu (HADO_COST_PCT / BAK_COST_PCT per spell number), so the
+    same spell costs the same fraction of the pool at every level and the best known spell does not drop out as the pool shrinks.
 All of it is tuned here; spells that are not in the tables behave as the old plain Hadō / Bakudō did.
 """
 
@@ -16,7 +19,7 @@ CHANT_REQUIRED = {"had": 91, "bak": 91}   # from this number up, a spell cannot 
                                            # can be cast bare (weaker from 60 up), only 91-99 need the chant
 UNCHANTED_FROM = 60          # from this number up, an unchanted spell is weaker ...
 UNCHANTED_MULT = 0.75        # ... by this factor (Hadō damage, Bakudō shield)
-HADO_COST, BAK_COST = 2.5, 2.0   # reiatsu per spell number (as before)
+HADO_COST_PCT, BAK_COST_PCT = 0.0025, 0.002   # share of max reiatsu per spell number (Hadō 90 = 22.5%, Bakudō 90 = 18%)
 
 # Hadō: mult = damage factor, pierce = share of the target's armour ignored, burn / weaken = status for 3 turns,
 # stun = chance the target loses its next turn, cost_k = reiatsu factor.
@@ -74,10 +77,17 @@ def bakudo_params(n: int) -> dict:
     return p
 
 
-def cost(branch: str, n: int) -> int:
+def cost(branch: str, n: int, max_re: int) -> int:
+    """Reiatsu a spell costs: a share of the caster's max reiatsu, so it scales with the pool."""
     if branch == "had":
-        return max(1, int(int(n) * HADO_COST * hado_params(n)["cost_k"]))
-    return max(1, int(int(n) * BAK_COST))
+        return max(1, int(int(max_re) * int(n) * HADO_COST_PCT * hado_params(n)["cost_k"]))
+    return max(1, int(int(max_re) * int(n) * BAK_COST_PCT))
+
+
+def cost_pct(branch: str, n: int) -> float:
+    """The same cost as a percentage of max reiatsu (for texts)."""
+    k = hado_params(n)["cost_k"] if branch == "had" else 1.0
+    return round(int(n) * (HADO_COST_PCT if branch == "had" else BAK_COST_PCT) * k * 100, 1)
 
 
 def needs_chant(n: int, branch: str = "had") -> bool:
