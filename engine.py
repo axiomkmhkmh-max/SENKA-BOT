@@ -12,6 +12,7 @@ from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, HEAVY_
 from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
+import data_kido as KD
 from data_bleachfx import (CERO_BREAK_AI, CERO_BREAK_PLAYER, CHANT_BAK, CHANT_HADO, CHANT_OPEN, GAUGE, RESOLVE,
                            RESURRECCION, RESURRECCION_RACES, SHUNPO_COUNTER, SIG)
 
@@ -55,7 +56,9 @@ def _new_x():
     return {"flash": 0, "charge": 0, "chant": 0, "open": 0, "cd": 0, "gcd": 0, "tcd": 0, "res_used": 0, "buff_t": 0, "buff_m": 1.0,
             "gauge": 0, "awake": 0, "slash": 0, "bstack": 0, "bseal": 0,
             # race techniques (data_race_tech): own cooldowns, a guard buff (Hierro) and a crit buff (Pesquisa)
-            "t1cd": 0, "t2cd": 0, "t3cd": 0, "gd_t": 0, "gd_m": 1.0, "cb_t": 0, "cb_v": 0.0}
+            "t1cd": 0, "t2cd": 0, "t3cd": 0, "gd_t": 0, "gd_m": 1.0, "cb_t": 0, "cb_v": 0.0,
+            # kidō (data_kido): per-spell cooldowns {"h31": turns} and the spell picked this turn ["kd"|"bk", number]
+            "kcd": {}, "pick": None}
 
 
 def _x(f):
@@ -319,12 +322,37 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     return dmg
 
 
+def _kcd(f) -> dict:
+    x = _x(f)
+    if not isinstance(x.get("kcd"), dict):
+        x["kcd"] = {}
+    return x["kcd"]
+
+
+def kido_castable(f, branch, n) -> bool:
+    """Can this fighter cast spell n of the branch right now? Known, level gate (Hadō only), enough reiatsu, the spell is
+    not cooling down, and from number 80 up the incantation must have been spoken."""
+    if n not in f["kido"][branch]:
+        return False
+    if branch == "had" and f["level"] < math.ceil(n * 0.8):  # Bakudō has no level gate in the fight
+        return False
+    if f["re"] < KD.cost(branch, n) or _kcd(f).get(KD.key(branch, n), 0) > 0:
+        return False
+    return not KD.needs_chant(n, branch) or bool(_x(f)["chant"])
+
+
+def kido_list(f, branch) -> list:
+    """Every spell of the branch the fighter can cast now, highest number first."""
+    return sorted({n for n in f["kido"][branch] if kido_castable(f, branch, n)}, reverse=True)
+
+
 def best_kido(f, branch):
-    """Highest affordable spell number of a branch the fighter may cast."""
-    mult = 2.5 if branch == "had" else 2.0
-    # Bakudō has no level gate in the fight (a learned spell is always castable if the reiatsu is there); Hadō keeps it
-    ok = [n for n in f["kido"][branch] if (branch == "bak" or f["level"] >= math.ceil(n * 0.8)) and f["re"] >= n * mult]
-    return max(ok) if ok else None
+    """The spell that is cast: the one picked this turn (see do_action), else the highest castable number."""
+    pick = _x(f).get("pick")
+    if pick and pick[0] == ("kd" if branch == "had" else "bk"):
+        return pick[1] if kido_castable(f, branch, pick[1]) else None
+    ok = kido_list(f, branch)
+    return ok[0] if ok else None
 
 
 GETSUGA_COST = 0.15   # share of max reiatsu for the release
@@ -482,6 +510,11 @@ def start_turn(state, rng):
     for k in ("t1cd", "t2cd", "t3cd", "gd_t", "cb_t"):
         if fs[k] > 0:
             fs[k] -= 1
+    kc = _kcd(f)
+    for k in list(kc):
+        kc[k] -= 1
+        if kc[k] <= 0:
+            del kc[k]
     if fs["gd_t"] <= 0:
         fs["gd_m"] = 1.0
     if fs["cb_t"] <= 0:
@@ -749,35 +782,56 @@ def _do_action(state, action, rng, max_turns=30):
             ev[-1]["mv"] = f["mv"]  # released + known blade: the strike is called by its technique name
     elif action == "kd":
         n = best_kido(f, "had")
-        f["re"] -= int(n * 2.5)
+        P = KD.hado_params(n)
+        f["re"] -= KD.cost("had", n)
+        if KD.spell_cd(n):
+            _kcd(f)[KD.key("had", n)] = KD.spell_cd(n)
         o = state["b" if side == "a" else "a"]
-        # hadō power: kidō stat and level set the base, the spell number scales it (was ~1-8 damage at low stats)
-        raw = (eff(f, "kido") * 0.9 + f["level"] * 1.0) * (0.7 + 0.3 * n) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1)
+        # hadō power: kidō stat and level set the base, the spell number scales it, the spell's own factor shapes it
+        raw = (eff(f, "kido") * 0.9 + f["level"] * 1.0) * (0.7 + 0.3 * n) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
         chanted = bool(_x(f)["chant"])
         if chanted:  # the incantation is spent: full-power spell
             raw *= CHANT_HADO
             _x(f)["chant"] = 0
-        dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.6))  # same armour weight as melee
+        else:        # no incantation: the high spells lose strength (and from 80 up cannot be cast at all, see kido_castable)
+            raw *= KD.unchanted_mult(n)
+        dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.6 * (1 - P["pierce"])))  # pierce: part of the armour is ignored
         _apply(state, side, dmg, False, rng, ev, "hado", False)
         ev[-1]["chant"] = chanted
         ev[-1]["num"] = n
         ev[-1]["spell"] = KIDO_NAMES.get(("had", n), "")
+        ev[-1]["short"] = (not chanted) and KD.unchanted_mult(n) < 1.0
+        if o["hp"] > 0 and not state["done"]:
+            if P["burn"]:
+                add_fx(o, "burn", 3)
+            if P["weaken"]:
+                add_fx(o, "weaken", 3)
+            if P["stun"] and rng.random() < P["stun"] * (0.5 if o.get("foe") == "boss" else 1.0):  # bosses shrug it off half as often
+                add_fx(o, "skip", 1)
+                ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
     elif action == "bk":
         n = best_kido(f, "bak")
-        f["re"] -= int(n * 2.0)
-        gain = eff(f, "kido") * (n / 10) * 2.5 + 10 + f["max_hp"] * 0.05
+        P = KD.bakudo_params(n)
+        f["re"] -= KD.cost("bak", n)
+        if KD.spell_cd(n):
+            _kcd(f)[KD.key("bak", n)] = KD.spell_cd(n)
+        gain = (eff(f, "kido") * (n / 10) * 2.5 + 10 + f["max_hp"] * 0.05) * P["shield"]
         if _x(f)["chant"]:
             gain *= CHANT_BAK
             _x(f)["chant"] = 0
+        else:
+            gain *= KD.unchanted_mult(n)
         f["shield"] += int(gain)
         ev.append({"k": "shield", "a": f["name"], "n": f["shield"], "num": n, "spell": KIDO_NAMES.get(("bak", n), "")})
-        # the bind chance grows with the spell number (it was gated at Bakudō 30+, which can never be learned, so no
-        # bind ever fired); bosses resist half as well, so they can be bound but not chain-locked
+        # the bind is the spell's own: Sai / Hainawa often, Rikujōkōrō always, Sajō Sabaku for two turns; the walls
+        # (Enkōsen, Tozanshō, Danku) do not bind at all. Bosses resist half as well, so they can be bound but not chain-locked.
         o = state["b" if side == "a" else "a"]
-        bind_p = min(0.6, 0.10 + 0.05 * n) * (0.5 if o.get("foe") == "boss" else 1.0)
-        if rng.random() < bind_p:
-            add_fx(o, "skip", 1)
+        boss = o.get("foe") == "boss"
+        if P["bind"] > 0 and rng.random() < P["bind"] * (0.5 if boss else 1.0):
+            add_fx(o, "skip", 1 if boss else P["turns"])
             ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
+        if P["weaken"]:
+            add_fx(o, "weaken", 3)
     elif action == "df":
         f["guard"] = True
         f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * 0.05))
@@ -847,11 +901,26 @@ def _do_action(state, action, rng, max_turns=30):
     return ev
 
 
+def _parse_kido(f, action):
+    """A picked spell comes as "kd:<number>" (Hadō) or "bk:<number>" (Bakudō): remember the pick for this turn and return
+    the plain action. A bad number becomes a plain attack, like any action the fighter cannot do."""
+    if isinstance(action, str) and action[:3] in ("kd:", "bk:"):
+        try:
+            n = int(action[3:])
+        except ValueError:
+            return "atk"
+        _x(f)["pick"] = [action[:2], n]
+        return action[:2]
+    _x(f)["pick"] = None
+    return action
+
+
 def do_action(state, action, rng, max_turns=30):
     """Distance-aware action: movement, reach checks, auto-approach/back-off, knockback and sidestep."""
     side = state["cur"]
     f = state[side]
     o = state["b" if side == "a" else "a"]
+    action = _parse_kido(f, action)  # "kd:31" / "bk:61": the player picked the spell
     state.setdefault("dist", START_DIST)  # a battle saved before the distance update carries no gap yet
     ang = state.setdefault("ang", {"a": 0, "b": 0})
     ang[side] = 0  # your stance ends when your turn starts; a sidestep below sets it again
@@ -879,6 +948,7 @@ def do_action(state, action, rng, max_turns=30):
     hp0 = o["hp"]
     # hv_last is read by can(f, "hvy") inside _do_action, so it must only be set after the strike
     ev = _do_action(state, action, rng, max_turns)
+    _x(f)["pick"] = None
     _x(f)["hv_last"] = (eff == "hvy")
     dmg = hp0 - o["hp"]
     other = "b" if side == "a" else "a"

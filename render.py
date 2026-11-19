@@ -78,6 +78,8 @@ def events_text(lang: str, events: list) -> str:
                 line = pick(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
             if e.get("chant"):  # a chanted spell is announced before it lands
                 line = pick(lang, "lg_chant_line", a=a) + "\n" + line
+            elif e.get("short"):  # a high spell cast without the incantation lands weaker
+                line += " " + t(lang, "lg_nochant")
             if e.get("c"):
                 line += " " + pick(lang, "lg_crit")
             if e.get("em", 1) > 1.4:

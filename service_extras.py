@@ -89,7 +89,7 @@ async def tower_start(uid: int, lang: str):
     return "ok", doc
 
 
-TOWER_XP_MULT = 0.8  # Soul Tower XP reward multiplier (-20%)
+TOWER_XP_MULT = 0.9  # Soul Tower XP reward multiplier (-10%; was 0.8)
 
 
 async def tower_settle(doc: dict, win: bool) -> dict:
@@ -110,7 +110,7 @@ async def tower_settle(doc: dict, win: bool) -> dict:
     if await bump_counter(f"tower:{uid}:{day_id()}", 1, int(gs["tower_daily_floors"])):
         xp, coins = _rewards(doc["lvl"], 1.0, gs)
         k = min(2.0, 1 + 0.02 * floor)
-        xp, coins = int(xp * k * TOWER_XP_MULT), int(coins * k)  # tower XP is cut by 20%; coins are unchanged
+        xp, coins = int(xp * k * TOWER_XP_MULT), int(coins * k)  # tower XP is cut by 10%; coins are unchanged
         _ch, lv, got = await add_xp(uid, xp, "tower")
         await add_coins(uid, coins, "tower")
         out.update(xp=got, coins=coins, levels=lv)

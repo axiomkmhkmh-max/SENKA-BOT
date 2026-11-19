@@ -82,7 +82,7 @@ TEXT = {
  "lg_hit_atk": "⚔️ {a} cuts into {d} for {n}", "lg_hit_hvy": "💥 {a} puts everything behind the blow and crushes {d}: {n}", "lg_hit_hado": "🔮 {a} chants Hadō {num} {spell} and strikes {d}: {n}", "lg_hit_echo": "↩️ Echo of {a}'s strike: {n}",
  "lg_crit": "✨ Decisive blow", "lg_absorbed": "(🛡 absorbed {n})", "lg_fx": "{a} afflicts {d}: {fx}", "lg_dot": "{d} suffers {n} ({fx})", "lg_miss": "🌫️ {a}'s blade cuts only air", "lg_dodge": "💨 {d} slips past {a}'s strike with hohō",
  "lg_heal": "💚 {a} catches a breath: +{n} HP", "lg_drain": "🌀 {a} steals {n} reiatsu from {d}", "lg_reflect": "🪞 {a} turns the blow back: {n}", "lg_double": "⚡ {a} strikes again, before you can even see!", "lg_skip": "⏸️ {a} loses the turn",
- "lg_guard": "🧱 {a} stands firm, wrapping reiatsu around themself", "lg_form_end": "💤 {a}'s released power fades", "lg_shield": "🛡️ {a} weaves Bakudō {num} {spell} ({n})", "lg_form1": "✨ {a}: reiatsu surges, the blade awakens!", "lg_form2": "🌟 {a} unleashes the final form — the air itself cracks!",
+ "lg_guard": "🧱 {a} stands firm, wrapping reiatsu around themself", "lg_form_end": "💤 {a}'s released power fades", "lg_nochant": "⚠️ (no chant: weaker)", "kd_menu": "📖 Kidō spells", "lg_shield": "🛡️ {a} weaves Bakudō {num} {spell} ({n})", "lg_form1": "✨ {a}: reiatsu surges, the blade awakens!", "lg_form2": "🌟 {a} unleashes the final form — the air itself cracks!",
  "lg_potion_hp": "🧪 {a} heals {n} HP", "lg_potion_re": "🧪 {a} restores {n} reiatsu",
  # duel
  "duel_title": "Duel", "duel_ranked": "Ranked", "duel_friendly": "Friendly", "duel_invite": "🥊 <b>{a}</b> challenges <b>{b}</b> to a {mode} duel! Blades are drawn.", "duel_turn": "▶️ {name}'s turn",

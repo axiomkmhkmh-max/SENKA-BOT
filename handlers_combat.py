@@ -60,6 +60,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         r2.append(mk(ctx.t("a_kd", n=E.best_kido(f, "had"), spell=KIDO_NAMES.get(("had", E.best_kido(f, "had")), "")), "kd"))
     if E.can(f, "bk"):
         r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
+    if not pub and (E.can(f, "kd") or E.can(f, "bk")):  # pick the spell yourself (Bleach style): Shakkahō, Rikujōkōrō, Danku ...
+        r2.append(mk(ctx.t("kd_menu"), "km"))
     for k in range(0, len(r2), 2):  # at most two long labels per line, so they stay readable on a phone
         rows.append(r2[k:k + 2])
     if E.can(f, "gt"):  # gathered: release the wave
@@ -345,10 +347,72 @@ async def _potion_picker(ctx, sid: str):
     return Out(("🧪 کدام معجون را بخوری؟" if fa else "🧪 Which potion do you drink?"), rows)
 
 
+KM_PAGE = 6   # spells per page of the spell menu
+
+
+async def _spell_menu(ctx, sid: str, page: int = 0):
+    """Every spell the fighter knows, by name. Castable ones cast on tap; the ones that wait for the incantation
+    (Hadō 80+, 📿) show locked until a chant has been spoken. Cooling-down spells show their turns."""
+    import data_kido as KD
+    doc = await active_pve(ctx.uid)
+    if not doc or doc.get("sid") != sid or doc["state"].get("done"):
+        return Out(alert=ctx.t("bt_gone"))
+    f, fa = doc["state"]["a"], ctx.lang == "fa"
+    entries = []
+    for branch, icon in (("had", "🔮"), ("bak", "🛡️")):
+        for n in sorted(set(f["kido"][branch]), reverse=True):
+            if E.kido_castable(f, branch, n):
+                state = "ok"
+            elif KD.needs_chant(n, branch) and not E._x(f)["chant"] and E.kido_castable({**f, "x": {**E._x(f), "chant": 1}}, branch, n):
+                state = "chant"
+            elif E._kcd(f).get(KD.key(branch, n), 0) > 0:
+                state = "cd"
+            else:
+                continue  # not affordable / below the level gate: not shown
+            entries.append((branch, icon, n, state))
+    entries.sort(key=lambda e: (e[3] != "ok", e[0] != "had", -e[2]))
+    pages = max(1, -(-len(entries) // KM_PAGE))
+    page = max(0, min(page, pages - 1))
+    rows = []
+    for branch, icon, n, state in entries[page * KM_PAGE:(page + 1) * KM_PAGE]:
+        name = KIDO_NAMES.get((branch, n), "")
+        tag = KD.icons(branch, n)
+        if state == "ok":
+            rows.append([(f"{icon} {n} {name} {tag} · {KD.cost(branch, n)}", "ba", f"{sid}.{'kd' if branch == 'had' else 'bk'}:{n}")])
+        elif state == "chant":
+            rows.append([(f"📿 {n} {name} " + ("(اول چنت)" if fa else "(chant first)"), "ba", f"{sid}.kmx")])
+        else:
+            rows.append([(f"⏳ {n} {name} · {E._kcd(f).get(KD.key(branch, n), 0)}", "ba", f"{sid}.kmx")])
+    if pages > 1:
+        nav_row = []
+        if page > 0:
+            nav_row.append(("◀️", "ba", f"{sid}.km:{page - 1}"))
+        nav_row.append((f"{page + 1}/{pages}", "ba", f"{sid}.kmx"))
+        if page < pages - 1:
+            nav_row.append(("▶️", "ba", f"{sid}.km:{page + 1}"))
+        rows.append(nav_row)
+    if E.can(f, "ch"):
+        rows.append([(("📿 چنت" if fa else "📿 Chant"), "ba", f"{sid}.ch")])
+    rows.append([("⬅️ برگشت" if fa else "⬅️ Back", "ba", f"{sid}.kmb")])
+    text = ((f"📖 <b>فن‌های کیدو</b>\nریاتسو: {fnum(f['re'], ctx.lang)}/{fnum(f['max_re'], ctx.lang)}\n"
+             "🎯 زره‌شکن · 🔥 سوختن · ⚡ گیجی · 🔻 تضعیف · 🔗 بند · 🧱 دیوار · 📿 نیازمند چنت\n"
+             "فن‌های ۸۰ به بالا فقط با چنت پرتاب می‌شن؛ از ۶۰ به بالا بدون چنت ضعیف‌تر می‌زنن؛ فن‌های بزرگ بعد از پرتاب چند نوبت کولداون دارن.") if fa else
+            (f"📖 <b>Kidō spells</b>\nReiatsu: {fnum(f['re'], ctx.lang)}/{fnum(f['max_re'], ctx.lang)}\n"
+             "🎯 pierces armour · 🔥 burn · ⚡ stun · 🔻 weaken · 🔗 bind · 🧱 wall · 📿 needs the chant\n"
+             "Spells from 80 up need the incantation; from 60 up they hit weaker without it; big spells cool down for a few turns after a cast."))
+    return Out(text, rows)
+
+
 @action("ba")
 async def battle_action(ctx, arg):
     sid, _, act = arg.partition(".")
     potion = None
+    if act == "km" or act.startswith("km:"):
+        return await _spell_menu(ctx, sid, int(act[3:]) if act.startswith("km:") and act[3:].isdigit() else 0)
+    if act == "kmx":  # a locked / cooling spell or the page counter
+        return Out(alert=("📿 اول چنت بخون، یا فن هنوز آماده نیست." if ctx.lang == "fa" else "📿 Chant first, or the spell is not ready yet."))
+    if act == "kmb":  # back from the spell menu: nothing is cast
+        return await battle_menu(ctx, "")
     if act == "pot":
         return await _potion_picker(ctx, sid)
     if act == "potb":  # back from the picker: nothing is used
