@@ -138,6 +138,8 @@ GAME_DEFAULTS = {
     "log_enabled": True, "log_nav": False,
     "season_days": 30, "season_soft_reset": 0.25, "season_daily_pts_cap": 400, "season_min_pts": 30,
     "season_top_coins": 50000, "season_part_coin_per_pt": 5, "new_acct_minutes": 60,
+    # ---- Guild Quest Board (adventure mode; tables in data_guildquest.py) ------------------------
+    "gq_daily": 5, "gq_xp_k": 1.3, "gq_final_xp_mult": 2.0, "gq_coin_base": 300, "gq_coin_rank_k": 0.25,
 }
 
 

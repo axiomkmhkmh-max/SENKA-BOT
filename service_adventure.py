@@ -2,15 +2,19 @@
 elite shop (rules and numbers in data_extras2). Every coin or item write is conditional or atomic, like the rest."""
 import random
 import time
+from datetime import datetime, timedelta, timezone
 
-from data_extras2 import (ADV_DAILY, ADVENTURES, ELITE_MIN_LEVEL, ELITE_PRICE_K, ELITE_STOCK, ELITE_STOCK_100, INNER2, INNER_KEY,
+from pymongo.errors import DuplicateKeyError
+
+from data_extras2 import (ELITE_MIN_LEVEL, ELITE_PRICE_K, ELITE_STOCK, ELITE_STOCK_100, INNER2, INNER_KEY,
                           LEVEL_BOSS_KEY, LEVEL_BOSS_MYTHIC, LEVEL_BOSS_RELIC, LEVEL_BOSS_STONE, LEVEL_BOSSES, PET_MAX_TIER,
                           PET_UP_COINS, PET_UP_MATS, ROLL_COST, ROLL_EGG_SHARE, ROLL_JACKPOT_EVERY, ROLL_TEN_COST, ROLL_WEIGHTS,
                           TEMPER_STONE, level_band)
+from data_guildquest import ITEM_IDX, ZNP_BOND, ZNP_MASTERY, item_count, make_board
 from data_items import ALL, EVO_BY_RARITY, MYTHIC_ACCESSORIES
 from data_weapons import RARITIES
 from data_world import day_id
-from database import bump_counter, col, counter_get, try_cooldown
+from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from service_economy import inv_add, inv_get, inv_remove, roll_drop
 from service_player import add_coins, get_char
 
@@ -18,29 +22,90 @@ from service_player import add_coins, get_char
 LEVEL_BOSS_DAILY = 2   # level-band boss fights per day (was 1)
 
 
-# ---- adventures ---------------------------------------------------------------------------------------------------------
-async def adventure_info(uid: int) -> dict:
-    used = await counter_get(f"adv:{uid}:{day_id()}")
-    return {"left": max(0, ADV_DAILY - used), "cap": ADV_DAILY}
+# ---- Guild Quest Board (the adventure mode; tables in data_guildquest.py) --------------------------------------------------
+async def gq_board(uid: int, level: int) -> list:
+    """Today's board: random quest levels, fixed once created (a level-up later in the day does not reshuffle it)."""
+    day = day_id()
+    key = f"{uid}:{day}"
+    doc = {"key": key, "quests": make_board(uid, day, level), "expire_at": datetime.now(timezone.utc) + timedelta(hours=48)}
+    try:
+        got = await col("gq_boards").find_one_and_update({"key": key}, {"$setOnInsert": doc}, upsert=True, return_document=True)
+    except DuplicateKeyError:  # two opens at the same moment: the other one created it
+        got = await col("gq_boards").find_one({"key": key})
+    return (got or doc)["quests"]
 
 
-async def adventure_start(uid: int, aid: str, lang: str):
-    from service_combat import active_pve, pve_start
-    a = ADVENTURES.get(aid)
+async def gq_info(uid: int) -> dict:
     ch = await get_char(uid)
-    if not a or not ch:
+    gs = await game_settings()
+    day = day_id()
+    board = await gq_board(uid, int(ch["level"]))
+    used = await counter_get(f"adv:{uid}:{day}")
+    taken = [await counter_get(f"gq:{uid}:{day}:{q['slot']}") >= 1 for q in board]
+    cap = int(gs["gq_daily"])
+    return {"left": max(0, cap - used), "cap": cap, "board": board, "taken": taken, "level": int(ch["level"]),
+            "shikai": bool((ch.get("zanpakuto") or {}).get("shikai"))}
+
+
+async def gq_start(uid: int, slot, lang: str):
+    """Takes one quest of today's board: a quest once a day, and at most gq_daily quests a day. Both counters are atomic."""
+    from service_combat import blocking_pve, pve_start
+    ch = await get_char(uid)
+    if not ch:
         return "bad", None
-    if int(ch["level"]) < a["level"]:
-        return "level", a["level"]
-    from service_combat import blocking_pve
+    try:
+        q = (await gq_board(uid, int(ch["level"])))[int(slot)]
+    except (ValueError, IndexError, TypeError):
+        return "bad", None
     if await blocking_pve(uid):
         return "busy", None
     if await try_cooldown(f"adv:go:{uid}", 3):
         return "wait", None
-    if not await bump_counter(f"adv:{uid}:{day_id()}", 1, ADV_DAILY):
+    gs = await game_settings()
+    day = day_id()
+    skey = f"gq:{uid}:{day}:{q['slot']}"
+    if not await bump_counter(skey, 1, 1):
+        return "taken", None
+    if not await bump_counter(f"adv:{uid}:{day}", 1, int(gs["gq_daily"])):
+        await col("counters").update_one({"key": skey}, {"$inc": {"n": -1}})  # the quest is not used up by a refused ticket
         return "limit", None
-    doc = await pve_start(uid, lang, dungeon={"id": aid, "adv": True, "stage": 1, "total": a["stages"], "diff": "normal"})
+    dungeon = {"id": f"gq{q['slot']}", "gq": True, "stage": 1, "total": q["stages"], "diff": "normal", "region": q["region"],
+               "type": q["type"], "qlvl": q["lvl"], "rank": q["rank"], "slot": q["slot"]}
+    try:
+        doc = await pve_start(uid, lang, dungeon=dungeon)
+    except Exception:  # no fight was opened: give the quest and the ticket back, then let the error show in the log
+        await col("counters").update_one({"key": skey}, {"$inc": {"n": -1}})
+        await col("counters").update_one({"key": f"adv:{uid}:{day}"}, {"$inc": {"n": -1}})
+        raise
     return "ok", doc
+
+
+async def gq_finish(uid: int, d: dict, gs: dict) -> dict:
+    """Pays a cleared quest once (pve_settle claims the winning fight atomically before it calls this): items of the
+    rank's colour, Zanpakutō release progress (bond always; Mastery once Shikai is released, up to the cap) and a small
+    coin purse. Quest loot is never lost to a full bag."""
+    from data_zanpakuto import bond_key
+    r, qtype = int(d["rank"]), d["type"]
+    items = []
+    for _ in range(item_count(r, qtype)):
+        iid = await roll_drop(uid, exact_idx=ITEM_IDX[r])
+        if iid:
+            items.append(iid)
+            await inv_add(uid, iid, 1, force=True)
+    ch = await get_char(uid)
+    z = (ch or {}).get("zanpakuto") or {}
+    inc = {f"bond.{bond_key(ch or {})}": ZNP_BOND[r]}
+    mastery = 0
+    if z.get("shikai"):
+        mastery = max(0, min(ZNP_MASTERY[r], int(gs.get("znp_mastery_cap", 1000)) - int(z.get("mastery", 0))))
+        if mastery:
+            inc["zanpakuto.mastery"] = mastery
+    await col("characters").update_one({"user_id": uid}, {"$inc": inc})
+    coins = int(float(gs["gq_coin_base"]) * (1 + int(d["qlvl"]) / 10) * (1 + float(gs["gq_coin_rank_k"]) * r))
+    if coins > 0:
+        await add_coins(uid, coins, "guild_quest")
+    return {"items": items, "bond": ZNP_BOND[r], "mastery": mastery, "coins": coins, "rank": r, "qtype": qtype,
+            "shikai": bool(z.get("shikai"))}
 
 
 # ---- level bosses -------------------------------------------------------------------------------------------------------

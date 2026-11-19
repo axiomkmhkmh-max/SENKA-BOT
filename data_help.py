@@ -209,12 +209,12 @@ TOPICS = {
         "• Your evolution stage is kept.\n• A Visored can go back to Shinigami and later become Visored again without the trial.\n"
         "• Your armour turns into the new race's (same colour) and you pick a new race weapon at the same level.")),
     "adv": ("🧭 ماجراجویی و باس‌ها", "🧭 Adventures and bosses", _t(
-        "🧭 <b>ماجراجویی</b>\n━━━━━━━━━━━━━━\n"
-        "روزی ۳ ماجراجویی چندمرحله‌ای (۳ تا ۵ مرحله) با دشمن‌های نزدیک به لِوِل خودت. هر مرحله ۱.۶ برابر سکه و ۱.۳ برابر تجربه‌ی نبرد عادی می‌دهد و آخرش یک کیسه‌ی سکه: ۶۰۰ × (۱ + لِوِل ÷ ۱۰). مرحله‌ی آخر یک باس دارد. هر ماجراجویی از یک لِوِل باز می‌شود.\n\n"
+        "🗺 <b>تابلوی کوئست گیلد (ماجراجویی)</b>\n━━━━━━━━━━━━━━\n"
+        "هر روز یک تابلوی ۵ کوئستی با سطح رندوم؛ روزی تا ۵ کوئست و هر کوئست یک بار. هر کوئست چند مرحله دارد (۲ تا ۶) و رنکش (F تا S) با فاصله‌ی سطحش از سطح تو بالا می‌رود. نوع‌ها: پاکسازی، سرکوب (باس منطقه) و آزمون سخت (باس، یک مرحله بیشتر، بدون استراحت قبل از مرحله‌ی ۳، یک آیتم اضافه). هر مرحله تجربه می‌دهد و آخرش: آیتم هم‌رنگ رنک، پیشرفت آزادسازی زانپاکتو (پیوند برای شیکای؛ مهارت برای بانکای بعد از آزاد کردن شیکای) و کمی سکه. هر منطقه از یک لِوِل باز می‌شود.\n\n"
         "👺 <b>مینی‌باس</b>: در نبرد عادی ۲٪ شانس دارد به‌جای دشمن معمولی یک مینی‌باس دو برابر قوی‌تر بیاید. بردن آن: تجربه و سکه ×۳، یک دراپ حتمی و ۱۰٪ شانس یادگار تکامل.\n\n"
         "👹 <b>باس سطح</b>: هر بازه‌ی لِوِل (۱–۲۰، ۲۱–۴۰، ۴۱–۶۰، ۶۱–۸۰، ۸۱–۱۰۰، ۱۰۱+) باس خودش را دارد و فقط همان بازه می‌تواند با آن بجنگد؛ روزی یک بار. جایزه: تجربه و سکه ×۴، یک آیتم هم‌رنگ بازه، ۲۵٪ یادگار تکامل، ۲۰٪ سنگ آبدیده‌سازی، ۲٪ کلید دنیای درون.",
-        "🧭 <b>Adventures</b>\n━━━━━━━━━━━━━━\n"
-        "3 a day: multi-stage journeys (3 to 5 stages) against foes near your level. Each stage pays 1.6× the coins and 1.3× the XP of a normal fight, and the end pays a coin purse: 600 × (1 + level ÷ 10). The last stage has a boss. Each adventure opens at a level.\n\n"
+        "🗺 <b>Guild Quest Board (adventures)</b>\n━━━━━━━━━━━━━━\n"
+        "Every day a board of 5 random-level quests; up to 5 a day, each quest once. A quest has 2 to 6 stages and its rank (F to S) rises with how far its level is above yours. Types: Purge, Subjugation (the region's boss) and Gauntlet (a boss, one more stage, no breather before stage 3, one extra item). Every stage pays XP; the finish pays an item of the rank's colour, Zanpakutō release progress (bond toward Shikai; Mastery toward Bankai once Shikai is released) and a few coins. Each region opens at a level.\n\n"
         "👺 <b>Mini-boss</b>: a normal fight has a 2% chance of a mini-boss twice as strong instead. Beating it: XP and coins ×3, a guaranteed drop and a 10% chance of an evolution relic.\n\n"
         "👹 <b>Level boss</b>: each level band (1–20, 21–40, 41–60, 61–80, 81–100, 101+) has its own boss that only that band can fight, once a day. Reward: XP and coins ×4, an item of the band's colour, 25% evolution relic, 20% Tempering Stone, 2% Inner World Key.")),
     "shp": ("🎰 شاپ رول و نخبگان", "🎰 Roll and elite shops", _t(

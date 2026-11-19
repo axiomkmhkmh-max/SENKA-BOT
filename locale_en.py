@@ -336,3 +336,28 @@ TEXT.update({
     'lg_release_lost_hollow': "🦴 {a}'s Hollow instinct takes over; it howls instead of fighting!",
     'lg_release_lost_arrancar': "🦴 {a}'s Resurrección slips out of control; the turn is lost!",
 })
+
+TEXT.update({
+    "m_avl": "🗺 Guild Quest Board",
+    "gq_intro": "🗺 <b>Guild Quest Board</b>\nA few random-level quests every day. Each has several stages (like a dungeon) and its rank (F to S) rises with how far its level is above yours. The finishing reward: items, Zanpakutō release progress (bond toward Shikai, Mastery toward Bankai) and a few coins. Each quest can be taken once a day.",
+    "gq_ticket": "🎟 Quests today: {left}/{cap}",
+    "gq_row": "{mark} <b>{title}</b> · Lv.{lvl} · {stages} stages{warn}",
+    "gq_reward": "    🎁 {items} {colour} item(s) · 🔗 bond +{bond}{mastery}",
+    "gq_reward_m": " · 💪 Mastery +{m}",
+    "gq_note_types": "Purge: the last foe is a tough regular of the region. Subjugation: ends with the region's boss. Gauntlet: a boss, one more stage, no breather before stage 3, but one extra item.",
+    "gq_note_mastery": "💪 Mastery counts once your Shikai is released.",
+    "gq_btn": "⚔️ {title} · Lv.{lvl}",
+    "gq_stage": "🗺 {title} — stage {n}/{t}",
+    "gq_done": "📜 Rank {rank} quest cleared!",
+    "gq_items": "🎁 Items: {items}",
+    "gq_znp": "🔗 Zanpakutō bond: +{bond}",
+    "gq_znp_m": " · 💪 Mastery: +{m}",
+    "gq_coins": "🪙 Quest purse: +{c}",
+    "gq_back": "🗺 Quest board",
+    "gq_e_busy": "Finish your current fight first.",
+    "gq_e_limit": "No quests left today.",
+    "gq_e_taken": "You already took this quest today; the board changes tomorrow.",
+    "gq_e_bad": "Invalid quest.",
+})
+
+TEXT.update({"lb_stage": "👹 Level boss fight", "lb_done": "👹 Level boss defeated!", "lb_items": "🎁 Loot: {items}"})

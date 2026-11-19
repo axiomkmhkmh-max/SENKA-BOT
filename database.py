@@ -56,6 +56,7 @@ async def ensure_indexes():
                        ([("rating", DESCENDING)], {}), ([("guild_id", ASCENDING)], {}),
                        ([("tower.wk", ASCENDING), ("tower.wk_best", DESCENDING)], {})],
         "inventories": [([("user_id", ASCENDING)], U)],
+        "gq_boards": [([("key", ASCENDING)], U), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],  # daily quest boards
         "registration": [([("user_id", ASCENDING)], U)],
         "inputs": [([("user_id", ASCENDING)], {})],
         "admin_pending": [],

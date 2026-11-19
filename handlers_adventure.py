@@ -1,10 +1,11 @@
-"""Panels for the Nov 19 batch: 🧭 adventures, 👹 level boss, 🎰 roll shop, 🏛 elite shop, 🌌 Inner World 2 and the
+"""Panels for the Nov 19 batch: 🗺 the Guild Quest Board (adventures), 👹 level boss, 🎰 roll shop, 🏛 elite shop, 🌌 Inner World 2 and the
 companion upgrade button (services in service_adventure, numbers in data_extras2)."""
-from data_extras2 import (ADV_FINISH_COINS, ADVENTURES, ELITE_MIN_LEVEL, INNER2, INNER_KEY, LEVEL_BOSSES, PET_MAX_TIER,
+from data_extras2 import (ELITE_MIN_LEVEL, INNER2, INNER_KEY, LEVEL_BOSSES, PET_MAX_TIER,
                           ROLL_COST, ROLL_JACKPOT_EVERY, ROLL_TEN_COST, ROLL_WEIGHTS)
+from data_guildquest import reward_preview, title as gq_title
 from data_items import ALL, iname
 from i18n import fnum
-from service_adventure import (adventure_info, adventure_start, elite_buy, elite_price, elite_stock, inner2_use,
+from service_adventure import (elite_buy, elite_price, elite_stock, gq_info, gq_start, inner2_use,
                                level_boss_info, level_boss_start, pet_up_cost, pet_upgrade, roll, today_key)
 from service_economy import inv_get
 from fmt import rarity_name
@@ -23,38 +24,38 @@ async def _to_battle(ctx, doc):
     return await battle_panel(ctx, doc)
 
 
-# ---- adventures -----------------------------------------------------------------------------------------------------------
+# ---- Guild Quest Board (the adventure mode) --------------------------------------------------------------------------------
 @action("avl")
 async def adventure_list(ctx, arg):
     L = ctx.lang
-    ch = await get_char(ctx.uid)
-    info = await adventure_info(ctx.uid)
-    lines = [_T(ctx, "🧭 <b>ماجراجویی</b>\nسفرهای چندمرحله‌ای با دشمن‌های هم‌سطح تو (کمی ضعیف‌تر یا قوی‌تر). سکه‌محور: هر مرحله سکه‌ی بیشتر از نبرد عادی و آخرش یک کیسه‌ی سکه. رنک و دانجن پوینت ندارد.",
-                "🧭 <b>Adventures</b>\nMulti-stage journeys against foes around your level. Coin-focused: each stage pays more coins than a normal fight and the end pays a coin purse. No rank or dungeon points."),
-             _T(ctx, f"🎟 امروز: {fnum(info['left'], L)}/{fnum(info['cap'], L)}", f"🎟 Today: {info['left']}/{info['cap']}"), ""]
+    info = await gq_info(ctx.uid)
+    lines = [ctx.t("gq_intro"), ctx.t("gq_ticket", left=fnum(info["left"], L), cap=fnum(info["cap"], L)), ""]
     rows = []
-    for aid, a in ADVENTURES.items():
-        ok = int(ch["level"]) >= a["level"]
-        lines.append(("✅ " if ok else "🔒 ") + f"{a['fa' if L == 'fa' else 'en']} · {fnum(a['stages'], L)} " + _T(ctx, "مرحله", "stages")
-                     + ("" if ok else f" · Lv.{fnum(a['level'], L)}"))
-        if ok:
-            rows.append([(f"🧭 {a['fa' if L == 'fa' else 'en']}", "avs", aid)])
-    lines.append("")
-    lines.append(_T(ctx, f"🪙 کیسه‌ی پایان: {fnum(ADV_FINISH_COINS, L)} × (۱ + لول ÷ ۱۰)", f"🪙 Finish purse: {ADV_FINISH_COINS} × (1 + level ÷ 10)"))
+    for q, used in zip(info["board"], info["taken"]):
+        warn = " ⚠️" if q["lvl"] > info["level"] + 6 else ""
+        lines.append(ctx.t("gq_row", mark="✔️" if used else "🔓", title=gq_title(q, L), lvl=fnum(q["lvl"], L),
+                           stages=fnum(q["stages"], L), warn=warn))
+        pv = reward_preview(q)
+        mast = ctx.t("gq_reward_m", m=fnum(pv["mastery"], L)) if info["shikai"] else ""
+        lines.append(ctx.t("gq_reward", items=fnum(pv["items"], L), colour=rarity_name(_RARS[pv["item_idx"]], L),
+                           bond=fnum(pv["bond"], L), mastery=mast))
+        if not used:
+            rows.append([(ctx.t("gq_btn", title=gq_title(q, L), lvl=fnum(q["lvl"], L))[:60], "avs", str(q["slot"]))])
+    lines += ["", ctx.t("gq_note_types")]
+    if not info["shikai"]:
+        lines.append(ctx.t("gq_note_mastery"))
     rows.append(nav(ctx))
     return Out(head(ctx, "m_avl") + "\n".join(lines), rows)
 
 
 @action("avs")
 async def adventure_go(ctx, arg):
-    status, doc = await adventure_start(ctx.uid, arg, ctx.lang)
+    status, doc = await gq_start(ctx.uid, arg, ctx.lang)
     if status == "ok":
         return await _to_battle(ctx, doc)
-    msg = {"level": _T(ctx, "لِوِلت برای این ماجراجویی کم است.", "Your level is too low for this one."),
-           "busy": _T(ctx, "اول نبرد فعلی‌ات را تمام کن.", "Finish your current fight first."),
-           "limit": _T(ctx, "ماجراجویی‌های امروزت تمام شد.", "No adventures left today."),
-           "wait": "⏳"}.get(status, _T(ctx, "انتخاب نامعتبر.", "Invalid choice."))
-    return Out(alert=msg)
+    if status == "wait":
+        return Out(alert="⏳")
+    return Out(alert=ctx.t({"busy": "gq_e_busy", "limit": "gq_e_limit", "taken": "gq_e_taken"}.get(status, "gq_e_bad")))
 
 
 # ---- level boss ---------------------------------------------------------------------------------------------------------

@@ -191,6 +191,11 @@ async def battle_panel(ctx, doc, events=None):
     d = doc.get("dungeon")
     if d and d.get("tower"):
         title += ctx.t("tw_floor_boss" if d["stage"] % 5 == 0 else "tw_floor", n=fnum(d["stage"], ctx.lang)) + "\n"
+    elif d and d.get("lboss"):
+        title += ctx.t("lb_stage") + "\n"
+    elif d and d.get("gq"):
+        from data_guildquest import title as gq_title
+        title += ctx.t("gq_stage", title=gq_title(d, ctx.lang), n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang)) + "\n"
     elif d:
         title += ctx.t("dg_stage", n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang), diff=ctx.t("diff_" + d["diff"])) + "\n"
         flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
@@ -316,6 +321,17 @@ async def _pve_result(ctx, doc, ev, o):
     if o["next"]:
         lines.append(ctx.t("dg_next"))
         rows.append([(ctx.t("b_next_stage"), "bn", o["next"])])
+    elif o.get("lboss"):  # level boss defeated
+        lines.append(ctx.t("lb_done"))
+        lines.append(ctx.t("lb_items", items=", ".join(nm(i, L) for i in o["lboss"]["items"]) or "—"))
+    elif o.get("quest"):  # Guild Quest cleared: items, release progress, purse
+        from data_guildquest import RANKS
+        qd = o["quest"]
+        lines.append(ctx.t("gq_done", rank=RANKS[qd["rank"]]))
+        lines.append(ctx.t("gq_items", items=", ".join(nm(i, L) for i in qd["items"]) or "—"))
+        lines.append(ctx.t("gq_znp", bond=fnum(qd["bond"], L)) + (ctx.t("gq_znp_m", m=fnum(qd["mastery"], L)) if qd["mastery"] else ""))
+        lines.append(ctx.t("gq_coins", c=fnum(qd["coins"], L)))
+        rows.append([(ctx.t("gq_back"), "avl", "")])
     elif o["dungeon_done"]:
         lines.append(ctx.t("dg_done"))
         if o.get("dp"):

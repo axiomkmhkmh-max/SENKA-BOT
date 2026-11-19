@@ -7,6 +7,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from data_crafting import player_bonus, tagged_name, temper_def
+from data_extras2 import (LEVEL_BOSS_REWARD, LEVEL_BOSS_SCALE, LEVEL_BOSSES, MINI_BOSS_CHANCE, MINI_BOSS_NAMES, MINI_BOSS_RELIC,
+                          MINI_BOSS_REWARD, MINI_BOSS_SCALE)
+from data_guildquest import XP_BONUS_RANK
 from data_items import ALL
 from data_races import DIFFICULTY, DUNGEON_ENEMIES, DUNGEONS, LOCATIONS, RACES, soft_stat
 from data_weapons import ELEMENTS
@@ -271,6 +274,16 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
             pick = dg_foes["boss"] if dungeon["stage"] == dungeon["total"] else rng.choice(dg_foes["enemies"])
             sig_race = dg_foes.get("race")
             name = pick[0 if lang == "fa" else 1]
+    if dungeon and dungeon.get("gq"):  # Guild Quest: the quest's own random level and its region's foes
+        from data_guildquest import quest_foe
+        lvl = int(dungeon["qlvl"])
+        pick = quest_foe(dungeon, int(dungeon["stage"]), rng)
+        sig_race = None  # the foe's signature comes from its name, not from where the player happens to stand
+        name = pick[0 if lang == "fa" else 1]
+    if dungeon and dungeon.get("lboss"):  # level-band boss: fought at the player's own level, with its own signature
+        lo, hi, b_fa, b_en, _c, b_race = LEVEL_BOSSES[int(dungeon["band"])]
+        lvl, sig_race, pick = int(ch["level"]), b_race, (b_fa, b_en)
+        name = pick[0 if lang == "fa" else 1]
     if tower:  # Soul Tower: endless floors, a Warden every 5th
         from data_extras import TOWER_BOSS_EVERY, TOWER_ENEMIES
         floor = int(dungeon["stage"])
@@ -288,9 +301,15 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         elif stage == max(2, total // 2):
             mult *= 1.3
             name = "⚔️ " + name
-        scale = mult
+        scale = LEVEL_BOSS_SCALE if dungeon.get("lboss") else mult
+        if dungeon.get("lboss"):
+            name = "👹 " + name
+    mini = bool(not dungeon and not trial and not force_elite and rng.random() < MINI_BOSS_CHANCE)
     elite = bool(force_elite) or ((not dungeon) and (not trial) and rng.random() < 0.15)
-    if elite:
+    if mini:  # rare stronger foe in a normal fight (pays x3 and a guaranteed drop, see pve_settle)
+        scale, name = MINI_BOSS_SCALE, "👺 " + rng.choice(MINI_BOSS_NAMES)[0 if lang == "fa" else 1]
+        elite = False
+    elif elite:
         scale, name = (1.55 if force_elite else 1.4), "💀 " + name
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
@@ -322,7 +341,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         state["cur"] = state["first"] = "a"
     E.run_ai(state, rng)
     doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
-           "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "lvl": lvl,
+           "created_at": int(time.time()), "expire_at": _exp(), "scale": scale, "elite": elite, "mini": mini, "lvl": lvl,
            "dungeon": dungeon, "trial": trial, "loc": ch["location"], "lang": lang}
     await col("battles").insert_one(doc)
     return doc
@@ -393,10 +412,18 @@ async def pve_settle(doc: dict):
             out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop, "milestone": cms}
             if cfull:
                 out["drop_full"] = out.get("drop_full") or cfull
-        if d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
+        if d and d.get("gq"):  # Guild Quest: XP per stage (more for a higher rank), the items and release progress come at the end
+            xp, coins = int(xp * float(gs["gq_xp_k"]) * (1 + XP_BONUS_RANK * int(d["rank"]))), 0
+            if d["stage"] == d["total"]:
+                xp = int(xp * float(gs["gq_final_xp_mult"]))
+        elif d and d.get("lboss"):  # level boss: XP and coins x4, items from level_boss_loot
+            xp, coins = int(xp * LEVEL_BOSS_REWARD), int(coins * LEVEL_BOSS_REWARD)
+        elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
             xp, coins = int(xp * DG_XP_MULT), 0
             if d["stage"] == d["total"]:
                 xp *= 3
+        if doc.get("mini"):
+            xp, coins = int(xp * MINI_BOSS_REWARD), int(coins * MINI_BOSS_REWARD)
         coins = int(coins * wm["coin"])
         coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
         ch, lv, got = await add_xp(uid, xp, "pve")
@@ -409,7 +436,12 @@ async def pve_settle(doc: dict):
         out["gang"] = await gang_rewards(uid, doc) if not d else {}  # dungeons pay no coins (Bount absorption included)
         from service_worldstate import on_action, territory_income
         out["terr"] = await territory_income(uid, doc["loc"], coins, xp)
-        chance = 1.0 if doc["elite"] else 0.35
+        chance = 1.0 if (doc["elite"] or doc.get("mini")) else 0.35
+        if doc.get("mini") and random.random() < MINI_BOSS_RELIC:
+            from data_items import EVO_BY_RARITY
+            rid = random.choice(EVO_BY_RARITY.get("Rare") or EVO_BY_RARITY["Common"])
+            await inv_add(uid, rid, 1, force=True)
+            out["extra_drops"] = [rid]
         if not d and random.random() < chance:  # dungeons drop no items any more: XP, coins and dungeon points (DP) instead
             iid = await roll_drop(uid, source_mult=2.0 if doc["elite"] else 1.0)
             if await inv_add(uid, iid, 1):
@@ -419,7 +451,7 @@ async def pve_settle(doc: dict):
         if d and d["stage"] < d["total"]:
             f = st["a"]
             hp_frac = f["hp"] / f["max_hp"]
-            if d["stage"] + 1 == DG_STAGE3_HEAL_AT and hp_frac < 1.0:
+            if d["stage"] + 1 == DG_STAGE3_HEAL_AT and hp_frac < 1.0 and not (d.get("gq") and d.get("type") == "gauntlet"):
                 # stage 3 was too hard on carried-over wounds: a breather restores part of the HP on the way in
                 hp_frac = min(1.0, hp_frac + DG_STAGE3_HEAL)
                 out["dg_heal"] = int(DG_STAGE3_HEAL * 100)
@@ -428,6 +460,12 @@ async def pve_settle(doc: dict):
                                          "gauge": int((f.get("x") or {}).get("gauge", 0)),
                                          "shield": int(f.get("shield", 0))})  # a Bakudō barrier survives the stage change  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
+        elif d and d.get("lboss"):  # level boss down: not a dungeon clear
+            from service_adventure import level_boss_loot
+            out["lboss"] = await level_boss_loot(uid, int(d["band"]))
+        elif d and d.get("gq"):  # quest cleared: not a dungeon clear (no DP, cores or Visored trial)
+            from service_adventure import gq_finish
+            out["quest"] = await gq_finish(uid, d, gs)
         elif d:
             out["dungeon_done"] = True
             await bump_quest(uid, "dungeon_clear", 1)
