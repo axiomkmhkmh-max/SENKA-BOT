@@ -98,7 +98,7 @@ async def kido_cards(ctx,arg):
         if key in learned:
             name=d["name"]
             desc=d.get("fa","") if L=="fa" else ""
-            lines.append(f"✅ <b>{name}</b> · {d['type']} · Lv.{d['level']} · {d['cost']} RE")
+            lines.append(f"✅ <b>{name}</b> · {d['type']} · Lv.{d['level']} · {d['cost']}{'' if d['type'] == 'Kaidō' else '%'} RE")
             if desc: lines.append(f"<i>{desc}</i>")
         else:
             lines.append(("🔒 ??? · " if L=="fa" else "🔒 ??? · ")+f"{d['type']} · Lv.{d['level']}")

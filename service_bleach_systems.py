@@ -32,11 +32,12 @@ KIDO = {
     "kaido": {"name":"Kaidō: Minor Recovery", "type":"Kaidō", "level":12, "cost":25, "power":0.0, "fa":"کایدو — بازیابی جزئی"},
 }
 
-# the cost shown for each spell is the one the fight charges (data_kido.cost), not a separate number
-from data_kido import cost as _kido_cost
+# the cost shown for each spell is the one the fight charges: a share of max reiatsu (data_kido.cost_pct),
+# not a flat number (data_kido.cost needs the caster's max reiatsu, which does not exist at import time)
+from data_kido import cost_pct as _kido_cost_pct
 for _k, _v in KIDO.items():
     if _k != "kaido":
-        _v["cost"] = _kido_cost("had" if _v["type"] == "Hadō" else "bak", int(re.sub(r"\D", "", _k)))
+        _v["cost"] = _kido_cost_pct("had" if _v["type"] == "Hadō" else "bak", int(re.sub(r"\D", "", _k)))
 
 FACTIONS = {
     "gotei13": {"fa":"گوتی ۱۳", "en":"Gotei 13", "races":["shinigami","visored"], "ranks":["Academy Student","Unseated Officer","Seated Officer","Lieutenant Candidate","Captain Candidate"]},
