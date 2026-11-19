@@ -118,6 +118,7 @@ async def main():
     from handlers_core import router
     from handlers_admincmd import router as admin_cmd_router  # admin slash commands + /redeem + /tokens (must come before the text router)
     import handlers_admincmd2  # noqa: F401  (admin slash commands, batch 2)
+    import handlers_grouplinks  # noqa: F401  (/groups: links of the groups the bot is in + join/leave tracking)
     import scheduler
     dp = Dispatcher()
     dp.include_router(admin_cmd_router)
@@ -148,7 +149,7 @@ async def main():
         log.info("SENKA online as @%s", me.username)
         from service_joingate import self_check
         await self_check(bot)
-        await dp.start_polling(bot, allowed_updates=["message", "callback_query"], handle_signals=True)
+        await dp.start_polling(bot, allowed_updates=["message", "callback_query", "my_chat_member"], handle_signals=True)
     finally:
         stop.set()
         await asyncio.gather(task, log_task, notify_task, rw_task, rs_task, return_exceptions=True)

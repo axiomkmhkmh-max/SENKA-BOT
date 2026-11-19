@@ -95,6 +95,17 @@ async def _pending_clear(uid: int):
 
 
 # ---- admin slash menu (main.py and the admin commands use this) --------------------------------------------
+MENU_MAX = 100  # Telegram accepts at most 100 commands per scope; more and the whole call is refused
+ADMIN_MENU_SKIP = ("listings", "mylistings")  # left out of the ADMIN '/' menu only when the list is too long (typing them still works)
+
+
+def _admin_menu(player, admin):
+    rows = list(player) + list(admin)
+    if len(rows) > MENU_MAX:
+        rows = [r for r in player if r[0] not in ADMIN_MENU_SKIP] + list(admin)
+    return rows[:MENU_MAX]
+
+
 async def refresh_admin_commands(bot, uid=None, on=True):
     """Admins also get the admin commands in their own '/' menu (per-chat scope)."""
     ids = [uid] if uid else [settings.owner_id] + [d["user_id"] async for d in col("admin_users").find({}, {"user_id": 1})]
@@ -103,8 +114,8 @@ async def refresh_admin_commands(bot, uid=None, on=True):
         try:
             scope = BotCommandScopeChat(chat_id=i)
             if on:
-                await bot.set_my_commands(mk(CMD_EN + ADMIN_CMDS_EN), scope=scope)
-                await bot.set_my_commands(mk(CMD_FA + ADMIN_CMDS_FA), scope=scope, language_code="fa")
+                await bot.set_my_commands(mk(_admin_menu(CMD_EN, ADMIN_CMDS_EN)), scope=scope)
+                await bot.set_my_commands(mk(_admin_menu(CMD_FA, ADMIN_CMDS_FA)), scope=scope, language_code="fa")
             else:
                 await bot.delete_my_commands(scope=scope)
                 await bot.delete_my_commands(scope=scope, language_code="fa")
@@ -127,6 +138,7 @@ async def main_menu(ctx, lvl):
         (T(ctx, "🎁 اقتصاد", "🎁 Economy"), "ade", "", 60),
         (T(ctx, "🌍 دنیا و باس", "🌍 World & bosses"), "adw", "", 20),
         (T(ctx, "📣 همگانی", "📣 Broadcast"), "adc", "", 60),
+        (T(ctx, "🔗 لینک گروه‌ها", "🔗 Group links"), "adgl", "0", 60),
         (T(ctx, "⚙️ تنظیمات زنده", "⚙️ Live settings"), "ads", "0", 80),
         (T(ctx, "📜 لاگ مدیریت", "📜 Admin log"), "adl", "0", 20),
         (T(ctx, "👑 ادمین‌ها", "👑 Admins"), "ada", "", 100),
