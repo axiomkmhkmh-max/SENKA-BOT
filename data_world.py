@@ -29,7 +29,7 @@ EVENTS = {
                     "locs": None, "mods": {"enemy": 1.30, "drop": 1.20, "xp": 1.25, "coin": 1.0}, "mod_locs": None,
                     "win": {"threat": -10.0, "stability": 10.0}, "lose": {"threat": 5.0, "stability": -12.0}},
     "winter_war": {"icon": "🌑", "pts": {"pve_win": 1, "elite_win": 2, "pvp_win": 3, "boss_hit": 2, "dungeon_clear": 4, "key": 1},
-                   "locs": ("karakura", "fake_karakura", "hueco_mundo", "las_noches", "forest_menos", "kurosaki_clinic", "las_noches_throne", "karakura_high", "riverbank", "orihime_chamber"), "mods": {"enemy": 1.25, "drop": 1.25, "xp": 1.20, "coin": 1.10},
+                   "locs": None, "mods": {"enemy": 1.25, "drop": 1.25, "xp": 1.20, "coin": 1.10},
                    "mod_locs": ("karakura", "fake_karakura", "hueco_mundo", "las_noches", "forest_menos", "kurosaki_clinic", "las_noches_throne", "karakura_high", "riverbank", "orihime_chamber"),
                    "win": {"threat": -12.0, "stability": 8.0}, "lose": {"threat": 8.0, "stability": -10.0}},
     "dangai": {"icon": "🌌", "pts": {"explore": 1, "pve_win": 1, "elite_win": 2, "dungeon_clear": 6, "key": 1},

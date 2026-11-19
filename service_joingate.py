@@ -10,6 +10,7 @@ import time
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from config import settings
+from database import col
 from security import make_cb
 from ui import Out
 
@@ -20,10 +21,35 @@ _MEMBER_STATUSES = ("creator", "administrator", "member")
 _confirmed: dict = {}  # uid -> monotonic time of the last confirmed membership
 
 
-def _targets():
-    out = [("channel", settings.join_channel, settings.join_channel_url)]
+_group_cache = {"id": 0, "at": -1e9}
+
+
+async def group_id() -> int:
+    """The group's numeric id: JOIN_GROUP_ID if set, else the one an admin saved with /setjoingroup (a private invite
+    link cannot be turned into an id by the bot, so an admin sends the command once inside the group)."""
     if settings.join_group_id:
-        out.append(("group", settings.join_group_id, settings.join_group_url))
+        return int(settings.join_group_id)
+    now = time.monotonic()
+    if now - _group_cache["at"] > 60:
+        try:
+            d = await col("settings").find_one({"_id": "joingate"}) or {}
+            _group_cache.update(id=int(d.get("group_id", 0) or 0), at=now)
+        except Exception:
+            log.exception("could not read the saved join group")
+    return int(_group_cache["id"])
+
+
+async def set_group_id(gid: int):
+    await col("settings").update_one({"_id": "joingate"}, {"$set": {"group_id": int(gid)}}, upsert=True)
+    _group_cache.update(id=int(gid), at=time.monotonic())
+    _confirmed.clear()  # everybody is checked again against the group
+
+
+async def _targets():
+    out = [("channel", settings.join_channel, settings.join_channel_url)]
+    gid = await group_id()
+    if gid:
+        out.append(("group", gid, settings.join_group_url))
     return out
 
 
@@ -39,7 +65,9 @@ async def self_check(bot):
         log.warning("JOIN GATE is OFF (JOIN_GATE=0)")
         return
     me = await bot.get_me()
-    for name, chat, _ in _targets():
+    if not await group_id():
+        log.error("JOIN CHECK PROBLEM: the group id is not known; send /setjoingroup inside the group (as an admin)")
+    for name, chat, _ in await _targets():
         try:
             m = await bot.get_chat_member(chat, me.id)
             if m.status in ("administrator", "creator"):
@@ -69,7 +97,7 @@ async def missing(bot, uid: int) -> list:
     if hit and time.monotonic() - hit < JOIN_OK_SECONDS:
         return []
     out = []
-    for name, chat, url in _targets():
+    for name, chat, url in await _targets():
         if not await _is_member(bot, chat, uid):
             out.append((name, url))
     if out:
@@ -91,6 +119,8 @@ async def wall_for(ctx):
     lacking = await missing(ctx.bot, ctx.uid)
     if not lacking:
         return None
+    if not any(n == "group" for n, _ in lacking) and not await group_id():
+        lacking = list(lacking) + [("group", settings.join_group_url)]  # not verifiable yet, but still asked for
     names = {"channel": ("کانال", "channel"), "group": ("گروه", "group")}
     fa_list = " و ".join(names[n][0] for n, _ in lacking)
     en_list = " and ".join(names[n][1] for n, _ in lacking)

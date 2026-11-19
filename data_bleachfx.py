@@ -45,7 +45,7 @@ SHUNPO_COUNTER = 0.5      # power of the counter-strike after a Shunpo dodge
 
 CHANT_HADO = 1.6          # damage multiplier of the first Hadō after a chant
 CHANT_BAK = 1.5           # shield multiplier of the first Bakudō after a chant
-CHANT_OPEN = 1.2          # damage taken multiplier while you stand chanting (until your next turn)
+CHANT_OPEN = 1.1          # damage taken multiplier while you stand chanting (until your next turn)
 
 # Resolve: once per battle, human-controlled fighters only. Triggers when a hit leaves HP below `hp` share.
 RESOLVE = {"hp": 0.25, "heal": 0.03, "dmg": 1.06, "turns": 3}

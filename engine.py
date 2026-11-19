@@ -346,6 +346,21 @@ def kido_list(f, branch) -> list:
     return sorted({n for n in f["kido"][branch] if kido_castable(f, branch, n)}, reverse=True)
 
 
+def chant_wanted(f) -> bool:
+    """True when the fighter knows a spell that is blocked only by the missing incantation (Hadō 80+, Bakudō 90+):
+    enough reiatsu, level gate passed, not cooling down. Without this the 📿 button never showed for a Bakudō caster,
+    the 98 could not be cast and the fight silently fell back to a weaker 82 / 79."""
+    for branch in ("had", "bak"):
+        for n in f["kido"][branch]:
+            if not KD.needs_chant(n, branch):
+                continue
+            if branch == "had" and f["level"] < math.ceil(n * 0.8):
+                continue
+            if f["re"] >= KD.cost(branch, n) and _kcd(f).get(KD.key(branch, n), 0) <= 0:
+                return True
+    return False
+
+
 def best_kido(f, branch):
     """The spell that is cast: the one picked this turn (see do_action), else the highest castable number."""
     pick = _x(f).get("pick")
@@ -481,7 +496,7 @@ def can(f, action):
     if action == "gt":  # release the gathered reiatsu as one wave
         return _x(f)["slash"] > 0 and f["re"] >= f["max_re"] * GETSUGA_COST
     if action == "ch":
-        return best_kido(f, "had") is not None and not _x(f)["chant"]
+        return (best_kido(f, "had") is not None or chant_wanted(f)) and not _x(f)["chant"]
     if action in ("f1", "f2"):
         # Shikai / Bankai, Resurrección / Full Resurrección and every race's forms are no longer free buttons at the
         # start of a fight: they come only with the full spirit gauge, as part of the 👑 release ("gx" in do_action).

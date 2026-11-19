@@ -357,3 +357,15 @@ async def c_updnotice(e: Env):
             pass
 
     asyncio.create_task(_job())
+
+
+# ---- mandatory join: remember the group ----------------------------------------------------------------------
+@acmd("setjoingroup", 80, "/setjoingroup", "ثبت همین گروه برای جوین اجباری (داخل گروه بفرست)", "Use this group for the mandatory join (send it inside the group)")
+async def c_setjoingroup(e: Env):
+    ch = e.message.chat
+    if ch.type not in ("group", "supergroup"):
+        return await e.say(e.t("این دستور را داخل خود گروه بفرست.", "Send this command inside the group itself."))
+    from service_joingate import set_group_id
+    await set_group_id(ch.id)
+    await e.say(e.t(f"✅ گروه ثبت شد (<code>{ch.id}</code>). از الان عضویت در کانال و گروه هر دو چک می‌شود. ربات باید در گروه ادمین باشد.",
+                    f"✅ Group saved (<code>{ch.id}</code>). Channel and group are both checked now. The bot must be an admin here."))
