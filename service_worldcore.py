@@ -90,7 +90,7 @@ async def active_levels(limit: int = 300) -> list:
 
 
 def is_new_account(ch: dict, st: dict) -> bool:
-    return time.time() - int(ch.get("created_at", 0)) < int(st["new_acct_minutes"]) * 60
+    return time.time() - int(ch.get("created_at") or 0) < int(st["new_acct_minutes"]) * 60
 
 
 # ---- World Chronicle ---------------------------------------------------------------------------------------------

@@ -49,17 +49,21 @@ async def _on_action(uid: int, action: str, loc: str):
     st = await game_settings()
     loc = loc or ch["location"]
     now = int(time.time())
-    bn = player_bonus(ch, ALL, st)
     await col("characters").update_one({"user_id": uid}, {"$set": {"seen_at": now}})
-    # 1) shared variables
-    if action == "explore":
-        await world_adjust(stability=(float(st["world_stab_hunt"]) + bn["stab"]) if loc in SEI_LOCS else 0.0,
-                           reishi_loc=loc, reishi=float(st["world_reishi_hunt"]))
-    elif action in ("pve_win", "elite_win"):
-        await world_adjust(threat=-float(st["world_threat_win"]) * (2 if action == "elite_win" else 1) * (1 + bn["calm"]))
-    elif action == "dungeon_clear":
-        await world_adjust(threat=-float(st["world_threat_dungeon"]) * (1 + bn["calm"]))
-    elif action == "pve_loss":
+    # 1) shared variables. Isolated on purpose: if anything here fails for one player's gear/data, his event,
+    #    territory and season points (below) must still be counted.
+    try:
+        bn = player_bonus(ch, ALL, st)
+        if action == "explore":
+            await world_adjust(stability=(float(st["world_stab_hunt"]) + bn["stab"]) if loc in SEI_LOCS else 0.0,
+                               reishi_loc=loc, reishi=float(st["world_reishi_hunt"]))
+        elif action in ("pve_win", "elite_win"):
+            await world_adjust(threat=-float(st["world_threat_win"]) * (2 if action == "elite_win" else 1) * (1 + bn["calm"]))
+        elif action == "dungeon_clear":
+            await world_adjust(threat=-float(st["world_threat_dungeon"]) * (1 + bn["calm"]))
+    except Exception:
+        log.exception("world variables failed for %s %s (points are still counted)", action, uid)
+    if action == "pve_loss":
         from service_interact import auto_grave
         await auto_grave(ch)
     # 2) world event contribution
@@ -87,12 +91,27 @@ async def _grant_pts(uid: int, pts: int, st: dict) -> int:
     return 0
 
 
+async def event_block_reason(uid: int):
+    """Why this player's actions add nothing to the active event: "young" (new account), "cap" (today's shared
+    event-points cap is full) or None. Used only to explain a zero on the event panel."""
+    from database import counter_get
+    ch = await get_char(uid)
+    if not ch:
+        return None
+    st = await game_settings()
+    if is_new_account(ch, st):
+        return "young"
+    if await counter_get(f"evpts:{uid}:{day_id()}") >= int(st["event_daily_pts_cap"]):
+        return "cap"
+    return None
+
+
 # ---- territories ------------------------------------------------------------------------------------------------------
 async def territory_score(ch: dict, loc: str, pts: int, st: dict):
     gid = ch.get("guild_id")
     if not gid or not st["terr_enabled"]:
         return
-    if ch["level"] < int(st["terr_min_level"]) or time.time() - int(ch.get("created_at", 0)) < int(st["terr_min_age_hours"]) * 3600:
+    if ch["level"] < int(st["terr_min_level"]) or time.time() - int(ch.get("created_at") or 0) < int(st["terr_min_age_hours"]) * 3600:
         return
     g = await col("guilds").find_one({"_id": gid}, {"members": 1})
     if not g or g.get("members", 0) < int(st["terr_min_members"]):

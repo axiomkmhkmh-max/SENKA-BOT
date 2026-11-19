@@ -26,7 +26,7 @@ from service_interact import (MARK_ICON, MARKS, bounty_board, bounty_place, boun
 from service_player import get_char
 from service_world import active_boss, broadcast_groups, group_doc
 from service_worldcore import chronicle_text, get_world, mods_for
-from service_worldstate import event_contribute_key, season_top, territory_board, territory_owners
+from service_worldstate import event_block_reason, event_contribute_key, season_top, territory_board, territory_owners
 from ui import INPUTS, Out, action, chunk, head, input_handler, make_button, markup, nav
 from service_pace import bulk_slot
 
@@ -113,6 +113,9 @@ async def event_text(ctx, ev) -> str:
     lines = [head(ctx, "ttl_evt"), f"<b>{ev_name(ctx, ev['kind'])}</b>", f"<i>{ctx.t('ev_' + ev['kind'] + '_desc')}</i>",
              f"{bar(min(ev['progress'], ev['goal']), ev['goal'], 14)} {fnum(ev['progress'], L)}/{fnum(ev['goal'], L)}",
              ctx.t("evt_left", m=fnum(_mins(ev["end_at"] - time.time()), L)), ctx.t("evt_mine", n=fnum(contrib.get(ctx.uid, 0), L))]
+    why = await event_block_reason(ctx.uid) if not contrib.get(ctx.uid) else None
+    if why:
+        lines.append(ctx.t("evt_why_" + why))
     for i, (uid, pts) in enumerate(top):
         lines.append(f"{['🥇', '🥈', '🥉', '4.', '5.'][i]} {esc(nmap.get(str(uid), '?'))} — {fnum(pts, L)}")
     return "\n".join(lines)

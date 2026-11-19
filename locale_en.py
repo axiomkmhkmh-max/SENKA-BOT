@@ -159,6 +159,7 @@ TEXT.update({
  "ev_announce": "⚡ <b>{ev}</b>\n{desc}\n🎯 Goal: {goal} points · ⏳ ~{m} min. Everyone fights together!", "ev_end_ok": "🎉 <b>{ev}</b> was repelled by {n} souls!\nTop: {top}",
  "ev_end_fail": "💔 <b>{ev}</b> was not stopped ({n} fought).\nTop: {top}", "ev_dm": "⚡ Event reward: +{xp} XP, +{coins} 🪙",
  "evt_none": "No world event now. The world watches… (next check in ~{m} min)", "evt_left": "⏳ ~{m} min left", "evt_mine": "Your points: {n}",
+ "evt_why_young": "ℹ️ Your account is still new; event points are not counted for the first few minutes.", "evt_why_cap": "ℹ️ Your daily event-points cap is full, so new points are not counted (the cap is shared with earlier events today).",
  "evt_keyhint": "Dungeon keys can be offered to the event as extra points.", "evt_key_ok": "🗝️ +{n} event points!",
  "evt_e_nokey": "That is not a key.", "evt_e_noevent": "Nothing to offer it to right now.", "evt_e_young": "Too new to take part; return a little later.",
  "evt_e_cap": "Daily event points are full (fights, boss, dungeons and keys share one cap). Key returned; try tomorrow.", "bt_kido_cd": "⏳ Kidō cooldown (turns): {list}", "evt_e_missing": "You don't have it.",
