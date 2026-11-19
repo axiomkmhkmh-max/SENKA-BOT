@@ -76,6 +76,9 @@ async def level_boss_loot(uid: int, band: int) -> dict:
         items.append(INNER_KEY)
     if band == len(LEVEL_BOSSES) - 1 and MYTHIC_ACCESSORIES and random.random() < LEVEL_BOSS_MYTHIC:
         items.append(random.choice(MYTHIC_ACCESSORIES))
+    if band == len(LEVEL_BOSSES) - 1 and random.random() < LEVEL_BOSS_MYTHIC * 2:
+        from data_mythic import MYTHIC_ITEM_IDS  # the ten red potions, charms, relics... (data_mythic.py)
+        items.append(random.choice(MYTHIC_ITEM_IDS))
     for i in items:
         await inv_add(uid, i, 1, force=True)  # boss loot is never lost to a full bag
     return {"items": items}

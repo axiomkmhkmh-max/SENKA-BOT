@@ -60,19 +60,41 @@ async def art_panel(ctx, arg):
     return Out(head(ctx, "ttl_art") + body, rows)
 
 
+ARR_PER = 8      # artifacts per registry page: with 80+ artifacts one message would pass Telegram's 4096-character limit
+ARR_HOLDERS = 5  # holders named per artifact (a 30-copy artifact would otherwise fill the page); the rest are counted
+
+
 @action("arr")
 async def art_registry_panel(ctx, arg):
     L = ctx.lang
     st = await game_settings()
+    reg = await art_registry()
+    pages = max(1, math.ceil(len(reg) / ARR_PER))
+    page = min(max(int(arg), 0), pages - 1) if arg.isdigit() else 0
     lines = [ctx.t("arr_body")]
-    for a, state, holders in await art_registry():
-        who = ", ".join(ctx.t("arr_owner", name=esc(h["name"]), lvl=fnum(h["level"], L)) for h in holders) if holders else ctx.t("arr_free")
+    for a, state, holders in reg[page * ARR_PER:(page + 1) * ARR_PER]:
+        shown = ", ".join(ctx.t("arr_owner", name=esc(h["name"]), lvl=fnum(h["level"], L)) for h in holders[:ARR_HOLDERS])
+        if len(holders) > ARR_HOLDERS:
+            shown += f" +{fnum(len(holders) - ARR_HOLDERS, L)}"
+        who = shown if holders else ctx.t("arr_free")
         if state == "dropped":
             who = ctx.t("arr_dropped")
         elif state == "full" and holders:
             who += " · " + ctx.t("arr_listed")
         lines.append(f"{art_name(a['_id'], L)}  {art_bonus_text(a['_id'], float(st['art_k']))}\n   {who}")
-    return Out(head(ctx, "ttl_arr") + "\n".join(lines), [[(ctx.t("b_art_mkt"), "axm", "0")], nav(ctx, ("art", ""))])
+    lines.append("")
+    lines.append(ctx.t("ax_page", p=fnum(page + 1, L), n=fnum(pages, L)))
+    rows = []
+    pg = []
+    if page > 0:
+        pg.append(("◀️", "arr", str(page - 1), False, "none"))
+    if page < pages - 1:
+        pg.append(("▶️", "arr", str(page + 1), False, "none"))
+    if pg:
+        rows.append(pg)
+    rows.append([(ctx.t("b_art_mkt"), "axm", "0")])
+    rows.append(nav(ctx, ("art", "")))
+    return Out(head(ctx, "ttl_arr") + "\n".join(lines), rows)
 
 
 @action("axm")

@@ -105,6 +105,9 @@ async def spin(uid: int, wid: str, owner_id: int):
         coins = int((12000 + lvl * 250) * cr)
         item = pick_item("relic", [4])
 
+    if rarity in ("Mythic", "Legacy") and random.random() < (0.30 if rarity == "Mythic" else 0.60):
+        from data_mythic import MYTHIC_ITEM_IDS  # themed treasure: one of the ten red items (potion, charm, egg, relic...)
+        item = random.choice(MYTHIC_ITEM_IDS)
     if wid == "w_armor" and ch and rarity in ("Rare", "Epic", "Legendary", "Mythic", "Legacy"):
         # the armour wheel really pays armour: a random piece of the player's own race armour, colour by the spin
         from service_racegear import random_armour

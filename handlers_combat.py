@@ -224,6 +224,11 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("ch_line", n=fnum(o["chain"]["n"], L), pct=fnum(o["chain"]["pct"], L)))
         if o["chain"].get("item"):
             lines.append(ctx.t("ch_bonus", item=nm(o["chain"]["item"], L)))
+    ms = (o.get("chain") or {}).get("milestone")
+    if ms:  # chain milestone: coins and a guaranteed item, paid by chain_win
+        lines.append((f"🏆 نقطه‌عطف زنجیره‌ی {fnum(ms['n'], L)} برد: +{fnum(ms['coins'], L)} 🪙" if L == "fa"
+                      else f"🏆 Chain milestone, {fnum(ms['n'], L)} wins: +{fnum(ms['coins'], L)} 🪙")
+                     + (f" · {nm(ms['item'], L)}" if ms.get("item") else ""))
     if o["levels"]:
         lines.append(ctx.t("bt_levelup", n=fnum(o["levels"], L)))
     if o["drop"]:

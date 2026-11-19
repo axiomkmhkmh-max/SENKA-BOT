@@ -404,3 +404,10 @@ WEAPON_BY_RARITY = {r: [] for r in RARITIES}  # blades no longer drop anywhere (
 def iname(item_id: str, lang: str) -> str:
     x = ALL.get(item_id)
     return item_id if not x else x["name_fa" if lang == "fa" else "name_en"]
+
+# Ten red items for the kinds that had none (potion, book, charm, egg, relic, cosmetic, material). Appended AFTER every random
+# pool above was built on purpose: they never enter a random drop; the wheel, the roll shop (egg) and the top level boss hand them out.
+from data_mythic import MYTHIC_ITEM_IDS, MYTHIC_ITEMS  # noqa: E402
+ITEMS += MYTHIC_ITEMS
+for _x in MYTHIC_ITEMS:
+    ALL[_x["_id"]] = _x

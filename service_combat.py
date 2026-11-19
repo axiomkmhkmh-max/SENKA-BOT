@@ -388,9 +388,9 @@ async def pve_settle(doc: dict):
         if plain:  # Battle Rank: normal battles only
             out["br"] = br_res
         if plain:  # win chain: consecutive plain victories raise coin/XP rewards
-            cn, cm, cdrop, cfull = chain_res
+            cn, cm, cdrop, cfull, cms = chain_res  # chain_win returns 5 values (the milestone was added; 4 broke every win)
             xp, coins = int(xp * cm), int(coins * cm)
-            out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop}
+            out["chain"] = {"n": cn, "pct": round((cm - 1) * 100), "item": cdrop, "milestone": cms}
             if cfull:
                 out["drop_full"] = out.get("drop_full") or cfull
         if d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage

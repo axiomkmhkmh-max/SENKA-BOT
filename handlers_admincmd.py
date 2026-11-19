@@ -846,11 +846,21 @@ async def gifts_panel(ctx, arg):
         return Out(text, rows)
     if op == "a":
         from service_drops import art_registry
+        reg = await art_registry()
+        per = 18  # 80+ artifacts do not fit one Telegram message
+        pages = max(1, -(-len(reg) // per))
+        page = min(max(int(rest), 0), pages - 1) if rest.isdigit() else 0
         lines = []
-        for a, st, holders in await art_registry():
-            who = (" → " + ", ".join(esc(h["name"]) for h in holders)) if holders else ""
+        for a, st, holders in reg[page * per:(page + 1) * per]:
+            who = (" → " + ", ".join(esc(h["name"]) for h in holders[:4]) + (f" +{len(holders) - 4}" if len(holders) > 4 else "")) if holders else ""
             lines.append(f"{a['icon']} {esc(a['name_fa' if ctx.lang == 'fa' else 'name_en'])} · {STATE_FA.get(st, st) if ctx.lang == 'fa' else st}{who}")
-        return Out(head(ctx, "ttl_adm") + "\n".join(lines), [back])
+        lines.append(f"\n{page + 1}/{pages}")
+        pg = []
+        if page > 0:
+            pg.append(("◀️", "adg", f"a.{page - 1}", False, "none"))
+        if page < pages - 1:
+            pg.append(("▶️", "adg", f"a.{page + 1}", False, "none"))
+        return Out(head(ctx, "ttl_adm") + "\n".join(lines), ([pg] if pg else []) + [back])
     if op == "h":
         h = await hogyoku_info()
         body = f"🔮 {esc(h[1])} (<code>{h[0]}</code>) · {_T(ctx, 'سطح', 'Lv')} {h[2]}" if h else _T(ctx, "🔮 هنوز صاحبی ندارد.", "🔮 No holder yet.")

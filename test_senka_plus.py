@@ -157,7 +157,7 @@ class TeamBattleTests(unittest.TestCase):
 class CharmItemTests(unittest.TestCase):
     def test_charms_exist_and_older_ids_unchanged(self):
         from data_items import ALL, ITEMS
-        charms = [x for x in ITEMS if x["category"] == "charm"]
+        charms = [x for x in ITEMS if x["category"] == "charm" and not x.get("special")]  # the 2 Mythic charms are in data_mythic
         self.assertEqual(len(charms), 30)
         kinds = {x["effect"]["type"] for x in charms}
         self.assertEqual(kinds, {"buff", "konpaku"})
