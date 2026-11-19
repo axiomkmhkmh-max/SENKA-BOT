@@ -156,6 +156,14 @@ def battle_text(lang: str, state: dict, events: list = None, title: str = "") ->
     parts.append(fighter_line(lang, state["a"], "🧑"))
     parts.append(fighter_line(lang, state["b"], "👹"))
     parts.append(t(lang, "bt_turn", n=fnum(state["turn"], lang)) + "  " + dist_line(lang, state))
+    cur = state.get("cur") if state.get("cur") in ("a", "b") else "a"
+    fc = state[cur]
+    if not fc.get("ai") and isinstance(fc.get("kido"), dict) and fc["kido"].get("had") is not None:
+        from engine import kido_cooling  # lazy: render is imported by engine-free modules too
+        cool = kido_cooling(fc)[:4]
+        if cool:
+            tags = "، ".join(f"{n}({fnum(left, lang)})" for _, n, left in cool) if lang == "fa" else ", ".join(f"{n} ({left})" for _, n, left in cool)
+            parts.append(t(lang, "bt_kido_cd", list=tags))
     shown = events if events is not None else state.get("last", [])
     if not shown and state.get("turn") == 1 and state.get("intro"):  # opening of a fight: spirit pressure crushes the weaker side
         shown = state["intro"]

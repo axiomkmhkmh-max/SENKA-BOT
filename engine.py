@@ -341,6 +341,17 @@ def kido_castable(f, branch, n) -> bool:
     return not KD.needs_chant(n, branch) or bool(_x(f)["chant"])
 
 
+def kido_cooling(f) -> list:
+    """Known spells that are cooling down right now: [(branch, number, turns_left)], highest number first."""
+    out = []
+    for branch in ("had", "bak"):
+        for n in f["kido"][branch]:
+            left = int(_kcd(f).get(KD.key(branch, n), 0))
+            if left > 0:
+                out.append((branch, n, left))
+    return sorted(out, key=lambda r: -r[1])
+
+
 def kido_list(f, branch) -> list:
     """Every spell of the branch the fighter can cast now, highest number first."""
     return sorted({n for n in f["kido"][branch] if kido_castable(f, branch, n)}, reverse=True)

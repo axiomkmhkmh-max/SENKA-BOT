@@ -161,7 +161,7 @@ TEXT.update({
  "evt_none": "No world event now. The world watches… (next check in ~{m} min)", "evt_left": "⏳ ~{m} min left", "evt_mine": "Your points: {n}",
  "evt_keyhint": "Dungeon keys can be offered to the event as extra points.", "evt_key_ok": "🗝️ +{n} event points!",
  "evt_e_nokey": "That is not a key.", "evt_e_noevent": "Nothing to offer it to right now.", "evt_e_young": "Too new to take part; return a little later.",
- "evt_e_cap": "Daily event limit reached.", "evt_e_missing": "You don't have it.",
+ "evt_e_cap": "Daily event points are full (fights, boss, dungeons and keys share one cap). Key returned; try tomorrow.", "bt_kido_cd": "⏳ Kidō cooldown (turns): {list}", "evt_e_missing": "You don't have it.",
  # ---- territories ----
  "ter_body": "📍 <b>{loc}</b>\nOwners' guild: +{buff}% coins/XP here. Others pay a {tax}% hunt toll into the owner's bank.", "ter_owner": "🏴 Held by <b>{g}</b>", "ter_free": "No guild holds this land.",
  "ter_top": "This week's claim:", "ter_rules": "Needs a guild of {n}+ members and {s}+ points. Settled every week.", "ter_announce": "🏴 <b>{g}</b> claimed <b>{loc}</b>!",
