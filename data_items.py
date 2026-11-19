@@ -38,15 +38,17 @@ PLAN = [("material", 160, None, 99, 1.0), ("potion", 100, None, 99, 1.2), ("armo
         ("ring", 75, "accessory", 1, 3.0), ("necklace", 75, "accessory", 1, 3.0), ("kido_card", 198, None, 99, 2.0),
         ("book", 40, None, 99, 2.0), ("evolution", 30, None, 99, 3.0), ("cosmetic", 80, None, 1, 1.5),
         ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 120, None, 99, 2.0),
-        ("charm", 30, None, 99, 2.0)]  # SENKA+: appended last so every older item id stays the same
+        ("charm", 30, None, 99, 2.0),
+        ("keyx", 25, None, 99, 2.0)]  # SENKA+: appended last so every older item id stays the same; keyx = keys of the newer dungeons (appended after everything)
 KIDO_NAMES = {"had": ("Hadō", "هادو"), "bak": ("Bakudō", "باکودو")}
 DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift",
                "academy_exam", "urahara_pit", "senzaikyu_tower", "maggot_nest", "muken",
                "clinic_nightwatch", "visored_gauntlet", "srdi_lab", "schatten_depths",
                "karakura_midnight", "captains_trial", "jigoku_pit", "hogyoku_vault",
-               "riverbank_vigil", "bount_labyrinth", "precipice_run", "zero_trial"]
+               "riverbank_vigil", "bount_labyrinth", "precipice_run", "zero_trial", "rukongai_sewers", "fullbring_nexus", "sokyoku_execution", "hueco_sands", "espada_arena"]
 DIFFS = ["normal", "hard", "nightmare", "abyss", "legendary"]
-assert dict((c[0], c[1]) for c in PLAN)["key"] == 5 * len(DUNGEON_IDS), "key count must match DUNGEON_IDS x difficulties"
+_KEY_LEGACY_DUNGEONS = 24  # the first 24 dungeons get their keys from the "key" block; later ones from "keyx"
+assert sum(c[1] for c in PLAN if c[0] in ("key", "keyx")) == 5 * len(DUNGEON_IDS), "key count must match DUNGEON_IDS x difficulties"
 STATS = ["zanjutsu", "kido", "hakuda", "hoho", "reiatsu"]
 
 
@@ -86,8 +88,11 @@ def _rarity(i, n):
 # Portals, monster ranks and the like don't brew potions or sew armour: these place/faction words are skipped for
 # those kinds of item so names stay believable. Only names change; item ids, stats and effects never do.
 _NOT_FOR = {k: {"Garganta", "Dangai", "Senkaimon", "Gillian", "Vasto Lorde"} for k in ("potion", "armor", "ring", "necklace", "book")}
-_ROMAN = ["", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
-_ROMAN_FA = ["", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۱۰", "۱۱", "۱۲"]  # Persian names never carry Latin numerals
+# Repeat names get a word, never a number: "Seireitei Soul Candy" -> "Ancient Seireitei Soul Candy" (fa: "... کهن").
+# Index 0 is unused (tier 0 = the plain name). Every pair is one en prefix + one fa suffix, so en and fa stay unique together.
+_EPITHET = [("", ""), ("Ancient", "کهن"), ("Hallowed", "مقدس"), ("Silent", "خاموش"), ("Crimson", "سرخ"), ("Frozen", "یخ‌زده"),
+            ("Radiant", "درخشان"), ("Shattered", "شکسته"), ("Veiled", "پوشیده"), ("Eternal", "جاودان"), ("Wandering", "سرگردان"),
+            ("Twilight", "غروبی"), ("Verdant", "سبزفام"), ("Gilded", "زرین"), ("Forsaken", "رهاشده"), ("Sovereign", "فرمانروا")]
 _SEEN: set = set()
 
 
@@ -104,15 +109,17 @@ def _name(cat, i):
     if cat not in NOUNS:  # kido cards etc. rename themselves later; they must not use up names
         return f"{adjs[a][0]} {nouns[n][0]}", f"{nouns[n][1]} {adjs[a][1]}"
     while True:
-        k = min(tier, len(_ROMAN) - 1)
-        suf = "" if tier == 0 else " " + _ROMAN[k]
-        suf_fa = "" if tier == 0 else " " + _ROMAN_FA[k]
-        en = f"{adjs[a][0]} {nouns[n][0]}{suf}"
-        if en not in _SEEN or tier >= len(_ROMAN) - 1:
+        e_en, e_fa = _EPITHET[min(tier, len(_EPITHET) - 1)]
+        en = f"{e_en} {adjs[a][0]} {nouns[n][0]}".strip()
+        fa = f"{nouns[n][1]} {adjs[a][1]} {e_fa}".strip()
+        if en not in _SEEN:
             break
         tier += 1
+        if tier >= len(_EPITHET):  # never reuse a name: move on to the next adjective / noun instead of printing a number
+            a = (a + 1) % A
+            tier = 1
     _SEEN.add(en)
-    return en, f"{nouns[n][1]} {adjs[a][1]}{suf_fa}"
+    return en, fa
 
 
 def _build():
@@ -160,8 +167,8 @@ def _build():
             elif cat == "egg":
                 eff = {"type": "pet", "tier": tier}
                 desc_en, desc_fa = "Hatches a companion.", "یک همراه از آن بیرون می‌آید."
-            elif cat == "key":
-                d, df = DUNGEON_IDS[i // 5], DIFFS[i % 5]
+            elif cat in ("key", "keyx"):
+                d, df = DUNGEON_IDS[(0 if cat == "key" else _KEY_LEGACY_DUNGEONS) + i // 5], DIFFS[i % 5]
                 en, fa = f"{DUNGEONS[d]['en']} Key ({df})", f"کلید {DUNGEONS[d]['fa']} ({DIFF_FA[df]})"
                 eff = {"type": "key", "dungeon": d, "diff": df}
                 rar = RARITIES[min(5, 1 + i % 5)]
@@ -196,11 +203,11 @@ def _build():
                 f_fa, f_en = fl[i % len(fl)]
                 desc_fa, desc_en = f"{desc_fa} {f_fa}".strip(), f"{desc_en} {f_en}".strip()
             base = int(PRICE[rar] * fac / 6 * (1 + (i % 7) / 10))
-            out.append({"_id": iid, "item_id": iid, "category": "accessory" if cat in ("ring", "necklace") else cat,
-                        "subtype": cat, "name_en": en, "name_fa": fa, "desc_en": desc_en, "desc_fa": desc_fa,
+            out.append({"_id": iid, "item_id": iid, "category": "accessory" if cat in ("ring", "necklace") else ("key" if cat == "keyx" else cat),
+                        "subtype": "key" if cat == "keyx" else cat, "name_en": en, "name_fa": fa, "desc_en": desc_en, "desc_fa": desc_fa,
                         "rarity": rar, "stats": stats, "effect": eff, "slot": slot, "level_req": [1, 5, 15, 30, 50, 80][tier] if slot else 1,
                         "base_price": max(5, base), "sell_price": max(2, int(base * 0.4)),
-                        "tradeable": rar != "Mythic" and cat != "key", "stack_max": stack})
+                        "tradeable": rar != "Mythic" and cat not in ("key", "keyx"), "stack_max": stack})
     return out
 
 
@@ -212,7 +219,7 @@ CURATED = []
 CURATED.append({"_id": "it_q001", "item_id": "it_q001", "category": "quincy", "subtype": "quincy", "name_en": "Yhwach's Eye", "name_fa": 'چشم یوهاباخ', "desc_en": 'The eye of the Almighty. For an hour, the first fatal blow of each battle leaves you standing with a sliver of life.', "desc_fa": 'چشم «Almighty». تا یک ساعت، اولین ضربه\u200cی کشنده\u200cی هر نبرد فقط تو را با یک تکه جان باقی می\u200cگذارد.', "rarity": "Mythic", "stats": {}, "effect": {"type": "almighty", "minutes": 60}, "slot": None, "level_req": 1, "base_price": 5000, "sell_price": 2000, "tradeable": False, "stack_max": 1})
 CURATED.append({"_id": "it_q002", "item_id": "it_q002", "category": "quincy", "subtype": "quincy", "name_en": 'Blut Arterie', "name_fa": 'بلوت آرتری', "desc_en": 'Reishi sent through the blood vessels. Your strikes hit harder for an hour.', "desc_fa": 'ریشی که از رگ\u200cها عبور می\u200cکند. ضربه\u200cهایت یک ساعت سنگین\u200cتر می\u200cزنند.', "rarity": "Epic", "stats": {}, "effect": {"type": "buff", "stat": "dmg", "pct": 0.12, "minutes": 60}, "slot": None, "level_req": 1, "base_price": 1500, "sell_price": 600, "tradeable": True, "stack_max": 99})
 CURATED.append({"_id": "it_q003", "item_id": "it_q003", "category": "quincy", "subtype": "quincy", "name_en": 'Blut Vene', "name_fa": 'بلوت وینه', "desc_en": 'Reishi that reinforces the body. You take less damage for an hour.', "desc_fa": 'ریشی که بدن را تقویت می\u200cکند. یک ساعت آسیب کمتری می\u200cبینی.', "rarity": "Epic", "stats": {}, "effect": {"type": "buff", "stat": "def", "pct": 0.12, "minutes": 60}, "slot": None, "level_req": 1, "base_price": 1500, "sell_price": 600, "tradeable": True, "stack_max": 99})
-CURATED.append({"_id": "it_q004", "item_id": "it_q004", "category": "quincy", "subtype": "quincy", "name_en": 'Quincy Cross', "name_fa": 'صلیب کوئینسی', "desc_en": 'A cross that gathers spirit energy. Your critical hits land more often for an hour.', "desc_fa": 'صلیبی که انرژی روحی را جمع می\u200cکند. یک ساعت ضربه\u200cهای کاری\u200cات بیشتر می\u200cنشینند.', "rarity": "Rare", "stats": {}, "effect": {"type": "buff", "stat": "crit", "pct": 0.08, "minutes": 60}, "slot": None, "level_req": 1, "base_price": 600, "sell_price": 240, "tradeable": True, "stack_max": 99})
+CURATED.append({"_id": "it_q004", "item_id": "it_q004", "category": "quincy", "subtype": "quincy", "name_en": 'Ginto Cross', "name_fa": 'صلیب گینتو', "desc_en": 'A cross that gathers spirit energy. Your critical hits land more often for an hour.', "desc_fa": 'صلیبی که انرژی روحی را جمع می\u200cکند. یک ساعت ضربه\u200cهای کاری\u200cات بیشتر می\u200cنشینند.', "rarity": "Rare", "stats": {}, "effect": {"type": "buff", "stat": "crit", "pct": 0.08, "minutes": 60}, "slot": None, "level_req": 1, "base_price": 600, "sell_price": 240, "tradeable": True, "stack_max": 99})
 CURATED.append({"_id": "it_q005", "item_id": "it_q005", "category": "quincy", "subtype": "quincy", "name_en": 'Medallion', "name_fa": 'مدال', "desc_en": 'A medallion that pins down the strongest fighters. Critical chance is higher for an hour.', "desc_fa": 'مدالی که قوی\u200cترین رزمنده\u200cها را میخکوب می\u200cکند. یک ساعت شانس ضربهٔ کاری بالاتره.', "rarity": "Legendary", "stats": {}, "effect": {"type": "buff", "stat": "crit", "pct": 0.10, "minutes": 60}, "slot": None, "level_req": 1, "base_price": 4000, "sell_price": 1600, "tradeable": True, "stack_max": 99})
 CURATED.append({"_id": "it_q006", "item_id": "it_q006", "category": "quincy", "subtype": "quincy", "name_en": 'Heilig Bogen', "name_fa": 'هایلیگ بوگن', "desc_en": "The Quincy bow. For half an hour your strikes carry a bow's force.", "desc_fa": 'کمان کوئینسی. نیم ساعت ضربه\u200cهایت قدرت کمان را دارند.', "rarity": "Rare", "stats": {}, "effect": {"type": "buff", "stat": "dmg", "pct": 0.15, "minutes": 30}, "slot": None, "level_req": 1, "base_price": 600, "sell_price": 240, "tradeable": True, "stack_max": 99})
 CURATED.append({"_id": "it_q007", "item_id": "it_q007", "category": "quincy", "subtype": "quincy", "name_en": 'Reishi Sword', "name_fa": 'شمشیر ریشی', "desc_en": 'A sword made of hardened reishi. Your strikes hit a little harder for an hour.', "desc_fa": 'شمشیری از ریشی سخت\u200cشده. یک ساعت ضربه\u200cهایت کمی قوی\u200cتر می\u200cزنند.', "rarity": "Uncommon", "stats": {}, "effect": {"type": "buff", "stat": "dmg", "pct": 0.10, "minutes": 60}, "slot": None, "level_req": 1, "base_price": 300, "sell_price": 120, "tradeable": True, "stack_max": 99})
@@ -258,7 +265,7 @@ _dg(3, "hard", "Rare", "Hollow Mask Shard", "پاره‌ی ماسک هالو",
     "A shard of a Hollow mask. Your critical chance is higher for 60 minutes.",
     "پاره‌ای از ماسک هالو. ۶۰ دقیقه شانس کریتیکالت بیشتر است.",
     {"type": "buff", "stat": "crit", "pct": 0.08, "minutes": 60}, 1800)
-_dg(4, "hard", "Rare", "Substitute Soul Reaper Badge", "نشان شینیگامی جایگزین",
+_dg(4, "hard", "Rare", "Substitute Soul Reaper Badge", "نشان رسمی شینیگامی جایگزین",
     "The badge that lends a living human a Soul Reaper's power. Your strikes hit harder for 60 minutes.",
     "نشانی که به یک انسان زنده قدرت شینیگامی می‌دهد. ۶۰ دقیقه ضربه‌هایت سنگین‌تر می‌زنند.",
     {"type": "buff", "stat": "dmg", "pct": 0.10, "minutes": 60}, 2000)

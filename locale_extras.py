@@ -156,3 +156,29 @@ EN = {
     "inr_bond": "💞 Bond with your blade: +{n}", "inr_buff": "✨ {key} +{pct}% for {m} min",
     "buff_xp_pct": "XP", "buff_coin_pct": "Coins", "buff_drop_pct": "Drop rate",
 }
+
+# ---- event pack 2 texts ----
+FA.update({
+    "ev_black_eclipse_name": "خورشید سیاه",
+    "ev_black_eclipse_desc": "خورشید در تاریکی فرو رفته و غنیمت‌ها سنگین‌تر شده‌اند. دانجن‌ها را پاک کن و کلید هدیه بده.",
+    "ev_reishi_storm_name": "طوفان ریشی",
+    "ev_reishi_storm_desc": "ریشی آشفته در آسمان می‌پیچد و نبردها تجربه‌ی بیشتری می‌دهند. نخبگان را شکار کن و به باس‌ها ضربه بزن.",
+    "ev_hollow_tide_name": "موج هالوها",
+    "ev_hollow_tide_desc": "هالوها از سرزمین‌های تاریک سرازیر شده‌اند. در جاهای هالو بجنگ؛ غنیمت و شانس دراپ بیشتری می‌گیری.",
+    "ev_soul_bazaar_name": "بازار ارواح",
+    "ev_soul_bazaar_desc": "بازاری گذرا در میان ارواح باز شده. کاوش کن، کلید جمع کن و سکه‌های بیشتری به جیب بزن.",
+    "ev_shinigami_drill_name": "رزمایش شینیگامی",
+    "ev_shinigami_drill_desc": "جوخه‌ها در سول سوسایتی رزمایش می‌کنند. در مبارزات بین بازیکنان پیروز شو و به باس‌ها ضربه بزن.",
+})
+EN.update({
+    "ev_black_eclipse_name": "Black Eclipse",
+    "ev_black_eclipse_desc": "The sun has gone dark and the spoils have grown heavier. Clear dungeons and offer keys.",
+    "ev_reishi_storm_name": "Reishi Storm",
+    "ev_reishi_storm_desc": "Chaotic reishi swirls through the sky and battles yield more experience. Hunt elites and strike bosses.",
+    "ev_hollow_tide_name": "Hollow Tide",
+    "ev_hollow_tide_desc": "Hollows pour in from the dark lands. Fight in Hollow territories for more loot and drops.",
+    "ev_soul_bazaar_name": "Soul Bazaar",
+    "ev_soul_bazaar_desc": "A fleeting bazaar opens among the spirits. Explore, gather keys and pocket more coins.",
+    "ev_shinigami_drill_name": "Shinigami Drill",
+    "ev_shinigami_drill_desc": "Squads drill across Soul Society. Win player duels and strike the bosses.",
+})

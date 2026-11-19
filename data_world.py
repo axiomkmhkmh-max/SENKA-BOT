@@ -37,6 +37,24 @@ EVENTS = {
                "mod_locs": ("dangai", "royal_palace", "soul_king", "precipice_world", "zero_division_hall"),
                "win": {"threat": -5.0, "stability": 15.0}, "lose": {"threat": 4.0, "stability": -8.0}},
 }
+# ---- event pack 2: five more rotating events (their texts: ev_<kind>_name / ev_<kind>_desc in locale_extras) ----
+EVENTS.update({
+    "black_eclipse": {"icon": "🌘", "pts": {"pve_win": 1, "dungeon_clear": 4, "key": 1},
+                      "locs": None, "mods": {"enemy": 1.10, "drop": 1.25, "xp": 1.0, "coin": 1.0}, "mod_locs": None,
+                      "win": {"threat": -8.0, "stability": 5.0}, "lose": {"threat": 6.0, "stability": -5.0}},
+    "reishi_storm": {"icon": "🌩️", "pts": {"explore": 1, "elite_win": 3, "boss_hit": 2},
+                     "locs": None, "mods": {"enemy": 1.25, "drop": 1.0, "xp": 1.35, "coin": 1.0}, "mod_locs": None,
+                     "win": {"threat": -5.0, "stability": 10.0}, "lose": {"threat": 5.0, "stability": -6.0}},
+    "hollow_tide": {"icon": "🌊", "pts": {"pve_win": 2, "elite_win": 3},
+                    "locs": HOLLOW_LOCS, "mods": {"enemy": 1.15, "drop": 1.30, "xp": 1.0, "coin": 1.0}, "mod_locs": HOLLOW_LOCS,
+                    "win": {"threat": -10.0, "stability": 0.0}, "lose": {"threat": 7.0, "stability": -4.0}},
+    "soul_bazaar": {"icon": "🏮", "pts": {"explore": 2, "key": 2, "pve_win": 1},
+                    "locs": None, "mods": {"enemy": 1.0, "drop": 1.0, "xp": 1.0, "coin": 1.35}, "mod_locs": None,
+                    "win": {"threat": 0.0, "stability": 12.0}, "lose": {"threat": 2.0, "stability": -8.0}},
+    "shinigami_drill": {"icon": "🎖️", "pts": {"pvp_win": 4, "boss_hit": 2, "pve_win": 1},
+                        "locs": SEI_LOCS, "mods": {"enemy": 1.0, "drop": 1.0, "xp": 1.20, "coin": 1.15}, "mod_locs": SEI_LOCS,
+                        "win": {"threat": 0.0, "stability": 15.0}, "lose": {"threat": 3.0, "stability": -6.0}},
+})
 EVENT_KINDS = list(EVENTS)
 
 

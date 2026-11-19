@@ -2,7 +2,8 @@
 
 ROLE_FA = {"owner": "مالک", "super": "سوپر ادمین", "admin": "ادمین", "moderator": "ناظر", "support": "پشتیبان"}
 ROLE_ALIAS = {v: k for k, v in ROLE_FA.items()} | {"سوپر": "super", "ناظر": "moderator"}
-EVENT_FA = {"garganta": "گارگانتا", "siege": "محاصره", "wandenreich": "وندن‌رایش", "winter_war": "جنگ زمستانی", "dangai": "دانگای"}
+EVENT_FA = {"garganta": "گارگانتا", "siege": "محاصره", "wandenreich": "وندن‌رایش", "winter_war": "جنگ زمستانی", "dangai": "دانگای",
+            "black_eclipse": "خورشید سیاه", "reishi_storm": "طوفان ریشی", "hollow_tide": "موج هالوها", "soul_bazaar": "بازار ارواح", "shinigami_drill": "رزمایش شینیگامی"}
 LANG_FA = {"fa": "فارسی", "en": "انگلیسی"}
 ACTION_FA = {
     "ban": "بن", "unban": "آنبن", "warn": "اخطار", "mute": "سکوت", "reset": "ریست بازیکن", "set": "تغییر تنظیم", "item": "تغییر آیتم",

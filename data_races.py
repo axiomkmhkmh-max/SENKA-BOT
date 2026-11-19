@@ -239,6 +239,14 @@ DUNGEONS.update({
     "precipice_run": {"fa": "عبور از جهان پرتگاه", "en": "Run of the Precipice World", "level": 50, "stages": 5},
     "zero_trial": {"fa": "آزمون نیروی صفر", "en": "Zero Division Trial", "level": 92, "stages": 7},
 })
+# ---- Bleach content pack 6 (five new dungeons; their keys are the "keyx" block in data_items) ----
+DUNGEONS.update({
+    "rukongai_sewers": {"fa": "فاضلاب روکونگای", "en": "Rukongai Sewers", "level": 17, "stages": 4},
+    "fullbring_nexus": {"fa": "کانون فولبرینگ", "en": "Fullbring Nexus", "level": 27, "stages": 4},
+    "sokyoku_execution": {"fa": "تالار اعدام سوکیوکو", "en": "Sōkyoku Execution Ground", "level": 40, "stages": 5},
+    "hueco_sands": {"fa": "ماسه‌زار هوئکو موندو", "en": "Hueco Mundo Sandstorm", "level": 52, "stages": 6},
+    "espada_arena": {"fa": "میدان نبرد اسپادا", "en": "Espada Arena", "level": 75, "stages": 6},
+})
 DUNGEONS = dict(sorted(DUNGEONS.items(), key=lambda kv: kv[1]["level"]))
 
 # Each dungeon fights its own Bleach enemies (before, dungeons borrowed the enemy list of wherever the player stood,
@@ -294,6 +302,18 @@ DUNGEON_ENEMIES = {
     "hogyoku_vault": {"race": None, "boss": ("آیزنِ یکی‌شده با هوگیوکو", "Hōgyoku-Fused Aizen"),
         "enemies": [("پژواک آرزو", "Echo of a Wish"), ("توهم کیوکا سویگتسو", "Kyōka Suigetsu Illusion"), ("سایه‌ی پیله‌ی آیزن", "Aizen's Chrysalis Shade")]},
 }
+DUNGEON_ENEMIES.update({
+    "rukongai_sewers": {"race": None, "boss": ("غول فاضلاب", "Sewer Colossus"),
+        "enemies": [("هالوی کرم‌گونه", "Worm-Like Hollow"), ("دزد ارواح فاضلاب", "Sewer Soul Thief"), ("مزاحم فاضلاب", "Drain Pest")]},
+    "fullbring_nexus": {"race": None, "boss": ("فولبرینگ بی‌نام", "Nameless Fullbringer"),
+        "enemies": [("فولبرینگ سرکش", "Rogue Fullbringer"), ("عروسک پوشش‌دار", "Shrouded Puppet"), ("ماسک هویت‌زدا", "Identity-Stripping Mask")]},
+    "sokyoku_execution": {"race": None, "boss": ("جلاد سوکیوکو", "Sōkyoku Executioner"),
+        "enemies": [("سرباز مجازات", "Punishment Squad Soldier"), ("زندانی محکوم", "Condemned Prisoner"), ("بازجوی ساده‌پوش", "Plainclothes Interrogator")]},
+    "hueco_sands": {"race": None, "boss": ("طوفان ماسه‌ی گرند", "Sandstorm Grand Hollow"),
+        "enemies": [("هالوی ماسه‌ای", "Sand Hollow"), ("ماسه‌خوار", "Sand Gorger"), ("آجوکاس بیابانی", "Desert Adjuchas")]},
+    "espada_arena": {"race": None, "boss": ("اسپادای میدان", "Arena Espada"),
+        "enemies": [("فراسیون اسپادا", "Espada Fracción"), ("آرانکار آموزشی", "Training Arrancar"), ("گلادیاتور هالو", "Hollow Gladiator")]},
+})
 # Dungeons have a FIXED enemy level (DUNGEONS[id]["level"]) that does not follow the player's level.
 # Difficulty only multiplies the enemies' strength (hp, attack, defense) and, in the same direction, the rewards:
 #   DIFFICULTY = enemy power multiplier        DIFF_DROP = reward multiplier (items on a full clear; coins/XP already follow the power)
