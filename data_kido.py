@@ -8,7 +8,7 @@ What the anime shows, and what the fight does with it:
     unchanted spell is weaker (UNCHANTED_MULT); from number 91 up it cannot be cast at all.
   * Each spell does its own thing: Byakurai pierces, Shakkahō burns, Raikōhō stuns; Sai and Hainawa bind, Rikujōkōrō
     holds fast, Sajō Sabaku holds longer, Enkōsen and Danku are walls.
-  * High numbers need time to gather: the same spell cannot be cast again at once (spell_cd).
+  * No cooldown: any spell can be cast again right away (spell_cd is always 0; the only limit is reiatsu).
 All of it is tuned here; spells that are not in the tables behave as the old plain Hadō / Bakudō did.
 """
 
@@ -90,8 +90,7 @@ def unchanted_mult(n: int) -> float:
 
 def spell_cd(n: int) -> int:
     """Turns before the same spell can be cast again (counted in the caster's own turns)."""
-    n = int(n)
-    return 0 if n < 30 else 1 if n < 60 else 2 if n < 80 else 3
+    return 0   # cooldowns removed: only reiatsu limits how often a spell is cast
 
 
 def key(branch: str, n: int) -> str:

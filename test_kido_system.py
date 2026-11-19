@@ -83,19 +83,11 @@ class PickAndChant(unittest.TestCase):
 
 
 class Cooldowns(unittest.TestCase):
-    def test_big_spell_cools_down_then_comes_back(self):
+    def test_no_spell_has_a_cooldown(self):
+        self.assertEqual({KD.spell_cd(n) for n in range(1, 100)}, {0})
         st = battle()
         cast(st, "kd:63")
-        self.assertFalse(E.kido_castable(st["a"], "had", 63))
-        self.assertTrue(E.kido_castable(st["a"], "had", 31))   # other spells are free
-        for _ in range(KD.spell_cd(63)):
-            st["cur"] = "a"
-            E.start_turn(st, random.Random(1))
-        self.assertTrue(E.kido_castable(st["a"], "had", 63))
-
-    def test_small_spells_have_no_cooldown(self):
-        self.assertEqual((KD.spell_cd(1), KD.spell_cd(29), KD.spell_cd(30), KD.spell_cd(60), KD.spell_cd(80)), (0, 0, 1, 2, 3))
-        st = battle()
+        self.assertTrue(E.kido_castable(st["a"], "had", 63))   # can be cast again right away
         cast(st, "kd:1")
         self.assertTrue(E.kido_castable(st["a"], "had", 1))
 
