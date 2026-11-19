@@ -11,7 +11,7 @@ import data_kido as KD  # noqa: E402
 import engine as E  # noqa: E402
 
 STATS = {"zanjutsu": 10, "kido": 40, "hakuda": 10, "hoho": 10, "reiatsu": 10}
-HADO = [1, 4, 31, 63, 88, 90]
+HADO = [1, 4, 31, 63, 88, 90, 96]
 BAK = [1, 61, 63, 81]
 
 
@@ -41,7 +41,7 @@ class PickAndChant(unittest.TestCase):
 
     def test_without_a_pick_the_best_castable_is_used(self):
         st = battle()
-        self.assertEqual(E.best_kido(st["a"], "had"), 63)    # 88 / 90 wait for the incantation
+        self.assertEqual(E.best_kido(st["a"], "had"), 90)    # 88 / 90 are cast bare now; 91-99 wait for the incantation
         self.assertEqual(E.best_kido(st["a"], "bak"), 81)
 
     def test_unknown_or_bad_pick_is_a_plain_attack(self):
@@ -53,15 +53,16 @@ class PickAndChant(unittest.TestCase):
 
     def test_high_spells_need_the_chant(self):
         st = battle()
-        self.assertFalse(E.kido_castable(st["a"], "had", 90))
-        self.assertFalse([e for e in cast(st, "kd:90") if e.get("num")])      # pressing it does nothing special
+        self.assertTrue(E.kido_castable(st["a"], "had", 90))   # 90 is cast bare
+        self.assertFalse(E.kido_castable(st["a"], "had", 96))
+        self.assertFalse([e for e in cast(st, "kd:96") if e.get("num")])      # pressing it does nothing special
         cast(st, "ch")
-        self.assertTrue(E.kido_castable(st["a"], "had", 90))
-        ev = cast(st, "kd:90")
+        self.assertTrue(E.kido_castable(st["a"], "had", 96))
+        ev = cast(st, "kd:96")
         hit = [e for e in ev if e.get("num")][0]
-        self.assertEqual(hit["num"], 90)
+        self.assertEqual(hit["num"], 96)
         self.assertTrue(hit["chant"])
-        self.assertTrue(E.has_fx(st["b"], "weaken"))         # Kurohitsugi weakens
+        self.assertTrue(E.has_fx(st["b"], "burn"))           # Ittō Kasō burns
         self.assertEqual(E._x(st["a"])["chant"], 0)          # the incantation is spent
 
     def test_unchanted_high_spell_hits_weaker(self):
@@ -76,8 +77,8 @@ class PickAndChant(unittest.TestCase):
     def test_low_spells_do_not_lose_power_without_the_chant(self):
         self.assertEqual(KD.unchanted_mult(31), 1.0)
         self.assertLess(KD.unchanted_mult(60), 1.0)
-        self.assertTrue(KD.needs_chant(80) and not KD.needs_chant(79))
-        self.assertFalse(KD.needs_chant(81, "bak"))          # Danku is cast bare
+        self.assertTrue(KD.needs_chant(91) and not KD.needs_chant(90))
+        self.assertFalse(KD.needs_chant(90, "bak"))          # up to 90 is cast bare
         self.assertTrue(KD.needs_chant(99, "bak"))
 
 

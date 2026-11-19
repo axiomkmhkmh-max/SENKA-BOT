@@ -5,15 +5,15 @@ Pure data and rules, no database, so the engine, the panel and the tests all rea
 What the anime shows, and what the fight does with it:
   * You pick the spell you cast (Shō is a quick jab, Shakkahō a fireball, Kurohitsugi the black coffin), not "the best one".
   * The incantation (📿 chant) is the real power of a spell. Low spells are fine without it; from number 60 up an
-    unchanted spell is weaker (UNCHANTED_MULT); from number 80 up (Bakudō: 90) it cannot be cast at all, as with Hadō 88 / 90.
+    unchanted spell is weaker (UNCHANTED_MULT); from number 91 up it cannot be cast at all.
   * Each spell does its own thing: Byakurai pierces, Shakkahō burns, Raikōhō stuns; Sai and Hainawa bind, Rikujōkōrō
     holds fast, Sajō Sabaku holds longer, Enkōsen and Danku are walls.
   * High numbers need time to gather: the same spell cannot be cast again at once (spell_cd).
 All of it is tuned here; spells that are not in the tables behave as the old plain Hadō / Bakudō did.
 """
 
-CHANT_REQUIRED = {"had": 80, "bak": 90}   # from this number up, a spell cannot be cast without the incantation (Hadō 88 / 90,
-                                           # Bakudō 99 Kin; Danku, Bakudō 81, is cast bare in the anime)
+CHANT_REQUIRED = {"had": 91, "bak": 91}   # from this number up, a spell cannot be cast without the incantation: every spell up to 90
+                                           # can be cast bare (weaker from 60 up), only 91-99 need the chant
 UNCHANTED_FROM = 60          # from this number up, an unchanted spell is weaker ...
 UNCHANTED_MULT = 0.75        # ... by this factor (Hadō damage, Bakudō shield)
 HADO_COST, BAK_COST = 2.5, 2.0   # reiatsu per spell number (as before)
@@ -34,8 +34,8 @@ HADO = {
     63: {"stun": 0.35, "mult": 1.05},                                  # Raikōhō: thunder roar cannon
     73: {"mult": 1.3, "burn": True},                                   # Sōren Sōkatsui: twin blue fire
     78: {"pierce": 0.4, "mult": 1.1},                                  # Zangeki
-    88: {"mult": 1.5, "stun": 0.4},                                    # Hiryūgekizoku Shinten Raihō: needs the chant
-    90: {"mult": 1.6, "weaken": True},                                 # Kurohitsugi: the black coffin, needs the chant
+    88: {"mult": 1.5, "stun": 0.4},                                    # Hiryūgekizoku Shinten Raihō: bare = weaker
+    90: {"mult": 1.6, "weaken": True},                                 # Kurohitsugi: the black coffin, bare = weaker
     91: {"mult": 1.2, "burn": True},                                   # Senju Kōtenkan
     96: {"mult": 1.35, "burn": True},                                  # Ittō Kasō: a pillar of flame
 }
@@ -81,7 +81,7 @@ def cost(branch: str, n: int) -> int:
 
 
 def needs_chant(n: int, branch: str = "had") -> bool:
-    return int(n) >= CHANT_REQUIRED.get(branch, 80)
+    return int(n) >= CHANT_REQUIRED.get(branch, 91)
 
 
 def unchanted_mult(n: int) -> float:
