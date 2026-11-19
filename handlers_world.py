@@ -352,7 +352,15 @@ async def craft_keys(ctx, arg):
         pg.append(("▶️", "crk", str(page + 1), False, "none"))
     if pg:
         rows.append(pg)
-    return Out(head(ctx, "ttl_crf") + ctx.t("crf_key_body"), rows + [nav(ctx, ("crf", ""))])
+    if pages > 1:  # numbered page buttons: tap a number to jump straight to that page
+        if pages <= 8:
+            shown = list(range(pages))
+        else:
+            shown = sorted({0, pages - 1} | {i for i in range(page - 2, page + 3) if 0 <= i < pages})
+        rows.append([((f"• {fnum(i + 1, ctx.lang)} •" if i == page else fnum(i + 1, ctx.lang)), "crk", str(i), False, "none")
+                     for i in shown])
+    pg_line = f"\n📄 {'صفحه' if ctx.lang == 'fa' else 'Page'} {fnum(page + 1, ctx.lang)}/{fnum(pages, ctx.lang)}"
+    return Out(head(ctx, "ttl_crf") + ctx.t("crf_key_body") + pg_line, rows + [nav(ctx, ("crf", ""))])
 
 
 @action("crw")
@@ -365,7 +373,11 @@ async def craft_view(ctx, arg):
     ok = plan_inputs(r["in"], inv["items"], ALL) is not None
     text = (head(ctx, "ttl_crf") + item_card(ctx, r["out"]) + "\n\n" + ctx.t("crf_needs") + "\n" +
             "\n".join(_req_lines(ctx, r["in"], inv["items"])) + f"\n🪙 {fnum(scaled_coins(r, st), ctx.lang)}")
-    back = ("crp", "") if r["type"] == "potion" else ("crk", "0")
+    if r["type"] == "potion":
+        back = ("crp", "")
+    else:  # Back returns to the key page this recipe is on
+        ids = [x["id"] for x in recipes_for(await get_char(ctx.uid), "key")]
+        back = ("crk", str(ids.index(arg) // PER_PAGE if arg in ids else 0))
     rows = [[(ctx.t("b_craft"), "crd", arg)]] if ok else []
     return Out(text, rows + [nav(ctx, back)])
 
