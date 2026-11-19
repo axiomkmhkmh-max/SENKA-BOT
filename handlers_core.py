@@ -298,6 +298,8 @@ async def handle_text(message: Message, text: str):
 
 async def on_group_text(message: Message, text: str):
     user, chat = message.from_user, message.chat
+    if chat.id < 0 and allow(chat.id, "gidlog", 3600):  # the numeric id of this group, for JOIN_GROUP_ID
+        log.warning("GROUP CHAT ID: %s (%r) - put this in JOIN_GROUP_ID", chat.id, chat.title)
     n = normalize_text(text)
     if allow(chat.id, "note", 60):
         ch = await get_char(user.id)

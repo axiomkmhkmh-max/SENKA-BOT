@@ -32,6 +32,24 @@ def log_config_warnings():
         log.warning("JOIN_GROUP_ID is not set: the group membership is NOT checked yet")
 
 
+async def self_check(bot):
+    """At start: log whether the bot can actually read membership in every required chat (the usual cause of
+    'nobody is asked to join' is the bot not being an admin there; the check then lets everyone through)."""
+    if not settings.join_gate:
+        log.warning("JOIN GATE is OFF (JOIN_GATE=0)")
+        return
+    me = await bot.get_me()
+    for name, chat, _ in _targets():
+        try:
+            m = await bot.get_chat_member(chat, me.id)
+            if m.status in ("administrator", "creator"):
+                log.warning("JOIN CHECK OK: bot is %s in %s (%s)", m.status, name, chat)
+            else:
+                log.error("JOIN CHECK PROBLEM: bot is only %r in %s (%s); add the bot as admin there", m.status, name, chat)
+        except Exception as e:
+            log.error("JOIN CHECK PROBLEM for %s (%s): %s; the join gate will let everyone through until fixed", name, chat, e)
+
+
 async def _is_member(bot, chat, uid: int) -> bool:
     try:
         m = await bot.get_chat_member(chat, uid)

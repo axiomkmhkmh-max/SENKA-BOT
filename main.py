@@ -137,6 +137,8 @@ async def main():
         await setup_commands(bot)
         me = await bot.get_me()
         log.info("SENKA online as @%s", me.username)
+        from service_joingate import self_check
+        await self_check(bot)
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"], handle_signals=True)
     finally:
         stop.set()
