@@ -22,6 +22,9 @@ from data_bleachfx import KONPAKU, RACE_KILLER  # SENKA+ race killers and Konpak
 DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 
 
+TURN_RE_REGEN = 0.10   # share of max reiatsu recovered at the end of each of a fighter's turns (was 5%)
+TURN_HP_REGEN = 0.03   # share of max HP recovered at the end of each turn (natural recovery, back again)
+
 def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, kido=None,
                 race="human", ai=False, zmult=1.0, element=None, luck=0, sig=None, mv=None, gen=None, bt=None):
     w = weapon or {"attack": 3, "crit": 0.0, "element": element or "light", "skills": [], "weapon_type": "melee"}
@@ -563,7 +566,11 @@ def start_turn(state, rng):
         fs["awake"] -= 1
         if fs["awake"] == 0:
             ev.append({"k": "unleash_end", "a": f["name"]})
-    f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * 0.05)))
+    f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * TURN_RE_REGEN)))
+    if 0 < f["hp"] < f["max_hp"]:  # natural recovery every turn (tunable: TURN_HP_REGEN)
+        h = max(1, int(f["max_hp"] * TURN_HP_REGEN))
+        f["hp"] = min(f["max_hp"], f["hp"] + h)
+        ev.append({"k": "heal", "a": f["name"], "n": h})
     rg = f["mods"].get("regen", 0)
     if rg and 0 < f["hp"] < f["max_hp"]:  # companion healing (pet role)
         h = max(1, int(f["max_hp"] * rg))
