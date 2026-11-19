@@ -563,13 +563,15 @@ async def boss_hit_cb(ctx, arg):
                 import asyncio
                 import handlers_world
                 asyncio.ensure_future(handlers_world.announce_boss_phase(ctx.bot, d, data["phase_up"]))
-            if data.get("burst"):
-                import asyncio
-                import handlers_world
-                asyncio.ensure_future(handlers_world.announce_boss_burst(ctx.bot, d, (d.get("adapt") or {}).get("n", "?")))
         head = ("✨ " + ctx.t("boss_special") + " ") if data["special"] else ""
         from database import game_settings as _gs
         _st = await _gs()
+        if data.get("burst") and not killing:
+            from service_world import claim_burst_announce
+            if await claim_burst_announce(arg, int(_st["boss_burst_announce_gap"])):  # one group message per gap, not per hit
+                import asyncio
+                import handlers_world
+                asyncio.ensure_future(handlers_world.announce_boss_burst(ctx.bot, d, (d.get("adapt") or {}).get("n", "?")))
         burst = ""
         if data.get("burst"):
             if int(_st["boss_burst_mode"]) in (1, 3):

@@ -173,6 +173,15 @@ async def boss_hit(uid: int, sid: str):
     return "hit", {"dmg": dmg, "crit": crit, "doc": doc, "combo": combo, "special": special, "phase_up": phase_up, "race": ch["race"], "burst": burst and doc["hp"] > 0, "reduced": reduced}
 
 
+async def claim_burst_announce(sid: str, gap: int) -> bool:
+    """True for the one caller that may post the group message of this burst; later bursts inside `gap` seconds stay quiet."""
+    now = time.time()
+    hit = await col("boss_sessions").find_one_and_update(
+        {"_id": sid, "active": True, "$or": [{"burst_ann": {"$exists": False}}, {"burst_ann": {"$lte": now - max(0, int(gap))}}]},
+        {"$set": {"burst_ann": now}})
+    return bool(hit)
+
+
 async def settle_boss(sid: str):
     """Pay out a killed boss exactly once. Returns summary or None."""
     doc = await col("boss_sessions").find_one_and_update(

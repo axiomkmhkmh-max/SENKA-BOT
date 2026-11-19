@@ -32,10 +32,10 @@ class BurstTests(unittest.TestCase):
         self.assertEqual(GAME_DEFAULTS["boss_burst_cd"], 20)
 
     def test_small_hit_does_not_burst(self):
-        self.assertEqual(burst_rule(49999, 1, {}, NOW, st()), (49999, False, False))
+        self.assertEqual(burst_rule(99999, 1, {}, NOW, st()), (99999, False, False))
 
     def test_big_hit_bursts(self):
-        self.assertEqual(burst_rule(50000, 1, {}, NOW, st()), (50000, False, True))
+        self.assertEqual(burst_rule(100000, 1, {}, NOW, st()), (100000, False, True))
 
     def test_off_when_zero(self):
         self.assertEqual(burst_rule(10 ** 6, 1, {}, NOW, st(boss_burst_dmg=0, boss_burst_pct=0)), (10 ** 6, False, False))

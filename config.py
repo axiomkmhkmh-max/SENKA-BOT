@@ -45,7 +45,7 @@ GAME_DEFAULTS = {
     # boss_burst_seconds. The bar is the larger of boss_burst_dmg and boss_burst_pct of the boss's max HP, so it grows with the boss.
     # mode 1 = the player gets an extra boss_burst_cd seconds of cooldown, 2 = the boss takes
     # (1 - boss_burst_reduce) less damage from that player meanwhile, 3 = both. boss_burst_dmg 0 AND boss_burst_pct 0 = off.
-    "boss_burst_dmg": 50000, "boss_burst_pct": 0.05, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
+    "boss_burst_dmg": 100000, "boss_burst_pct": 0.10, "boss_burst_announce_gap": 60, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
     "xp_curve_k": 1.5,  # level-up difficulty: XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
