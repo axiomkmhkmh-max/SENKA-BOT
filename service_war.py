@@ -188,12 +188,10 @@ def fight_k(d: dict):
 
 
 async def _event_points(uid: int, eid: str, name: str, pts: int):
-    """Battlefield points also push the world event forward (under the same daily cap as every other event point)."""
+    """Battlefield points also push the world event forward (no daily cap: only dungeon keys are capped)."""
     if pts <= 0:
         return
-    from service_worldstate import _grant_pts
-    st = await game_settings()
-    got = await _grant_pts(uid, pts, st)
+    got = int(pts)
     if got:
         await col("world_events").update_one({"_id": eid, "status": "active"},
                                              {"$inc": {"progress": got, f"contrib.{uid}": got}, "$set": {f"nm.{uid}": name}})

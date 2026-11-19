@@ -89,7 +89,9 @@ GAME_DEFAULTS = {
     # ---- world events ------------------------------------------------------------
     "event_enabled": True, "event_min_gap_minutes": 180, "event_duration_minutes": 120,
     "event_goal_per_player": 6, "event_goal_min": 40, "event_goal_cap": 4000,
-    "event_daily_pts_cap": 150, "event_reward_xp": 400, "event_reward_coins": 600,
+    # no cap on ordinary event points any more; only dungeon KEYS offered to an event are capped per day, and that cap grows with activity
+    "event_key_cap_base": 16, "event_key_cap_step_actions": 300, "event_key_cap_step_pts": 8, "event_key_cap_max": 160,
+    "event_reward_xp": 400, "event_reward_coins": 600,
     "event_threat_trigger": 70, "event_stab_trigger": 28, "event_random_chance": 0.10,
     # ---- item roles -----------------------------------------------------------------
     "relic_slots": 2, "relic_k": 1.0, "pet_k": 1.0, "evo_bonus_pct": 0.02, "evo_trial_scale": 1.3,

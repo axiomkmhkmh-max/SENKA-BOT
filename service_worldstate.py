@@ -49,7 +49,7 @@ async def _on_action(uid: int, action: str, loc: str):
     st = await game_settings()
     loc = loc or ch["location"]
     now = int(time.time())
-    await col("characters").update_one({"user_id": uid}, {"$set": {"seen_at": now}})
+    await col("characters").update_one({"user_id": uid}, {"$set": {"seen_at": now}, "$inc": {"act_total": 1}})  # lifetime activity (play-time proxy)
     # 1) shared variables. Isolated on purpose: if anything here fails for one player's gear/data, his event,
     #    territory and season points (below) must still be counted.
     try:
@@ -69,7 +69,7 @@ async def _on_action(uid: int, action: str, loc: str):
     # 2) world event contribution
     _, ev = await get_world()
     if ev and not is_new_account(ch, st):
-        pts = await _grant_pts(uid, event_pts(ev["kind"], action, loc), st)
+        pts = max(0, int(event_pts(ev["kind"], action, loc)))  # ordinary points are not capped; only keys are (see event_contribute_key)
         if pts:
             await col("world_events").update_one({"_id": ev["_id"], "status": "active"},
                                                  {"$inc": {"progress": pts, f"contrib.{uid}": pts}, "$set": {f"nm.{uid}": ch["name"]}})
@@ -81,9 +81,18 @@ async def _on_action(uid: int, action: str, loc: str):
         await season_add(uid, SEASON_PTS[action], ch["name"])
 
 
-async def _grant_pts(uid: int, pts: int, st: dict) -> int:
-    """Event points that still fit under today's cap. Near the cap the remainder is granted instead of nothing."""
-    key, cap = f"evpts:{uid}:{day_id()}", int(st["event_daily_pts_cap"])
+def key_cap_for(ch: dict, st: dict) -> int:
+    """Daily cap of event points a player may add by offering dungeon keys. It grows with how much the player really plays
+    (lifetime actions + wins), so a veteran can offer more keys per day than someone who just started."""
+    act = int((ch or {}).get("act_total", 0)) + int((ch or {}).get("wins", 0))
+    step = max(1, int(st["event_key_cap_step_actions"]))
+    cap = int(st["event_key_cap_base"]) + (act // step) * int(st["event_key_cap_step_pts"])
+    return max(int(st["event_key_cap_base"]), min(int(st["event_key_cap_max"]), cap))
+
+
+async def _grant_key_pts(uid: int, ch: dict, pts: int, st: dict) -> int:
+    """Key points that still fit under today's activity-based key cap. Near the cap the remainder is granted instead of nothing."""
+    key, cap = f"evkey:{uid}:{day_id()}", key_cap_for(ch, st)
     while pts > 0:
         if await bump_counter(key, pts, cap):
             return pts
@@ -91,18 +100,24 @@ async def _grant_pts(uid: int, pts: int, st: dict) -> int:
     return 0
 
 
-async def event_block_reason(uid: int):
-    """Why this player's actions add nothing to the active event: "young" (new account), "cap" (today's shared
-    event-points cap is full) or None. Used only to explain a zero on the event panel."""
+async def event_key_status(uid: int):
+    """(used today, cap) of this player's key offering, for the event panel."""
     from database import counter_get
+    ch = await get_char(uid)
+    if not ch:
+        return 0, 0
+    st = await game_settings()
+    return await counter_get(f"evkey:{uid}:{day_id()}"), key_cap_for(ch, st)
+
+
+async def event_block_reason(uid: int):
+    """Why this player's actions add nothing to the active event: "young" (new account) or None."""
     ch = await get_char(uid)
     if not ch:
         return None
     st = await game_settings()
     if is_new_account(ch, st):
         return "young"
-    if await counter_get(f"evpts:{uid}:{day_id()}") >= int(st["event_daily_pts_cap"]):
-        return "cap"
     return None
 
 
@@ -287,10 +302,10 @@ async def event_contribute_key(uid: int, item_id: str):
         return "noevent", None
     if not await inv_remove(uid, item_id, 1):
         return "missing", None
-    pts = await _grant_pts(uid, pts, st)
+    pts = await _grant_key_pts(uid, ch, pts, st)
     if not pts:
         from service_economy import inv_add as _back
-        await _back(uid, item_id, 1)  # the key is given back when today's cap is already full
+        await _back(uid, item_id, 1)  # the key is given back when today's key cap is already full
         return "cap", None
     await col("world_events").update_one({"_id": ev["_id"], "status": "active"}, {"$inc": {"progress": pts, f"contrib.{uid}": pts}, "$set": {f"nm.{uid}": ch["name"]}})
     return "ok", pts

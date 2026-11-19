@@ -26,7 +26,7 @@ from service_interact import (MARK_ICON, MARKS, bounty_board, bounty_place, boun
 from service_player import get_char
 from service_world import active_boss, broadcast_groups, group_doc
 from service_worldcore import chronicle_text, get_world, mods_for
-from service_worldstate import event_block_reason, event_contribute_key, season_top, territory_board, territory_owners
+from service_worldstate import event_block_reason, event_contribute_key, event_key_status, season_top, territory_board, territory_owners
 from ui import INPUTS, Out, action, chunk, head, input_handler, make_button, markup, nav
 from service_pace import bulk_slot
 
@@ -131,7 +131,8 @@ async def event_panel(ctx, arg):
     keys = [i for i, q in inv["items"].items() if q > 0 and (ALL.get(i, {}).get("effect") or {}).get("type") == "key"]
     keys.sort(key=lambda i: -KEY_PTS.get(ALL[i]["effect"]["diff"], 1))
     rows = [[(f"🗝️ {nm(i, L)} (+{KEY_PTS.get(ALL[i]['effect']['diff'], 1)})".replace("<", "").replace(">", ""), "evk", i)] for i in keys[:5]]
-    return Out(await event_text(ctx, ev) + "\n\n" + ctx.t("evt_keyhint"), rows + [nav(ctx, ("wrd", ""))])
+    used, kcap = await event_key_status(ctx.uid)
+    return Out(await event_text(ctx, ev) + "\n\n" + ctx.t("evt_keyhint") + "\n" + ctx.t("evt_keyquota", used=fnum(used, L), cap=fnum(kcap, L)), rows + [nav(ctx, ("wrd", ""))])
 
 
 @action("evk")

@@ -56,7 +56,7 @@ SETTING_FA = {
     "boss_min_age_minutes": "حداقل سن حساب برای باس (دقیقه)", "boss_refresh_seconds": "ثانیه‌ی نوسازی پیام باس", "boss_broadcast_cap": "سقف گروه‌های اعلان باس",
     "event_enabled": "رویدادها فعال", "event_min_gap_minutes": "حداقل فاصله‌ی رویدادها (دقیقه)", "event_duration_minutes": "مدت رویداد (دقیقه)",
     "event_goal_per_player": "هدف رویداد برای هر بازیکن", "event_goal_min": "حداقل هدف رویداد", "event_goal_cap": "سقف هدف رویداد",
-    "event_daily_pts_cap": "سقف امتیاز روزانه‌ی رویداد", "event_reward_xp": "جایزه‌ی تجربه‌ی رویداد", "event_reward_coins": "جایزه‌ی سکه‌ی رویداد",
+    "event_key_cap_base": "سقف روزانه‌ی امتیاز کلید رویداد (پایه، بازیکن کم‌فعال)", "event_key_cap_step_actions": "هر چند اکشن فعالیت یک پله‌ی سقف کلید بالا برود", "event_key_cap_step_pts": "افزایش سقف کلید در هر پله‌ی فعالیت", "event_key_cap_max": "بیشینه‌ی سقف روزانه‌ی کلید رویداد", "event_reward_xp": "جایزه‌ی تجربه‌ی رویداد", "event_reward_coins": "جایزه‌ی سکه‌ی رویداد",
     "event_threat_trigger": "آستانه‌ی تهدید برای رویداد", "event_stab_trigger": "آستانه‌ی ثبات برای رویداد", "event_random_chance": "شانس رویداد تصادفی",
     "relic_slots": "جای یادگار", "relic_k": "ضریب یادگار", "pet_k": "ضریب پت", "evo_bonus_pct": "بونوس تکامل", "evo_trial_scale": "مقیاس آزمون تکامل",
     "cosmetic_fame_xp": "تجربه‌ی شهرت ظاهری", "cosmetic_fame_cap": "سقف شهرت ظاهری", "craft_cost_k": "ضریب هزینه‌ی ساخت",
