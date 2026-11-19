@@ -141,11 +141,11 @@ class SpellEffects(unittest.TestCase):
         self.assertFalse(E.has_fx(danku["b"], "skip"))
 
     def test_sho_is_cheap(self):
-        # flat costs: every spell below 90 is 2% of max reiatsu, 90 and up is 8%
+        # flat costs: every spell without a chant (1-90) is 2% of max reiatsu, the chanted ones (91+) are 8%
         for br in ("had", "bak"):
-            for n in (1, 31, 61, 89):
+            for n in (1, 31, 61, 89, 90):
                 self.assertEqual(KD.cost(br, n, 1000), 20)
-            for n in (90, 91, 99):
+            for n in (91, 95, 99):
                 self.assertEqual(KD.cost(br, n, 1000), 80)
 
     def test_cost_is_a_share_of_max_reiatsu_and_no_level_gate(self):
@@ -159,9 +159,10 @@ class SpellEffects(unittest.TestCase):
 
     def test_spell_without_enough_reiatsu_is_not_castable(self):
         st = battle()
-        st["a"]["kido"]["had"] = [1, 31, 90]
-        st["a"]["re"] = KD.cost("had", 90, st["a"]["max_re"]) - 1
-        self.assertFalse(E.kido_castable(st["a"], "had", 90))
+        st["a"]["kido"]["had"] = [1, 31, 91]
+        st["a"]["re"] = KD.cost("had", 91, st["a"]["max_re"]) - 1
+        st["a"]["x"] = {"chant": 1}
+        self.assertFalse(E.kido_castable(st["a"], "had", 91))
         self.assertTrue(E.kido_castable(st["a"], "had", 31))
 
     def test_unlisted_spells_keep_the_old_behaviour(self):

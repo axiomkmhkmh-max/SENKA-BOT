@@ -20,8 +20,8 @@ CHANT_REQUIRED = {"had": 91, "bak": 91}   # from this number up, a spell cannot 
 UNCHANTED_FROM = 60          # from this number up, an unchanted spell is weaker ...
 UNCHANTED_MULT = 0.75        # ... by this factor (Hadō damage, Bakudō shield)
 HADO_COST_PCT, BAK_COST_PCT = 0.0025, 0.002   # share of max reiatsu per spell number (Hadō 89 = 22.2%, Bakudō 89 = 17.8%)
-NORMAL_SPELL_PCT = 0.02      # every spell below HIGH_SPELL_FROM costs a flat 2% of max reiatsu
-HIGH_SPELL_FROM = 90         # from this number up (Hadō and Bakudō alike) the cost is a flat share of max reiatsu ...
+NORMAL_SPELL_PCT = 0.02      # every spell without a chant (1-90) costs a flat 2% of max reiatsu
+HIGH_SPELL_FROM = 91         # from this number up (Hadō and Bakudō alike) the cost is a flat share of max reiatsu ...
 HIGH_SPELL_PCT = 0.08        # ... 8% (was 22.5% for Kurohitsugi and more above it; the top spells were unaffordable)
 
 # Hadō: mult = damage factor, pierce = share of the target's armour ignored, burn / weaken = status for 3 turns,
