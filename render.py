@@ -11,6 +11,9 @@ from engine_range import ZONE_EN, ZONE_FA
 FX_ICON = {"burn": "🔥", "poison": "☠️", "bleed": "🩸", "shock": "⚡", "weaken": "🔻", "fear": "😨", "hiren": "🌪️"}
 
 
+KIDO_CD_LINE = False   # the "kidō cooldown" line under the fight text (off with the old panel)
+
+
 def both(mode: str, fn) -> str:
     """Render in exactly one language (never fa+en in one message). Name kept for the existing call sites."""
     return fn(mode if mode in ("fa", "en") else "en")
@@ -158,7 +161,7 @@ def battle_text(lang: str, state: dict, events: list = None, title: str = "") ->
     parts.append(t(lang, "bt_turn", n=fnum(state["turn"], lang)) + "  " + dist_line(lang, state))
     cur = state.get("cur") if state.get("cur") in ("a", "b") else "a"
     fc = state[cur]
-    if not fc.get("ai") and isinstance(fc.get("kido"), dict) and fc["kido"].get("had") is not None:
+    if KIDO_CD_LINE and not fc.get("ai") and isinstance(fc.get("kido"), dict) and fc["kido"].get("had") is not None:
         from engine import kido_cooling  # lazy: render is imported by engine-free modules too
         cool = kido_cooling(fc)[:4]
         if cool:

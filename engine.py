@@ -538,6 +538,21 @@ def release_form(f) -> int:
     return 2 if f["level"] >= FORM2_LEVEL else 1 if f["level"] >= FORM1_LEVEL else 0
 
 
+def merge_heals(ev):
+    """One heal line per fighter per stretch of events: natural recovery, companion regen and Guard recovery
+    used to print as two or three separate '+N HP' lines in the same turn. They are summed into the first one."""
+    out, first = [], {}
+    for e in ev:
+        if e.get("k") == "heal":
+            i = first.get(e["a"])
+            if i is not None:
+                out[i] = dict(out[i], n=out[i]["n"] + e["n"])
+                continue
+            first[e["a"]] = len(out)
+        out.append(e)
+    return out
+
+
 def start_turn(state, rng):
     """Apply start-of-turn effects for the current side. Returns (events, skipped)."""
     side = state["cur"]
@@ -573,6 +588,9 @@ def start_turn(state, rng):
         h = max(1, int(f["max_hp"] * TURN_HP_REGEN))
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})
+        fs["nat_h"] = h
+    else:
+        fs["nat_h"] = 0
     rg = f["mods"].get("regen", 0)
     if rg and 0 < f["hp"] < f["max_hp"]:  # companion healing (pet role)
         h = max(1, int(f["max_hp"] * rg))
@@ -596,7 +614,7 @@ def start_turn(state, rng):
             fm.update(on=0, mult=1.0, fx=None)
             ev.append({"k": "form_end", "a": f["name"]})
     if _check_end(state):
-        return ev, True
+        return merge_heals(ev), True
     if fm["on"] and f["race"] == "visored" and rng.random() < evb(f, "mask_rage", MASK_RAGE):  # the Hollow inside takes the wheel
         add_fx(f, "skip", 1)
         ev.append({"k": "mask_lost", "a": f["name"]})
@@ -610,9 +628,9 @@ def start_turn(state, rng):
         if _x(f)["charge"]:  # a stunned fighter loses the Cero they were gathering
             _x(f)["charge"] = 0
             ev.append({"k": "charge_break", "a": f["name"]})
-        return ev, True
+        return merge_heals(ev), True
     state["awaiting"] = True
-    return ev, False
+    return merge_heals(ev), False
 
 
 def _check_end(state, ev=None):
@@ -881,10 +899,11 @@ def _do_action(state, action, rng, max_turns=30):
         f["guard"] = True
         f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * GUARD_RE_GAIN))
         ev.append({"k": "guard", "a": f["name"]})
-        if 0 < f["hp"] < f["max_hp"]:  # guarding also recovers HP
-            h = max(1, int(f["max_hp"] * GUARD_HP_GAIN))
-            f["hp"] = min(f["max_hp"], f["hp"] + h)
-            ev.append({"k": "heal", "a": f["name"], "n": h})
+        if 0 < f["hp"] < f["max_hp"]:  # guarding also recovers HP, but replaces the natural recovery instead of stacking on it
+            h = max(0, int(f["max_hp"] * GUARD_HP_GAIN) - int(_x(f).get("nat_h", 0)))
+            if h > 0:
+                f["hp"] = min(f["max_hp"], f["hp"] + h)
+                ev.append({"k": "heal", "a": f["name"], "n": h})
     elif action == "gc":
         _x(f)["slash"] = 1
         _x(f)["open"] = 1
@@ -1103,7 +1122,7 @@ def run_ai(state, rng, max_turns=30, ai_sides=("b",)):
             advance(state, max_turns)
             continue
         if state["cur"] in ai_sides:
-            events += do_action(state, ai_choose(state, state["cur"], rng), rng, max_turns)
+            events = events[:len(events) - len(ev)] + merge_heals(ev + do_action(state, ai_choose(state, state["cur"], rng), rng, max_turns))
         else:
             break
     return events

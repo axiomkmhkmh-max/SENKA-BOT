@@ -110,7 +110,7 @@ GAME_DEFAULTS = {
     "bounty_daily_claims": 3, "bounty_min_level": 15, "presence_minutes": 30,
     # ---- seasons ----------------------------------------------------------------------------
     # ---- retention loops (tower / chain / dispatch / wheel / inner world) -------------------------
-    "tower_energy": 15, "tower_daily_floors": 30, "tower_heal": 0.20,
+    "tower_energy": 10, "tower_daily_floors": 30, "tower_heal": 0.20,
     "raid_min_msgs": 35, "raid_cooldown": 1800, "raid_ttl": 900, "raid_hp": 4000, "raid_menos_chance": 0.2, "raid_menos_mult": 4,
     "raid_daily_cap": 8, "raid_min_level": 3, "raid_strike_cd": 12, "raid_dmg_k": 1.0,
     # --- NEW BLEACH VIRAL SYSTEM ---

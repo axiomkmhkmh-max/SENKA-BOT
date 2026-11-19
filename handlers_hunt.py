@@ -20,6 +20,34 @@ DIR_LABEL = {"left": ("⬅️ چپ", "⬅️ Left"), "mid": ("⏺ وسط", "⏺ 
 WORD_TO_DIR = {"چپ": "left", "left": "left", "وسط": "mid", "mid": "mid", "راست": "right", "right": "right"}
 START_WORDS = {"شکار", "hunt"}
 
+
+# ---- high-level hunt rewards: the old flat formulas paid almost nothing past level ~50 ---------------------------
+HUNT_HIGH_FROM = 40          # below this level hunts pay exactly as before
+
+
+def hunt_high_mult(lvl: int) -> float:
+    """1.0 up to level 40, then +1 for every 25 levels (level 135 = 4.8x, level 190 = 7x). Used for group coins."""
+    return 1.0 + max(0, int(lvl) - HUNT_HIGH_FROM) / 25
+
+
+def hunt_base(lvl: int):
+    """(xp, coins) of a caught solo Hollow. Never below the old linear pay; from level 40 it moves toward the
+    normal-fight formula (80% of it by level 100) so a hunt actually fills the bar of a high-level player."""
+    lvl = int(lvl)
+    xp, coins = int((18 + lvl * 4) * 2), int((10 + lvl * 3) * 2)
+    w = min(1.0, max(0.0, (lvl - HUNT_HIGH_FROM) / 60)) * 0.8
+    if w:
+        xp = max(xp, int(w * (20 * lvl ** 1.25 + 20)))
+        coins = max(coins, int(w * (12 + 8 * lvl + 0.05 * lvl ** 2)))
+    return xp, coins
+
+
+def hunt_drops(lvl: int):
+    """(how many items, lowest rarity index) of a caught Hollow: more and better items for high levels."""
+    lvl = int(lvl)
+    return 1 + lvl // 70, min(3, max(0, (lvl - 40) // 35))
+
+
 T = {
     "hint": ("🌫 ردپا: <b>{hint}</b>\n{dirs}", "🌫 Trail hint: <b>{hint}</b>\n{dirs}"),
     "round_ok": ("✅ درست حدس زدید! {n}/{total}", "✅ Right call! {n}/{total}"),
@@ -66,16 +94,18 @@ async def start(ctx, ch):
 async def _rewards_solo(ctx, ch, caught: bool, chase):
     lvl = ch["level"]
     # hunts pay double XP and coins now (was 18+4·lvl and 10+3·lvl)
-    base_xp = int((18 + lvl * 4) * 2)
-    base_coins = int((10 + lvl * 3) * 2)
+    base_xp, base_coins = hunt_base(lvl)
     if not caught:
         _, _, xp = await add_xp(ctx.uid, int(base_xp * 0.5), "hunt")
         return _t(ctx.lang, "escaped", xp=fnum(xp, ctx.lang))
     pool = E.catch_pool(base_xp, base_coins, 1)
     _, _, xp = await add_xp(ctx.uid, pool["xp"], "hunt")
     await add_coins(ctx.uid, pool["coins"], "hunt")
-    iid = await roll_drop(ctx.uid)
-    got = await inv_add(ctx.uid, iid, 1)
+    n_items, floor = hunt_drops(lvl)
+    got = True
+    for _ in range(n_items):
+        iid = await roll_drop(ctx.uid, floor_idx=floor)
+        got = await inv_add(ctx.uid, iid, 1) and got
     rewards = f"+{fnum(xp, ctx.lang)} XP  +{fnum(pool['coins'], ctx.lang)} 🪙"
     if not got:
         rewards += "\n" + ("کوله پر است." if ctx.lang == "fa" else "Your bag is full.")
@@ -180,6 +210,8 @@ async def _finish_group(bot, doc, caught: bool):
     lines = []
     for uid, coins in settled["payouts"].items():
         if coins:
+            pch = await get_char(int(uid))
+            coins = int(coins * hunt_high_mult((pch or {}).get("level", 1)))
             await add_coins(int(uid), coins, "hunt_group")
             name = esc(doc.get("names", {}).get(uid, uid))
             lines.append(f"• {name}: +{fnum(coins, lang)} 🪙")
@@ -187,8 +219,11 @@ async def _finish_group(bot, doc, caught: bool):
     if settled["mvp"]:
         mvp_name = esc(doc.get("names", {}).get(settled["mvp"], settled["mvp"]))
         mvp = _t(lang, "mvp", name=mvp_name)
-        iid = await roll_drop(int(settled["mvp"]))
-        await inv_add(int(settled["mvp"]), iid, 1)
+        mch = await get_char(int(settled["mvp"]))
+        n_items, floor = hunt_drops((mch or {}).get("level", 1))
+        for _ in range(n_items):
+            iid = await roll_drop(int(settled["mvp"]), floor_idx=floor)
+            await inv_add(int(settled["mvp"]), iid, 1)
     await bot.send_message(chat_id, _t(lang, "caught", rewards="\n".join(lines) or "—", mvp=mvp))
 
 

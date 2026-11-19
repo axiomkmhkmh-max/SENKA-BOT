@@ -247,6 +247,15 @@ DUNGEONS.update({
     "hueco_sands": {"fa": "ماسه‌زار هوئکو موندو", "en": "Hueco Mundo Sandstorm", "level": 52, "stages": 6},
     "espada_arena": {"fa": "میدان نبرد اسپادا", "en": "Espada Arena", "level": 75, "stages": 6},
 })
+# ---- Bleach content pack 7: end-game dungeons (level 100+; keys are the "keyz" block in data_items) ----
+DUNGEONS.update({
+    "valley_depths": {"fa": "اعماق دره‌ی فریادها", "en": "Depths of the Valley of Screams", "level": 100, "stages": 8},
+    "zanpakuto_graveyard": {"fa": "گورستان زانپاکتوهای شکسته", "en": "Graveyard of Broken Zanpakutō", "level": 112, "stages": 8},
+    "inverted_palace": {"fa": "کاخ وارونه‌ی ریشی", "en": "Inverted Reishi Palace", "level": 126, "stages": 8},
+    "silbern_ruins": {"fa": "ویرانه‌های سیلبرن", "en": "Ruins of Silbern", "level": 132, "stages": 9},
+    "soulking_heart": {"fa": "هزارتوی قلب شاه ارواح", "en": "Labyrinth of the Soul King's Heart", "level": 164, "stages": 9},
+    "beyond_reioukyuu": {"fa": "آن‌سوی ریئوکیو", "en": "Beyond the Reiōkyū", "level": 190, "stages": 10},
+})
 DUNGEONS = dict(sorted(DUNGEONS.items(), key=lambda kv: kv[1]["level"]))
 
 # Each dungeon fights its own Bleach enemies (before, dungeons borrowed the enemy list of wherever the player stood,
@@ -313,6 +322,18 @@ DUNGEON_ENEMIES.update({
         "enemies": [("هالوی ماسه‌ای", "Sand Hollow"), ("ماسه‌خوار", "Sand Gorger"), ("آجوکاس بیابانی", "Desert Adjuchas")]},
     "espada_arena": {"race": None, "boss": ("اسپادای میدان", "Arena Espada"),
         "enemies": [("فراسیون اسپادا", "Espada Fracción"), ("آرانکار آموزشی", "Training Arrancar"), ("گلادیاتور هالو", "Hollow Gladiator")]},
+    "valley_depths": {"race": None, "boss": ("پادشاه تاریک‌زادگان", "King of the Dark Ones"),
+        "enemies": [("تاریک‌زاده‌ی کهن", "Ancient Dark One"), ("روح طردشده‌ی خشمگین", "Wrathful Rejected Soul"), ("سرگردان بی‌خاطره‌ی عظیم", "Great Memory-Lost Wanderer")]},
+    "zanpakuto_graveyard": {"race": None, "boss": ("روح زانپاکتوی شکسته", "Spirit of the Shattered Zanpakutō"),
+        "enemies": [("پژواک تیغ شکسته", "Broken Blade Echo"), ("نگهبان گور تیغ‌ها", "Blade Grave Warden"), ("شینیگامی بی‌تیغ", "Bladeless Shinigami")]},
+    "inverted_palace": {"race": None, "boss": ("نگهبان وارونه‌ی کاخ", "Inverted Palace Keeper"),
+        "enemies": [("سایه‌ی وارونه‌ی ریشی", "Inverted Reishi Shade"), ("پاسدار کاخ آینه‌ای", "Mirror Palace Guard"), ("خدمتکار بی‌چهره", "Faceless Attendant")]},
+    "silbern_ruins": {"race": "quincy", "boss": ("اشترن‌ریتر ویرانه‌ها", "Sternritter of the Ruins"),
+        "enemies": [("سولدات شکست‌خورده", "Fallen Soldat"), ("شبح سیلبرن", "Silbern Phantom"), ("کوئینسی گمیشت کهن", "Elder Gemischt Quincy")]},
+    "soulking_heart": {"race": None, "boss": ("پژواک قلب شاه ارواح", "Echo of the Soul King's Heart"),
+        "enemies": [("پرتو قلب", "Heart's Gleam"), ("نگهبان رگ‌های ریشی", "Reishi Vein Keeper"), ("پژواک میمی‌هاگی", "Mimihagi's Echo")]},
+    "beyond_reioukyuu": {"race": None, "boss": ("نگهبان آستانه‌ی بی‌نام", "Nameless Threshold Guardian"),
+        "enemies": [("سایه‌ی آن‌سوی جهان", "Shade Beyond the World"), ("پژواک اراده‌ی شاه", "Echo of the King's Will"), ("پاره‌ی هستی", "Fragment of Existence")]},
 })
 # Dungeons have a FIXED enemy level (DUNGEONS[id]["level"]) that does not follow the player's level.
 # Difficulty only multiplies the enemies' strength (hp, attack, defense) and, in the same direction, the rewards:

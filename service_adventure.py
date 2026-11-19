@@ -15,6 +15,9 @@ from service_economy import inv_add, inv_get, inv_remove, roll_drop
 from service_player import add_coins, get_char
 
 
+LEVEL_BOSS_DAILY = 2   # level-band boss fights per day (was 1)
+
+
 # ---- adventures ---------------------------------------------------------------------------------------------------------
 async def adventure_info(uid: int) -> dict:
     used = await counter_get(f"adv:{uid}:{day_id()}")
@@ -45,7 +48,7 @@ async def level_boss_info(uid: int) -> dict:
     ch = await get_char(uid)
     band = level_band(int(ch["level"]))
     done = await counter_get(f"lboss:{uid}:{day_id()}")
-    return {"band": band, "boss": LEVEL_BOSSES[band], "done": done >= 1}
+    return {"band": band, "boss": LEVEL_BOSSES[band], "done": done >= LEVEL_BOSS_DAILY}
 
 
 async def level_boss_start(uid: int, lang: str):
@@ -59,7 +62,7 @@ async def level_boss_start(uid: int, lang: str):
     if await try_cooldown(f"lboss:go:{uid}", 3):
         return "wait", None
     band = level_band(int(ch["level"]))  # always the player's own band: nobody can fight another band's boss
-    if not await bump_counter(f"lboss:{uid}:{day_id()}", 1, 1):
+    if not await bump_counter(f"lboss:{uid}:{day_id()}", 1, LEVEL_BOSS_DAILY):
         return "done", None
     doc = await pve_start(uid, lang, dungeon={"id": f"lb{band}", "lboss": True, "band": band, "stage": 1, "total": 1, "diff": "normal"})
     return "ok", doc

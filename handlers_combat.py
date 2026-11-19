@@ -27,6 +27,9 @@ from service_world import active_boss, boss_hit, group_doc, settle_boss
 from ui import Out, action, chunk, head, markup, nav
 
 
+KIDO_MENU = False   # True brings back the Hadō/Bakudō spell menu and the kidō cooldown line
+
+
 def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
     L = ctx.lang
     form1, form2 = FORMS[f["race"]]
@@ -58,15 +61,21 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         r2.append(mk(ctx.t("a_gc"), "gc"))
     if E.can(f, "ch"):  # Kidō chanting: costs the turn, leaves you open, boosts the next spell
         r2.append(mk(ctx.t("a_ch"), "ch"))
-    for branch, can_act, pre in (("had", "kd", "kd"), ("bak", "bk", "bk")):
-        if not E.can(f, can_act):
-            continue
-        spells = E.kido_list(f, branch)
-        if len(spells) > 1:  # several spells castable: the button opens the spell menu
-            r2.append(mk(("🔮 هادو ▾" if L == "fa" else "🔮 Hadō ▾") if branch == "had" else ("🛡️ باکودو ▾" if L == "fa" else "🛡️ Bakudō ▾"), f"{pre}m:0"))
-        else:  # only one: cast it directly
-            n = spells[0]
-            r2.append(mk(ctx.t("a_" + can_act, n=n, spell=KIDO_NAMES.get((branch, n), "")), f"{pre}:{n}"))
+    if KIDO_MENU:  # new spell menu (off by default: players preferred the old panel)
+        for branch, can_act, pre in (("had", "kd", "kd"), ("bak", "bk", "bk")):
+            if not E.can(f, can_act):
+                continue
+            spells = E.kido_list(f, branch)
+            if len(spells) > 1:  # several spells castable: the button opens the spell menu
+                r2.append(mk(("🔮 هادو ▾" if L == "fa" else "🔮 Hadō ▾") if branch == "had" else ("🛡️ باکودو ▾" if L == "fa" else "🛡️ Bakudō ▾"), f"{pre}m:0"))
+            else:  # only one: cast it directly
+                n = spells[0]
+                r2.append(mk(ctx.t("a_" + can_act, n=n, spell=KIDO_NAMES.get((branch, n), "")), f"{pre}:{n}"))
+    else:  # old panel: one Hadō and one Bakudō button, each casts the best spell you can cast now
+        if E.can(f, "kd"):
+            r2.append(mk(ctx.t("a_kd", n=E.best_kido(f, "had"), spell=KIDO_NAMES.get(("had", E.best_kido(f, "had")), "")), "kd"))
+        if E.can(f, "bk"):
+            r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
     for k in range(0, len(r2), 2):  # at most two long labels per line, so they stay readable on a phone
         rows.append(r2[k:k + 2])
     if E.can(f, "gt"):  # gathered: release the wave

@@ -73,7 +73,7 @@ SUMMON_JACKPOT = 1 / 10000      # per summon roll
 SUMMON_JACKPOT_COINS = 500000
 
 # ---- adventures (daily, multi-stage, coins and XP) ------------------------------------------------------------------------
-ADV_DAILY = 3
+ADV_DAILY = 5
 ADVENTURES = {
     "menos_forest": {"fa": "جنگل منوس (هوئکو موندو)", "en": "Forest of Menos (Hueco Mundo)", "level": 1, "stages": 3,
                      "foes": [("هالوی جنگلی", "Forest Hollow"), ("گیلیان جوان", "Young Gillian"), ("آجوکاس", "Adjuchas")],

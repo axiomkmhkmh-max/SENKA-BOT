@@ -39,16 +39,19 @@ PLAN = [("material", 160, None, 99, 1.0), ("potion", 100, None, 99, 1.2), ("armo
         ("book", 40, None, 99, 2.0), ("evolution", 30, None, 99, 3.0), ("cosmetic", 80, None, 1, 1.5),
         ("relic", 60, None, 1, 4.0), ("egg", 30, None, 99, 4.0), ("key", 120, None, 99, 2.0),
         ("charm", 30, None, 99, 2.0),
-        ("keyx", 25, None, 99, 2.0)]  # SENKA+: appended last so every older item id stays the same; keyx = keys of the newer dungeons (appended after everything)
+        ("keyx", 25, None, 99, 2.0),
+        ("keyz", 30, None, 99, 2.0)]  # keyz = keys of the level 100+ dungeons (appended last, older ids unchanged)  # SENKA+: appended last so every older item id stays the same; keyx = keys of the newer dungeons (appended after everything)
 KIDO_NAMES = {"had": ("Hadō", "هادو"), "bak": ("Bakudō", "باکودو")}
 DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_fort", "palace_trial", "dangai_rift",
                "academy_exam", "urahara_pit", "senzaikyu_tower", "maggot_nest", "muken",
                "clinic_nightwatch", "visored_gauntlet", "srdi_lab", "schatten_depths",
                "karakura_midnight", "captains_trial", "jigoku_pit", "hogyoku_vault",
-               "riverbank_vigil", "bount_labyrinth", "precipice_run", "zero_trial", "rukongai_sewers", "fullbring_nexus", "sokyoku_execution", "hueco_sands", "espada_arena"]
+               "riverbank_vigil", "bount_labyrinth", "precipice_run", "zero_trial", "rukongai_sewers", "fullbring_nexus", "sokyoku_execution", "hueco_sands", "espada_arena",
+               "valley_depths", "zanpakuto_graveyard", "inverted_palace", "silbern_ruins", "soulking_heart", "beyond_reioukyuu"]
 DIFFS = ["normal", "hard", "nightmare", "abyss", "legendary"]
-_KEY_LEGACY_DUNGEONS = 24  # the first 24 dungeons get their keys from the "key" block; later ones from "keyx"
-assert sum(c[1] for c in PLAN if c[0] in ("key", "keyx")) == 5 * len(DUNGEON_IDS), "key count must match DUNGEON_IDS x difficulties"
+_KEY_LEGACY_DUNGEONS = 24  # the first 24 dungeons get their keys from the "key" block, the next 5 from "keyx", the level 100+ ones from "keyz"
+_KEY_START = {"key": 0, "keyx": 24, "keyz": 29}
+assert sum(c[1] for c in PLAN if c[0] in ("key", "keyx", "keyz")) == 5 * len(DUNGEON_IDS), "key count must match DUNGEON_IDS x difficulties"
 STATS = ["zanjutsu", "kido", "hakuda", "hoho", "reiatsu"]
 
 
@@ -167,8 +170,8 @@ def _build():
             elif cat == "egg":
                 eff = {"type": "pet", "tier": tier}
                 desc_en, desc_fa = "Hatches a companion.", "یک همراه از آن بیرون می‌آید."
-            elif cat in ("key", "keyx"):
-                d, df = DUNGEON_IDS[(0 if cat == "key" else _KEY_LEGACY_DUNGEONS) + i // 5], DIFFS[i % 5]
+            elif cat in ("key", "keyx", "keyz"):
+                d, df = DUNGEON_IDS[_KEY_START[cat] + i // 5], DIFFS[i % 5]
                 en, fa = f"{DUNGEONS[d]['en']} Key ({df})", f"کلید {DUNGEONS[d]['fa']} ({DIFF_FA[df]})"
                 eff = {"type": "key", "dungeon": d, "diff": df}
                 rar = RARITIES[min(5, 1 + i % 5)]
@@ -203,11 +206,11 @@ def _build():
                 f_fa, f_en = fl[i % len(fl)]
                 desc_fa, desc_en = f"{desc_fa} {f_fa}".strip(), f"{desc_en} {f_en}".strip()
             base = int(PRICE[rar] * fac / 6 * (1 + (i % 7) / 10))
-            out.append({"_id": iid, "item_id": iid, "category": "accessory" if cat in ("ring", "necklace") else ("key" if cat == "keyx" else cat),
-                        "subtype": "key" if cat == "keyx" else cat, "name_en": en, "name_fa": fa, "desc_en": desc_en, "desc_fa": desc_fa,
+            out.append({"_id": iid, "item_id": iid, "category": "accessory" if cat in ("ring", "necklace") else ("key" if cat in ("keyx", "keyz") else cat),
+                        "subtype": "key" if cat in ("keyx", "keyz") else cat, "name_en": en, "name_fa": fa, "desc_en": desc_en, "desc_fa": desc_fa,
                         "rarity": rar, "stats": stats, "effect": eff, "slot": slot, "level_req": [1, 5, 15, 30, 50, 80][tier] if slot else 1,
                         "base_price": max(5, base), "sell_price": max(2, int(base * 0.4)),
-                        "tradeable": rar != "Mythic" and cat not in ("key", "keyx"), "stack_max": stack})
+                        "tradeable": rar != "Mythic" and cat not in ("key", "keyx", "keyz"), "stack_max": stack})
     return out
 
 
