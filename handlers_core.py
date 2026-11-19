@@ -48,7 +48,7 @@ from security import allow, normalize_text, parse_cb
 from service_log import log_action, log_text
 from service_player import get_char, reg_get, touch_user, user_lang
 from service_world import note_group, set_group_lang, spawn_boss
-from ui import INPUTS, REGISTRY, Ctx, Out, markup
+from ui import INPUTS, REGISTRY, Ctx, Out, action, markup
 
 log = logging.getLogger("senka.core")
 router = Router()
@@ -117,6 +117,34 @@ async def weapon_gate(ctx, code):
     return await choice_panel(ctx, ch)
 
 
+async def _join_wall(ctx, message: Message = None, cb: CallbackQuery = None) -> bool:
+    """True when the player must join first: the join panel is sent instead of the request."""
+    from service_joingate import wall_for
+    wall = await wall_for(ctx)
+    if not wall:
+        return False
+    text, kb = wall
+    if cb is not None:
+        await cb.answer()
+        if cb.message is not None:
+            await cb.message.answer(text, reply_markup=kb)
+    elif message is not None:
+        await message.answer(text, reply_markup=kb)
+    return True
+
+
+@action("jchk")
+async def join_check_button(ctx, arg):
+    from service_joingate import check_again
+    if not await check_again(ctx):
+        return Out(alert="هنوز عضو همه‌ی موارد نیستی / You have not joined everything yet.")
+    if await get_char(ctx.uid):
+        return await REGISTRY["home"](ctx, "")
+    if not await user_lang(ctx.uid):
+        return reg.lang_panel(ctx)
+    return await reg.reg_panel(ctx)
+
+
 async def send_out(message: Message, ctx: Ctx, out: Out):
     if out.text:
         await message.answer(out.text, reply_markup=markup(ctx, out.rows))
@@ -144,6 +172,8 @@ async def on_start(message: Message, command: CommandObject):
     blocked = await gate(ctx)
     if blocked:
         return await send_out(message, ctx, blocked)
+    if await _join_wall(ctx, message=message):
+        return
     await show_home_or_reg(message, ctx)
 
 
@@ -224,6 +254,8 @@ async def handle_text(message: Message, text: str):
     blocked, ch, pend = await asyncio.gather(gate(ctx), get_char(user.id), col("inputs").find_one({"user_id": user.id}))
     if blocked:
         return await send_out(message, ctx, blocked)
+    if await _join_wall(ctx, message=message):
+        return
     if not ch:
         if not await user_lang(user.id):
             return await send_out(message, ctx, reg.lang_panel(ctx))
@@ -319,6 +351,8 @@ async def on_group_text(message: Message, text: str):
     ctx = await make_ctx(user, chat, message.bot, message)
     if await gate(ctx):
         return
+    if await _join_wall(ctx, message=message):
+        return
     if code == "*duel":
         target = message.reply_to_message.from_user if message.reply_to_message else None
         if not target or target.is_bot:
@@ -358,10 +392,12 @@ async def on_callback(cb: CallbackQuery):
     fn = REGISTRY.get(code)
     if not fn:
         return await cb.answer()
-    need_char = code not in ("lang", "noop") and code not in ("begin", "gen", "race", "st", "zp", "rgi", "zpi", "rgl", "bh", "dua", "dud", "pa")
+    need_char = code not in ("lang", "noop", "jchk") and code not in ("begin", "gen", "race", "st", "zp", "rgi", "zpi", "rgl", "bh", "dua", "dud", "pa")
     blocked, has_char = await asyncio.gather(gate(ctx), _has_char(user.id) if need_char else asyncio.sleep(0, True))  # together: one wait
     if blocked:
         return await cb.answer(blocked.text, show_alert=True)
+    if code != "jchk" and await _join_wall(ctx, cb=cb):
+        return
     if need_char and not has_char:
         r = await reg.reg_panel(ctx)
         return await _deliver(cb, ctx, r)

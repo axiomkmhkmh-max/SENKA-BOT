@@ -1,4 +1,5 @@
 """Persistent Bleach-inspired race, faction and Kidō progression."""
+import re
 import time
 from database import col, game_settings, try_cooldown
 from service_player import get_char, add_xp, add_coins
@@ -30,6 +31,12 @@ KIDO = {
     "bakudo9": {"name":"Geki", "type":"Bakudō", "level":1, "cost":24, "power":0.0, "fa":"گِکی — فلج‌سازی"},
     "kaido": {"name":"Kaidō: Minor Recovery", "type":"Kaidō", "level":12, "cost":25, "power":0.0, "fa":"کایدو — بازیابی جزئی"},
 }
+
+# the cost shown for each spell is the one the fight charges (data_kido.cost), not a separate number
+from data_kido import cost as _kido_cost
+for _k, _v in KIDO.items():
+    if _k != "kaido":
+        _v["cost"] = _kido_cost("had" if _v["type"] == "Hadō" else "bak", int(re.sub(r"\D", "", _k)))
 
 FACTIONS = {
     "gotei13": {"fa":"گوتی ۱۳", "en":"Gotei 13", "races":["shinigami","visored"], "ranks":["Academy Student","Unseated Officer","Seated Officer","Lieutenant Candidate","Captain Candidate"]},

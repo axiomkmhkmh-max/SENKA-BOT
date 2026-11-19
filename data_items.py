@@ -147,7 +147,8 @@ def _build():
                     desc_en = f"Duel charm: one extra Konpaku life for {eff['minutes']} minutes."
                     desc_fa = f"طلسم دوئل: یک جان کونپاکوی اضافه برای {eff['minutes']} دقیقه."
             elif cat == "potion":
-                if i % 2 == 0:
+                # the effect follows the name (was index parity, which mixed Reiatsu Tonic into HP potions)
+                if not ("Reiatsu" in en or "Tea" in en):
                     eff = {"type": "hp", "pct": 15 + tier * 10}
                     desc_en, desc_fa = f"Restores {eff['pct']}% HP.", f"{eff['pct']}٪ جان را بازمی‌گرداند."
                 else:

@@ -101,6 +101,8 @@ async def health_server():
 async def main():
     logging.basicConfig(level=getattr(logging, settings.log_level, logging.INFO), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     validate_settings()
+    from service_joingate import log_config_warnings
+    log_config_warnings()
     await connect_db()
     await seed()
     from service_respec import rebase_race_stats_once, rebase_race_stats_v3_once

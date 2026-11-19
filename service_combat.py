@@ -160,7 +160,7 @@ async def build_player(ch: dict, name: str = None):
     had, bak, kaido = set(legacy.get("had") or [1]), set(legacy.get("bak") or [1]), set()
     if ch.get("race") not in KIDO_RACES:  # Arrancar, Hollow, Quincy and the rest have no Hadō or Bakudō
         had, bak, kaido = set(), set(), set()
-    for spell_id in set(ch.get("kido_learned") or []):
+    for spell_id in (set(ch.get("kido_learned") or []) if ch.get("race") in KIDO_RACES else ()):
         spell = KIDO.get(spell_id)
         if not spell:
             continue

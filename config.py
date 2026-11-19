@@ -27,6 +27,14 @@ class Settings:
         # Telegram log channel: "@username" or numeric id (-100...). The bot must be an admin there. Empty = DB-only logging.
         self.notify_updates = _int("NOTIFY_UPDATES", 1) == 1  # message every player to press /start after a new deploy
         self.log_channel = os.getenv("LOG_CHANNEL", "@senkalog").strip()
+        # Mandatory join: a player must be a member of the channel and the group before the bot plays with them.
+        # The bot must be an admin in both. JOIN_GROUP_ID is the group's numeric id (-100...); an invite link cannot
+        # be resolved to it, so until it is set the group is not checked (a warning is logged at start).
+        self.join_gate = _int("JOIN_GATE", 1) == 1
+        self.join_channel = os.getenv("JOIN_CHANNEL", "@SenkaChannel").strip()
+        self.join_channel_url = os.getenv("JOIN_CHANNEL_URL", "https://t.me/SenkaChannel").strip()
+        self.join_group_id = _int("JOIN_GROUP_ID", 0)
+        self.join_group_url = os.getenv("JOIN_GROUP_URL", "https://t.me/+4rDKHnpMhcFhYTY8").strip()
 
 
 settings = Settings()
