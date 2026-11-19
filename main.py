@@ -133,9 +133,18 @@ async def main():
     from service_migrate_rework import notify_respec
     rs_task = asyncio.create_task(notify_respec(bot, stop))  # "your stat points came back" notice
     try:
-        await bot.delete_webhook(drop_pending_updates=settings.drop_pending)
-        await setup_commands(bot)
-        me = await bot.get_me()
+        # Telegram sometimes answers 502 Bad Gateway for a few seconds; retry instead of crashing the whole container
+        for attempt in range(1, 7):
+            try:
+                await bot.delete_webhook(drop_pending_updates=settings.drop_pending)
+                await setup_commands(bot)
+                me = await bot.get_me()
+                break
+            except Exception as e:
+                if attempt == 6:
+                    raise
+                log.warning("Telegram startup call failed (%s), retry %s/6 in %ss", e, attempt, attempt * 5)
+                await asyncio.sleep(attempt * 5)
         log.info("SENKA online as @%s", me.username)
         from service_joingate import self_check
         await self_check(bot)
