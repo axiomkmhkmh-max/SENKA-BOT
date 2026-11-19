@@ -20,7 +20,7 @@ from service_player import add_coins, add_xp, energy_now, get_char, week
 BY_CAT = {}
 from data_items import merged  # noqa: E402
 for _id, _it in ALL.items():
-    if _it.get("category") != "weapon" and (not _it.get("retired") or _it.get("merge_into")):
+    if _it.get("category") != "weapon" and not _it.get("special") and (not _it.get("retired") or _it.get("merge_into")):
         BY_CAT.setdefault(_it["category"], {}).setdefault(_it["rarity"], []).append(merged(_id))  # same odds as before
 
 

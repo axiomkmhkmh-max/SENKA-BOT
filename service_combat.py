@@ -209,6 +209,33 @@ async def active_pve(uid: int):
     return await col("battles").find_one({"user_id": uid, "mode": "pve", "status": "active"})
 
 
+async def blocking_pve(uid: int) -> bool:
+    """True while any open PvE fight (normal, dungeon, adventure, tower or evolution trial) is running: nothing else may
+    start until it ends. A Soul Tower climb can be left for free with abandon_tower."""
+    return bool(await active_pve(uid))
+
+
+async def save_tower(uid: int) -> int:
+    """Register the floor of the open tower fight as the next start (never beyond the floor after the best one).
+    Returns that floor, or 0 when no tower fight is open."""
+    doc = await active_pve(uid)
+    d = (doc or {}).get("dungeon") or {}
+    if not d.get("tower"):
+        return 0
+    ch = await get_char(uid)
+    best = int(((ch or {}).get("tower") or {}).get("best", 0))
+    floor = max(1, min(int(d.get("stage", 1)), best + 1))
+    await col("characters").update_one({"user_id": uid}, {"$set": {"tower.saved": floor}})
+    return floor
+
+
+async def abandon_tower(uid: int) -> bool:
+    """Close the open tower fight with no penalty and no reward. Atomic: only an active tower battle is closed."""
+    r = await col("battles").update_one({"user_id": uid, "mode": "pve", "status": "active", "dungeon.tower": True},
+                                        {"$set": {"status": "fled"}})
+    return bool(r.modified_count)
+
+
 DG_XP_MULT = 2.0        # dungeon stages pay this much more XP than a normal fight (they pay no coins or items)
 DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)

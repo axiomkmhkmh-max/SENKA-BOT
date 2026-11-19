@@ -83,10 +83,40 @@ class Inner2(unittest.TestCase):
 
 
 class NewRelics(unittest.TestCase):
-    def test_forty_relics(self):
-        self.assertEqual(len(X.NEW_RELICS), 40)
+    def test_forty_relics_and_the_luck_relic(self):
+        self.assertEqual(len(X.NEW_RELICS), 41)  # 40 + Urahara's Striped Hat, the first Legendary luck relic
         for r in X.NEW_RELICS:
             self.assertIn(r["item_id"], D.ALL)
+        hat = D.ALL[X.NEW_RELICS[-1]["item_id"]]
+        self.assertEqual((hat["rarity"], hat["effect"]["kind"]), ("Legendary", "drop"))
+        self.assertAlmostEqual(hat["effect"]["v"], 0.13)
+        self.assertIn(hat["item_id"], D.BY_RARITY["Legendary"])
+
+
+class MythicKidoRings(unittest.TestCase):
+    def test_three_red_kido_rings_reach_the_game(self):
+        rings = [D.ALL[i] for i in D.MYTHIC_ACCESSORIES
+                 if D.ALL[i]["subtype"] == "ring" and D.ALL[i]["stats"]["stat"] == "kido"]
+        self.assertEqual({r["name_en"] for r in rings},
+                         {"Tsuba of Kyōka Suigetsu", "Tsuba of Ichimonji", "Ichibei's Ink Brush"})
+        for r in rings:
+            self.assertFalse(r["tradeable"])
+            self.assertNotIn(r["item_id"], D.BY_RARITY["Mythic"])
+
+
+class RemovedPieces(unittest.TestCase):
+    def test_bag_per_level_and_tower_helpers_exist(self):
+        import config
+        import service_combat as C
+        self.assertGreaterEqual(config.BAG_PER_LEVEL, 1)
+        for fn in ("blocking_pve", "save_tower", "abandon_tower"):
+            self.assertTrue(callable(getattr(C, fn)))
+
+    def test_merged_maps_old_to_live(self):
+        for old, new in D.MAT_MERGE.items():
+            self.assertEqual(D.merged(old), new)
+            self.assertFalse(D.ALL[new].get("retired"))
+        self.assertEqual(D.merged("it_t001"), "it_t001")
 
 
 class RollWeights(unittest.TestCase):
