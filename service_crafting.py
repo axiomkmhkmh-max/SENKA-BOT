@@ -126,7 +126,7 @@ async def _relic_level_up(uid: int, ch: dict, item_id: str) -> str:
 
 def relic_upgrade_cost(item_id: str, lvl: int) -> int:
     """Coins to raise an attuned relic from `lvl` to `lvl + 1`, like forging gear (cost grows with level and item value)."""
-    return int(ALL[item_id]["base_price"] * 0.5 * lvl) + 500 * lvl
+    return int(ALL[item_id]["base_price"] * 0.2 * lvl) + 200 * lvl  # cheaper than before (was 0.5 and 500 per level)
 
 
 async def relic_upgrade_coins(uid: int, item_id: str) -> tuple:

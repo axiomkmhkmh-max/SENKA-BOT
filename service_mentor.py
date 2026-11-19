@@ -2,8 +2,9 @@
 
 A weaker player asks a stronger one to be their master; the request lands in the master's panel. Once the master
 accepts:
-- the apprentice earns a small extra bonus (`mentor_xp_pct`, default 3%) of the XP they win in every battle and
-  dungeon fight. The cut is EXTRA: the apprentice's own XP is never reduced;
+- every time the MASTER wins XP in a fight (battle, dungeon, ranked duel, boss, hunt, exploration) each of their
+  apprentices earns a mentoring bonus (`mentor_xp_pct`, default 10%) of that XP. The bonus is EXTRA: the master's own
+  XP is never reduced, and one bonus is capped at a quarter of the level the apprentice is climbing;
 - the master can hand their apprentices the Treatise (رساله) and Memoir (خاطرات) books from the master panel.
 
 Rules (all constants below): the master needs MENTOR_MIN_LEVEL and must be at least MENTOR_GAP levels above the
@@ -25,7 +26,7 @@ from pymongo.errors import DuplicateKeyError
 from data_items import ALL
 from database import col, game_settings
 from service_economy import inv_add, inv_get, inv_remove
-from service_player import add_xp, get_char, today
+from service_player import add_xp, get_char, today, xp_to_next
 from service_worldcore import is_new_account
 
 log = logging.getLogger("senka.mentor")
@@ -36,7 +37,9 @@ APPRENTICE_MIN_LEVEL = 5
 MAX_APPRENTICES = 3
 REQUEST_TTL = 3 * 24 * 3600
 GIFT_PER_DAY = 10            # books a master can give ONE apprentice per day
-XP_PCT_DEFAULT = 3.0         # percent of the apprentice's fight XP; live-tunable through the game setting `mentor_xp_pct`
+XP_PCT_DEFAULT = 10.0        # percent of the MASTER's fight XP each apprentice gets; live-tunable through the game setting `mentor_xp_pct`
+BONUS_CAP = 0.25             # one bonus never exceeds this share of the XP the apprentice needs for their next level
+MENTOR_SOURCES = ("pve", "pvp", "boss", "hunt", "explore")  # the XP sources of a master that feed the apprentices
 
 
 def gift_ids() -> list:
@@ -193,6 +196,7 @@ async def accept(master_uid: int, app_uid: int) -> str:
         return "full"
     await col("characters").update_one({"user_id": int(app_uid)}, {"$set": {"mentor": int(master_uid)}})
     await col("mentor_requests").delete_one({"_id": int(app_uid)})
+    await sync_marker(master_uid)
     return "ok"
 
 
@@ -203,29 +207,49 @@ async def end(app_uid: int):
     if not doc:
         return None
     await col("mentorships").delete_one({"_id": int(app_uid)})
+    await sync_marker(int(doc["master"]))
     return int(doc["master"])
 
 
-# ---- the XP cut ------------------------------------------------------------------------------------------------------
-async def share_xp(app_uid: int, master_uid: int, got: int, app_ch: dict = None) -> dict:
-    """Called after an apprentice wins a battle / dungeon fight and earned `got` XP: the APPRENTICE gets a small mentoring bonus on top.
-    -> {"xp": the bonus the apprentice got, "graduated": bool}. Never raises into the fight (the caller also guards it)."""
-    res = {"xp": 0, "graduated": False}
+# ---- the XP share ----------------------------------------------------------------------------------------------------
+async def sync_marker(master_uid: int) -> int:
+    """Keeps the master's `apps` marker equal to the real number of apprentices (the fight path only reads the marker)."""
+    n = await apprentice_count(master_uid)
+    if n:
+        await col("characters").update_one({"user_id": int(master_uid)}, {"$set": {"apps": n}})
+    else:
+        await col("characters").update_one({"user_id": int(master_uid)}, {"$unset": {"apps": ""}})
+    return n
+
+
+async def share_to_apprentices(master_uid: int, got: int, master_ch: dict = None) -> dict:
+    """Called after the MASTER earned `got` XP in a fight: every apprentice gets a mentoring bonus on top.
+    -> {"xp": bonus per apprentice, "n": apprentices paid, "graduated": [ids]}. Never raises into the fight (the caller guards it too)."""
+    res = {"xp": 0, "n": 0, "graduated": []}
     bonus = int(int(got or 0) * await xp_pct() / 100.0)
-    doc = await col("mentorships").find_one({"_id": int(app_uid), "master": int(master_uid)})
-    if not doc:  # a stale `mentor` marker: clear it so the fight path stops asking
-        await col("characters").update_one({"user_id": int(app_uid), "mentor": int(master_uid)}, {"$unset": {"mentor": ""}})
+    if bonus < 1:
         return res
-    if bonus >= 1:
-        await col("mentorships").update_one({"_id": int(app_uid)}, {"$inc": {"xp_total": bonus}})
-        await add_xp(int(app_uid), bonus, "mentor", apply_rate=False)  # the APPRENTICE gets the mentoring bonus (the fight's XP already carried every rate)
-        res["xp"] = bonus
-        app_ch = None  # the bonus may have levelled the apprentice: re-read before the graduation check
-    master_ch = await get_char(master_uid)
-    app_ch = app_ch or await get_char(app_uid)
-    if not master_ch or not app_ch or int(app_ch["level"]) >= int(master_ch["level"]):
-        await end(app_uid)  # the apprentice caught up: graduation
-        res["graduated"] = True
+    docs = await apprentices_of(master_uid)
+    if not docs:
+        await sync_marker(master_uid)  # a stale `apps` marker: clear it so the fight path stops asking
+        return res
+    master_ch = master_ch or await get_char(master_uid)
+    for d in docs:
+        app_uid = int(d["_id"])
+        app_ch = await get_char(app_uid)
+        if not app_ch or not master_ch or int(app_ch["level"]) >= int(master_ch["level"]):
+            await end(app_uid)  # the apprentice caught up (or vanished): graduation
+            res["graduated"].append(app_uid)
+            continue
+        give = min(bonus, max(1, int(xp_to_next(int(app_ch["level"])) * BONUS_CAP)))
+        await col("mentorships").update_one({"_id": app_uid}, {"$inc": {"xp_total": give}})
+        new_ch, _lv, _g = await add_xp(app_uid, give, "mentor", apply_rate=False)
+        res["xp"], res["n"] = give, res["n"] + 1
+        if new_ch and int(new_ch["level"]) >= int(master_ch["level"]):
+            await end(app_uid)
+            res["graduated"].append(app_uid)
+    if res["graduated"]:
+        await sync_marker(master_uid)
     return res
 
 

@@ -333,6 +333,9 @@ def _shop_draw(day: str, race: str, banned: frozenset = frozenset()) -> list:
             fresh = pool
         if fresh:
             picks += random.Random(f"shop{day}{key}{race if key == 'armor' else ''}").sample(fresh, min(n, len(fresh)))
+    # every ordinary (Common) crafting material is on the shelf every single day, whatever the random draw did
+    picks += sorted(i for i, x in ALL.items() if x["category"] == "material" and x["rarity"] == "Common" and not x.get("retired")
+                    and x.get("tradeable", True) is not False and x.get("base_price"))
     return picks
 
 

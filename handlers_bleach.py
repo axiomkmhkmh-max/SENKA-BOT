@@ -17,6 +17,28 @@ def _bonus_text(ctx, d):
     return bonus_line(ctx, d["bonus"])
 
 
+async def squad_captains() -> dict:
+    """Gotei captains, live: the 13 strongest Shinigami (level, then XP) lead the 13 squads, the strongest leads squad 1,
+    the second squad 2, and so on. Nothing is stored: when somebody overtakes a captain the seats move by themselves."""
+    top = await col("characters").find({"race": "shinigami"}, {"user_id": 1, "name": 1, "level": 1, "xp": 1}) \
+        .sort([("level", -1), ("xp", -1), ("user_id", 1)]).limit(13).to_list(13)
+    return {f"g{i:02d}": c for i, c in enumerate(top, 1)}
+
+
+async def squad_sizes() -> dict:
+    """{division id: how many players chose it}."""
+    rows = await col("characters").aggregate([{"$match": {"division": {"$ne": None}}}, {"$group": {"_id": "$division", "n": {"$sum": 1}}}]).to_list(200)
+    return {r["_id"]: int(r["n"]) for r in rows}
+
+
+def _captain_line(ctx, caps, did):
+    c = caps.get(did)
+    if not c:
+        return ctx.lang == "fa" and "👑 کاپیتان: خالی (جایگاه اول گوتی منتظر قوی‌ترین‌هاست)" or "👑 Captain: empty seat"
+    return (f"👑 کاپیتان: <b>{esc(c.get('name', '?'))}</b> · لول {fnum(c.get('level', 0), 'fa')}" if ctx.lang == "fa"
+            else f"👑 Captain: <b>{esc(c.get('name', '?'))}</b> · level {c.get('level', 0)}")
+
+
 @action("div")
 async def division(ctx, arg):
     ch = await get_char(ctx.uid)
@@ -34,6 +56,19 @@ async def division(ctx, arg):
         lines.append(ctx.t("div_change", cost=fnum(st["div_change_cost"], L)))
     else:
         lines.append(ctx.t("div_none", faction=title))
+    if faction == "gotei":  # the 13 squads are led by the 13 strongest Shinigami
+        caps = await squad_captains()
+        if cur and cur["_id"] in caps:
+            lines.append(_captain_line(ctx, caps, cur["_id"]))
+        lines.append("")
+        lines.append("👑 " + ("کاپیتان‌ها (۱۳ نفر برتر شینیگامی):" if L == "fa" else "Captains (the 13 strongest Shinigami):"))
+        for n in range(1, 14):
+            c = caps.get(f"g{n:02d}")
+            nm = esc(c.get("name", "?")) if c else "—"
+            lines.append(f"{fnum(n, L)}. {nm}" + (f" · {fnum(c.get('level', 0), L)}" if c else ""))
+        lines.append("")
+        lines.append("ℹ️ " + ("هر شینیگامی جدید بعد از رسیدن به لول لازم، یکی از جوخه‌ها رو انتخاب می‌کنه و زیر دست کاپیتانش می‌جنگه." if L == "fa"
+                              else "A new Shinigami picks a squad once the level is reached and fights under that squad's captain."))
     opts = [(_name(d, L) + (" ✅" if cur and d["_id"] == cur["_id"] else ""), "dvi", d["_id"]) for d in divisions_for(ch["race"])]
     rows = chunk(opts, 2) + [nav(ctx, ("mg", "grow"))]
     return Out(head(ctx, "ttl_div") + "\n".join(lines), rows)
@@ -47,6 +82,10 @@ async def division_info(ctx, arg):
     if not d or d["faction"] != FACTION_OF.get(ch["race"], "allies"):
         return Out(alert=ctx.t("div_e_bad"))
     text = f"<b>{_name(d, L)}</b>\n{_bonus_text(ctx, d)}\n<i>{esc(d['desc_fa' if L == 'fa' else 'desc_en'])}</i>"
+    if d["faction"] == "gotei" and d["_id"][1:].isdigit() and int(d["_id"][1:]) <= 13:
+        text += "\n" + _captain_line(ctx, await squad_captains(), d["_id"])
+        size = (await squad_sizes()).get(d["_id"], 0)
+        text += "\n" + (f"👥 اعضا: {fnum(size, 'fa')}" if L == "fa" else f"👥 Members: {size}")
     rows = [[(ctx.t("b_div_pick"), "dvy", d["_id"])], nav(ctx, ("div", ""))]
     return Out(head(ctx, "ttl_div") + text, rows)
 

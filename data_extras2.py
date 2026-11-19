@@ -26,7 +26,8 @@ NEW_ITEMS = [
 
 # ---- new relics (kinds the old ones never had: damage, defence, crit, regeneration, XP, hunting) -----------------------
 _RV = {"dmg": [0.01, 0.015, 0.02, 0.03, 0.045], "def": [0.01, 0.015, 0.02, 0.03, 0.045], "crit": [0.004, 0.006, 0.009, 0.013, 0.02],
-       "regen": [0.002, 0.003, 0.004, 0.006, 0.009], "xp": [0.03, 0.045, 0.06, 0.08, 0.11], "hunt": [0.03, 0.045, 0.06, 0.08, 0.11]}
+       "regen": [0.002, 0.003, 0.004, 0.006, 0.009], "xp": [0.03, 0.045, 0.06, 0.08, 0.11], "hunt": [0.03, 0.045, 0.06, 0.08, 0.11],
+       "drop": [0.04, 0.06, 0.08, 0.10, 0.13]}   # luck: the item-drop chance (Epic 10%, so Legendary 13%)
 _R = {"C": 0, "U": 1, "R": 2, "E": 3, "L": 4}
 _RELICS = [
     ("Shiba Kūkaku's Fireworks Tube", "لوله‌ی آتش‌بازی کوکاکو", "U", "dmg"), ("Kōtotsu's Wake", "رد پاک‌کننده", "R", "def"),
@@ -49,6 +50,7 @@ _RELICS = [
     ("Isane's Field Kit", "کیف صحرایی ایسانه", "U", "regen"), ("Seireitei Bulletin", "خبرنامه‌ی سیرِیتِی", "R", "xp"),
     ("Las Noches Patrol Map", "نقشه‌ی گشت لاس‌نوچس", "E", "hunt"), ("Nnoitra's Battle Scar", "زخم نبرد نوایترا", "E", "crit"),
     ("Tessai's Barrier Pin", "سنجاق سدّ تسای", "E", "regen"), ("Urahara's Training Ground Rock", "سنگ زمین تمرین اوراهارا", "C", "hunt"),
+    ("Urahara's Striped Hat", "کلاه راه‌راه اوراهارا", "L", "drop"),   # the first Legendary luck relic (appended last: ids never move)
 ]
 NEW_RELICS = []
 for _n, (_en, _fa, _c, _k) in enumerate(_RELICS, 1):
@@ -133,8 +135,8 @@ NEW_PETS = [("Hell Butterfly", "پروانه‌ی جهنمی"), ("Chappy the Rab
             ("Pesche's Bug", "حشره‌ی پشه"), ("Bawabawa Hatchling", "جوجه‌ی باواباوا"), ("Kon Plush Spirit", "روح عروسکی کن"),
             ("Ruri'iro Peacock", "طاووس روری‌ایرو")]
 PET_MAX_TIER = 9                # ★10
-PET_UP_COINS = 2500             # x (tier + 1)^2
-PET_UP_MATS = 2                 # spirit materials x (tier + 1), colour min(tier, 3)
+PET_UP_COINS = 1000             # x (tier + 1)^2 (was 2500)
+PET_UP_MATS = 1                 # spirit materials x (tier + 1), colour min(tier, 3) (was 2)
 
 # ---- Inner World 2 (permanent pure bonuses, opened with the Inner World Key) -----------------------------------------------
 INNER2 = {  # path: (fa, en, bonus key, step, cap)

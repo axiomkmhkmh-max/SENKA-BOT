@@ -47,7 +47,7 @@ FA = {
     "tw_body": ("برج روح بی‌پایان است. هر طبقه دشمنی قوی‌تر از قبلی دارد و هر ۵ طبقه یک نگهبان 👑 جایزه‌ی ویژه می‌دهد.\n"
                 "جان و ریاتسو بین طبقه‌ها همراهت می‌آید (کمی ترمیم می‌شود). اگر سقوط کنی، دفعه‌ی بعد از ابتدای همان بلوک ۵تایی شروع می‌کنی.\n\n"
                 "🏆 بهترین طبقه: <b>{best}</b>\n📅 رکورد این هفته: <b>{wk}</b>\n🚩 شروع از طبقه: <b>{start}</b>\n"
-                "⚡ هزینه‌ی هر صعود: {cost} انرژی\n🎁 طبقه‌های پاداش‌دار امروز: {left}/{cap}"),
+                "⚡ هزینه‌ی هر صعود: {cost} انرژی\n🎁 هر طبقه جایزه می‌ده و سقف روزانه نداره"),
     "tw_e_busy": "اول نبردِ پیش‌رویت را تمام کن.", "tw_e_energy": "انرژی کافی نداری ⚡",
     "tw_floor": "🗼 طبقه {n}", "tw_floor_boss": "🗼 طبقه {n} — 👑 نگهبان", "tw_floor_n": "طبقه {n}",
     "tw_lb": "🏅 برترین‌های برج در این هفته",
@@ -127,7 +127,7 @@ EN = {
     "tw_body": ("The Soul Tower never ends. Every floor is tougher than the last, and every 5th floor a Warden 👑 guards a special reward.\n"
                 "HP and reiatsu carry between floors (with a little healing). If you fall, your next run starts at the first floor of that 5-floor block.\n\n"
                 "🏆 Best floor: <b>{best}</b>\n📅 This week: <b>{wk}</b>\n🚩 Start floor: <b>{start}</b>\n"
-                "⚡ Cost per ascent: {cost} energy\n🎁 Rewarded floors today: {left}/{cap}"),
+                "⚡ Cost per ascent: {cost} energy\n🎁 Every floor pays out, with no daily cap"),
     "tw_e_busy": "Finish the fight in front of you first.", "tw_e_energy": "Not enough energy ⚡",
     "tw_floor": "🗼 Floor {n}", "tw_floor_boss": "🗼 Floor {n} — 👑 Warden", "tw_floor_n": "Floor {n}",
     "tw_lb": "🏅 Tower's best this week",

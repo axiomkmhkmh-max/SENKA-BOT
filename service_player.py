@@ -1,4 +1,5 @@
 """Users, registration state machine, characters, XP, energy, coins, quests."""
+import logging
 import math
 import random
 import time
@@ -194,6 +195,13 @@ async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = Tru
                 await col("inventories").update_one({"user_id": uid}, {"$inc": {"capacity": BAG_PER_LEVEL * gained}})
                 await bump_quest(uid, "level", 0, absolute=level)
                 log_event("lvl", uid, f"به سطح {level} رسید (+{gained})", level=level)
+            if gain and ch.get("apps"):  # a master: this fight's XP also feeds their apprentices (a marker, so nobody else pays a query)
+                try:
+                    from service_mentor import MENTOR_SOURCES, share_to_apprentices
+                    if source in MENTOR_SOURCES:
+                        await share_to_apprentices(uid, gain, ch)
+                except Exception as e:  # never break the master's fight over a bonus
+                    logging.getLogger("senka.mentor").warning("mentor share failed: %s", e)
             return ch, gained, gain
     return await get_char(uid), 0, 0
 

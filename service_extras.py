@@ -62,11 +62,10 @@ async def tower_info(uid: int) -> dict:
     t = ch.get("tower") or {}
     st = await game_settings()
     wk = t.get("wk_best", 0) if t.get("wk") == week() else 0
-    left = max(0, int(st["tower_daily_floors"]) - await counter_get(f"tower:{uid}:{day_id()}"))
     best = int(t.get("best", 0))
     saved = int(t.get("saved", 0) or 0)  # a registered floor (never beyond the next unreached one)
     start = saved if 1 <= saved <= best + 1 else tower_checkpoint(best)
-    return {"best": best, "wk": wk, "start": start, "left": left, "cap": int(st["tower_daily_floors"]),
+    return {"best": best, "wk": wk, "start": start, "left": 0, "cap": 0,  # no daily floor cap any more
             "cost": int(st["tower_energy"])}
 
 
@@ -89,7 +88,8 @@ async def tower_start(uid: int, lang: str):
     return "ok", doc
 
 
-TOWER_XP_MULT = 0.9  # Soul Tower XP reward multiplier (-10%; was 0.8)
+TOWER_XP_MULT = 1.0  # Soul Tower XP reward multiplier (full XP again)
+TOWER_DROP_CHANCE = 0.5  # chance of an item on every cleared floor (the daily cap is gone, so no floor is unpaid)
 
 
 async def tower_settle(doc: dict, win: bool) -> dict:
@@ -107,16 +107,16 @@ async def tower_settle(doc: dict, win: bool) -> dict:
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1, "tower.runs": 1}, "$unset": {"tower.saved": ""}})
         out["tower"]["best"] = int(t.get("best", 0))
         return out
-    if await bump_counter(f"tower:{uid}:{day_id()}", 1, int(gs["tower_daily_floors"])):
+    if True:  # every cleared floor pays: the daily floor cap was removed
         xp, coins = _rewards(doc["lvl"], 1.0, gs)
         k = min(2.0, 1 + 0.02 * floor)
-        xp, coins = int(xp * k * TOWER_XP_MULT), int(coins * k)  # tower XP is cut by 10%; coins are unchanged
+        xp, coins = int(xp * k * TOWER_XP_MULT), int(coins * k)
         _ch, lv, got = await add_xp(uid, xp, "tower")
         await add_coins(uid, coins, "tower")
         out.update(xp=got, coins=coins, levels=lv)
         out["tower"]["paid"] = True
-        if random.random() < 0.30:
-            iid = await roll_drop(uid, floor_idx=min(3, floor // 25))
+        if random.random() < TOWER_DROP_CHANCE:
+            iid = await roll_drop(uid, floor_idx=min(4, floor // 20))
             if await inv_add(uid, iid, 1):
                 out["drop"] = iid
     best = int(t.get("best", 0))
