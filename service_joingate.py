@@ -2,7 +2,8 @@
 
 Membership is checked with Telegram's getChatMember (the bot must be an admin in both chats). A confirmed player is
 remembered for JOIN_OK_SECONDS, so a normal conversation does not call Telegram on every message. A Telegram error
-lets the player through (and is logged): a broken check must not lock the whole game out.
+cannot be verified (bot not admin there, group id unknown): the player is still shown the join link ONCE and is let
+through after pressing the check button ("I joined"), so a broken check never locks the game, but nobody skips the link.
 """
 import logging
 import time
@@ -78,28 +79,58 @@ async def self_check(bot):
             log.error("JOIN CHECK PROBLEM for %s (%s): %s; the join gate will let everyone through until fixed", name, chat, e)
 
 
-async def _is_member(bot, chat, uid: int) -> bool:
+async def _is_member(bot, chat, uid: int):
+    """True / False, or None when Telegram cannot tell (the bot is not an admin there, bad chat id...)."""
     try:
         m = await bot.get_chat_member(chat, uid)
     except Exception:
-        log.exception("join check failed for %s in %s; letting the player through", uid, chat)
-        return True
+        log.exception("join check failed for %s in %s; cannot verify", uid, chat)
+        return None
     if m.status == "restricted":
         return bool(getattr(m, "is_member", False))
     return m.status in _MEMBER_STATUSES
 
 
+async def _acked(uid: int) -> set:
+    try:
+        d = await col("joingate_ack").find_one({"_id": uid}) or {}
+        return set(d.get("names") or [])
+    except Exception:
+        log.exception("could not read join acknowledgements")
+        return set()
+
+
+async def _ack(uid: int, names):
+    try:
+        await col("joingate_ack").update_one({"_id": uid}, {"$addToSet": {"names": {"$each": list(names)}}}, upsert=True)
+    except Exception:
+        log.exception("could not save join acknowledgement")
+
+
 async def missing(bot, uid: int) -> list:
-    """The (name, url) of every required chat the player is not in yet."""
+    """The (name, url) of every required chat the player is not in yet. A chat whose membership cannot be verified
+    (or whose id is not known) is asked once: the player is let through after pressing the check button."""
     if not settings.join_gate:
         return []
     hit = _confirmed.get(uid)
     if hit and time.monotonic() - hit < JOIN_OK_SECONDS:
         return []
-    out = []
+    out, unverifiable = [], []
     for name, chat, url in await _targets():
-        if not await _is_member(bot, chat, uid):
+        res = await _is_member(bot, chat, uid)
+        if res is False:
             out.append((name, url))
+        elif res is None:
+            unverifiable.append((name, url))
+    if not await group_id() and settings.join_group_url:  # group id unknown: the group cannot be checked at all
+        unverifiable.append(("group", settings.join_group_url))
+    if unverifiable:
+        done = await _acked(uid)
+        seen = {n for n, _ in out}
+        for name, url in unverifiable:
+            if name not in done and name not in seen:
+                out.append((name, url))
+                seen.add(name)
     if out:
         _confirmed.pop(uid, None)
     else:
@@ -119,8 +150,6 @@ async def wall_for(ctx):
     lacking = await missing(ctx.bot, ctx.uid)
     if not lacking:
         return None
-    if not any(n == "group" for n, _ in lacking) and not await group_id():
-        lacking = list(lacking) + [("group", settings.join_group_url)]  # not verifiable yet, but still asked for
     names = {"channel": ("کانال", "channel"), "group": ("گروه", "group")}
     fa_list = " و ".join(names[n][0] for n, _ in lacking)
     en_list = " and ".join(names[n][1] for n, _ in lacking)
@@ -135,6 +164,19 @@ async def wall_for(ctx):
 
 
 async def check_again(ctx):
-    """The check button: True when the player has joined everything now."""
+    """The check button: True when the player has joined everything now. Chats that cannot be verified are trusted
+    once the player presses the button (they were shown the link first)."""
     _confirmed.pop(ctx.uid, None)
+    lacking = await missing(ctx.bot, ctx.uid)
+    if not lacking:
+        return True
+    unver = []
+    for name, chat, _ in await _targets():
+        if await _is_member(ctx.bot, chat, ctx.uid) is None:
+            unver.append(name)
+    if not await group_id():
+        unver.append("group")
+    trusted = [n for n, _ in lacking if n in unver]
+    if trusted:
+        await _ack(ctx.uid, trusted)
     return not await missing(ctx.bot, ctx.uid)
