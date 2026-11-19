@@ -20,6 +20,7 @@ CHANT_REQUIRED = {"had": 91, "bak": 91}   # from this number up, a spell cannot 
 UNCHANTED_FROM = 60          # from this number up, an unchanted spell is weaker ...
 UNCHANTED_MULT = 0.75        # ... by this factor (Hadō damage, Bakudō shield)
 HADO_COST_PCT, BAK_COST_PCT = 0.0025, 0.002   # share of max reiatsu per spell number (Hadō 89 = 22.2%, Bakudō 89 = 17.8%)
+NORMAL_SPELL_PCT = 0.02      # every spell below HIGH_SPELL_FROM costs a flat 2% of max reiatsu
 HIGH_SPELL_FROM = 90         # from this number up (Hadō and Bakudō alike) the cost is a flat share of max reiatsu ...
 HIGH_SPELL_PCT = 0.08        # ... 8% (was 22.5% for Kurohitsugi and more above it; the top spells were unaffordable)
 
@@ -83,17 +84,14 @@ def cost(branch: str, n: int, max_re: int) -> int:
     """Reiatsu a spell costs: a share of the caster's max reiatsu, so it scales with the pool."""
     if int(n) >= HIGH_SPELL_FROM:
         return max(1, int(int(max_re) * HIGH_SPELL_PCT))
-    if branch == "had":
-        return max(1, int(int(max_re) * int(n) * HADO_COST_PCT * hado_params(n)["cost_k"]))
-    return max(1, int(int(max_re) * int(n) * BAK_COST_PCT))
+    return max(1, int(int(max_re) * NORMAL_SPELL_PCT))
 
 
 def cost_pct(branch: str, n: int) -> float:
     """The same cost as a percentage of max reiatsu (for texts)."""
     if int(n) >= HIGH_SPELL_FROM:
         return round(HIGH_SPELL_PCT * 100, 1)
-    k = hado_params(n)["cost_k"] if branch == "had" else 1.0
-    return round(int(n) * (HADO_COST_PCT if branch == "had" else BAK_COST_PCT) * k * 100, 1)
+    return round(NORMAL_SPELL_PCT * 100, 1)
 
 
 def needs_chant(n: int, branch: str = "had") -> bool:

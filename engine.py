@@ -23,6 +23,8 @@ DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 
 
 TURN_RE_REGEN = 0.10   # share of max reiatsu recovered at the end of each of a fighter's turns (was 5%)
+GUARD_RE_GAIN = 0.10   # share of max reiatsu a Guard turn gives back (was 5%)
+GUARD_HP_GAIN = 0.05   # share of max HP a Guard turn gives back (new)
 TURN_HP_REGEN = 0.03   # share of max HP recovered at the end of each turn (natural recovery, back again)
 
 def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, kido=None,
@@ -877,8 +879,12 @@ def _do_action(state, action, rng, max_turns=30):
             add_fx(o, "weaken", 3)
     elif action == "df":
         f["guard"] = True
-        f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * 0.05))
+        f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * GUARD_RE_GAIN))
         ev.append({"k": "guard", "a": f["name"]})
+        if 0 < f["hp"] < f["max_hp"]:  # guarding also recovers HP
+            h = max(1, int(f["max_hp"] * GUARD_HP_GAIN))
+            f["hp"] = min(f["max_hp"], f["hp"] + h)
+            ev.append({"k": "heal", "a": f["name"], "n": h})
     elif action == "gc":
         _x(f)["slash"] = 1
         _x(f)["open"] = 1
