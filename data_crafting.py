@@ -205,6 +205,18 @@ def tagged_name(ch: dict, catalog: dict) -> str:
     return f"{tag} {ch['name']}" if tag else ch["name"]
 
 
+KIDO_COLLECTION_FREE = 3                                   # the starting spells do not count
+KIDO_COLLECTION_PER = {"dmg": 0.0004, "def": 0.0004, "crit": 0.0001}   # per learned Hadō / Bakudō beyond the free ones
+KIDO_COLLECTION_MAX = {"dmg": 0.08, "def": 0.08, "crit": 0.02}         # all 198 spells: +7.9% damage, +7.9% defence, +2% crit
+
+
+def kido_collection_bonus(ch: dict) -> dict:
+    """Kidō collection: every learned Hadō / Bakudō adds a little damage, defence and crit chance (capped)."""
+    k = ch.get("kido") or {}
+    n = max(0, len(set(k.get("had") or [])) + len(set(k.get("bak") or [])) - KIDO_COLLECTION_FREE)
+    return {key: round(min(KIDO_COLLECTION_MAX[key], n * per), 5) for key, per in KIDO_COLLECTION_PER.items()}
+
+
 def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     """Everything equipment-like adds, as plain numbers. Caps keep stacking sane."""
     b = {"dmg": 0.0, "def": 0.0, "crit": 0.0, "regen": 0.0, "xp": 0.0, "drop": 0.0, "coin": 0.0, "hunt": 0.0, "calm": 0.0, "stab": 0.0}
@@ -225,6 +237,8 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
                 b["xp"] += v
         else:
             b[kind] += v
+    for kind, v in kido_collection_bonus(ch).items():  # Kidō collection
+        b[kind] += v
     art = (_ART_BY_ID.get(ch.get("artifact") or "") or {}).get("bonus") or {}
     for kind, v in art.items():
         if kind in b:

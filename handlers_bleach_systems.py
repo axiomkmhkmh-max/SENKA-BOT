@@ -67,7 +67,8 @@ async def kido_panel(ctx,arg):
         name=data["fa"] if ctx.lang=="fa" else data["name"]
         lines.append(("✅ " if learned else "▫️ ")+f"{name} · {data['type']} · {data['cost']} RE")
         if not learned:rows.append([(ctx.t("b_kido_learn",name=name),"kidol",key)])
-    rows.append([(("🃏 کارت‌های کیدو" if ctx.lang=="fa" else "🃏 Kidō cards"),"kidoc","")])
+    rows.append([(("🃏 کارت‌های کیدو" if ctx.lang=="fa" else "🃏 Kidō cards"),"kidoc",""),
+                 (("📜 رساله‌ها" if ctx.lang=="fa" else "📜 Treatises"),"kidot","")])
     rows.append(nav(ctx))
     return Out(head(ctx,"ttl_kido")+"\n".join(lines),rows)
 
@@ -89,7 +90,10 @@ async def kido_cards(ctx,arg):
     total=len(KIDO)
     got=sum(1 for k in KIDO if k in learned)
     head_line=(f"🃏 کارت‌های کیدو: {got}/{total}" if L=="fa" else f"🃏 Kidō cards: {got}/{total}")
-    lines=[head_line,""]
+    from data_crafting import kido_collection_bonus
+    cb=kido_collection_bonus(doc or {})
+    lines=[head_line,(f"🏆 جایزه‌ی کالکشن: +{cb['dmg']*100:.1f}٪ آسیب · +{cb['def']*100:.1f}٪ دفاع · +{cb['crit']*100:.2f}٪ شانس بحرانی" if L=="fa"
+          else f"🏆 Collection bonus: +{cb['dmg']*100:.1f}% damage · +{cb['def']*100:.1f}% defence · +{cb['crit']*100:.2f}% crit"),""]
     for key,d in KIDO.items():
         if key in learned:
             name=d["name"]
@@ -101,16 +105,98 @@ async def kido_cards(ctx,arg):
     rows=[]
     # Kidō cards the player owns (they land in the bag) are shown here, to learn straight from the Kidō panel
     from data_items import ALL, iname
+    from fmt import effect_text
     from service_economy import inv_get
     inv=await inv_get(ctx.uid)
-    owned=[(i,q) for i,q in inv["items"].items() if q>0 and ((ALL.get(i) or {}).get("effect") or {}).get("type") in ("kido","kido_book")]
+    # numbered Hadō / Bakudō cards only: the Treatise books (رساله) have their own panel
+    owned=[(i,q) for i,q in inv["items"].items() if q>0 and ((ALL.get(i) or {}).get("effect") or {}).get("type")=="kido"]
+    known=((doc or {}).get("kido") or {})
+    extras=0
     if owned:
         lines+=["",("🎴 <b>کارت‌های تو (در کوله)</b>" if L=="fa" else "🎴 <b>Your cards (in the bag)</b>")]
-        for i,q in sorted(owned)[:12]:
-            lines.append(f"• {iname(i,L)} ×{fnum(q,L)}")
+        owned.sort(key=lambda x:(x[0] and (ALL[x[0]]["effect"]["branch"],ALL[x[0]]["effect"]["num"])))
+        for i,q in owned[:12]:
+            e=ALL[i]["effect"]
+            dup=e["num"] in (known.get(e["branch"]) or [])
+            lines.append(f"• {iname(i,L)} ×{fnum(q,L)}"+((" ♻️" if dup else ""))+f"\n  <i>{effect_text(ctx,ALL[i])}</i>")
             rows.append([((f"📖 یادگیری: {iname(i,L)}" if L=="fa" else f"📖 Learn: {iname(i,L)}")[:60],"kidou",i)])
+        if len(owned)>12:
+            lines.append(f"… +{fnum(len(owned)-12,L)}")
+        for i,q in owned:
+            e=ALL[i]["effect"]
+            extras+=q if e["num"] in (known.get(e["branch"]) or []) else q-1
+    if extras>0:
+        rows.append([((f"♻️ تبدیل کارت‌های اضافی به تجربه ({fnum(extras,L)})" if L=="fa" else f"♻️ Convert extra cards to XP ({fnum(extras,L)})"),"kidoq","")])
     rows.append(nav(ctx,("kidop","")))
     return Out(head(ctx,"ttl_kido")+"\n".join(lines),rows)
+
+
+@action("kidoq")
+async def kido_convert_extras(ctx,arg):
+    """Turn every extra Kidō card (a spell already known, or a second copy of an unknown one) into XP."""
+    from data_items import ALL
+    from data_race_rules import race_allows
+    from service_economy import inv_get, inv_remove, add_xp, DUP_CARD_XP_BASE, DUP_CARD_XP_PER_NUM
+    L=ctx.lang
+    doc=await col("characters").find_one({"user_id":ctx.uid},{"kido":1,"race":1})
+    if not doc or not race_allows(doc.get("race"),"kd"):
+        out=await kido_cards(ctx,"")
+        out.alert=("📜 فقط شینیگامی و ویزورد کیدو دارن." if L=="fa" else "📜 Only Shinigami and Visored use Kidō.")
+        return out
+    known=doc.get("kido") or {}
+    inv=await inv_get(ctx.uid)
+    n_cards,total=0,0
+    for i,q in list(inv["items"].items()):
+        e=(ALL.get(i) or {}).get("effect") or {}
+        if q<=0 or e.get("type")!="kido":
+            continue
+        extra=q if e["num"] in (known.get(e["branch"]) or []) else q-1
+        if extra>0 and await inv_remove(ctx.uid,i,extra):
+            n_cards+=extra
+            total+=(DUP_CARD_XP_BASE+DUP_CARD_XP_PER_NUM*int(e["num"]))*extra
+    if total>0:
+        await add_xp(ctx.uid,total,"kido_dup",apply_rate=False)
+    out=await kido_cards(ctx,"")
+    out.alert=((f"♻️ {fnum(n_cards,L)} کارت اضافی تبدیل شد؛ +{fnum(total,L)} تجربه." if n_cards else "کارت اضافی‌ای نداری.") if L=="fa"
+               else (f"♻️ {fnum(n_cards,L)} extra card(s) converted: +{fnum(total,L)} XP." if n_cards else "No extra cards."))
+    return out
+
+
+@action("kidot")
+async def kido_treatises(ctx,arg):
+    """The Kidō Treatises (رساله‌ی کیدو): books with their own panel, each with what it really does."""
+    from data_items import ALL, iname
+    from fmt import effect_text
+    from service_economy import inv_get
+    L=ctx.lang
+    inv=await inv_get(ctx.uid)
+    owned=sorted((i,q) for i,q in inv["items"].items() if q>0 and (ALL.get(i) or {}).get("category")=="book" and str((ALL.get(i) or {}).get("name_fa","")).startswith("رساله"))
+    lines=[("📜 <b>رساله‌های کیدو</b> — کتاب‌هایی که با خوندنشون پاداش می‌گیری." if L=="fa" else "📜 <b>Kidō Treatises</b> — books that reward you when read."),""]
+    rows=[]
+    if not owned:
+        lines.append("هیچ رساله‌ای تو کوله‌ات نیست." if L=="fa" else "You have no Treatise in the bag.")
+    for i,q in owned[:15]:
+        lines.append(f"• {iname(i,L)} ×{fnum(q,L)}\n  <i>{effect_text(ctx,ALL[i])}</i>")
+        rows.append([((f"📖 خوندن: {iname(i,L)}" if L=="fa" else f"📖 Read: {iname(i,L)}")[:60],"kidob",i)])
+    if len(owned)>15:
+        lines.append(f"… +{fnum(len(owned)-15,L)}")
+    rows.append(nav(ctx,("kidop","")))
+    return Out(head(ctx,"ttl_kido")+"\n".join(lines),rows)
+
+
+@action("kidob")
+async def kido_read_treatise(ctx,arg):
+    from service_economy import use_item
+    r,extra=await use_item(ctx.uid,arg)
+    out=await kido_treatises(ctx,"")
+    L=ctx.lang
+    if r=="ok":
+        out.alert=ctx.t("us_ok",n=fnum(extra if isinstance(extra,int) else 0,L))
+    elif r=="race":
+        out.alert=("📜 فقط شینیگامی و ویزورد می‌تونن کیدو یاد بگیرن؛ مصرف نشد." if L=="fa" else "📜 Only Shinigami and Visored can learn Kidō; not used.")
+    else:
+        out.alert=ctx.t("us_"+r,n=extra or 0)
+    return out
 
 
 @action("kidou")

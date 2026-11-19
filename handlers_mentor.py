@@ -93,9 +93,9 @@ async def mentor_panel(ctx, arg):
         m = await get_char(mine["master"])
         lines.append(T(ctx, f"🎓 استاد تو: <b>{_name(m)}</b> · لول {fnum((m or {}).get('level', 0), 'fa')}",
                        f"🎓 Your master: <b>{_name(m)}</b> · level {fnum((m or {}).get('level', 0), 'en')}"))
-        lines.append(T(ctx, f"استادت از هر نبرد و دانجنی که می‌بری {_pct_text(pct)}٪ تجربه‌ی اضافه می‌گیره (از تجربه‌ی تو کم نمی‌شه). "
+        lines.append(T(ctx, f"از هر نبرد و دانجنی که می‌بری {_pct_text(pct)}٪ تجربه‌ی اضافه به‌عنوان پاداش آموزش می‌گیری. "
                             "هر وقت به لول استادت برسی فارغ‌التحصیل می‌شی.",
-                       f"Your master earns {_pct_text(pct)}% extra XP from every battle and dungeon you win (yours is not reduced). "
+                       f"You earn {_pct_text(pct)}% extra XP as a mentoring bonus from every battle and dungeon you win. "
                        "You graduate when you reach your master's level."))
         rows.append([(T(ctx, "🚪 ترک استاد", "🚪 Leave master"), "mntlv", "")])
     if apps or (not mine and int(ch["level"]) >= MENTOR_MIN_LEVEL):  # I am (or can be) a master
@@ -106,7 +106,7 @@ async def mentor_panel(ctx, arg):
         for d in apps:
             a = await get_char(d["_id"])
             lines.append(f"• <b>{_name(a)}</b> · {T(ctx, 'لول', 'lvl')} {fnum((a or {}).get('level', 0), ctx.lang)} · "
-                         f"{T(ctx, 'تجربه‌ی گرفته‌شده', 'XP earned')}: {fnum(int(d.get('xp_total', 0)), ctx.lang)}")
+                         f"{T(ctx, 'پاداش تجربه‌ی شاگرد', 'Apprentice bonus XP')}: {fnum(int(d.get('xp_total', 0)), ctx.lang)}")
             rows.append([(f"🎓 {(a or {}).get('name', '?')}", "mntap", str(d["_id"]))])
         if apps:
             lines.append(T(ctx, f"از هر نبرد و دانجن شاگردهات {_pct_text(pct)}٪ تجربه‌ی اضافه می‌گیری و می‌تونی بهشون کتاب رساله و خاطرات هدیه بدی.",
@@ -246,8 +246,8 @@ async def mentor_apprentice(ctx, arg):
     left = await gifts_left(doc)
     lines = [head(ctx, "ttl_mentor"),
              f"🎓 <b>{_name(a)}</b> · {T(ctx, 'لول', 'lvl')} {fnum((a or {}).get('level', 0), ctx.lang)}",
-             T(ctx, f"تجربه‌ای که از این شاگرد گرفتی: {fnum(int(doc.get('xp_total', 0)), 'fa')}",
-               f"XP you earned from this apprentice: {fnum(int(doc.get('xp_total', 0)), 'en')}"),
+             T(ctx, f"پاداش تجربه‌ای که شاگرد از آموزش تو گرفته: {fnum(int(doc.get('xp_total', 0)), 'fa')}",
+               f"Bonus XP this apprentice earned from your teaching: {fnum(int(doc.get('xp_total', 0)), 'en')}"),
              T(ctx, f"🎁 هدیه‌ی امروز: {left} از {GIFT_PER_DAY} باقی مونده", f"🎁 Gifts today: {left} of {GIFT_PER_DAY} left")]
     rows = [[(T(ctx, "🎁 هدیه (رساله و خاطرات)", "🎁 Give (Treatise & Memoir)"), "mntgf", f"{app}:0")],
             [(T(ctx, "🚪 آزاد کردن شاگرد", "🚪 Release apprentice"), "mntrl", str(app))], nav(ctx, ("mnt", ""))]

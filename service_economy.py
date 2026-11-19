@@ -312,7 +312,8 @@ SHOP_RARITIES = ("Common", "Uncommon", "Rare")
 # (categories, how many per day). Before, the shop drew 56 items at random from potions / accessories / books / materials
 # only (295 of 428 candidates were accessories), so races' armour, relics, eggs, charms, cosmetics and evolution items
 # were never sold and potions were often missing. Every group now has its own slots, so each kind shows up daily.
-SHOP_GROUPS = ((("potion",), 14), (("accessory",), 10), (("book", "material"), 4), (("relic",), 4), (("cosmetic",), 3),
+SHOP_GROUPS = ((("potion",), 14), (("accessory",), 10), (("book",), 3), (("material",), 99),  # every low-tier crafting material (Common/Uncommon/Rare) is on the shelf every day
+                (("relic",), 4), (("cosmetic",), 3),
                (("egg",), 2), (("charm",), 2), (("evolution",), 2))
 SHOP_ARMOUR_SLOTS = 8   # armour of the buyer's own race
 

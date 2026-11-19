@@ -184,7 +184,7 @@ async def battle_menu(ctx, arg):
         doc = None  # an open Soul Tower fight is resumed from the tower panel only, never from the Fight button / «حمله»
     if doc:
         return await battle_panel(ctx, doc, [])
-    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "")], nav(ctx)]
+    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "b")], nav(ctx)]  # "b": opened from the battle menu, so Back returns there
     return Out(head(ctx, "ttl_bt") + ctx.t("bt_body"), rows)
 
 
@@ -439,12 +439,13 @@ async def battle_word(ctx, text):
 async def dungeons(ctx, arg):
     ch = await get_char(ctx.uid)
     L = ctx.lang
+    org = "@b" if arg == "b" else ""  # where the player came from: the battle menu ("b") or the Adventures group
     rows = []
     for did, d in DUNGEONS.items():
         ok = ch["level"] >= d["level"]
-        rows.append([(("🕳️ " if ok else "🔒 ") + f"{d['fa' if L == 'fa' else 'en']} ({fnum(d['level'], L)})", "dgd" if ok else "noop", did)])
+        rows.append([(("🕳️ " if ok else "🔒 ") + f"{d['fa' if L == 'fa' else 'en']} ({fnum(d['level'], L)})", "dgd" if ok else "noop", did + org)])
     rows.append([(("💠 شاپ دانجن" if L == "fa" else "💠 Dungeon Shop"), "dps", "")])
-    rows.append(nav(ctx))
+    rows.append(nav(ctx, ("bt", "") if arg == "b" else ("mg", "adv")))  # Back goes to where the player came from, not the first page
     dp = int(ch.get("dp", 0) or 0)
     return Out(head(ctx, "ttl_dgn") + ctx.t("dgn_body") + (f"\n\n💠 دانجن پوینت: {fnum(dp, L)}" if L == "fa" else f"\n\n💠 Dungeon Points: {fnum(dp, L)}"), rows)
 
@@ -452,11 +453,12 @@ async def dungeons(ctx, arg):
 @action("dgd")
 async def dungeon_diff(ctx, arg):
     L = ctx.lang
+    arg, _, org = arg.partition("@")
     d = DUNGEONS.get(arg)
     if not d:
         return Out()
     rows = [[(ctx.t("diff_" + k) + f" ×{DIFFICULTY[k]:g}" + (" 🔑" if k != "normal" else ""), "dgs", f"{arg}.{k}")] for k in DIFFICULTY]
-    rows.append(nav(ctx, ("dgn", "")))
+    rows.append(nav(ctx, ("dgn", org)))
     lvl_line = (f"\n🎚 سطح دشمنان ثابت: {fnum(d['level'], L)} — ضریب سختی روی قدرت دشمن و پاداش اثر می‌گذارد."
                 if L == "fa" else f"\n🎚 Fixed enemy level: {d['level']}. The difficulty multiplier scales enemy power and rewards.")
     return Out(head(ctx, "ttl_dgn") + f"<b>{d['fa' if L == 'fa' else 'en']}</b>\n<i>{dungeon_line(arg, 1, d['stages'], L)}</i>\n" + ctx.t("dgn_pick", n=fnum(d["stages"], L)) + lvl_line, rows)

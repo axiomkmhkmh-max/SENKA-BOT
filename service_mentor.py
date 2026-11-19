@@ -2,7 +2,7 @@
 
 A weaker player asks a stronger one to be their master; the request lands in the master's panel. Once the master
 accepts:
-- the master earns a small cut (`mentor_xp_pct`, default 3%) of the XP the apprentice wins in every battle and
+- the apprentice earns a small extra bonus (`mentor_xp_pct`, default 3%) of the XP they win in every battle and
   dungeon fight. The cut is EXTRA: the apprentice's own XP is never reduced;
 - the master can hand their apprentices the Treatise (رساله) and Memoir (خاطرات) books from the master panel.
 
@@ -208,8 +208,8 @@ async def end(app_uid: int):
 
 # ---- the XP cut ------------------------------------------------------------------------------------------------------
 async def share_xp(app_uid: int, master_uid: int, got: int, app_ch: dict = None) -> dict:
-    """Called after an apprentice wins a battle / dungeon fight and earned `got` XP: the master gets a small cut on top.
-    -> {"xp": what the master got, "graduated": bool}. Never raises into the fight (the caller also guards it)."""
+    """Called after an apprentice wins a battle / dungeon fight and earned `got` XP: the APPRENTICE gets a small mentoring bonus on top.
+    -> {"xp": the bonus the apprentice got, "graduated": bool}. Never raises into the fight (the caller also guards it)."""
     res = {"xp": 0, "graduated": False}
     bonus = int(int(got or 0) * await xp_pct() / 100.0)
     doc = await col("mentorships").find_one({"_id": int(app_uid), "master": int(master_uid)})
@@ -218,8 +218,9 @@ async def share_xp(app_uid: int, master_uid: int, got: int, app_ch: dict = None)
         return res
     if bonus >= 1:
         await col("mentorships").update_one({"_id": int(app_uid)}, {"$inc": {"xp_total": bonus}})
-        await add_xp(int(master_uid), bonus, "mentor", apply_rate=False)  # the apprentice's XP already carried every rate
+        await add_xp(int(app_uid), bonus, "mentor", apply_rate=False)  # the APPRENTICE gets the mentoring bonus (the fight's XP already carried every rate)
         res["xp"] = bonus
+        app_ch = None  # the bonus may have levelled the apprentice: re-read before the graduation check
     master_ch = await get_char(master_uid)
     app_ch = app_ch or await get_char(app_uid)
     if not master_ch or not app_ch or int(app_ch["level"]) >= int(master_ch["level"]):

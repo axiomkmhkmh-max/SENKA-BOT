@@ -78,6 +78,22 @@ def effect_text(ctx, it: dict) -> str:
     if ty == "relic":
         loc = LOCATIONS[e["loc"]]["fa" if L == "fa" else "en"] if e.get("loc") else ""
         return ctx.t("ef_relic_" + e["kind"], v=f"{e['v'] * 100:g}", loc=esc(loc))
+    if ty == "kido":  # a numbered Hadō / Bakudō card: what the spell does in a fight (numbers from engine.py)
+        import math
+        n = int(e["num"])
+        if e["branch"] == "had":
+            return (f"هادو {n}: جادوی تهاجمی؛ ضریب آسیب ×{0.7 + 0.3 * n:.1f}؛ هزینه {int(n * 2.5)} ریاتسو؛ از لول {math.ceil(n * 0.8)}"
+                    if L == "fa" else f"Hadō {n}: attack spell; damage ×{0.7 + 0.3 * n:.1f}; costs {int(n * 2.5)} reiatsu; from level {math.ceil(n * 0.8)}")
+        return (f"باکودو {n}: سپر محافظ + {min(60, 10 + 5 * n)}٪ شانس بستن دشمن (نصف روی باس)؛ هزینه {int(n * 2)} ریاتسو"
+                if L == "fa" else f"Bakudō {n}: a shield + {min(60, 10 + 5 * n)}% chance to bind the foe (half on bosses); costs {int(n * 2)} reiatsu")
+    if ty == "kido_book":
+        br = ("هادو" if e["branch"] == "had" else "باکودو") if L == "fa" else ("Hadō" if e["branch"] == "had" else "Bakudō")
+        return (f"کوچک‌ترین {br}ی یادنگرفته را تا شماره‌ی {e['cap']} یاد می‌دهد." if L == "fa"
+                else f"Teaches your lowest unknown {br} up to number {e['cap']}.")
+    if ty == "xp":
+        return f"+{fnum(int(e['amount']), L)} تجربه" if L == "fa" else f"+{fnum(int(e['amount']), L)} XP"
+    if ty == "bond":
+        return f"+{fnum(int(e['amount']), L)} پیوند با زانپاکتو" if L == "fa" else f"+{fnum(int(e['amount']), L)} Zanpakutō bond"
     if ty == "cosmetic":
         return ctx.t("ef_cosmetic", icon=e["icon"], slot=ctx.t("cos_slot_" + e["slot"]), fame=e["fame"])
     if ty == "evo":
