@@ -185,6 +185,13 @@ async def _has_potion(uid):
     return best
 
 
+def _tower_leave_row(ctx):
+    """Soul Tower exit buttons (handled by handlers_towerx.tower_exit): register the floor and leave, or leave as is."""
+    fa = ctx.lang == "fa"
+    return [("💾 " + ("ثبت و خروج" if fa else "Save & leave"), "twx", "save"),
+            ("🚪 " + ("خروج از برج" if fa else "Leave tower"), "twx", "")]
+
+
 async def battle_panel(ctx, doc, events=None):
     st = doc["state"]
     title = head(ctx, "ttl_bt")
@@ -207,7 +214,10 @@ async def battle_panel(ctx, doc, events=None):
     tail = [(ctx.t("b_home"), "home", "")]
     if can_flee(doc) and not st.get("done"):  # normal battles only: fleeing costs Battle Rank, the chain stays
         tail.insert(0, ("🏃 " + ("فرار" if ctx.lang == "fa" else "Flee"), "bf", doc["sid"]))
-    return Out(text, _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [tail])
+    rows = _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [tail]
+    if d and d.get("tower") and not st.get("done"):  # a tower climb can always be left from the fight screen itself
+        rows.append(_tower_leave_row(ctx))
+    return Out(text, rows)
 
 
 async def resume_battle(ctx):
@@ -266,7 +276,7 @@ def _tower_result(ctx, doc, ev, o):
     if t["milestone"]:
         lines.append(ctx.t("tw_milestone", coins=fnum(t["milestone"], L)) + " · " + nm(t["milestone_item"], L))
     lines.append(ctx.t("tw_next"))
-    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], nav(ctx)])
+    return Out("\n".join(lines), [[(ctx.t("b_tnext"), "bn", o["next"])], _tower_leave_row(ctx), nav(ctx)])
 
 
 async def _pve_result(ctx, doc, ev, o):
