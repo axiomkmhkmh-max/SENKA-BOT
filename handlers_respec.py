@@ -53,10 +53,10 @@ async def respec_menu(ctx, arg):
              T(ctx, f"🔁 <b>ریست استت:</b> {fnum(rq['points'], L)} امتیاز برمی‌گرده. هزینه: {fnum(rq['coins'], L)} 🪙. "
                     "هر ۲۴ ساعت یک بار.",
                f"🔁 <b>Stat reset:</b> returns {fnum(rq['points'], L)} points. Cost: {fnum(rq['coins'], L)} 🪙. Once per 24h."),
-             T(ctx, "🧬 <b>تغییر نژاد:</b> رایگانه، فقط هر ۴۸ ساعت یک بار. همه‌ی امتیازهای استت برمی‌گرده تا برای نژاد جدید دوباره پخششون کنی. "
+             T(ctx, "🧬 <b>تغییر نژاد:</b> رایگانه، فقط هر ۵ روز یک بار. همه‌ی امتیازهای استت برمی‌گرده تا برای نژاد جدید دوباره پخششون کنی. "
                     "مرحله‌ی تکاملت حفظ میشه. ویزوردها می‌تونن به شینیگامی برگردن و بعد بدون آزمون دوباره ویزورد بشن. "
                     "زره نژادیت به زره نژاد جدید (همون رنگ) تبدیل میشه و سلاح نژادیت رو با همون سطح از بین سلاح‌های نژاد جدید انتخاب می‌کنی.",
-               "🧬 <b>Race change:</b> free, once every 48 hours. Every stat point comes back so you can spend it again for the new race. "
+               "🧬 <b>Race change:</b> free, once every 5 days. Every stat point comes back so you can spend it again for the new race. "
                     "Your evolution stage is kept. A Visored can go back to Shinigami and later become Visored again without the trial. "
                     "Your race armour turns into the new race's (same colour) and you pick a new race weapon at the same level.")]
     rows = [[(T(ctx, "🔁 ریست استت", "🔁 Reset stats"), "rspst", "")],
@@ -95,8 +95,8 @@ async def race_confirm(ctx, arg):
     if arg not in RACES:
         return await race_pick(ctx, "")
     from data_guides import race_guide
-    text = race_guide(arg, L) + "\n\n" + T(ctx, f"مطمئنی به <b>{_race_name(arg, L)}</b> میری؟ رایگانه، ولی تا ۴۸ ساعت دیگه نمی‌تونی دوباره عوض کنی.",
-             f"Sure about <b>{_race_name(arg, L)}</b>? It is free, but you cannot change again for 48 hours.")
+    text = race_guide(arg, L) + "\n\n" + T(ctx, f"مطمئنی به <b>{_race_name(arg, L)}</b> میری؟ رایگانه، ولی تا ۵ روز دیگه نمی‌تونی دوباره عوض کنی.",
+             f"Sure about <b>{_race_name(arg, L)}</b>? It is free, but you cannot change again for 5 days.")
     rows = [[(T(ctx, "✅ بله، تغییر بده", "✅ Yes, change"), "rspx", arg)],
             [(T(ctx, "❌ نه", "❌ No"), "resp", "")]]
     return Out(text, rows)

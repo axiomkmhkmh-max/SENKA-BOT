@@ -201,11 +201,11 @@ TOPICS = {
         "The top three by damage get more, and if it dies the top five have a 30% chance of an evolution relic.")),
     "rc": ("🔄 تغییر نژاد", "🔄 Race change", _t(
         "🔄 <b>تغییر نژاد</b>\n━━━━━━━━━━━━━━\n"
-        "• رایگان است؛ فقط هر ۴۸ ساعت یک بار.\n• همه‌ی امتیازهای استت برمی‌گردد تا برای نژاد جدید دوباره پخش کنی.\n"
+        "• رایگان است؛ فقط هر ۵ روز یک بار.\n• همه‌ی امتیازهای استت برمی‌گردد تا برای نژاد جدید دوباره پخش کنی.\n"
         "• مرحله‌ی تکاملت حفظ می‌شود.\n• ویزورد می‌تواند به شینیگامی برگردد و بعد بدون آزمون دوباره ویزورد شود.\n"
         "• زره‌هایت به زره نژاد جدید (همان رنگ) تبدیل می‌شوند و سلاح نژاد جدید را با همان سطح سلاح قبلی انتخاب می‌کنی.",
         "🔄 <b>Race change</b>\n━━━━━━━━━━━━━━\n"
-        "• Free; once every 48 hours.\n• Every stat point comes back so you can spend it for the new race.\n"
+        "• Free; once every 5 days.\n• Every stat point comes back so you can spend it for the new race.\n"
         "• Your evolution stage is kept.\n• A Visored can go back to Shinigami and later become Visored again without the trial.\n"
         "• Your armour turns into the new race's (same colour) and you pick a new race weapon at the same level.")),
     "adv": ("🧭 ماجراجویی و باس‌ها", "🧭 Adventures and bosses", _t(

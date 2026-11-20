@@ -86,7 +86,10 @@ def _vault_text(ctx, acc, ch):
         lines.append(f"🕴 {_L(ctx, 'ماموران گوتی ۱۳ روی تو هستن', 'Gotei 13 collectors are on you')}: "
                      f"{fnum(c['owed'] - c['taken'], L)} {_L(ctx, 'مانده', 'left')}")
     if acc.get("bonds"):
-        lines.append(f"📜 {_L(ctx, 'اوراق باز', 'Open bonds')}: {len(acc['bonds'])}")
+        day = SB._today()
+        infos = [B.bond_info(b, day) for b in acc["bonds"]]
+        lines.append(f"📜 {_L(ctx, 'اوراق باز', 'Open bonds')}: {len(infos)} · {_L(ctx, 'قفل', 'locked')} {fnum(sum(i['principal'] for i in infos), L)} · "
+                     f"{_L(ctx, 'سود در سررسید', 'profit at maturity')} +{fnum(sum(i['gain'] for i in infos), L)}")
     lines.append(f"📈 {_L(ctx, 'بهره‌ی روزانه', 'Daily interest')}: {B.DAILY_INTEREST * 100:.1f}%")
     return "\n".join(lines)
 
@@ -228,17 +231,59 @@ async def bank_repay(ctx, arg):
 
 @action("bnk_bond")
 async def bank_bond(ctx, arg):
+    L = ctx.lang
     if arg == "menu":
-        rows = [[(_L(ctx, f"{d} روز", f"{d} days"), "bnk_bond", f"{d}") for d in B.BOND_TERMS], nav(ctx, ("bnk", ""))]
-        return Out(head(ctx, "ttl_bank") + _L(ctx, "مدت قفل را انتخاب کن. شکستن زودهنگام ۲۰٪ جریمه دارد.", "Pick a lock term. Early break costs 20%."), rows)
+        lines = [_L(ctx, "📜 <b>اوراق پس‌انداز</b>\nسکه را برای چند روز قفل کن و در سررسید با سود پس بگیر. سود فقط در سررسید پرداخت می‌شه (وقتی بانک را باز کنی)؛ لغو زودهنگام فقط ۸۰٪ اصل را برمی‌گردونه و سودی نداره.",
+                    "📜 <b>Savings bonds</b>\nLock coins for some days and get them back with profit at maturity. Profit is paid only at maturity (when you open the bank); breaking early returns only 80% of the principal, no profit."), ""]
+        for d, r in B.BOND_TERMS.items():
+            lines.append(f"• {d} {_L(ctx, 'روز', 'days')}: {r * 100:g}% {_L(ctx, 'در روز', 'per day')} → {_L(ctx, 'جمعاً', 'total')} <b>+{r * d * 100:g}%</b>")
+        rows = [[(_L(ctx, f"{d} روز (+{B.BOND_TERMS[d] * d * 100:g}%)", f"{d} days (+{B.BOND_TERMS[d] * d * 100:g}%)"), "bnk_bond", f"{d}") for d in B.BOND_TERMS],
+                [(_L(ctx, "📋 اوراق من / لغو", "📋 My bonds / cancel"), "bnk_bond", "list")], nav(ctx, ("bnk", ""))]
+        return Out(head(ctx, "ttl_bank") + "\n".join(lines), rows)
+    if arg == "list":
+        acc = await SB.load(ctx.uid)
+        bonds = acc.get("bonds") or []
+        if not bonds:
+            return Out(head(ctx, "ttl_bank") + _L(ctx, "اوراق بازی نداری.", "You have no open bonds."),
+                       [[(_L(ctx, "📜 باز کردن اوراق", "📜 Open a bond"), "bnk_bond", "menu")], nav(ctx, ("bnk", ""))])
+        day, lines, rows = SB._today(), [], []
+        for n, b in enumerate(bonds, 1):
+            i = B.bond_info(b, day)
+            lines.append(f"<b>{n}.</b> {fnum(i['principal'], L)} · {i['term']} {_L(ctx, 'روز', 'days')}\n"
+                         f"   ⏳ {fnum(i['left'], L)} {_L(ctx, 'روز مانده', 'days left')} · 💰 {_L(ctx, 'سود', 'profit')} +{fnum(i['gain'], L)} · "
+                         f"{_L(ctx, 'دریافتی', 'payout')} {fnum(i['payout'], L)}")
+            rows.append([(_L(ctx, f"❌ لغو شماره {n}", f"❌ Cancel #{n}"), "bnk_bond", f"c.{b['principal']}.{b['start']}")])
+        rows.append(nav(ctx, ("bnk_bond", "menu")))
+        return Out(head(ctx, "ttl_bank") + "\n".join(lines), rows)
+    if arg.startswith("c.") or arg.startswith("x."):  # c = ask, x = confirmed; the bond is found again by its principal and start day
+        _, pr, st = arg.split(".")
+        acc = await SB.load(ctx.uid)
+        idx = next((n for n, b in enumerate(acc.get("bonds") or []) if b["principal"] == int(pr) and b["start"] == int(st)), None)
+        if idx is None:
+            return _err(ctx, "no_bond")
+        i = B.bond_info(acc["bonds"][idx], SB._today())
+        if arg[0] == "c":
+            text = _L(ctx, f"مطمئنی اوراق {fnum(i['principal'], L)} را لغو کنی؟\nفقط {fnum(i['principal'] - i['penalty'], L)} برمی‌گرده (جریمه {fnum(i['penalty'], L)}) و سود +{fnum(i['gain'], L)} از دست می‌ره. {fnum(i['left'], L)} روز تا سررسید مانده.",
+                       f"Cancel the {fnum(i['principal'], L)} bond?\nYou get back only {fnum(i['principal'] - i['penalty'], L)} (penalty {fnum(i['penalty'], L)}) and lose the +{fnum(i['gain'], L)} profit. {fnum(i['left'], L)} days to maturity.")
+            return Out(head(ctx, "ttl_bank") + text, [[(_L(ctx, "✅ بله، لغو کن", "✅ Yes, cancel"), "bnk_bond", f"x.{pr}.{st}")],
+                                                       [(_L(ctx, "⬅️ نه", "⬅️ No"), "bnk_bond", "list")]])
+        acc, err = await SB.break_bond(ctx.uid, idx)
+        if err:
+            return _err(ctx, err)
+        return await _panel(ctx, alert=_L(ctx, "اوراق لغو شد.", "Bond cancelled."))
     if "|" not in arg:
-        return Out(head(ctx, "ttl_bank") + _L(ctx, "مبلغ را انتخاب کن.", "Pick an amount."),
-                   [[(fnum(a, ctx.lang), "bnk_bond", f"{arg}|{a}") for a in AMOUNTS], nav(ctx, ("bnk_bond", "menu"))])
+        d = int(arg)
+        if d not in B.BOND_TERMS:
+            return _err(ctx, "bad_term")
+        lines = [_L(ctx, f"{d} روزه · +{B.BOND_TERMS[d] * d * 100:g}% در سررسید\nمبلغ را انتخاب کن:", f"{d} days · +{B.BOND_TERMS[d] * d * 100:g}% at maturity\nPick an amount:")]
+        lines += [f"• {fnum(a, L)} → {_L(ctx, 'سود', 'profit')} +{fnum(B.bond_profit(a, d), L)}" for a in AMOUNTS]
+        return Out(head(ctx, "ttl_bank") + "\n".join(lines),
+                   [[(fnum(a, L), "bnk_bond", f"{arg}|{a}") for a in AMOUNTS], nav(ctx, ("bnk_bond", "menu"))])
     term, amt = arg.split("|")
     acc, err = await SB.open_bond(ctx.uid, int(amt), int(term))
     if err:
         return _err(ctx, err)
-    return await _panel(ctx, alert=_L(ctx, "اوراق باز شد.", "Bond opened."))
+    return await _panel(ctx, alert=_L(ctx, f"اوراق باز شد. سود در سررسید: +{fnum(B.bond_profit(int(amt), int(term)), L)}", f"Bond opened. Profit at maturity: +{fnum(B.bond_profit(int(amt), int(term)), L)}"))
 
 
 @action("bnk_upg")
@@ -282,7 +327,8 @@ async def bank_statement(ctx, arg):
     recent = st["acc"].get("ledger", [])[-8:]
     for e in reversed(recent):
         sign = "+" if e["a"] > 0 else ""
-        lines.append(f"• {e['k']}: {sign}{fnum(e['a'], L)}")
+        kn = {"bond_open": _L(ctx, "باز کردن اوراق", "bond opened"), "bond_break": _L(ctx, "لغو اوراق", "bond cancelled"), "bond": _L(ctx, "سررسید اوراق", "bond matured")}
+        lines.append(f"• {kn.get(e['k'], e['k'])}: {sign}{fnum(e['a'], L)}")
     return Out(head(ctx, "ttl_bank") + "\n".join(lines), [nav(ctx, ("bnk", ""))])
 
 

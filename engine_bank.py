@@ -263,12 +263,26 @@ def mature_bonds(acc: dict, day: int) -> int:
     return paid
 
 
+BOND_BREAK_KEEP = 0.8   # breaking early returns 80% of the principal (no profit)
+
+
+def bond_info(b: dict, day: int) -> dict:
+    """What one open bond will pay: principal, term, days left, profit (at maturity) and the total payout."""
+    gain = int(b["principal"] * (b["rate"] * b["term"]))
+    return {"principal": b["principal"], "term": b["term"], "rate": b["rate"], "gain": gain, "payout": b["principal"] + gain,
+            "left": max(0, b["term"] - (day - b["start"])), "penalty": b["principal"] - int(b["principal"] * BOND_BREAK_KEEP)}
+
+
+def bond_profit(amount: int, term_days: int) -> int:
+    return int(amount * (BOND_TERMS[term_days] * term_days))
+
+
 def break_bond(acc: dict, index: int) -> dict:
     bonds = acc.get("bonds", [])
     if not 0 <= index < len(bonds):
         return {"ok": False, "reason": "no_bond"}
     b = bonds.pop(index)
-    back = int(b["principal"] * 0.8)
+    back = int(b["principal"] * BOND_BREAK_KEEP)
     acc["balance"] += back
     return {"ok": True, "returned": back, "penalty": b["principal"] - back}
 

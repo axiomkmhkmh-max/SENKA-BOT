@@ -160,8 +160,9 @@ def build_recipes(catalog: dict) -> list:
     out = []
     for t in range(4):
         for kind, grp in (("hp", "spirit"), ("reiatsu", "reishi")):
-            oid = _first(catalog, lambda x, t=t, kind=kind: x.get("category") == "potion" and (x.get("effect") or {}).get("type") == kind
-                         and x["rarity"] == RARITIES[t])
+            etype = "buff" if kind == "hp" else kind   # "hp" slot = defense potion (healing potions were removed)
+            oid = _first(catalog, lambda x, t=t, etype=etype: x.get("category") == "potion" and (x.get("effect") or {}).get("type") == etype
+                         and (etype != "buff" or (x.get("effect") or {}).get("stat") == "def") and x["rarity"] == RARITIES[t])
             if oid:
                 out.append({"id": f"pot_{kind}_{t}", "type": "potion", "out": oid, "coins": max(10, int(catalog[oid]["base_price"] * 0.5)),
                             "in": [{"g": grp, "n": 2, "t": 0}, {"g": "any", "n": 1 + t, "t": t}]})

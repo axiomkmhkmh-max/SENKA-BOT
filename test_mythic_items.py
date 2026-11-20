@@ -38,7 +38,7 @@ class MythicItems(unittest.TestCase):
 
     def test_stronger_than_the_best_non_mythic_of_their_kind(self):
         by = {x["_id"]: x for x in MYTHIC_ITEMS}
-        best_hp = max(x["effect"]["pct"] for x in D.ITEMS if x["category"] == "potion" and x["effect"]["type"] == "hp" and x["rarity"] != "Mythic")
+        best_hp = max((x["effect"]["pct"] for x in D.ITEMS if x["category"] == "potion" and x["effect"]["type"] == "hp" and x["rarity"] != "Mythic"), default=0)
         self.assertGreater(by["it_m001"]["effect"]["pct"], best_hp)
         for k in ("dmg", "xp"):
             old = max(x["effect"]["v"] for x in D.ITEMS if x["category"] == "relic" and x["effect"]["kind"] == k and x["rarity"] != "Mythic")

@@ -11,7 +11,8 @@ from service_economy import inv_add
 from database import col, game_settings
 from ui import Out, action, head, markup
 
-POTION = next(i for i, x in ALL.items() if x.get("effect") and x["effect"]["type"] == "hp" and x["rarity"] == "Common")
+POTION = next(i for i, x in ALL.items() if x.get("category") == "potion" and x.get("effect") and x["effect"]["type"] == "buff"
+              and x["effect"].get("stat") == "def" and x["rarity"] == "Common")
 
 
 def lang_panel(ctx):

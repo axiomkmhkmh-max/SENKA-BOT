@@ -159,8 +159,9 @@ def _build():
             elif cat == "potion":
                 # the effect follows the name (was index parity, which mixed Reiatsu Tonic into HP potions)
                 if not ("Reiatsu" in en or "Tea" in en):
-                    eff = {"type": "hp", "pct": 15 + tier * 10}
-                    desc_en, desc_fa = f"Restores {eff['pct']}% HP.", f"{eff['pct']}٪ جان را بازمی‌گرداند."
+                    # healing potions are gone (damage is too high for a heal to matter): they are defense potions now
+                    eff = {"type": "buff", "stat": "def", "pct": round(0.05 + 0.01 * tier, 3), "minutes": 45 + 15 * tier}
+                    desc_en, desc_fa = _book_desc(eff)
                 else:
                     eff = {"type": "reiatsu", "pct": 15 + tier * 10}
                     desc_en, desc_fa = f"Restores {eff['pct']}% reiatsu.", f"{eff['pct']}٪ ریاتسو را بازمی‌گرداند."

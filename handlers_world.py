@@ -130,6 +130,8 @@ async def event_panel(ctx, arg):
     inv = await inv_get(ctx.uid)
     keys = [i for i, q in inv["items"].items() if q > 0 and (ALL.get(i, {}).get("effect") or {}).get("type") == "key"]
     keys.sort(key=lambda i: -KEY_PTS.get(ALL[i]["effect"]["diff"], 1))
+    if EVENTS.get(ev["kind"], {}).get("pts", {}).get("key", 0) <= 0:
+        keys = []  # this event takes no key offerings: show no key buttons that could only fail
     rows = [[(f"🗝️ {nm(i, L)} (+{KEY_PTS.get(ALL[i]['effect']['diff'], 1)})".replace("<", "").replace(">", ""), "evk", i)] for i in keys[:5]]
     used, kcap = await event_key_status(ctx.uid)
     return Out(await event_text(ctx, ev) + "\n\n" + ctx.t("evt_keyhint") + "\n" + ctx.t("evt_keyquota", used=fnum(used, L), cap=fnum(kcap, L)), rows + [nav(ctx, ("wrd", ""))])

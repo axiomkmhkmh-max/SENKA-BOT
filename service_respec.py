@@ -3,7 +3,7 @@
 Stat reset: every point you put into a stat comes back to your spendable points (race base stays). Costs coins
 that grow with level, and can be done once per RESPEC_COOLDOWN.
 
-Race change: move to another unlocked race. Free; the only limit is a cooldown (RACE_CHANGE_COOLDOWN, 48 hours).
+Race change: move to another unlocked race. Free; the only limit is a cooldown (RACE_CHANGE_COOLDOWN, 5 days).
 Every allocated stat point comes back to spend again on the new race (the new race brings its own base and home).
 The evolution stage is kept (its title and bonuses are the new race's own at that stage). A Visored can go back to
 Shinigami and, having passed the Visored Gauntlet once, return to Visored without redoing it. Kidō follows the race
@@ -21,7 +21,7 @@ from service_player import add_coins, get_char
 RESPEC_COST_PER_LEVEL = 150
 RESPEC_COOLDOWN = 24 * 3600
 RACE_CHANGE_COST_PER_LEVEL = 0          # race changes are free now
-RACE_CHANGE_COOLDOWN = 48 * 3600        # ... limited only by this cooldown
+RACE_CHANGE_COOLDOWN = 5 * 86400        # ... limited only by this cooldown
 KIDO_RACES = ("shinigami", "visored")
 
 
