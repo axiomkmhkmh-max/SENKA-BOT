@@ -89,6 +89,10 @@ async def tower_start(uid: int, lang: str):
 
 
 TOWER_XP_MULT = 1.0  # Soul Tower XP reward multiplier (full XP again)
+# Floors get 4.5% stronger each (enemy scale 1.045 ** floor) but XP used to stop growing at floor 50 (x2). Now XP keeps climbing
+# by TOWER_XP_STEP per floor up to TOWER_XP_MAX, and a Warden floor (every 5th, enemy x1.5) pays TOWER_XP_WARDEN times more.
+# Coins keep the old curve (x2 cap) so the economy does not move.
+TOWER_XP_STEP, TOWER_XP_MAX, TOWER_XP_WARDEN = 0.04, 6.0, 1.5
 TOWER_DROP_CHANCE = 0.5  # chance of an item on every cleared floor (the daily cap is gone, so no floor is unpaid)
 
 
@@ -110,7 +114,8 @@ async def tower_settle(doc: dict, win: bool) -> dict:
     if True:  # every cleared floor pays: the daily floor cap was removed
         xp, coins = _rewards(doc["lvl"], 1.0, gs)
         k = min(2.0, 1 + 0.02 * floor)
-        xp, coins = int(xp * k * TOWER_XP_MULT), int(coins * k)
+        xk = min(TOWER_XP_MAX, 1 + TOWER_XP_STEP * floor) * (TOWER_XP_WARDEN if floor % TOWER_BOSS_EVERY == 0 else 1.0)
+        xp, coins = int(xp * xk * TOWER_XP_MULT), int(coins * k)
         _ch, lv, got = await add_xp(uid, xp, "tower")
         await add_coins(uid, coins, "tower")
         out.update(xp=got, coins=coins, levels=lv)

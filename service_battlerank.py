@@ -78,7 +78,7 @@ async def apply(uid: int, kind: str, turns: int = 1, elite: bool = False, opp_rp
             upd["$inc"] = {"br_flees": 1}
         flt = {"user_id": uid, "br": ch.get("br"), "br_season": ch.get("br_season")}
         r = await col("characters").update_one(flt, upd)
-        if r.modified_count:
+        if getattr(r, "matched_count", r.modified_count):  # matched, not modified: with the daily cap full (or rank 0 on a loss) nothing changes, and that is not a conflict
             rewards = []
             for k in new_divs:
                 rewards.append((k, await grant_reward(uid, ch.get("race", "human"), k)))

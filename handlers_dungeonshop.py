@@ -46,6 +46,8 @@ async def dungeon_shop_buy(ctx, arg):
     if res.get("relic"):
         got += (f"\n🧬 بخت یارت بود: «{nm(res['relic'], L)}» (یادگار تکامل)" if fa
                 else f"\n🧬 Lucky: «{nm(res['relic'], L)}» (evolution relic)")
+    for bid, bq in res.get("bonus") or []:
+        got += (f"\n🎁 جایزه‌ی دوم: «{nm(bid, L)}»" if fa else f"\n🎁 Second prize: “{nm(bid, L)}”") + (f" ×{fnum(bq, L)}" if bq > 1 else "")
     if res.get("pity"):
         got += "\n🍀 ضمانت جعبه فعال شد." if fa else "\n🍀 Chest pity kicked in."
     return await _shop(ctx, got)

@@ -233,6 +233,17 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     return _apply(state, side, int(max(1, dmg)), crit, rng, ev, kind, allow_procs)
 
 
+def _atk_reference(state, side) -> float:
+    """What one plain attack of this fighter does to the foe on average (no crit, no dice): the same pieces as _deal."""
+    att, dfn = state[side], state["b" if side == "a" else "a"]
+    pierce = att["mods"].get("pierce", 0) + skill_p(att, "pierce") / 100
+    raw = max(1.0, strike_base(att, "atk") - total_def(dfn) * (1 - min(0.8, pierce)) * 0.6)
+    m = elem_mult(att, dfn) * _dmg_mult(att) * _zone(state, side) * _foe_mult(att, dfn)
+    m *= RACE_KILLER.get(att.get("race"), {}).get(dfn.get("race"), 1.0)
+    m *= ctx_dmg_mult(att.get("race"), fight_context(state, dfn))
+    return raw * m * _take_mult(dfn)
+
+
 def _maybe_resolve(f, ev):
     """Resolve (Reiatsu surge): once per battle a human-controlled fighter pushed under the HP line digs in -
     a little healing, ailments cleansed, a short damage buff. Wild enemies never get it."""
@@ -396,6 +407,7 @@ def best_kido(f, branch):
     return ok[0] if ok else None
 
 
+HADO_FLOOR = 1.0      # a Hadō never hits for less than this many plain attacks (chanted: x CHANT_HADO on top). 0 = off
 GETSUGA_COST = 0.15   # share of max reiatsu for the release
 GETSUGA_DMG = 2.4     # strike multiplier of the release (a heavy strike is 1.6)
 
@@ -859,6 +871,9 @@ def _do_action(state, action, rng, max_turns=30):
         else:        # no incantation: the high spells lose strength (and from 80 up cannot be cast at all, see kido_castable)
             raw *= KD.unchanted_mult(n)
         dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.6 * (1 - P["pierce"])))  # pierce: part of the armour is ignored
+        if HADO_FLOOR > 0:  # armour comes off AFTER the multipliers, so a low spell (Shō) or a low Kidō stat hit weaker than a plain
+            # attack even with the chant. Now a Hadō is never worse than an attack, and the chant keeps its x1.6 on top of that
+            dmg = max(dmg, int(_atk_reference(state, side) * HADO_FLOOR * (CHANT_HADO if chanted else 1.0)))
         _apply(state, side, dmg, False, rng, ev, "hado", False)
         ev[-1]["chant"] = chanted
         ev[-1]["num"] = n

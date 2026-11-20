@@ -29,6 +29,25 @@ BOXES = {
 RELIC_ODDS = {"bronze": (0.20, ("Common", "Uncommon")), "silver": (0.30, ("Rare", "Epic")), "gold": (0.40, ("Epic",))}
 
 
+# The gold chest also pays what the in-game help promises: a second prize (Epic / Legendary material, potion or book; materials
+# always come 2-3 at a time) and a small chance of a Tempering Stone.
+GOLD_BONUS_RARITIES = {"material": ("Rare", "Epic", "Legendary"), "potion": ("Epic", "Legendary"), "book": ("Epic", "Legendary")}
+GOLD_STONE_CHANCE = 0.15
+GOLD_MAT_QTY = (2, 3)
+
+
+def gold_bonus_pools() -> dict:
+    """category -> item ids. The category is rolled first (a third each), so materials really do show up: there are far
+    fewer Epic+ materials than potions, and a flat pick over every item would almost never give one."""
+    from data_items import ALL
+    out = {}
+    for cat, rars in GOLD_BONUS_RARITIES.items():
+        ids = sorted(i for i, x in ALL.items() if x.get("category") == cat and x.get("rarity") in rars and not x.get("retired"))
+        if ids:
+            out[cat] = ids
+    return out
+
+
 def dp_for_clear(dungeon: dict) -> int:
     """DP for one full clear: grows with difficulty and with the dungeon's level."""
     from data_races import DUNGEONS
@@ -106,6 +125,19 @@ async def buy_box(uid: int, key: str, rng=random):
         if pool:
             relic = rng.choice(pool)
             await inv_add(uid, relic, 1, force=True)
-    res = {"coins": n, "item": iid, "rar_idx": idx, "pity": pity, "relic": relic}
+    bonus = []  # [(item id, quantity)]: only the gold chest
+    if key == "gold":
+        pools = gold_bonus_pools()
+        if pools:
+            cat = rng.choice(sorted(pools))
+            pick = rng.choice(pools[cat])
+            qty = rng.randint(*GOLD_MAT_QTY) if cat == "material" else 1
+            await inv_add(uid, pick, qty, force=True)
+            bonus.append((pick, qty))
+        if rng.random() < GOLD_STONE_CHANCE:
+            from data_extras2 import TEMPER_STONE
+            await inv_add(uid, TEMPER_STONE, 1, force=True)
+            bonus.append((TEMPER_STONE, 1))
+    res = {"coins": n, "item": iid, "rar_idx": idx, "pity": pity, "relic": relic, "bonus": bonus}
     log_event("dungeon_shop", uid, f"جعبه‌ی دانجن {key}: {res}", box=key)
     return "ok", res
