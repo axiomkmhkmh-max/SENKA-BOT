@@ -122,7 +122,7 @@ async def item_view(ctx, arg):
     if it.get("slot") or it["category"] == "weapon":
         rows.append([(ctx.t("b_equip"), "eq", iid)])
     ety = (it.get("effect") or {}).get("type")
-    if ety in ("kido", "xp", "pet", "buff", "kido_book", "bond"):
+    if ety in ("kido", "xp", "pet", "buff", "kido_book", "bond", "tech_lvl"):  # tech_lvl: race technique cards
         rows.append([(ctx.t("b_use"), "us", iid)])
     elif ety == "relic":
         rows.append([(ctx.t("m_rlc"), "rlc", "")])
