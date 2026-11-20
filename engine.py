@@ -63,7 +63,9 @@ def _new_x():
             # race techniques (data_race_tech): own cooldowns, a guard buff (Hierro) and a crit buff (Pesquisa)
             "t1cd": 0, "t2cd": 0, "t3cd": 0, "gd_t": 0, "gd_m": 1.0, "cb_t": 0, "cb_v": 0.0,
             # kidō (data_kido): per-spell cooldowns {"h31": turns} and the spell picked this turn ["kd"|"bk", number]
-            "kcd": {}, "pick": None}
+            "kcd": {}, "pick": None,
+            # anti stun-lock: set right after a fighter loses a turn to a stun, cleared when they act again
+            "stun_im": 0}
 
 
 def _x(f):
@@ -77,6 +79,8 @@ def _x(f):
 
 
 def add_fx(f, k, turns, stacks=1):
+    if k == "skip" and (f.get("x") or {}).get("stun_im"):
+        return  # just lost a turn: immune to being stunned again until they have acted (no chain-stun)
     for x in f["fx"]:
         if x["k"] == k:
             x["t"] = max(x["t"], turns)
@@ -640,7 +644,9 @@ def start_turn(state, rng):
         if _x(f)["charge"]:  # a stunned fighter loses the Cero they were gathering
             _x(f)["charge"] = 0
             ev.append({"k": "charge_break", "a": f["name"]})
+        fs["stun_im"] = 1  # the foe cannot stun this fighter again before they get to act
         return merge_heals(ev), True
+    fs["stun_im"] = 0
     state["awaiting"] = True
     return merge_heals(ev), False
 
