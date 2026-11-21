@@ -532,6 +532,10 @@ async def hogyoku_steal(thief: int, victim: int):
         if wa >= need or wb >= need:
             break
     report = {"pa": pa, "pb": pb, "rounds": rounds, "wa": wa, "wb": wb, "hours": 0}
+    from service_log import log_event
+    seq = "".join("✅" if w == "a" else "❌" for w in rounds)
+    log_event("hog", thief, f"{'هوگیوکو را از «' + str(cv['name']) + '» (' + str(victim) + ') دزدید' if wa >= need else 'در دزدی هوگیوکو از «' + str(cv['name']) + '» (' + str(victim) + ') شکست خورد'}"
+                            f" | قدرت {pa} در برابر {pb} | دورها {seq}", victim=victim, won=wa >= need)
     if wa >= need:
         got = await col("hogyoku").find_one_and_update({"_id": "main", "holder": victim}, {
             "$set": {"holder": thief, "since": now}, "$push": {"history": {"$each": [{"uid": thief, "from": victim, "at": now}], "$slice": -10}}})

@@ -126,6 +126,25 @@ class Flow(unittest.TestCase):
         self.assertEqual(extra["need"], 500)
         self.assertEqual(self.cd, {})      # nothing was spent
 
+    def test_win_and_loss_reach_the_log_channel(self):
+        import service_log as SL
+        seen = []
+        orig = SL.log_event
+        SL.log_event = lambda kind, uid=0, text="", **x: seen.append((kind, uid, text))
+        try:
+            self.script = ["a", "a"]
+            self.run_steal()
+            self.assertEqual(seen[-1][0:2], ("hog", 1))
+            self.assertIn("دزدید", seen[-1][2])
+            self.assertIn("✅✅", seen[-1][2])
+            self.c.docs["hogyoku"] = {"holder": 2, "since": 0}
+            self.cd.clear()
+            self.script = ["b", "b"]
+            self.run_steal()
+            self.assertIn("شکست", seen[-1][2])
+        finally:
+            SL.log_event = orig
+
     def test_busy_holder_gives_the_try_back(self):
         self.cd["hog:tgt:2"] = 1
         res, _ = self.run_steal()

@@ -14,6 +14,7 @@ from render import glang
 from security import allow
 from service_bleach_systems import STANCE, STANCE_SECONDS, espada_board, espada_challenge, espada_rank, stance_set
 from service_extras import hogyoku_holder, hogyoku_state, hogyoku_steal
+from service_log import log_event, log_text
 from service_hollowraid import bankai_lock_left, quincy_strike, raid_settle
 from service_player import get_char
 from service_world import group_doc
@@ -107,6 +108,9 @@ async def viral_hook(message, text: str, n: str) -> bool:
             return False  # an ordinary duel
         lang = await _group_lang(chat.id)
         you = esc(target.full_name or target.first_name or "")
+        log_text(user.id, "چالش اسپادا (ریپلای)", chat.type)  # this hook answers before the group's own text log runs
+        if res in ("win", "lose"):
+            log_event("esp", user.id, f"چالش اسپادا {extra} علیه {target.id}: {'برد' if res == 'win' else 'باخت'}", seat=extra, target=target.id)
         if res == "win":
             await message.reply(_t(lang, "esp_win", a=me, b=you, r=extra))
         elif res == "lose":
@@ -120,6 +124,7 @@ async def viral_hook(message, text: str, n: str) -> bool:
             return False
         lang = await _group_lang(chat.id)
         you = esc(target.full_name or target.first_name or "")
+        log_text(user.id, "خیانت (ریپلای)", chat.type)  # this hook answers before the group's own text log runs
         if res in ("win", "fail"):
             await message.reply(_hog_report(lang, extra, me, you, res == "win"))
         elif res == "weak":

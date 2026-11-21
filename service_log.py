@@ -14,7 +14,7 @@ from i18n import esc
 log = logging.getLogger("senka.log")
 TEHRAN = timezone(timedelta(hours=3, minutes=30))
 ICONS = {"reg": "🆕", "act": "🔘", "txt": "💬", "market": "🛒", "shop": "🏪", "drop": "🎁", "art": "🔱", "lvl": "⬆️", "pvp": "🥊",
-         "gacha": "🎰", "admin": "🛡️", "boss": "👹", "econ": "💰", "bounty": "🎯", "sys": "⚙️"}
+         "gacha": "🎰", "admin": "🛡️", "boss": "👹", "econ": "💰", "bounty": "🎯", "sys": "⚙️", "hog": "🔮", "esp": "🔔"}
 
 # Persian label for every button/word the game has. Unknown codes fall back to the code itself.
 LABELS = {
