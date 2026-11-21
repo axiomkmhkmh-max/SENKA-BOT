@@ -157,10 +157,7 @@ def _roll_pool(race: str, rarity: str, rng) -> str:
     """A card (Kidō for Shinigami / Visored, the race's technique cards for the others) or a spirit egg of one colour."""
     from data_items import KIDO_CARD_BY_RARITY, race_cards
     eggs = [i for i, x in ALL.items() if x["category"] == "egg" and x["rarity"] == rarity]
-    if race in ("shinigami", "visored"):
-        cards = KIDO_CARD_BY_RARITY.get(rarity) or []
-    else:
-        cards = race_cards(race, rarity) if race else []
+    cards = race_cards(race, rarity) if race else []  # ability cards of the race (+ Kidō cards for Shinigami / Visored)
     if eggs and (not cards or rng.random() < ROLL_EGG_SHARE):
         return rng.choice(eggs)
     if cards:

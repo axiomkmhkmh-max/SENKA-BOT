@@ -13,11 +13,12 @@ ARMOR = 20
 RACE_LIST = ["shinigami", "quincy", "hollow", "arrancar", "fullbringer", "human", "visored"]
 ENEMY_K = {"s": 1.6, "d": 1.2, "h0": 60, "h1": 30, "a": 2.6, "ar": 0.9}
 
-def max_hp(level, hakuda, mult=1.0):
-    return int((100 + level * 20 + hakuda * 8) * mult)
+def max_hp(level, hakuda, mult=1.0):  # same as service_player.max_hp (HP x6 since Nov 21)
+    from data_misc import HP_MULT
+    return int((100 + level * 20 + hakuda * 10) * mult * HP_MULT)
 
 def max_reiatsu(level, reiatsu):
-    return int(50 + level * 15 + reiatsu * 12)
+    return int(50 + level * 15 + reiatsu * 15)
 
 # Standard Hadō list of a level-40 Shinigami / Visored. Balance of the kidō races depends heavily on this choice.
 STD_HADO = (1, 4)
@@ -47,7 +48,22 @@ def loadout(race):
 EVO_STAGE = 2   # a level-40 player is at about the third evolution stage (level gate 35)
 # How a sensible player spends 5 x ALLOC points now that abilities follow the race's own stat (data_race_tech):
 # 40% into that stat, 25% Zanjutsu, 15% Hakuda, the rest split over the other two. Fullbringer has no ability stat.
+ALLOC_SHARE = {  # Nov 21: abilities draw on their family's own stats (data_abilities), so a sensible player spreads like this
+    "shinigami": {"kido": 0.30, "zanjutsu": 0.25, "hoho": 0.15, "reiatsu": 0.15, "hakuda": 0.15},
+    "visored": {"reiatsu": 0.40, "zanjutsu": 0.25, "kido": 0.10, "hakuda": 0.15, "hoho": 0.10},
+    "quincy": {"reiatsu": 0.45, "zanjutsu": 0.20, "hakuda": 0.20, "hoho": 0.15, "kido": 0.0},
+    "hollow": {"hakuda": 0.40, "reiatsu": 0.25, "zanjutsu": 0.20, "hoho": 0.15, "kido": 0.0},
+    "arrancar": {"reiatsu": 0.35, "hakuda": 0.25, "zanjutsu": 0.20, "hoho": 0.20, "kido": 0.0},
+    "fullbringer": {"zanjutsu": 0.45, "hakuda": 0.25, "hoho": 0.15, "reiatsu": 0.15, "kido": 0.0},
+    "human": {"reiatsu": 0.40, "zanjutsu": 0.20, "hakuda": 0.25, "hoho": 0.15, "kido": 0.0},
+}
+ABIL = {}        # race -> character "abil" doc to test (types, levels); empty = the defaults at level 1
+ABIL_ON = True   # False: the old buttons (no ability families)
+
+
 def allocation(race):
+    if ABIL_ON and race in ALLOC_SHARE:
+        return {k: 5 * ALLOC * v for k, v in ALLOC_SHARE[race].items()}
     from data_race_tech import ABILITY_STAT
     total = 5 * ALLOC
     stat = ABILITY_STAT.get(race)
@@ -87,6 +103,9 @@ def player(race):
                       kido=kido, race=race, sig=sig_for(race), **loadout(race))
     f["evo"] = {k: v for k, v in evb.items() if k not in ("dmg", "def", "hp", "kido", "crit", "pierce", "regen")}
     f["evs"] = EVO_STAGE
+    if ABIL_ON:
+        from service_abilities import loadout as ab_loadout
+        f.update(ab_loadout({"race": race, "kido": kido, "tech_lvl": {}, "abil": ABIL.get(race) or {}}))
     return f
 
 def foe(scale, hollow):
@@ -94,7 +113,8 @@ def foe(scale, hollow):
     s = (4 + lvl * k["s"]) * scale
     stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + lvl * k["d"]) * scale, "hoho": 6 + lvl * 0.5, "reiatsu": 5 + lvl}
     w = {"attack": (3 + lvl * k["a"]) * scale, "crit": 0.03, "element": "light", "skills": [], "weapon_type": "melee"}
-    f = E.new_fighter("hollow" if hollow else "boss", lvl, stats, (k["h0"] + lvl * k["h1"]) * scale, 80 + lvl * 10, w,
+    from data_misc import HP_MULT
+    f = E.new_fighter("hollow" if hollow else "boss", lvl, stats, (k["h0"] + lvl * k["h1"]) * scale * HP_MULT, 80 + lvl * 10, w,
                       armor=lvl * k["ar"] * scale, ai=True, sig=("cero" if hollow else None))
     f["foe"] = "hollow" if hollow else ("boss" if scale > 0.91 else "pve")
     f["wild"] = True

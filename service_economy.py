@@ -40,14 +40,15 @@ def slots_used(items: dict) -> int:
 
 
 DUP_CARD_XP_BASE, DUP_CARD_XP_PER_NUM = 25, 5   # a duplicate Hadō/Bakudō card turns into 25 + 5 x its number XP (99 -> 520)
+DUP_KIDO_TO_XP = False   # off since the ability panel: duplicates feed Hadō / Bakudō mastery instead
 
 
 async def _dup_kido_xp(uid: int, item_id: str, qty: int) -> bool:
     """A Kidō card for a spell the player already knows is useless: turn it into a little XP instead of bag clutter.
     Returns True when the card was converted (nothing goes into the bag)."""
     eff = (ALL[item_id].get("effect") or {})
-    if eff.get("type") != "kido":
-        return False
+    if eff.get("type") != "kido" or not DUP_KIDO_TO_XP:
+        return False  # Nov 21: a duplicate Kidō card stays in the bag and raises Hadō / Bakudō mastery (ability panel)
     ch = await get_char(uid)
     if not ch:
         return False
@@ -160,9 +161,16 @@ async def use_item(uid: int, item_id: str):
         until = int(time.time()) + int(eff["minutes"]) * 60
         await col("characters").update_one({"user_id": uid}, {"$set": {"konpaku_until": until}})
         return "ok", eff["minutes"]
-    if t == "tech_lvl":  # race technique card: raises that technique's mastery, in order
+    if t == "tech_lvl":  # old race technique card: it becomes the ability card of its family's default type (Nov 21)
         if eff["race"] != ch.get("race"):
             return "race_card", None
+        from data_abilities import old_card_to_new
+        new = old_card_to_new(eff["race"], eff["slot"])
+        if new:
+            if not await inv_remove(uid, item_id, 1):
+                return "missing", None
+            await inv_add(uid, new, 1, force=True, keep=True)
+            return "ab_conv", new
         cur = int((ch.get("tech_lvl") or {}).get(eff["slot"], 0))
         if cur >= eff["lvl"]:
             return "known", None

@@ -25,7 +25,8 @@ ABILITY_STAT = {"shinigami": "kido", "quincy": "reiatsu", "visored": "reiatsu", 
                 "arrancar": "hoho", "hollow": "hakuda", "fullbringer": "weapon"}
 ABILITY_SHARE = 0.70
 HEAVY_REIATSU = 0.50
-FULLBRING_WEAPON = 2.0
+FULLBRING_WEAPON = 1.8  # Nov 21: was 2.0 (the weapon carries Fullbringer abilities)
+FULLBRING_LOW = (0.15, 40)  # +15% ability power at level 1, fading to 0 by level 40 (a low-level Fullbring is weak)
 STAT_FA = {"kido": "کیدو", "reiatsu": "ریاتسو", "hoho": "هوهو", "hakuda": "هاکودا", "zanjutsu": "زنجوتسو", "weapon": "قدرت سلاح"}
 
 RACE_TECH = {

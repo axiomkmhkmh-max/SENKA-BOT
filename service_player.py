@@ -36,11 +36,13 @@ def xp_to_next(level: int) -> int:
 
 
 def max_hp(level: int, hakuda: float, mult: float = 1.0) -> int:
-    return int((100 + level * 20 + hakuda * 8) * mult)
+    """Nov 21: Hakuda gives 10 HP a point (was 8), and every HP is x HP_MULT (long fights)."""
+    from data_misc import HP_MULT
+    return int((100 + level * 20 + hakuda * 10) * mult * HP_MULT)
 
 
 def max_reiatsu(level: int, reiatsu: float) -> int:
-    return int(50 + level * 15 + reiatsu * 12)
+    return int(50 + level * 15 + reiatsu * 15)  # 15 a Reiatsu point (was 12)
 
 
 # ---- users -------------------------------------------------------------------

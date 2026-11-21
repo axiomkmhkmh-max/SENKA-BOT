@@ -195,7 +195,7 @@ async def quick_fight(uid_a: int, uid_b: int) -> str:
         f["mods"]["dmg"] = f["mods"].get("dmg", 1.0) * (m if m else 0.5)
     rng = _rnd.Random()
     st = E.new_state(fa, fb, rng)
-    E.run_ai(st, rng, 40, ai_sides=("a", "b"))
+    E.run_ai(st, rng, E.MAX_TURNS, ai_sides=("a", "b"))
     if st.get("winner") in ("a", "b"):
         return st["winner"]
     return "a" if fa["hp"] / max(1, fa["max_hp"]) >= fb["hp"] / max(1, fb["max_hp"]) else "b"

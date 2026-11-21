@@ -27,7 +27,8 @@ class HealMerge(unittest.TestCase):
         ev, _ = E.start_turn(st, random.Random(1))
         heals = [e for e in ev if e["k"] == "heal"]
         self.assertEqual(len(heals), 1)
-        self.assertEqual(heals[0]["n"], int(1000 * E.TURN_HP_REGEN) + int(1000 * 0.02))
+        hb = 1000 / E.HP_MULT  # repeating heals are measured on the old-scale HP (long fights)
+        self.assertEqual(heals[0]["n"], int(hb * E.TURN_HP_REGEN) + int(hb * 0.02))
 
     def test_guard_does_not_stack_on_natural_regen(self):
         a, b = _f("A"), _f("B")
@@ -38,7 +39,7 @@ class HealMerge(unittest.TestCase):
         hp_after_tick = a["hp"]
         E.do_action(st, "df", random.Random(1))
         # total recovery of the turn is the Guard share (5%), not 3% + 5%
-        self.assertEqual(a["hp"] - 500, int(1000 * E.GUARD_HP_GAIN))
+        self.assertEqual(a["hp"] - 500, int(1000 / E.HP_MULT * E.GUARD_HP_GAIN))
         self.assertGreater(a["hp"], hp_after_tick)
 
     def test_ai_guard_turn_prints_a_single_heal(self):

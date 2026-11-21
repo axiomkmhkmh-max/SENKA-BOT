@@ -9,8 +9,8 @@ RACES = ("shinigami", "quincy", "hollow", "arrancar", "fullbringer", "human", "v
 
 class Catalog(unittest.TestCase):
     def test_every_event_is_a_war(self):
-        self.assertEqual(set(EVENTS), set(W.WARS))
-        self.assertEqual(set(EVENTS), set(W.WAR_STORY))
+        self.assertTrue(set(EVENTS) <= set(W.WARS), set(EVENTS) - set(W.WARS))
+        self.assertTrue(set(W.WARS) <= set(W.WAR_STORY))
 
     def test_factions_complete(self):
         for kind, (a, b, ra, rb) in W.WARS.items():

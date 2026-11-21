@@ -30,7 +30,7 @@ from ui import Out, action, chunk, head, markup, nav
 KIDO_MENU = False   # True brings back the Hadō/Bakudō spell menu and the kidō cooldown line
 
 
-def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
+def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
     L = ctx.lang
     form1, form2 = FORMS[f["race"]]
     i = 0 if L == "fa" else 1
@@ -49,16 +49,32 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         base = {"kdm": "kd", "bkm": "bk"}.get(act.split(":")[0], act.split(":")[0])  # "kd:31" / "kdm:0" press the kidō button
         return (reach_tag(label, base) if base in ("atk", "hvy", "kd", "gt", "gx", "sg", "t1", "t2", "t3") else label,
                 "pa" if pub else "ba", f"{sid}.{act}", pub)
+    import data_abilities as AB
+    fab = f.get("ab") or {}
+
+    def ab_label(act):  # the picked type's name on its family's button (data_abilities)
+        a = fab.get(act)
+        t = AB.type_of(a["fam"], a["tid"]) if a else None
+        if not t:
+            return None
+        icon = AB.FAMILIES[a["fam"]]["icon"]
+        chg = (f.get("x") or {}).get("chg") or {}
+        name = t["fa" if L == "fa" else "en"]
+        return f"{icon} {name}" + ((" 🔥" if L == "fa" else " 🔥") if chg.get(act) else "")
     rows = [[mk(ctx.t("a_atk"), "atk")]]
     rows.append([mk("🏃 شونپو" if L == "fa" else "🏃 Shunpo", "mvs"),
                  mk("⚡ سونیدو" if L == "fa" else "⚡ Sonido", "mvn"),
                  mk("↩️ عقب" if L == "fa" else "↩️ Back", "rt"),
-                 mk("↔️ جانبی" if L == "fa" else "↔️ Side", "sd")])  # distance: close in / back off
+                 mk(("↔️ خروج از جانبی" if L == "fa" else "↔️ Leave side") if side_on
+                    else ("↔️ جانبی" if L == "fa" else "↔️ Side"), "sd")])  # side stance: a free toggle (no turn)
     if E.can(f, "hvy"):
         rows[0].append(mk(ctx.t("a_hvy"), "hvy"))
     r2 = []
+    if fab and E.can(f, "sk"):  # Shikai / Hollow Mask: the early state button (whole fight)
+        r2.append(mk(("🗡 شیکای!" if L == "fa" else "🗡 Shikai!") if f.get("race") == "shinigami"
+                     else ("🎭 ماسک هالو!" if L == "fa" else "🎭 Hollow Mask!"), "sk"))
     if E.can(f, "gc"):  # Getsuga: gather reiatsu into the blade (turn spent)
-        r2.append(mk(ctx.t("a_gc"), "gc"))
+        r2.append(mk((("🌙 جمع کردن: " if L == "fa" else "🌙 Gather: ") + (ab_label("gt") or "").split(" ", 1)[-1]) if fab.get("gt") else ctx.t("a_gc"), "gc"))
     if E.can(f, "ch"):  # Kidō chanting: costs the turn, leaves you open, boosts the next spell
         r2.append(mk(ctx.t("a_ch"), "ch"))
     if KIDO_MENU:  # new spell menu (off by default: players preferred the old panel)
@@ -79,7 +95,7 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
     for k in range(0, len(r2), 2):  # at most two long labels per line, so they stay readable on a phone
         rows.append(r2[k:k + 2])
     if E.can(f, "gt"):  # gathered: release the wave
-        rows.append([mk(ctx.t("a_gt"), "gt")])
+        rows.append([mk(ab_label("gt") if fab.get("gt") else ctx.t("a_gt"), "gt")])
     if E.can(f, "gx"):  # spirit gauge full: the race's release, which also opens its form (Shikai/Bankai, Resurrección...)
         r = f.get("race")
         n = E.release_form(f)
@@ -95,6 +111,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         canon_row.append(mk(ctx.t("a_bla"), "bla"))
     if E.can(f, "bal"):
         canon_row.append(mk(ctx.t("a_bal"), "bal"))
+    if E.can(f, "if"):  # Iron Fist: only while Hierro holds
+        canon_row.append(mk("🦾 ضربه‌ی آهنین" if L == "fa" else "🦾 Iron Fist", "if"))
     if E.can(f, "neg"):
         canon_row.append(mk(ctx.t("a_neg"), "neg"))
     if E.can(f, "gar"):
@@ -104,12 +122,12 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None):
         if canon_row[2:]:
             rows.append(canon_row[2:])
     from data_race_tech import TECH_SLOTS, tech_name, tech_of
-    tech_row = [mk(tech_name(tech_of(f["race"], s), L), s) for s in TECH_SLOTS if E.can(f, s)]
+    tech_row = [mk(ab_label(s) or tech_name(tech_of(f["race"], s), L), s) for s in TECH_SLOTS if E.can(f, s)]
     for k in range(0, len(tech_row), 2):  # canon race techniques (Licht Regen, Hierro, Santen Kesshun...)
         rows.append(tech_row[k:k + 2])
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
-        rows.append([mk(ctx.t(key), "sg")])
+        rows.append([mk(ab_label("sg") or ctx.t(key), "sg")])
     if E.can(f, "bt"):  # the blade's own technique (after Shikai)
         bt = f["bt"]
         rows.append([mk(f"🗡 {bt['blade_fa' if L == 'fa' else 'blade_en']}: {bt['fa' if L == 'fa' else 'en']}", "bt")])
@@ -198,6 +216,9 @@ async def battle_panel(ctx, doc, events=None):
     d = doc.get("dungeon")
     if d and d.get("tower"):
         title += ctx.t("tw_floor_boss" if d["stage"] % 5 == 0 else "tw_floor", n=fnum(d["stage"], ctx.lang)) + "\n"
+    elif d and d.get("war"):
+        from handlers_war import battle_title
+        title += battle_title(ctx.lang, d)
     elif d and d.get("lboss"):
         title += ctx.t("lb_stage") + "\n"
     elif d and d.get("gq"):
@@ -208,13 +229,15 @@ async def battle_panel(ctx, doc, events=None):
         flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
         if flavor:
             title += f"<i>{flavor}</i>\n"
+    from service_fightfx import challenge_line
+    title += challenge_line(st, ctx.lang)
     text = battle_text(ctx.lang, st, events, title)
     pot = await _has_potion(ctx.uid)
     from service_combat import can_flee
     tail = [(ctx.t("b_home"), "home", "")]
     if can_flee(doc) and not st.get("done"):  # normal battles only: fleeing costs Battle Rank, the chain stays
         tail.insert(0, ("🏃 " + ("فرار" if ctx.lang == "fa" else "Flee"), "bf", doc["sid"]))
-    rows = _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st)) + [tail]
+    rows = _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st), side_on=E.in_side(st, "a")) + [tail]
     if d and d.get("tower") and not st.get("done"):  # a tower climb can always be left from the fight screen itself
         rows.append(_tower_leave_row(ctx))
     return Out(text, rows)
@@ -293,8 +316,18 @@ async def _pve_result(ctx, doc, ev, o):
         from handlers_battlerank import result_lines
         for line in result_lines(ctx, o.get("br")):
             text += "\n" + line
+        if o.get("chl"):
+            from service_fightfx import text as chl_text
+            text += "\n" + ("❌ چالش: " if L == "fa" else "❌ Challenge: ") + chl_text(o["chl"], L)
+        dlx = doc.get("dungeon") or {}
+        if dlx.get("war"):
+            from handlers_war import result_lines as war_lines, result_rows as war_rows
+            for line in war_lines(L, o):
+                text += "\n" + line
+            return Out(text, war_rows(L, dlx) + [nav(ctx)])
         return Out(text, [[(ctx.t("b_again"), "bs", "")], nav(ctx)])
-    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if doc.get("dungeon")
+    dgx = doc.get("dungeon") or {}
+    win_line = (ctx.t("bt_win_dg", xp=fnum(o["xp"], L)) if doc.get("dungeon") and not dgx.get("war")
                 else ctx.t("bt_win", xp=fnum(o["xp"], L), coins=fnum(o["coins"], L)))
     lines = [battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")), "", win_line]
     from handlers_battlerank import result_lines
@@ -319,6 +352,23 @@ async def _pve_result(ctx, doc, ev, o):
     if o.get("dg_heal"):
         lines.append(f"💚 استراحت قبل از طبقه‌ی ۳: {fnum(o['dg_heal'], L)}٪ جان برگشت." if L == "fa"
                      else f"💚 A breather before floor 3: +{o['dg_heal']}% HP restored.")
+    if dgx.get("war"):
+        from handlers_war import result_lines as war_lines
+        lines += war_lines(L, o)
+    if o.get("gap_k"):  # open worlds: the enemy's level against yours
+        gk = o["gap_k"]
+        lines.append((f"⚖️ ضریب سطح دشمن: ×{fnum(str(gk), L)}" if L == "fa" else f"⚖️ Enemy level factor: x{gk}")
+                     + ((" (دشمن قوی‌تر)" if L == "fa" else " (a stronger foe)") if gk > 1 else (" (دشمن خیلی ضعیف‌تر)" if L == "fa" else " (a much weaker foe)")))
+    if o.get("chl"):  # the fight's challenge
+        from service_fightfx import CHL_BONUS, text as chl_text
+        c = o["chl"]
+        if c["done"]:
+            lines.append(("🎯 چالش انجام شد: " if L == "fa" else "🎯 Challenge done: ") + chl_text(c, L)
+                         + (f" (+{fnum(int(CHL_BONUS * 100), L)}٪ اکس‌پی و سکه)" if L == "fa" else f" (+{int(CHL_BONUS * 100)}% XP and coins)"))
+            if c.get("card"):
+                lines.append(("🎴 جایزه‌ی چالش: " if L == "fa" else "🎴 Challenge prize: ") + nm(c["card"], L))
+        else:
+            lines.append(("❌ چالش انجام نشد: " if L == "fa" else "❌ Challenge missed: ") + chl_text(c, L))
     if o.get("drop_full"):
         lines.append(f"🎒 کیفت پره! «{nm(o['drop_full'], L)}» دراپ شد ولی جا نداشت. کیف رو خالی کن." if L == "fa"
                      else f"🎒 Bag full! «{nm(o['drop_full'], L)}» dropped but there was no room. Free some slots.")
@@ -331,6 +381,9 @@ async def _pve_result(ctx, doc, ev, o):
     if o["next"]:
         lines.append(ctx.t("dg_next"))
         rows.append([(ctx.t("b_next_stage"), "bn", o["next"])])
+    elif dgx.get("war"):  # battlefield: next fight or back to the battlefield
+        from handlers_war import result_rows as war_rows
+        rows += war_rows(L, dgx)
     elif o.get("lboss"):  # level boss defeated
         lines.append(ctx.t("lb_done"))
         lines.append(ctx.t("lb_items", items=", ".join(nm(i, L) for i in o["lboss"]["items"]) or "—"))
@@ -549,7 +602,7 @@ async def _pvp_panel(chat_lang, ctx, doc, events, final=None):
     text = both(chat_lang, render)
     rows = []
     if final is None:
-        rows = _act_rows(ctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st))
+        rows = _act_rows(ctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st), side_on=E.in_side(st, st["cur"]))
     return text, markup(ctx, rows)
 
 

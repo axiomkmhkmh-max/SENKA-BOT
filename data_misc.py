@@ -11,6 +11,11 @@ FORMS = {  # race -> (form1 fa/en, form2 fa/en)
 FORM1 = (1.5, 6, 0, 0.20)
 FORM2 = {"default": (3.0, 5, 3, 0.30)}  # the same for every race: it now comes only with the full spirit gauge (engine "gx")
 FORM1_LEVEL, FORM2_LEVEL = 10, 30
+# Long fights (Nov 21): every fighter has 6x the HP it had (players, NPCs, bosses) and PvE pays 6x the XP. Heals, shields,
+# regen and damage-over-time that repeat during a fight are measured on the old HP (max_hp / HP_MULT), so they keep their
+# old size per use and do not stall a fight that is now six times longer.
+HP_MULT = 6
+FARM_XP_MULT = 6
 MASK_RAGE = 0.12  # per-turn chance a Visored loses control of an active Hollow Mask (lose that action)
 # Bankai-level special effect per weapon type: (effect, power)
 FORM2_EFFECT = {"melee": ("pierce", 0.25), "elemental": ("burn", 1), "kido": ("drain", 0.08), "illusion": ("miss", 0.30),

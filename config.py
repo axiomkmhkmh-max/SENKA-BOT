@@ -62,7 +62,7 @@ GAME_DEFAULTS = {
     "start_coins": 500, "travel_cooldown": 60,
     "pvp_min_level": 15, "pvp_gain_min": 25, "pvp_gain_max": 40,
     "pvp_loss_min": 20, "pvp_loss_max": 30, "pvp_pair_daily_cap": 3,
-    "pvp_full_xp_wins": 10, "pvp_turn_seconds": 30, "pvp_max_turns": 30,
+    "pvp_full_xp_wins": 10, "pvp_turn_seconds": 30, "pvp_max_turns": 200,
     "market_seller_fee": 0.05, "market_buyer_fee": 0.02, "market_slots": 5,
     "market_hours": 72, "auction_snipe_seconds": 60, "auction_extend_seconds": 120,
     "gacha_cost": 1500, "gacha_pity_legendary": 80, "gacha_pity_rare": 10,

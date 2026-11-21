@@ -88,15 +88,16 @@ def race_title(race: str, level: int, lang: str) -> str:
 
 
 def soft_stat(value: float) -> float:
-    """Soft caps: x1 to 100, x0.8 to 200, x0.5 to 500, x0.3 beyond."""
+    """Soft caps (Nov 21, stats ~20% stronger): x1 to 150, x0.85 to 300, x0.6 to 600, x0.4 beyond
+    (was x1 to 100, x0.8 to 200, x0.5 to 500, x0.3 beyond)."""
     v = max(0.0, float(value))
-    out = min(v, 100)
-    if v > 100:
-        out += (min(v, 200) - 100) * 0.8
-    if v > 200:
-        out += (min(v, 500) - 200) * 0.5
-    if v > 500:
-        out += (v - 500) * 0.3
+    out = min(v, 150)
+    if v > 150:
+        out += (min(v, 300) - 150) * 0.85
+    if v > 300:
+        out += (min(v, 600) - 300) * 0.6
+    if v > 600:
+        out += (v - 600) * 0.4
     return out
 
 
@@ -342,3 +343,38 @@ DUNGEON_ENEMIES.update({
 DIFFICULTY = {"normal": 1.0, "hard": 1.5, "nightmare": 3.0, "abyss": 8.0, "legendary": 16.0}  # legendary was x30: unwinnable
 DIFF_DROP = {"normal": 1.0, "hard": 1.5, "nightmare": 3.0, "abyss": 10.0, "legendary": 30.0}
 DIFF_FA = {"normal": "عادی", "hard": "سخت", "nightmare": "کابوس", "abyss": "ورطه", "legendary": "افسانه‌ای"}
+
+
+# ---- open worlds (Nov 21) -------------------------------------------------------------------------------------------
+# Every location is open to everyone. Each has its own fixed band of enemy levels (3 levels from its level), so a
+# level-21 player may walk into a level-45 world and meet level 45-47 enemies. The top world always matches the player.
+BAND_WIDTH = 3
+TOP_LOC = max(LOCATIONS, key=lambda k: LOCATIONS[k]["level"])
+
+
+def loc_band(lid: str, player_level: int):
+    """(lowest, highest) enemy level of a location for this player."""
+    if lid == TOP_LOC or lid not in LOCATIONS:
+        lv = max(1, int(player_level))
+        return lv, lv
+    lo = int(LOCATIONS[lid]["level"])
+    return lo, lo + BAND_WIDTH - 1
+
+
+def band_mark(lid: str, player_level: int) -> str:
+    """🟢 easy (the band is at or under your level), 🟡 a challenge (up to 5 above), 🔴 dangerous (more than 5 above)."""
+    lo, hi = loc_band(lid, player_level)
+    if hi <= player_level:
+        return "🟢"
+    return "🟡" if lo <= player_level + 5 else "🔴"
+
+
+def level_gap_k(enemy_level: int, player_level: int) -> float:
+    """Reward factor by the enemy's level: +4% a level above you (at most +60%); from 6 levels under you, -5% a level
+    (at least x0.3), so farming far weaker enemies pays little."""
+    gap = int(enemy_level) - int(player_level)
+    if gap > 0:
+        return 1 + min(0.60, 0.04 * gap)
+    if gap < -5:
+        return max(0.30, 1 - 0.05 * (-gap - 5))
+    return 1.0

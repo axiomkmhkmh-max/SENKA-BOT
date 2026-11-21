@@ -80,8 +80,10 @@ async def menu2(ctx, arg):
 
 # "More" is split into four small groups of at most 4 buttons, so no screen ever shows a wall of options.
 MENU_GROUPS = {
-    "adv": [[("m_dgn", "dgn"), ("m_twr", "twr")], [("m_map", "map"), ("m_wrd", "wrd")]],
-    "grow": [[("m_gch", "gch"), ("m_crf", "crf")], [("m_dsp", "dsp"), ("m_art", "art")], [("m_inr", "inr"), ("m_sat", "sat")], [("m_div", "div"), ("m_hlf", "hlf")]],
+    "adv": [[("m_dgn", "dgn"), ("m_twr", "twr")], [("m_avl", "avl"), ("m_lbs", "lbs")], [("m_war", "war"), ("m_evt", "evt")],
+            [("m_map", "map"), ("m_wrd", "wrd")]],
+    "grow": [[("m_abl", "abl"), ("m_gch", "gch")], [("m_crf", "crf"), ("m_dsp", "dsp")], [("m_art", "art"), ("m_inr", "inr")],
+             [("m_in2", "in2"), ("m_sat", "sat")], [("m_rsh", "rsh"), ("m_els", "els")], [("m_div", "div"), ("m_hlf", "hlf")]],
     "soc": [[("m_rnk", "rnk"), ("m_gld", "gld")]],
     "fun": [[("m_dly", "dly"), ("m_whl", "whl")], [("m_mgm", "mgm")]],
 }
@@ -191,13 +193,18 @@ async def world_map(ctx, arg):
     L = ctx.lang
     rows, body = [], [ctx.t("map_body", loc=loc_name(ch["location"], L)), f"<i>{esc(LOC_DESC[ch['location']][0 if L == 'fa' else 1])}</i>", ""]
     owners, crowds = await territory_owners(), await crowd_counts()
-    for lid, loc in LOCATIONS.items():
-        ok = ch["level"] >= loc["level"] and (not loc["race"] or loc["race"] == ch["race"] or loc["level"] <= 60)
-        mark = "📍" if lid == ch["location"] else "✅" if ok else "🔒"
+    from data_races import band_mark, loc_band, TOP_LOC
+    body.append("🟢 " + ("آسان" if L == "fa" else "easy") + " · 🟡 " + ("چالش" if L == "fa" else "a challenge") + " · 🔴 "
+                + ("خطرناک (جایزه‌ی بیشتر)" if L == "fa" else "dangerous (bigger rewards)"))
+    body.append("")
+    for lid, loc in LOCATIONS.items():  # every world is open (Nov 21): its band of enemy levels says how hard it is
+        lo, hi = loc_band(lid, ch["level"])
+        mark = "📍" if lid == ch["location"] else band_mark(lid, ch["level"])
         extra = (f" 🏴{esc(owners[lid]['owner_fa' if L == 'fa' else 'owner_en'])}" if lid in owners else "") + (f" 👥{fnum(crowds[lid], L)}" if crowds.get(lid) else "")
-        body.append(f"{mark} {loc_name(lid, L)} — {ctx.t('lbl_level')} {fnum(loc['level'], L)}{extra}")
-        if ok and lid != ch["location"]:
-            rows.append((f"🧭 {loc_name(lid, L)}", "tr", lid))
+        band = (("هم‌لِوِل تو" if L == "fa" else "your level") if lid == TOP_LOC else f"{fnum(lo, L)}–{fnum(hi, L)}")
+        body.append(f"{mark} {loc_name(lid, L)} — {('دشمن‌ها' if L == 'fa' else 'foes')} {band}{extra}")
+        if lid != ch["location"]:
+            rows.append((f"{band_mark(lid, ch['level'])} {loc_name(lid, L)}", "tr", lid))
     return Out(head(ctx, "ttl_map") + "\n".join(body), chunk(rows, 2) + [nav(ctx)])
 
 
@@ -205,7 +212,7 @@ async def world_map(ctx, arg):
 async def travel(ctx, arg):
     ch = await need_char(ctx)
     loc = LOCATIONS.get(arg)
-    if not loc or ch["level"] < loc["level"]:
+    if not loc:  # every world is open now (Nov 21); its enemies' levels are its own
         return Out(alert=ctx.t("loc_locked"))
     st = await game_settings()
     wait = await try_cooldown(f"travel:{ctx.uid}", int(st["travel_cooldown"]))

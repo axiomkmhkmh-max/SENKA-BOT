@@ -347,7 +347,8 @@ async def _play_round(bot, d: dict):
     if claimed is None:
         return
     level = await _setting("tour_level", 30)
-    max_turns = int((await game_settings())["pvp_max_turns"])
+    import engine as _E
+    max_turns = max(_E.MAX_TURNS, int((await game_settings())["pvp_max_turns"]))
     names = d.get("names", {})
     mastery = d.get("mastery", {})
     alive = [None if u is None else int(u) for u in d["alive"]]

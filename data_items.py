@@ -311,7 +311,12 @@ from data_racegear import RACE_ARMOUR_ITEMS, RACE_CARD_ITEMS  # noqa: E402  (rac
 for _x in ITEMS:
     if _x["category"] == "armor":
         _x["retired"] = True   # the old shared armour no longer drops; every race has its own twenty kinds
+for _x in RACE_CARD_ITEMS:
+    _x["retired"] = True   # old technique cards: they became the ability family cards (data_abilities, Nov 21)
 for _x in RACE_ARMOUR_ITEMS + RACE_CARD_ITEMS:
+    ALL[_x["_id"]] = _x
+from data_abilities import ABILITY_CARD_ITEMS, ABILITY_CARDS_BY_RACE  # noqa: E402  (ability type cards, race-locked)
+for _x in ABILITY_CARD_ITEMS:
     ALL[_x["_id"]] = _x
 # ---- Nov 19 batch: 500 accessories, merged materials, new items and relics ---------------------------------------------
 # Everything below is appended or flagged, never renumbered: old ids stay valid, so old bags, listings and equipped slots
@@ -400,12 +405,12 @@ RACE_ARMOUR_BY_RARITY = {}
 RACE_CARD_BY_RARITY = {}
 for _x in RACE_ARMOUR_ITEMS:
     RACE_ARMOUR_BY_RARITY.setdefault(_x["race"], {r: [] for r in RARITIES})[_x["rarity"]].append(_x["_id"])
-for _x in RACE_CARD_ITEMS:
-    RACE_CARD_BY_RARITY.setdefault(_x["race"], {r: [] for r in RARITIES})[_x["rarity"]].append(_x["_id"])
+for _r, _by in ABILITY_CARDS_BY_RACE.items():  # Nov 21: the race's ability cards (never another race's)
+    RACE_CARD_BY_RARITY[_r] = {r: list(_by.get(r, [])) for r in RARITIES}
 
 
 def race_cards(race: str, rarity: str) -> list:
-    """Cards that drop for this race: Kidō cards for Shinigami (and Visored, who also get Mask Strike cards)."""
+    """Cards that drop for this race: its own ability type cards, plus Kidō cards for Shinigami and Visored only."""
     out = list((RACE_CARD_BY_RARITY.get(race) or {}).get(rarity, []))
     if race in ("shinigami", "visored"):
         out += KIDO_CARD_BY_RARITY.get(rarity, [])

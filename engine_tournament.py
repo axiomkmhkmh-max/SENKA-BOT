@@ -24,7 +24,7 @@ def round_name(left: int) -> str:
     return "preliminary"
 
 
-def play_match(a, b, rng, max_turns=30, pvp=True):
+def play_match(a, b, rng, max_turns=200, pvp=True):
     """Fight a vs b on fresh copies. Returns 'a', 'b' (the winner's side) — never a draw.
     pvp=True gives both the duel rules (Konpaku lives), so a bracket match plays like a real duel."""
     fa, fb = copy.deepcopy(a), copy.deepcopy(b)
@@ -122,7 +122,7 @@ def best_of(left: int) -> int:
     return 3
 
 
-def play_series(a, b, rng, best_of_n: int = 3, max_turns: int = 30):
+def play_series(a, b, rng, best_of_n: int = 3, max_turns: int = 200):
     """Fight a vs b until one side has won a majority of `best_of_n` games. -> ('a' | 'b', (wins_a, wins_b)).
     Every game is on fresh copies, so HP, Reiatsu and the spirit gauge never carry over."""
     need = int(best_of_n) // 2 + 1

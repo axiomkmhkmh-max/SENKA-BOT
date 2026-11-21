@@ -19,7 +19,7 @@ from service_player import add_coins, get_char, today
 from ui import GREEN, RED, Out, action, chunk, head, nav
 
 PER = 6
-FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "book", "egg", "key", "material", "evolution", "quincy", "dungeon")}
+FILTERS = {"a": None, "w": ("weapon",), "e": ("armor", "accessory", "relic", "cosmetic"), "u": ("potion", "kido_card", "race_card", "ability_card", "book", "egg", "key", "material", "evolution", "quincy", "dungeon")}
 
 
 def _rk(i):
@@ -124,6 +124,8 @@ async def item_view(ctx, arg):
     ety = (it.get("effect") or {}).get("type")
     if ety in ("kido", "xp", "pet", "buff", "kido_book", "bond", "tech_lvl"):  # tech_lvl: race technique cards
         rows.append([(ctx.t("b_use"), "us", iid)])
+    elif ety == "ab_card":  # ability card: learn the type (or level the family) in the ability panel
+        rows.append([("📥 " + ("یادگیری / ارتقا" if ctx.lang == "fa" else "Learn / level up"), "abc", iid)])
     elif ety == "relic":
         rows.append([(ctx.t("m_rlc"), "rlc", "")])
     elif ety == "cosmetic":
@@ -185,6 +187,11 @@ async def use(ctx, arg):
         return out
     if r == "race_card":
         return Out(alert=ctx.t("us_race_card"))
+    if r == "ab_conv":  # an old technique card became the family's ability card
+        out = await bag(ctx, "0")
+        out.alert = ("🎴 کارت قدیمی به «" + nm(extra, ctx.lang) + "» تبدیل شد؛ از پنل توانایی‌ها استفاده‌اش کن."
+                     if ctx.lang == "fa" else "🎴 The old card became «" + nm(extra, ctx.lang) + "»; use it in the ability panel.")
+        return out
     if r == "order":
         return Out(alert=ctx.t("us_order", n=fnum(extra or 0, ctx.lang)))
     if r == "rw_switch":  # Weapon Rebirth Seal: pick the new type (the seal is spent only when you pick)

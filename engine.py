@@ -5,10 +5,10 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
-from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, HEAVY_REIATSU, TECH_SLOTS, tech_of
+from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, FULLBRING_LOW, HEAVY_REIATSU, TECH_SLOTS, tech_of
 from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
@@ -24,8 +24,37 @@ DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 
 TURN_RE_REGEN = 0.10   # share of max reiatsu recovered at the end of each of a fighter's turns (was 5%)
 GUARD_RE_GAIN = 0.10   # share of max reiatsu a Guard turn gives back (was 5%)
-GUARD_HP_GAIN = 0.05   # share of max HP a Guard turn gives back (new)
-TURN_HP_REGEN = 0.03   # share of max HP recovered at the end of each turn (natural recovery, back again)
+GUARD_HP_GAIN = 0.05   # share of the old-scale HP (_hb) a Guard turn gives back
+TURN_HP_REGEN = 0.03   # share of the old-scale HP (_hb) recovered at the end of each turn (natural recovery)
+MAX_TURNS = 200        # turn cap of a fight (was 30): HP is x6 now, so fights are long and epic
+CRIT_ZAN = 0.004       # crit damage: 1.5 + 0.4% per effective Zanjutsu point (was 0.3%)
+HAKUDA_DEF = 0.6       # defence per effective Hakuda point (was 0.5)
+# Hohō (Nov 21): no extra turns; the faster fighter dodges more, by the ratio of the two speeds.
+DODGE_BASE, DODGE_RATIO, DODGE_CAP, DODGE_CAP_ALL = 0.05, 0.25, 0.60, 0.75
+SIDE_DMG, SIDE_HOHO = 0.5, 2.0  # side stance: your blows deal half, your Hohō counts double
+BAKUDO_SHIELD = 3.0    # Bakudō barriers are three times as thick (Nov 21)
+
+
+def _hb(f) -> float:
+    """The fighter's HP on the old scale (before every HP became x HP_MULT): repeating heals, shields, regen and DoT
+    are measured on it, so each use keeps its old size in a fight that is now HP_MULT times longer."""
+    return f["max_hp"] / HP_MULT
+
+
+def in_side(state, side) -> bool:
+    return bool((state.get("ang") or {}).get(side))
+
+
+def hoho_of(state, side) -> float:
+    """Effective Hohō in this fight: the side stance doubles it."""
+    return eff(state[side], "hoho") * (SIDE_HOHO if in_side(state, side) else 1.0) * max(0.2, 1 + bsum(state[side], "hoho"))
+
+
+def dodge_chance(state, side) -> float:
+    """Chance that the defender of a blow by `side` dodges it: 5% + 25% per step of speed ratio above 1, 5%..60%."""
+    other = "b" if side == "a" else "a"
+    ha, hd = max(1.0, hoho_of(state, side)), max(1.0, hoho_of(state, other))
+    return min(DODGE_CAP, max(DODGE_BASE, DODGE_BASE + DODGE_RATIO * (hd / ha - 1)))
 
 def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, kido=None,
                 race="human", ai=False, zmult=1.0, element=None, luck=0, sig=None, mv=None, gen=None, bt=None):
@@ -91,7 +120,7 @@ def add_fx(f, k, turns, stacks=1):
 
 
 def total_def(f):
-    d = (eff(f, "hakuda") * 0.5 + f["armor"]) * f["mods"].get("def", 1.0)
+    d = (eff(f, "hakuda") * HAKUDA_DEF + f["armor"]) * f["mods"].get("def", 1.0) * max(0.1, 1 + bsum(f, "def"))
     return d * (0.85 if has_fx(f, "weaken") else 1.0)
 
 
@@ -132,11 +161,13 @@ def _dmg_mult(att):
         m *= x.get("buff_m", 1.0)
     if x and x.get("awake", 0) > 0:  # released (Bankai / Resurrección)
         m *= GAUGE["dmg"]
+    if x and (x.get("bf") or x.get("perm")):  # ability buffs (dmg +/-) and lasting bonuses (Shikai, Adjuchas, Full Mask)
+        m *= max(0.1, 1 + bsum(att, "dmg") + float(x.get("perm", 0.0)))
     return m
 
 
 def _take_mult(dfn):
-    m = 1.0
+    m = bred(dfn)  # Hierro, Total Rejection...
     if has_fx(dfn, "shock"):
         m *= 1.15
     if dfn["guard"]:
@@ -170,6 +201,22 @@ def strike_base(att, src="atk"):
     w = gear_soft(att["weapon"]["attack"])
     if att.get("wild") or src == "atk":
         return zpart + w
+    if isinstance(src, dict):  # an ability type: its family's own stat mix (data_abilities), the weapon always counts
+        mix = src.get("mix") or {}
+        if "weapon" in mix:  # Fullbringer: the soul of the object
+            lowb, lowl = FULLBRING_LOW
+            wk = FULLBRING_WEAPON * (2.0 if src.get("wpn2") else 1.0)
+            return (zpart + wk * w) * (1 + lowb * max(0.0, 1 - float(att.get("level", 1)) / lowl))
+        part = 0.0
+        for stat, wt in mix.items():
+            if stat == "zanjutsu":
+                part += wt * zpart
+            else:
+                v = eff(att, stat)
+                if att["form"]["on"] and stat not in ("zanjutsu", "kido", "hakuda"):
+                    v *= att["form"]["mult"]
+                part += wt * v
+        return part + w
 
     def power_of(stat):  # a form (mask, Shikai, Vollständig...) strengthens the race's ability stat too
         v = eff(att, stat)
@@ -180,7 +227,8 @@ def strike_base(att, src="atk"):
         return (1 - HEAVY_REIATSU) * zpart + HEAVY_REIATSU * power_of("reiatsu") + w
     rs = ABILITY_STAT.get(att.get("race"))
     if rs == "weapon":
-        return zpart + FULLBRING_WEAPON * w
+        lowb, lowl = FULLBRING_LOW
+        return (zpart + FULLBRING_WEAPON * w) * (1 + lowb * max(0.0, 1 - float(att.get("level", 1)) / lowl))
     if rs:
         return (1 - ABILITY_SHARE) * zpart + ABILITY_SHARE * power_of(rs) + w
     return zpart + w
@@ -204,19 +252,31 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         ev.append({"k": "flash", "a": dfn["name"], "d": att["name"]})
         _deal(state, "b" if side == "a" else "a", SHUNPO_COUNTER, rng, ev, "counter", allow_procs=False)
         return 0
-    dodge = min(0.45, max(0.05, eff(dfn, "hoho") * 0.002 - eff(att, "hoho") * 0.001))
+    if kind != "bala" and _ab_defend(state, side, kind, rng, ev):  # Utsusemi, Schatten, Cero Doble...
+        return 0
+    tmp = (att.get("x") or {}).get("tmp") or {}
+    dodge = dodge_chance(state, side) + bsum(dfn, "dodge")
     if has_fx(dfn, "hiren"):  # Hirenkyaku: a blur of speed
-        dodge = min(0.70, dodge + SIG["hiren"]["dodge"])
+        dodge += SIG["hiren"]["dodge"]
+    dodge = min(DODGE_CAP_ALL, dodge)
+    if bhas(dfn, "nododge"):
+        dodge = 0.0
+    if kind == "bala":  # Bala: a 100% hit, whatever the speed or the blur
+        dodge = 0.0
+    amiss = bsum(att, "miss")  # Sakanade, a daze: the attacker's own blows go astray
+    if amiss > 0 and kind not in ("bala", "counter") and rng.random() < min(0.75, amiss):
+        ev.append({"k": "miss", "a": att["name"], "d": dfn["name"]})
+        return 0
     if fx and fx[0] == "pierce":
         pass
     dfx = _f2fx(dfn)
-    if dfx and dfx[0] == "miss" and rng.random() < dfx[1]:
+    if dfx and dfx[0] == "miss" and kind != "bala" and rng.random() < dfx[1]:
         ev.append({"k": "miss", "a": att["name"], "d": dfn["name"]})
         return 0
     if rng.random() < dodge:
         ev.append({"k": "dodge", "a": att["name"], "d": dfn["name"]})
         return 0
-    pierce = att["mods"].get("pierce", 0) + skill_p(att, "pierce") / 100 + (fx[1] if fx and fx[0] == "pierce" else 0) + extra_pierce
+    pierce = att["mods"].get("pierce", 0) + skill_p(att, "pierce") / 100 + (fx[1] if fx and fx[0] == "pierce" else 0) + extra_pierce + bsum(att, "pierce")
     defense = total_def(dfn) * (1 - min(0.8, pierce))
     base = strike_base(att, src or ("hvy" if kind == "hvy" else "abl" if kind not in ("atk", "echo") else "atk"))
     raw = max(1.0, base - defense * 0.6) * power
@@ -225,15 +285,22 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         crit_p += GAUGE["crit"]
     if _x(att)["cb_t"] > 0:  # Pesquisa and other focus techniques
         crit_p += _x(att)["cb_v"]
+    crit_p += bsum(att, "crit") + tmp.get("crit", 0.0)
     crit = rng.random() < crit_p
-    cm = 1.5 + eff(att, "zanjutsu") * 0.003 + skill_p(att, "surge") / 100
-    dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * _zone(state, side) * _foe_mult(att, dfn)
+    cm = 1.5 + eff(att, "zanjutsu") * CRIT_ZAN + skill_p(att, "surge") / 100 + bsum(att, "cdmg") + tmp.get("cdmg", 0.0)
+    zone = (SIDE_DMG if in_side(state, side) else 1.0) if tmp.get("any") else _zone(state, side)
+    dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * zone * _foe_mult(att, dfn)
+    if dfn["hp"] < dfn["max_hp"] * 0.5:
+        dmg *= 1 + bsum(att, "lowfoe")
     dmg *= RACE_KILLER.get(att.get("race"), {}).get(dfn.get("race"), 1.0)  # canon race killers (SENKA+)
     dmg *= ctx_dmg_mult(att.get("race"), fight_context(state, dfn))  # balance by fight type (data_race_rules)
     ex = skill_p(att, "execute")
     if ex and dfn["hp"] < dfn["max_hp"] * 0.3:
         dmg *= 1 + ex / 100
-    dmg *= _take_mult(dfn)
+    tm = _take_mult(dfn)
+    if tmp.get("ng") and dfn["guard"]:  # Cero Oculto: the Guard does not soften it
+        tm /= 0.5
+    dmg *= tm
     return _apply(state, side, int(max(1, dmg)), crit, rng, ev, kind, allow_procs)
 
 
@@ -286,10 +353,26 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
                "em": elem_mult(att, dfn)})
     if dmg > 0:  # every blow fills both spirits: the attacker's by striking, the target's by bleeding
         _gain(att, GAUGE["deal"], ev)
-        _gain(dfn, GAUGE["take"] + min(GAUGE["take_cap"], int(dmg / max(1, dfn["max_hp"]) * GAUGE["take_share"])), ev)
+        _gain(dfn, GAUGE["take"] + min(GAUGE["take_cap"], int(dmg / max(1, _hb(dfn)) * GAUGE["take_share"])), ev)
     _maybe_resolve(dfn, ev)
     dx = dfn.get("x")
-    if dx and dx.get("charge") and dfn["hp"] > 0 and dmg >= dfn["max_hp"] * (CERO_BREAK_AI if dfn.get("ai") else CERO_BREAK_PLAYER):  # a hard hit interrupts the gathering Cero
+    if dx and dmg > 0 and dfn["hp"] > 0 and kind not in ("reflect", "counter", "dot"):
+        th = bsum(dfn, "thorns") if kind in PHYS_KINDS else 0.0
+        rf = float(dx.get("refl") or 0.0)
+        if rf:
+            dx["refl"] = 0.0
+        back = int(dmg * (th + rf))
+        if back > 0:
+            att["hp"] = max(0, att["hp"] - back)
+            ev.append({"k": "reflect", "a": dfn["name"], "d": att["name"], "n": back})
+        hh = bsum(dfn, "heal_hit")
+        if hh > 0:
+            h = max(1, int(_hb(dfn) * hh))
+            dfn["hp"] = min(dfn["max_hp"], dfn["hp"] + h)
+    if dx and any((dx.get("chg") or {}).values()) and dfn["hp"] > 0 and dmg >= _hb(dfn) * CERO_BREAK_PLAYER:
+        dx["chg"] = {}  # a hard hit breaks a charging ability (Cero, Gran Rey, Schuss, La Muerte)
+        ev.append({"k": "charge_break", "a": dfn["name"]})
+    if dx and dx.get("charge") and dfn["hp"] > 0 and dmg >= _hb(dfn) * (CERO_BREAK_AI if dfn.get("ai") else CERO_BREAK_PLAYER):  # a hard hit interrupts the gathering Cero
         dx["charge"] = 0
         ev.append({"k": "charge_break", "a": dfn["name"]})
     if dfn["guard"] and dmg > 0:
@@ -407,6 +490,9 @@ def best_kido(f, branch):
     pick = _x(f).get("pick")
     if pick and pick[0] == ("kd" if branch == "had" else "bk"):
         return pick[1] if kido_castable(f, branch, pick[1]) else None
+    kp = (f.get("kpick") or {}).get(branch)
+    if kp and kp in f["kido"][branch]:  # the spell the player put on this button before the fight (ability panel)
+        return kp if kido_castable(f, branch, kp) else None
     ok = kido_list(f, branch)
     return ok[0] if ok else None
 
@@ -428,6 +514,22 @@ def dist_of(state):
 def _band(f, action):
     """(min, max) zones this action can hit at, or None when the action ignores distance."""
     lo, hi = reach_for(f["weapon"].get("type", "melee"), f["weapon"].get("reach"))
+    if f.get("ab") and (action in f["ab"] or action == "gt"):
+        a, t = _ab(f, action)
+        if not t:
+            return None
+        s = t["spec"]
+        if not (s.get("m") or s.get("rand_m")) or s.get("anyrange") or s.get("dist") == "close" or s.get("charge") and not (_x(f).get("chg") or {}).get(action):
+            return None  # buffs, heals, evades, charges and any-range blows ignore the gap
+        if action == "gt":
+            return lo, min(ZONE_MAX, hi + 2)
+        if a["fam"] == "cero":
+            return 0, ZONE_MAX
+        if a["fam"] in ("arrow", "ginto", "lblade") and f["weapon"].get("type") == "ranged":
+            return 0, min(ZONE_MAX, hi + 1)
+        return lo, min(ZONE_MAX, hi + (1 if f["weapon"].get("type") == "ranged" else 0))
+    if action == "if":
+        return lo, hi
     if action == "atk" or (action == "sg" and f.get("sig") in ("bring", "soul")):
         return lo, hi
     if action in ("hvy", "gx"):
@@ -448,8 +550,7 @@ def _band(f, action):
 def _zone(state, side):
     """Damage multiplier from spacing (attacker's weapon vs gap) and the target's stance."""
     lo, hi = reach_for(state[side]["weapon"].get("type", "melee"), state[side]["weapon"].get("reach"))
-    other = "b" if side == "a" else "a"
-    stance = SIDESTEP["mult"] if (state.get("ang") or {}).get(other) else 1.0
+    stance = SIDE_DMG if in_side(state, side) else 1.0  # side stance: the striker's own blows are halved
     return zone_mult(lo, hi, dist_of(state)) * stance
 
 
@@ -465,6 +566,7 @@ def _finish(state, ev, max_turns):
 
 def _move(state, side, move):
     f = state[side]
+    f["hoho_eff"] = round(hoho_of(state, side), 1)  # faster fighters move for less reiatsu (engine_range.move_cost)
     if not can_move(f, move, dist_of(state)):
         return {"k": "outrange", "a": f["name"]}
     return apply_move(state, side, move)
@@ -474,6 +576,7 @@ def _close_in(state, side, hi):
     """Out of reach: the turn is spent closing the gap (sonido for a long gap, shunpo otherwise)."""
     d = dist_of(state)
     long_gap = d - MOVES["shunpo"]["zones"] > hi
+    state[side]["hoho_eff"] = round(hoho_of(state, side), 1)
     return _move(state, side, "sonido" if long_gap and can_move(state[side], "sonido", d) else "shunpo")
 
 
@@ -485,10 +588,38 @@ def _range_move(state, side, action):
     return _move(state, side, MOVE_ACTIONS[action])
 
 
-def can(f, action):
+def can(f, action, state=None):
     if action in ("atk", "df"):
         return True
     if not race_allows(f.get("race"), action):  # e.g. Arrancar cannot cast Kidō or release Bankai
+        return False
+    if f.get("ab"):  # a player's ability families (data_abilities)
+        if action == "sk":
+            return sk_can(f)
+        if action == "if":
+            return if_can(f)
+        if action in ("sg", "t1", "t2", "t3") and action in f["ab"]:
+            return ab_can(state, f, action)
+        if action == "sg":
+            return False  # every race's special button is a family now
+        if action in TECH_SLOTS and bhas(f, "seal"):
+            return False
+        if action == "gc":  # Getsuga: gather only for the types that need it, and only once the blade is ready
+            a, t = _ab(f, "gt")
+            return bool(t) and bool(t["spec"].get("gather")) and _x(f)["slash"] <= 0 and not _x(f)["chant"] \
+                and ab_can(state, f, "gt") and not bhas(f, "seal")
+        if action == "gt":
+            a, t = _ab(f, "gt")
+            if not t or bhas(f, "seal"):
+                return False
+            if t["spec"].get("gather"):
+                return _x(f)["slash"] > 0 and ab_can(state, f, "gt")
+            return ab_can(state, f, "gt")
+        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "gs", "ch") and bhas(f, "seal"):
+            return False
+        if action == "bt" and not gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"):
+            return False  # the blade's own technique comes with Shikai
+    if action in ("sk", "if"):
         return False
     if action == "hvy":
         return f["re"] >= f["max_re"] * 0.10 and not _x(f).get("hv_last")
@@ -507,6 +638,9 @@ def can(f, action):
     if action in ("neg", "gar"):  # Hollow Negación and Garganta: own cost, shared special cooldown
         from data_bleachfx import GARGANTA, NEGACION
         c = NEGACION if action == "neg" else GARGANTA
+        if f.get("ab"):
+            cost = c["cost"] * (1 - 0.02 * (int((f.get("abx") or {}).get("garg" if action == "gar" else "neg", 1)) - 1))
+            return (_x(f).get("acd") or {}).get(action, 0) <= 0 and f["re"] >= f["max_re"] * cost
         return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
     if action == "bt":  # the blade's own technique (after Shikai): its own cost and cooldown
         return bool(f.get("bt")) and _x(f)["tcd"] <= 0 and f["re"] >= f["max_re"] * f["bt"]["cost"]
@@ -516,6 +650,10 @@ def can(f, action):
     if action in ("blv", "bla", "bal"):  # Quincy Blut / Arrancar Bala: their own cost, sharing the special cooldown
         from data_bleachfx import BALA, BLUT
         c = BLUT["blut_vene"] if action == "blv" else BLUT["blut_arterie"] if action == "bla" else BALA
+        if action == "bal" and f.get("ab") and bf_tag(f, "hierro"):  # with Hierro on, Bala has no cooldown
+            return f["re"] >= f["max_re"] * c["cost"]
+        if f.get("ab"):  # their own cooldown now (the special button has its own)
+            return (_x(f).get("acd") or {}).get(action, 0) <= 0 and f["re"] >= f["max_re"] * c["cost"]
         return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
     if action == "bnt":  # Bount Seal: spend soul stacks (set by PvE only) to hold the foe, own cooldown and cost
         from data_gangs import BOUNT_SEAL
@@ -577,6 +715,9 @@ def start_turn(state, rng):
     f["guard"] = False
     fs = _x(f)
     fs["flash"] = fs["open"] = 0
+    bf_tick(state, side)  # ability buffs and debuffs this side cast lose a turn
+    if fs.get("ifcd", 0) > 0:
+        fs["ifcd"] -= 1
     if fs["cd"] > 0:
         fs["cd"] -= 1
     for k in ("t1cd", "t2cd", "t3cd", "gd_t", "cb_t"):
@@ -600,8 +741,8 @@ def start_turn(state, rng):
         if fs["awake"] == 0:
             ev.append({"k": "unleash_end", "a": f["name"]})
     f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * TURN_RE_REGEN)))
-    if 0 < f["hp"] < f["max_hp"]:  # natural recovery every turn (tunable: TURN_HP_REGEN)
-        h = max(1, int(f["max_hp"] * TURN_HP_REGEN))
+    if 0 < f["hp"] < f["max_hp"] and not bhas(f, "noregen"):  # natural recovery every turn (tunable: TURN_HP_REGEN)
+        h = max(1, int(_hb(f) * TURN_HP_REGEN))
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})
         fs["nat_h"] = h
@@ -609,17 +750,19 @@ def start_turn(state, rng):
         fs["nat_h"] = 0
     rg = f["mods"].get("regen", 0)
     if rg and 0 < f["hp"] < f["max_hp"]:  # companion healing (pet role)
-        h = max(1, int(f["max_hp"] * rg))
+        h = max(1, int(_hb(f) * rg))
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})
     for x in list(f["fx"]):
         if x["k"] in DOT:
-            d = max(1, int(f["max_hp"] * DOT[x["k"]] * (x["s"] if x["k"] == "poison" else 1)))
+            d = max(1, int(_hb(f) * DOT[x["k"]] * (x["s"] if x["k"] == "poison" else 1)))
             f["hp"] = max(0, f["hp"] - d)
             ev.append({"k": "dot", "d": f["name"], "n": d, "fx": x["k"]})
         if x["k"] != "skip":
             x["t"] -= 1
     f["fx"] = [x for x in f["fx"] if x["t"] > 0 or x["k"] == "skip"]
+    if f.get("ab"):
+        _ab_turn_start(state, side, ev, rng)
     fm = f["form"]
     if fm["fat"] > 0:
         fm["fat"] -= 1
@@ -631,7 +774,8 @@ def start_turn(state, rng):
             ev.append({"k": "form_end", "a": f["name"]})
     if _check_end(state):
         return merge_heals(ev), True
-    if fm["on"] and f["race"] == "visored" and rng.random() < evb(f, "mask_rage", MASK_RAGE):  # the Hollow inside takes the wheel
+    rage_p = 0.0 if fs.get("mfull") else evb(f, "mask_rage", MASK_RAGE) if fm["on"] else AB.MASK_STATE_RAGE if fs.get("sk") else 0.0
+    if f["race"] == "visored" and rage_p and rng.random() < rage_p:  # the Hollow inside takes the wheel
         add_fx(f, "skip", 1)
         ev.append({"k": "mask_lost", "a": f["name"]})
     if fs["awake"] > 0 and f["hp"] < f["max_hp"] * GAUGE["hollow_hp"] and rng.random() < GAUGE["hollow_p"]:
@@ -641,8 +785,9 @@ def start_turn(state, rng):
     if skip:
         f["fx"] = [e for e in f["fx"] if e["k"] != "skip"]
         ev.append({"k": "skip", "a": f["name"]})
-        if _x(f)["charge"]:  # a stunned fighter loses the Cero they were gathering
+        if _x(f)["charge"] or any((_x(f).get("chg") or {}).values()):  # a stunned fighter loses what they were gathering
             _x(f)["charge"] = 0
+            _x(f)["chg"] = {}
             ev.append({"k": "charge_break", "a": f["name"]})
         fs["stun_im"] = 1  # the foe cannot stun this fighter again before they get to act
         return merge_heals(ev), True
@@ -667,7 +812,7 @@ def _check_end(state, ev=None):
     return False
 
 
-def advance(state, max_turns=30):
+def advance(state, max_turns=MAX_TURNS):
     state["awaiting"] = False
     state["cur"] = "b" if state["cur"] == "a" else "a"
     if state["cur"] == state["first"]:
@@ -713,7 +858,7 @@ def _signature(state, side, rng, ev):
     elif sg == "soul":  # Soul Strike: a reiatsu strike (no bleed, no shield); own hit kind so it has its own text
         _deal(state, side, c["mult"] * sm, rng, ev, "soul", allow_procs=True)
     elif sg == "guts":  # Santen Kesshun: a shield that soaks the next hits
-        n = max(1, int(f["max_hp"] * c["shield"]))
+        n = max(1, int(_hb(f) * c["shield"]))
         f["shield"] += n
         ev.append({"k": "guts", "a": f["name"], "n": n})
 
@@ -729,6 +874,8 @@ def _technique(state, side, slot, rng, ev):
     x = _x(f)
     from data_racegear import TECH_LVL_STEP
     pw = 1 + TECH_LVL_STEP * int((f.get("tm") or {}).get(slot, 0))  # mastery from race technique cards
+    if f.get("ab"):  # Bringer Light (a fixed Fullbringer ability): its own level from the ability panel
+        pw = fixed_k(f, "blight")
     rf = race_factor(f)  # shields, heals and buffs follow the race's own stat
     f["re"] -= int(f["max_re"] * t["cost"])
     x[slot + "cd"] = t["cd"]
@@ -753,11 +900,11 @@ def _technique(state, side, slot, rng, ev):
                 add_fx(o, t["fx"], 3 if t["fx"] == "weaken" else DOT_TURNS.get(t["fx"], 3))
                 ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": t["fx"]})
     elif kind == "shield":
-        n = max(1, int(f["max_hp"] * t["shield"] * pw * rf))
+        n = max(1, int(_hb(f) * t["shield"] * pw * rf))
         f["shield"] += n
         ev.append({"k": "shield_t", "a": f["name"], "n": n})
     elif kind == "heal":
-        n = max(1, int(f["max_hp"] * t["heal"] * pw * rf))
+        n = max(1, int(_hb(f) * t["heal"] * pw * rf))
         f["hp"] = min(f["max_hp"], f["hp"] + n)
         if t.get("cleanse"):
             f["fx"] = [e for e in f["fx"] if e["k"] not in CLEANSE]
@@ -775,20 +922,32 @@ def _technique(state, side, slot, rng, ev):
         _deal(state, side, t["mult"] * pw, rng, ev, "tech", allow_procs=False)
 
 
-def _do_action(state, action, rng, max_turns=30):
+def _do_action(state, action, rng, max_turns=MAX_TURNS):
     side = state["cur"]
     f = state[side]
     ev = []
-    if not can(f, action):
+    if not can(f, action, state):
         action = "atk"
+    fab = f.get("ab") or {}
+    acd = _x(f).setdefault("acd", {}) if fab else {}
     if action == "atk":
         _deal(state, side, 1.0, rng, ev, "atk")
+    elif fab and action in fab and action in ("sg", "t1", "t2", "t3", "gt"):  # the picked type of this family (data_abilities)
+        if action == "gt":
+            _x(f)["slash"] = 0
+        _ab_run(state, side, action, rng, ev)
+    elif action == "sk":  # Shikai / Hollow Mask: one turn, then it holds for the whole fight
+        sk_run(state, side, ev)
+    elif action == "if":  # Iron Fist: Arrancar, only while Hierro holds
+        if_run(state, side, rng, ev)
     elif action == "blv":  # Blut Vene: reinforced skin, a shield that soaks the next hits
         from data_bleachfx import BLUT
         c = BLUT["blut_vene"]
         f["re"] -= int(f["max_re"] * c["cost"])
         _x(f)["cd"] = c["cd"]
-        n = max(1, int(f["max_hp"] * c["shield"] * evb(f, "blut", 1.0) * race_factor(f)))
+        n = max(1, int(_hb(f) * c["shield"] * evb(f, "blut", 1.0) * race_factor(f) * fixed_k(f, "vene")))
+        if fab:
+            acd["blv"], _x(f)["cd"] = c["cd"] + 1, 0
         f["shield"] += n
         ev.append({"k": "blut_vene", "a": f["name"], "n": n})
     elif action == "bla":  # Blut Arterie: the blood runs through the blade, stronger strikes for a while
@@ -796,19 +955,28 @@ def _do_action(state, action, rng, max_turns=30):
         c = BLUT["blut_arterie"]
         f["re"] -= int(f["max_re"] * c["cost"])
         _x(f)["cd"] = c["cd"]
-        _x(f)["buff_t"], _x(f)["buff_m"] = c["turns"] + 1, 1 + (c["mult"] - 1) * evb(f, "blut", 1.0)
+        lv = int((f.get("abx") or {}).get("arterie", 1))
+        _x(f)["buff_t"], _x(f)["buff_m"] = AB.lv_turns(c["turns"], lv) + 1, 1 + (c["mult"] - 1) * evb(f, "blut", 1.0) * AB.lv_k(lv)
+        _x(f)["art"] = 1  # Blut Arterie holds: opens Sprenger and Gintō: Heizen
+        if fab:
+            acd["bla"], _x(f)["cd"] = c["cd"] + 1, 0
         ev.append({"k": "blut_arterie", "a": f["name"]})
     elif action == "neg":  # Negación: the Hollow power field shields its bearer
         from data_bleachfx import NEGACION
         f["re"] -= int(f["max_re"] * NEGACION["cost"])
         _x(f)["cd"] = NEGACION["cd"]
-        n = max(1, int(f["max_hp"] * NEGACION["shield"] * race_factor(f)))
+        n = max(1, int(_hb(f) * NEGACION["shield"] * race_factor(f) * fixed_k(f, "neg")))
+        if fab:
+            acd["neg"], _x(f)["cd"] = NEGACION["cd"] + 1, 0
         f["shield"] += n
         ev.append({"k": "negacion", "a": f["name"], "n": n})
     elif action == "gar":  # Garganta: a tunnel opens and the gap to the foe is the full range
         from data_bleachfx import GARGANTA
-        f["re"] -= int(f["max_re"] * GARGANTA["cost"])
+        lv = int((f.get("abx") or {}).get("garg", 1))
+        f["re"] -= int(f["max_re"] * GARGANTA["cost"] * (1 - 0.02 * (lv - 1)))
         _x(f)["cd"] = GARGANTA["cd"]
+        if fab:
+            acd["gar"], _x(f)["cd"] = GARGANTA["cd"] + 1, 0
         state["dist"] = ZONE_MAX
         ev.append({"k": "garganta", "a": f["name"]})
     elif action == "bt":  # blade technique: pierce / bleed / twin / heavy, by the blade chosen
@@ -816,23 +984,24 @@ def _do_action(state, action, rng, max_turns=30):
         f["re"] -= int(f["max_re"] * t["cost"])
         _x(f)["tcd"] = t["cd"]
         ev.append({"k": "bt", "a": f["name"], "kind": t["kind"]})
+        bk = fixed_k(f, "blade")
         if t["kind"] == "twin":
-            _deal(state, side, t["mult"], rng, ev, "bt", allow_procs=True)
+            _deal(state, side, t["mult"] * bk, rng, ev, "bt", allow_procs=True)
             if state["b" if side == "a" else "a"]["hp"] > 0:
-                _deal(state, side, t["mult"], rng, ev, "bt", allow_procs=True)
+                _deal(state, side, t["mult"] * bk, rng, ev, "bt", allow_procs=True)
         else:
-            _deal(state, side, t["mult"], rng, ev, "bt", allow_procs=True, extra_pierce=t.get("pierce", 0.0))
+            _deal(state, side, t["mult"] * bk, rng, ev, "bt", allow_procs=True, extra_pierce=t.get("pierce", 0.0))
             foe = state["b" if side == "a" else "a"]
             if t.get("bleed") and foe["hp"] > 0:
                 add_fx(foe, "bleed", DOT_TURNS["bleed"])
                 ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
     elif action == "gs":  # general skill: guard (shield), strike (a blow) or focus (a damage buff)
         key = f["gen"]
-        spec, pw = GENERAL_SKILLS[key], gen_power(f.get("race"), key)
+        spec, pw = GENERAL_SKILLS[key], gen_power(f.get("race"), key) * fixed_k(f, "gen")
         f["re"] -= int(f["max_re"] * spec["cost"])
         _x(f)["gcd"] = spec["cd"]
         if key == "guard":
-            n = max(1, int(f["max_hp"] * spec["shield"] * pw))
+            n = max(1, int(_hb(f) * spec["shield"] * pw))
             f["shield"] += n
             ev.append({"k": "gen", "a": f["name"], "skill": key, "n": n})
         elif key == "strike":
@@ -854,8 +1023,13 @@ def _do_action(state, action, rng, max_turns=30):
     elif action == "bal":  # Bala: a hardened reiatsu bullet, piercing armour
         from data_bleachfx import BALA
         f["re"] -= int(f["max_re"] * BALA["cost"])
-        _x(f)["cd"] = BALA["cd"]
-        _deal(state, side, BALA["mult"], rng, ev, "atk", allow_procs=True, extra_pierce=BALA["pierce"], src="abl")
+        if fab:  # its own cooldown, none at all while Hierro holds
+            acd["bal"] = 0 if bf_tag(f, "hierro") else BALA["cd"] + 1
+            _deal(state, side, BALA["mult"] * fixed_k(f, "bala"), rng, ev, "bala", allow_procs=True, extra_pierce=BALA["pierce"],
+                  src={"mix": {"reiatsu": 1.0}})
+        else:
+            _x(f)["cd"] = BALA["cd"]
+            _deal(state, side, BALA["mult"], rng, ev, "atk", allow_procs=True, extra_pierce=BALA["pierce"], src="abl")
     elif action == "hvy":
         f["re"] -= int(f["max_re"] * 0.10)
         _deal(state, side, 1.6, rng, ev, "hvy")
@@ -869,7 +1043,7 @@ def _do_action(state, action, rng, max_turns=30):
             _kcd(f)[KD.key("had", n)] = KD.spell_cd(n)
         o = state["b" if side == "a" else "a"]
         # hadō power: kidō stat and level set the base, the spell number scales it, the spell's own factor shapes it
-        raw = (eff(f, "kido") * 0.9 + f["level"] * 1.0) * (0.7 + 0.3 * n) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
+        raw = (eff(f, "kido") * 1.1 + f["level"] * 1.0) * (0.7 + 0.3 * n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
         chanted = bool(_x(f)["chant"])
         if chanted:  # the incantation is spent: full-power spell
             raw *= CHANT_HADO
@@ -899,7 +1073,8 @@ def _do_action(state, action, rng, max_turns=30):
         f["re"] -= KD.cost("bak", n, f["max_re"])
         if KD.spell_cd(n):
             _kcd(f)[KD.key("bak", n)] = KD.spell_cd(n)
-        gain = (eff(f, "kido") * (n / 10) * 2.5 + 10 + f["max_hp"] * 0.05) * P["shield"]
+        blv_ = int((f.get("klv") or {}).get("bak", 1))
+        gain = (eff(f, "kido") * (n / 10) * 2.5 + 10 + _hb(f) * 0.05) * P["shield"] * BAKUDO_SHIELD * AB.lv_k(blv_)
         if _x(f)["chant"]:
             gain *= CHANT_BAK
             _x(f)["chant"] = 0
@@ -911,7 +1086,7 @@ def _do_action(state, action, rng, max_turns=30):
         # (Enkōsen, Tozanshō, Danku) do not bind at all. Bosses resist half as well, so they can be bound but not chain-locked.
         o = state["b" if side == "a" else "a"]
         boss = o.get("foe") == "boss"
-        if P["bind"] > 0 and rng.random() < P["bind"] * (0.5 if boss else 1.0):
+        if P["bind"] > 0 and rng.random() < (P["bind"] + 0.01 * (blv_ - 1)) * (0.5 if boss else 1.0):
             add_fx(o, "skip", 1 if boss else P["turns"])
             ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
         if P["weaken"]:
@@ -921,7 +1096,7 @@ def _do_action(state, action, rng, max_turns=30):
         f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * GUARD_RE_GAIN))
         ev.append({"k": "guard", "a": f["name"]})
         if 0 < f["hp"] < f["max_hp"]:  # guarding also recovers HP, but replaces the natural recovery instead of stacking on it
-            h = max(0, int(f["max_hp"] * GUARD_HP_GAIN) - int(_x(f).get("nat_h", 0)))
+            h = max(0, int(_hb(f) * GUARD_HP_GAIN) - int(_x(f).get("nat_h", 0)))
             if h > 0:
                 f["hp"] = min(f["max_hp"], f["hp"] + h)
                 ev.append({"k": "heal", "a": f["name"], "n": h})
@@ -934,10 +1109,7 @@ def _do_action(state, action, rng, max_turns=30):
         _x(f)["slash"] = 0
         other = "b" if side == "a" else "a"
         o = state[other]
-        if (state.get("ang") or {}).get(other):
-            # the crescent wave flies through the space the target just left: step off the line and it misses
-            ev.append({"k": "miss", "a": f["name"], "d": o["name"]})
-        else:
+        if True:  # Nov 21: the side stance no longer makes Getsuga miss (it doubles Hohō, so dodging does the work)
             _deal(state, side, GETSUGA_DMG, rng, ev, "hvy", src="abl")
             if ev and ev[-1].get("k") == "hit":
                 ev[-1]["gt"] = True
@@ -957,16 +1129,20 @@ def _do_action(state, action, rng, max_turns=30):
         x["awake"] = GAUGE["turns"] + int(evb(f, "release_turns", 0)) + 1
         ev.append({"k": "unleash", "a": f["name"], "mv": f.get("mv"), "r": f.get("race")})
         n = release_form(f)
+        rlv = int((f.get("abx") or {}).get("rel", 1))
+        if n == 1 and fab and f.get("race") in ("shinigami", "visored"):
+            n = 0  # Shikai / the Hollow Mask has its own button now: below Bankai level the release is the strike only
         if n == 2:  # the release at a full gauge opens the race's form: Bankai / Full Resurrección / Letzt Stil ...
             c = FORM2.get(f["race"], FORM2["default"])
-            f["form"].update(on=2, mult=c[0], left=c[1] + int(evb(f, "mask_turns", 0)), fat_turns=c[2], fat=0,
-                             fx=list(FORM2_EFFECT.get(f["weapon"]["type"], ("pierce", 0.15))))
+            f["form"].update(on=2, mult=c[0] * (1 + 0.02 * (rlv - 1)), left=AB.lv_turns(c[1], rlv) + int(evb(f, "mask_turns", 0)),
+                             fat_turns=c[2], fat=0, fx=list(FORM2_EFFECT.get(f["weapon"]["type"], ("pierce", 0.15))))
         elif n == 1:  # below FORM2_LEVEL: Shikai / Resurrección / Fullbring ...
-            f["form"].update(on=1, mult=FORM1[0], left=FORM1[1] + int(evb(f, "mask_turns", 0)), fat_turns=FORM1[2], fat=0, fx=None)
+            f["form"].update(on=1, mult=FORM1[0] * (1 + 0.02 * (rlv - 1)), left=AB.lv_turns(FORM1[1], rlv) + int(evb(f, "mask_turns", 0)),
+                             fat_turns=FORM1[2], fat=0, fx=None)
         if n:
             f["form"]["used"][n - 1] = 1
             ev.append({"k": "form", "a": f["name"], "n": n, "r": f["race"]})
-        _deal(state, side, GAUGE["strike"], rng, ev, "hvy", src="abl")  # arrives with the release: Bankai is an attack, not a pause
+        _deal(state, side, GAUGE["strike"] * fixed_k(f, "rel"), rng, ev, "hvy", src="abl")  # arrives with the release: Bankai is an attack, not a pause
         if f.get("mv") and ev and ev[-1].get("k") == "hit":
             ev[-1]["mv"] = f["mv"]
     elif action == "f1":
@@ -1004,7 +1180,7 @@ def _parse_kido(f, action):
     return action
 
 
-def do_action(state, action, rng, max_turns=30):
+def do_action(state, action, rng, max_turns=MAX_TURNS):
     """Distance-aware action: movement, reach checks, auto-approach/back-off, knockback and sidestep."""
     side = state["cur"]
     f = state[side]
@@ -1012,13 +1188,8 @@ def do_action(state, action, rng, max_turns=30):
     action = _parse_kido(f, action)  # "kd:31" / "bk:61": the player picked the spell
     state.setdefault("dist", START_DIST)  # a battle saved before the distance update carries no gap yet
     ang = state.setdefault("ang", {"a": 0, "b": 0})
-    ang[side] = 0  # your stance ends when your turn starts; a sidestep below sets it again
-    if action == "sd":
-        if f["re"] < f["max_re"] * SIDESTEP["cost"]:
-            return _finish(state, [{"k": "outrange", "a": f["name"]}], max_turns)
-        f["re"] -= int(f["max_re"] * SIDESTEP["cost"])
-        ang[side] = 1
-        return _finish(state, [{"k": "side", "a": f["name"]}], max_turns)
+    if action == "sd":  # side stance (Nov 21): a free toggle, once per turn, before acting; the turn is not spent
+        return side_toggle(state, side)
     if action in MOVE_ACTIONS:
         return _finish(state, [_range_move(state, side, action)], max_turns)
     eff = action if can(f, action) else "atk"
@@ -1044,11 +1215,34 @@ def do_action(state, action, rng, max_turns=30):
     dmg = hp0 - o["hp"]
     other = "b" if side == "a" else "a"
     if eff in PUSH_KIND and dmg > 0 and o["hp"] > 0 and not state["done"] and not kbl[other]:
-        push = apply_knockback(state, other, PUSH_KIND[eff], dmg, o["max_hp"])
+        push = apply_knockback(state, other, PUSH_KIND[eff], dmg, _hb(o))
         if push:
             kbl[other] = True
             ev.append({"k": "knock", "a": f["name"], "d": o["name"], "n": push})
     return ev
+
+
+def side_ok(state, side) -> bool:
+    """The stance can be toggled once per turn; turning it on costs SIDESTEP['cost'] of max reiatsu."""
+    f = state[side]
+    if _x(f).get("sd_t") == state.get("turn"):
+        return False
+    return in_side(state, side) or f["re"] >= f["max_re"] * SIDESTEP["cost"]
+
+
+def side_toggle(state, side):
+    """Toggle the side stance without spending the turn: on = Hohō x2 and own damage x0.5, off = normal."""
+    f = state[side]
+    ang = state.setdefault("ang", {"a": 0, "b": 0})
+    if not side_ok(state, side):
+        return [{"k": "side_no", "a": f["name"]}]
+    _x(f)["sd_t"] = state.get("turn")
+    if ang.get(side):
+        ang[side] = 0
+        return [{"k": "side_off", "a": f["name"]}]
+    f["re"] -= int(f["max_re"] * SIDESTEP["cost"])
+    ang[side] = 1
+    return [{"k": "side", "a": f["name"]}]
 
 
 NPC_RETREAT_LOW_HP = (0.35, 0.15)   # an NPC under 35% HP backs off one zone 15% of the time ...
@@ -1077,8 +1271,52 @@ def ai_choose(state, side, rng):
     return act
 
 
+def _ai_ab(state, side, rng):
+    """A player-like choice for fighters with ability families (duel shadows, the simulator, tournament stand-ins)."""
+    f = state[side]
+    r = rng.random()
+    x = _x(f)
+    if can(f, "sk", state) and r < 0.8:
+        return "sk"
+    for act, on in (x.get("chg") or {}).items():
+        if on and r < 0.9:
+            return act
+    if can(f, "gx", state) and r < 0.7:
+        return "gx"
+    if f["hp"] < f["max_hp"] * 0.25 and r < 0.2:
+        return "df"
+    if can(f, "gt", state) and r < 0.6:
+        return "gt"
+    if can(f, "gc", state) and r < 0.35:
+        return "gc"
+    if can(f, "if", state) and r < 0.4:
+        return "if"
+    ready = []
+    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bt", "gs"):
+        if not can(f, act, state):
+            continue
+        a, t = _ab(f, act)
+        if t:
+            s = t["spec"]
+            healer = (s.get("heal") or s.get("hot") or s.get("rewind")) and not (s.get("m") or s.get("rand_m"))
+            if healer and f["hp"] > f["max_hp"] * 0.7:
+                continue
+            if s.get("buff") and any(b.get("t", 0) > 0 and b.get("o") == side for b in _bfl(f)) and not s.get("m"):
+                continue
+        ready.append(act)
+    if ready and rng.random() < 0.5:
+        return rng.choice(ready)
+    if can(f, "bk", state) and rng.random() < 0.12:
+        return "bk"
+    return None
+
+
 def _ai_core(state, side, rng):
     f = state[side]
+    if f.get("ab") and not f.get("wild"):
+        pick = _ai_ab(state, side, rng)
+        if pick:
+            return pick
     r = rng.random()
     sg = f.get("sig")
     if can(f, "gx") and r < 0.7:  # a full spirit gauge is almost always spent
@@ -1101,8 +1339,10 @@ def _ai_core(state, side, rng):
         return "mvs"
     if band and d < band[0]:  # ranged weapon at contact: back off
         return "rt"
-    if d <= 1 and r < 0.12 and not (state.get("ang") or {}).get(side):  # sidestep out of an adjacent fight
-        return "sd"
+    if side_ok(state, side):  # the side stance is a free toggle: on when hurt and outpaced, off again to hit hard
+        on, low = in_side(state, side), f["hp"] < f["max_hp"] * 0.45
+        if (not on and low and r < 0.25) or (on and (not low or r < 0.15)):
+            return "sd"
     if r < 0.70:
         return "atk"
     if r < 0.85:
@@ -1123,15 +1363,20 @@ def new_state(a, b, rng, pvp=False):
             intro.append({"k": "pressure", "a": x["name"], "d": y["name"]})
     ea, eb = eff(a, "hoho"), eff(b, "hoho")
     first = "a" if ea > eb or (ea == eb and rng.random() < 0.5) else "b"
+    # the speed line: who is faster and by how much, and what that means for dodging (dodge_chance)
+    fast, slow = (a, b) if ea >= eb else (b, a)
+    ratio = max(1.0, max(ea, eb)) / max(1.0, min(ea, eb))
+    intro.append({"k": "speed", "a": fast["name"], "d": slow["name"], "r": round(ratio, 2),
+                  "p": int(round(min(DODGE_CAP, DODGE_BASE + DODGE_RATIO * (ratio - 1)) * 100))})
     return {"a": a, "b": b, "turn": 1, "cur": first, "first": first, "done": False, "winner": None,
             "awaiting": False, "last": [], "intro": intro, "pvp": bool(pvp), "dist": START_DIST}
 
 
-def run_ai(state, rng, max_turns=30, ai_sides=("b",)):
+def run_ai(state, rng, max_turns=MAX_TURNS, ai_sides=("b",)):
     """Advance until a human must act or the fight ends. Returns events."""
     events = []
     guard = 0
-    while not state["done"] and guard < 200:
+    while not state["done"] and guard < 1000:
         guard += 1
         if state.get("awaiting") and state["cur"] not in ai_sides:
             break
@@ -1143,7 +1388,13 @@ def run_ai(state, rng, max_turns=30, ai_sides=("b",)):
             advance(state, max_turns)
             continue
         if state["cur"] in ai_sides:
-            events = events[:len(events) - len(ev)] + merge_heals(ev + do_action(state, ai_choose(state, state["cur"], rng), rng, max_turns))
+            act, pre = ai_choose(state, state["cur"], rng), []
+            if act == "sd":  # the side stance is free: toggle it, then choose the real action of this turn
+                pre = do_action(state, "sd", rng, max_turns)
+                act = ai_choose(state, state["cur"], rng)
+                if act == "sd":
+                    act = "atk"
+            events = events[:len(events) - len(ev)] + merge_heals(ev + pre + do_action(state, act, rng, max_turns))
         else:
             break
     return events
@@ -1154,7 +1405,7 @@ def hp_bar(cur, mx, n=10):
     return "█" * k + "░" * (n - k)
 
 
-def do_potion(state, kind, pct, max_turns=30):
+def do_potion(state, kind, pct, max_turns=MAX_TURNS):
     f = state[state["cur"]]
     if kind == "hp":
         n = int(f["max_hp"] * pct / 100)
@@ -1166,3 +1417,438 @@ def do_potion(state, kind, pct, max_turns=30):
     advance(state, max_turns)
     state["last"] = ev
     return ev
+
+
+# ==== Ability families (Nov 21, data_abilities) ======================================================================
+# A player's special buttons (sg, t1-t3, gt) fire the TYPE the player picked for that family before the fight
+# (f["ab"][action] = {"fam", "tid", "lv"}). Fighters without "ab" (wild enemies, old saves, tournament kits) keep the old
+# signature / race-technique code above. Buffs and debuffs of the types live in x["bf"]: each entry ticks down at the
+# start of the turn of the side that cast it ("o"), so a 2-turn debuff covers two of the foe's turns.
+import data_abilities as AB
+
+PHYS_KINDS = ("atk", "hvy", "echo")   # blows a plain evade (Shunpo) can dodge; everything else is an ability
+
+
+def _bfl(f):
+    return _x(f).setdefault("bf", [])
+
+
+def bsum(f, k) -> float:
+    return sum(float(b.get(k, 0)) for b in (f.get("x") or {}).get("bf", []) if b.get("t", 0) > 0)
+
+
+def bhas(f, k) -> bool:
+    return any(b.get(k) for b in (f.get("x") or {}).get("bf", []) if b.get("t", 0) > 0)
+
+
+def bred(f) -> float:
+    """Damage-taken multiplier of the reduction buffs (Hierro, Total Rejection...): at most 90% less."""
+    m = 1.0
+    for b in (f.get("x") or {}).get("bf", []):
+        if b.get("t", 0) > 0 and b.get("red"):
+            m *= 1 - float(b["red"])
+    return max(0.10, m)
+
+
+def add_bf(f, d: dict, owner: str, tag: str = None):
+    e = {k: v for k, v in d.items()}
+    e["t"], e["o"] = int(d.get("t", 1)), owner
+    if tag or d.get("tag"):
+        e["tag"] = tag or d.get("tag")
+    _bfl(f).append(e)
+
+
+def bf_tick(state, side):
+    """Start of `side`'s turn: every buff / debuff that side cast loses a turn (on both fighters)."""
+    for s in ("a", "b"):
+        x = state[s].get("x")
+        if not x or not x.get("bf"):
+            continue
+        for b in x["bf"]:
+            if b.get("o") == side:
+                b["t"] -= 1
+        x["bf"] = [b for b in x["bf"] if b["t"] > 0]
+
+
+def bf_tag(f, tag) -> bool:
+    return any(b.get("tag") == tag and b.get("t", 0) > 0 for b in (f.get("x") or {}).get("bf", []))
+
+
+def released(f) -> bool:
+    return bool(f["form"]["on"]) or _x(f).get("awake", 0) > 0
+
+
+def gate_ok(state, side, gate) -> bool:
+    f = state[side]
+    if not gate:
+        return True
+    x = _x(f)
+    if gate == "shikai":
+        return bool(x.get("sk")) or f["form"]["on"] == 2
+    if gate == "mask":
+        return bool(x.get("sk")) or bool(f["form"]["on"])
+    if gate == "bankai":
+        return f["form"]["on"] == 2
+    if gate == "hierro":
+        return bf_tag(f, "hierro")
+    if gate in ("rel", "res", "voll", "cfb", "awake"):
+        return released(f)
+    if gate == "arterie":
+        return x.get("buff_t", 0) > 0 and bool(x.get("art"))
+    if gate == "rage":
+        return f["hp"] < f["max_hp"] * 0.5
+    return False
+
+
+def _ab(f, action):
+    a = (f.get("ab") or {}).get(action)
+    if not a:
+        return None, None
+    t = AB.type_of(a["fam"], a["tid"])
+    return a, t
+
+
+def fam_factor(f, mix: dict) -> float:
+    """How strongly heals, shields and buffs of a family work: its stat mix against the fighter's average stat."""
+    if not mix or "weapon" in mix or f.get("wild"):
+        return 1.0
+    mean = sum(eff(f, k) for k in ("zanjutsu", "kido", "hakuda", "hoho", "reiatsu")) / 5 or 1.0
+    pw = sum(w * eff(f, k) for k, w in mix.items())
+    return max(0.5, min(2.0, (1 - ABILITY_SHARE) + ABILITY_SHARE * pw / mean))
+
+
+def ab_can(state_or_none, f, action) -> bool:
+    """Can the picked type of this button fire now (gate, once, cooldown, cost, seal)?"""
+    a, t = _ab(f, action)
+    if not t:
+        return False
+    x = _x(f)
+    if bhas(f, "seal"):
+        return False
+    if (x.get("chg") or {}).get(action):
+        return True  # the charge is paid: firing is always possible
+    gate = AB.gate_of(f.get("race"), a["fam"], t)
+    if gate:
+        st = state_or_none or {"a": f, "b": f}
+        side = "a" if st["a"] is f else "b"
+        if not gate_ok(st, side, gate):
+            return False
+    if t["spec"].get("once") and (a["fam"] + ":" + t["id"]) in (x.get("once") or []):
+        return False
+    if (x.get("acd") or {}).get(action, 0) > 0:
+        return False
+    s = t["spec"]
+    if s.get("hpcost"):
+        return f["hp"] > _hb(f) * s["hpcost"] + 1
+    return f["re"] >= f["max_re"] * AB.lv_cost(t["cost"], a["lv"])
+
+
+def _ab_pay(f, action, a, t):
+    s, x = t["spec"], _x(f)
+    if s.get("hpcost"):
+        f["hp"] = max(1, f["hp"] - int(_hb(f) * s["hpcost"]))
+    else:
+        f["re"] -= int(f["max_re"] * AB.lv_cost(t["cost"], a["lv"]))
+    cd = AB.lv_cd(t["cd"], a["lv"])
+    if cd:
+        x.setdefault("acd", {})[action] = cd + 1  # +1: ticks at the start of your next turn
+    if s.get("once"):
+        x.setdefault("once", []).append(a["fam"] + ":" + t["id"])
+
+
+def _ab_fx(state, side, kind, turns, ev):
+    f, o = state[side], state["b" if side == "a" else "a"]
+    if kind == "skip":
+        if o.get("foe") == "boss" and turns > 1:
+            turns = 1
+        add_fx(o, "skip", turns)
+        ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
+    elif kind == "daze":
+        add_bf(o, {"miss": 0.5, "t": turns}, side)
+        ev.append({"k": "abfx", "a": f["name"], "d": o["name"], "fx": "daze"})
+    elif kind in ("seal", "root", "noregen"):
+        add_bf(o, {kind: 1, "t": turns}, side)
+        ev.append({"k": "abfx", "a": f["name"], "d": o["name"], "fx": kind})
+    else:
+        add_fx(o, kind, turns)
+        ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": kind})
+
+
+def _ab_run(state, side, action, rng, ev):
+    f = state[side]
+    other = "b" if side == "a" else "a"
+    o = state[other]
+    a, t = _ab(f, action)
+    s, lv, x = t["spec"], int(a["lv"]), _x(f)
+    k = AB.lv_k(lv)
+    mix = AB.stat_mix(f.get("race"), a["fam"], t)
+    chg = x.setdefault("chg", {})
+    if s.get("charge") and not chg.get(action):  # first press: gather the power (telegraphed, breakable)
+        _ab_pay(f, action, a, t)
+        x.setdefault("acd", {})[action] = 0  # the cooldown starts when it fires
+        chg[action] = 1
+        ev.append({"k": "ab_charge", "a": f["name"], "fam": a["fam"], "tid": t["id"], "d": o["name"]})
+        return
+    if chg.get(action):
+        chg[action] = 0
+        cd = AB.lv_cd(t["cd"], lv)
+        if cd:
+            x.setdefault("acd", {})[action] = cd + 1
+    else:
+        _ab_pay(f, action, a, t)
+    ev.append({"k": "ab", "a": f["name"], "d": o["name"], "fam": a["fam"], "tid": t["id"]})
+    if s.get("shadow"):
+        x["shadow"] = 2  # cleared at the start of your turn after next: the foe's next turn finds nothing
+        return
+    if s.get("dist") == "close":
+        state["dist"] = 0
+    elif s.get("dist") == "back2":
+        state["dist"] = min(ZONE_MAX, dist_of(state) + 2)
+    stk = x.setdefault("stk", {})
+    key = a["fam"] + ":" + t["id"]
+    m = s.get("m")
+    if s.get("rand_m"):
+        lo, hi = s["rand_m"]
+        m = rng.uniform(lo, hi)
+    if m:
+        m *= k
+        if s.get("rel_m") and released(f):
+            m = s["rel_m"] * k
+        if s.get("low_foe") and o["hp"] < o["max_hp"] * s["low_foe"][0]:
+            m = s["low_foe"][1] * k
+        if s.get("low_self") and f["hp"] < f["max_hp"] * s["low_self"][0]:
+            m = s["low_self"][1] * k
+        if s.get("stack"):
+            m *= 1 + s["stack"][0] * k * min(stk.get(key, 0), s["stack"][1])
+        hits = s.get("hits") or 1
+        if s.get("hits_rand"):
+            hits = rng.randint(*s["hits_rand"])
+        src = {"mix": mix, "wpn2": bool(s.get("wpn2"))}
+        hp0 = o["hp"]
+        x["tmp"] = {"crit": AB.lv_p(s["crit_add"], lv) if s.get("crit_add") else 0.0, "cdmg": s.get("cdmg_add", 0) * k,
+                    "ng": bool(s.get("noguard")), "any": bool(s.get("anyrange"))}
+        last_crit = False
+        for i in range(hits):
+            if o["hp"] <= 0:
+                break
+            if s.get("miss_self") and rng.random() < s["miss_self"]:
+                ev.append({"k": "miss", "a": f["name"], "d": o["name"]})
+                continue
+            n0 = len(ev)
+            _deal(state, side, m, rng, ev, "tech", allow_procs=(i == 0), extra_pierce=s.get("pierce", 0.0) * k, src=src)
+            last_crit = any(e.get("k") == "hit" and e.get("c") for e in ev[n0:])
+        if s.get("combo") and last_crit and o["hp"] > 0:
+            _deal(state, side, s["combo"] * k, rng, ev, "tech", allow_procs=False, src=src)
+        x["tmp"] = None
+        dealt = max(0, hp0 - o["hp"])
+        if s.get("curhp") and o["hp"] > 0:
+            extra = int(o["hp"] * s["curhp"] * k * (0.3 if o.get("foe") in ("boss", "world_boss") else 1.0))
+            extra = min(extra, int(_hb(o) * 0.25))  # a share of the current HP, never a one-shot
+            if extra > 0:
+                _apply(state, side, extra, False, rng, ev, "tech", False)
+                dealt += extra
+        if s.get("ls") and dealt > 0:
+            h = max(1, int(dealt * s["ls"] * k))
+            f["hp"] = min(f["max_hp"], f["hp"] + h)
+            ev.append({"k": "heal", "a": f["name"], "n": h})
+        if s.get("recoil") and dealt > 0:
+            r = max(1, int(dealt * s["recoil"]))
+            f["hp"] = max(1, f["hp"] - r)
+            ev.append({"k": "recoil", "a": f["name"], "n": r})
+        if s.get("stack"):
+            stk[key] = stk.get(key, 0) + 1
+    if s.get("perm"):
+        if x.get("perm_n", 0) < s["perm"][1]:
+            x["perm_n"] = x.get("perm_n", 0) + 1
+            x["perm"] = x.get("perm", 0.0) + s["perm"][0] * k
+    if o["hp"] > 0 and not state.get("done"):
+        if s.get("fx") and rng.random() < (AB.lv_p(s["fx_p"], lv) if s.get("fx_p") else 1.0):
+            kind, n = s["fx"]
+            _ab_fx(state, side, kind, n if kind in ("skip", "seal", "root", "daze") else AB.lv_turns(n, lv), ev)
+        if s.get("steal_re"):
+            st_ = min(o["re"], int(o["max_re"] * s["steal_re"] * k))
+            o["re"] -= st_
+            f["re"] = min(f["max_re"], f["re"] + st_)
+            if st_:
+                ev.append({"k": "drain", "a": f["name"], "d": o["name"], "n": st_})
+        if s.get("brk") and o["shield"] > 0:
+            o["shield"] = 0 if s["brk"] >= 1 else int(o["shield"] * (1 - s["brk"]))
+            ev.append({"k": "abfx", "a": f["name"], "d": o["name"], "fx": "brk"})
+        if s.get("debuff"):
+            add_bf(o, AB.scaled_buff(s["debuff"], lv), side)
+            ev.append({"k": "abfx", "a": f["name"], "d": o["name"], "fx": "debuff"})
+        if s.get("dist") == "pull2":
+            state["dist"] = max(0, dist_of(state) - 2)
+        if s.get("copy"):
+            mine = [b for b in _bfl(o) if any(b.get(q, 0) > 0 for q in ("dmg", "def", "hoho", "red", "crit", "dodge", "pierce"))]
+            if mine:
+                _x(o)["bf"] = [b for b in _bfl(o) if b not in mine]
+                for b in mine:
+                    b["o"] = side
+                    _bfl(f).append(b)
+                ev.append({"k": "abfx", "a": f["name"], "d": o["name"], "fx": "copy"})
+        if s.get("trap"):
+            x["trap"] = {"m": s["trap"] * k, "dist": dist_of(state), "mix": mix}
+        if s.get("delay"):
+            x["delay"] = {"t": s["delay"][0], "m": s["delay"][1] * k, "mix": mix}
+    rf = fam_factor(f, mix)
+    if s.get("heal"):
+        h = max(1, int(_hb(f) * s["heal"] * k * rf))
+        f["hp"] = min(f["max_hp"], f["hp"] + h)
+        ev.append({"k": "heal", "a": f["name"], "n": h})
+    if s.get("cleanse"):
+        f["fx"] = [z for z in f["fx"] if z["k"] not in ("bleed", "burn", "poison", "fear", "weaken", "shock")]
+    if s.get("shield"):
+        n = max(1, int(_hb(f) * s["shield"] * k * rf))
+        f["shield"] += n
+        ev.append({"k": "shield_t", "a": f["name"], "n": n})
+    if s.get("hot"):
+        add_bf(f, {"hot": s["hot"][0] * k * rf, "t": AB.lv_turns(s["hot"][1], lv)}, side)
+    if s.get("sot"):
+        add_bf(f, {"sot": s["sot"][0] * k * rf, "t": AB.lv_turns(s["sot"][1], lv)}, side)
+    if s.get("re"):
+        f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * s["re"] * k))
+    if s.get("buff"):
+        b = AB.scaled_buff(s["buff"], lv)
+        if f.get("race") == "arrancar" and s.get("arr"):
+            b.update(AB.scaled_buff(s["arr"], lv))
+        add_bf(f, b, side)
+        if b.get("tag") == "hierro":
+            ev.append({"k": "abfx", "a": f["name"], "d": o["name"], "fx": "hierro"})
+    if s.get("evade"):
+        e = dict(s["evade"])
+        x["ev"] = {"n": int(e.get("n", 1)), "p": 1.0 if e["p"] >= 1 else AB.lv_p(e["p"], lv), "all": bool(e.get("all")),
+                   "c": float(e.get("c", 0)) * k, "tt": 2 if e.get("n", 1) > 1 else 1}
+    if s.get("reflect"):
+        x["refl"] = s["reflect"] * k
+    if s.get("absorb"):
+        x["absorb"] = {"t": AB.lv_turns(s["absorb"][0], lv), "m": s["absorb"][1] * k, "mix": mix}
+    if s.get("rewind"):
+        hist = x.get("hph") or []
+        if len(hist) >= 2 and hist[-2] > f["hp"]:
+            h = hist[-2] - f["hp"]
+            f["hp"] = min(f["max_hp"], hist[-2])
+            ev.append({"k": "heal", "a": f["name"], "n": h})
+    if s.get("mask_full"):
+        x["mfull"] = 1
+        x["perm"] = x.get("perm", 0.0) + 0.10
+    if s.get("fatigue"):
+        add_fx(f, "skip", int(s["fatigue"]))
+    if s.get("after"):
+        add_bf(f, dict(s["after"]), side)
+
+
+def _ab_turn_start(state, side, ev, rng):
+    """Start of `side`'s turn: hot / sot, drain, delayed blows, traps, absorb expiry, evade expiry, HP history."""
+    f = state[side]
+    x = _x(f)
+    for b in list(_bfl(f)):
+        if b.get("t", 0) <= 0:
+            continue
+        if b.get("hot") and 0 < f["hp"] < f["max_hp"]:
+            h = max(1, int(_hb(f) * b["hot"]))
+            f["hp"] = min(f["max_hp"], f["hp"] + h)
+            ev.append({"k": "heal", "a": f["name"], "n": h})
+        if b.get("sot"):
+            f["shield"] += max(1, int(_hb(f) * b["sot"]))
+        if b.get("drain_re"):
+            f["re"] = max(0, f["re"] - int(f["max_re"] * b["drain_re"]))
+    acd = x.get("acd") or {}
+    for kk in list(acd):
+        if acd[kk] > 0:
+            acd[kk] -= 1
+    if x.get("ev"):
+        x["ev"]["tt"] = x["ev"].get("tt", 1) - 1
+        if x["ev"]["tt"] <= 0:
+            x["ev"] = None
+    if x.get("shadow"):
+        x["shadow"] -= 1
+    x["refl_t"] = 0
+    hist = x.setdefault("hph", [])
+    hist.append(int(f["hp"]))
+    del hist[:-3]
+    d = x.get("delay")
+    if d:
+        d["t"] -= 1
+        if d["t"] <= 0:
+            x["delay"] = None
+            ev.append({"k": "ab_late", "a": f["name"]})
+            _deal(state, side, d["m"], rng, ev, "tech", allow_procs=False, src={"mix": d.get("mix") or {}})
+    tr = x.get("trap")
+    if tr:
+        x["trap"] = None
+        if dist_of(state) == tr["dist"]:
+            ev.append({"k": "ab_trap", "a": f["name"]})
+            _deal(state, side, tr["m"], rng, ev, "tech", allow_procs=False, src={"mix": tr.get("mix") or {}})
+        else:
+            ev.append({"k": "ab_trap_miss", "a": f["name"]})
+    ab = x.get("absorb")
+    if ab:
+        ab["t"] -= 1
+        if ab["t"] <= 0:
+            x["absorb"] = None
+            ev.append({"k": "ab_doble", "a": f["name"]})
+            _deal(state, side, ab["m"], rng, ev, "tech", allow_procs=False, src={"mix": ab.get("mix") or {}})
+
+
+def _ab_defend(state, side, kind, rng, ev) -> bool:
+    """Before a blow of `side` lands: shadow, evade and absorb of the defender. True = the blow does not land."""
+    att, dfn = state[side], state["b" if side == "a" else "a"]
+    dx = dfn.get("x") or {}
+    if dx.get("shadow", 0) > 0 and kind not in ("counter", "dot"):
+        ev.append({"k": "ab_shadow", "a": dfn["name"], "d": att["name"]})
+        return True
+    e = dx.get("ev")
+    if e and e.get("n", 0) > 0 and kind != "counter" and (kind in PHYS_KINDS or e.get("all")):
+        e["n"] -= 1
+        if e["n"] <= 0:
+            dx["ev"] = None
+        if rng.random() < e["p"]:
+            ev.append({"k": "ab_evade", "a": dfn["name"], "d": att["name"]})
+            if e.get("c"):
+                _deal(state, "b" if side == "a" else "a", e["c"], rng, ev, "counter", allow_procs=False)
+            return True
+    ab = dx.get("absorb")
+    if ab and kind not in PHYS_KINDS and kind not in ("counter", "dot"):
+        dx["absorb"] = None
+        ev.append({"k": "ab_doble", "a": dfn["name"], "d": att["name"]})
+        _deal(state, "b" if side == "a" else "a", ab["m"] + 0.8, rng, ev, "tech", allow_procs=False, src={"mix": ab.get("mix") or {}})
+        return True
+    return False
+
+
+SHIKAI_EVENTS = {"shinigami": "shikai", "visored": "mask_on"}
+
+
+def sk_can(f) -> bool:
+    if f.get("race") not in ("shinigami", "visored") or f.get("wild") or not f.get("ab"):
+        return False
+    return f["level"] >= AB.SHIKAI_LEVEL and not _x(f).get("sk") and f["re"] >= f["max_re"] * AB.SHIKAI_COST
+
+
+def sk_run(state, side, ev):
+    f = state[side]
+    f["re"] -= int(f["max_re"] * AB.SHIKAI_COST)
+    x = _x(f)
+    x["sk"] = 1
+    lv = int((f.get("abx") or {}).get("sk_shikai" if f["race"] == "shinigami" else "sk_mask", 1))
+    x["perm"] = x.get("perm", 0.0) + AB.SHIKAI_DMG * AB.lv_k(lv)
+    ev.append({"k": SHIKAI_EVENTS[f["race"]], "a": f["name"], "mv": f.get("mv")})
+
+
+def if_can(f) -> bool:
+    return f.get("race") == "arrancar" and bool(f.get("ab")) and bf_tag(f, "hierro") and _x(f).get("ifcd", 0) <= 0 \
+        and f["re"] >= f["max_re"] * 0.08 and not bhas(f, "seal")
+
+
+def if_run(state, side, rng, ev):
+    f = state[side]
+    f["re"] -= int(f["max_re"] * 0.08)
+    _x(f)["ifcd"] = 3
+    lv = int((f.get("abx") or {}).get("ironfist", 1))
+    ev.append({"k": "ab", "a": f["name"], "d": state["b" if side == "a" else "a"]["name"], "fam": "ironfist", "tid": "ironfist"})
+    _deal(state, side, 1.5 * AB.lv_k(lv), rng, ev, "tech", allow_procs=True, src={"mix": {"hakuda": 1.0}})
+
+
+def fixed_k(f, fid) -> float:
+    return AB.lv_k(int((f.get("abx") or {}).get(fid, 1)))

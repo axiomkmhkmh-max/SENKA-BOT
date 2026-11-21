@@ -25,6 +25,9 @@ FACTIONS = {
     "xcution": ("اکسکیوشن", "Xcution", "🃏", None),
     "red": ("تیم سرخ", "Red Team", "🔴", None),
     "white": ("تیم سفید", "White Team", "⚪", None),
+    "darkones": ("تاریک‌زادگان", "The Dark Ones", "🌘", None),
+    "div11": ("دسته‌ی یازدهم", "11th Division", "🗡", None),
+    "div2": ("دسته‌ی دوم", "2nd Division", "🥷", None),
 }
 
 # event kind: (side a, side b, races that join a, races that join b). Races in neither list choose a side.
@@ -37,8 +40,13 @@ WARS = {
     "soul_festival": ("red", "white", (), ()),
     "hogyoku_awakening": ("aizen", "ryoka", ("hollow", "arrancar"), ("fullbringer", "human", "quincy")),
     "reishi_storm": ("xcution", "gotei", ("fullbringer",), ("shinigami",)),
+    # event pack 2
+    "black_eclipse": ("darkones", "gotei", (), ("shinigami",)),
+    "hollow_tide": ("hollows", "gotei", ("hollow", "arrancar"), ("shinigami", "visored", "quincy", "fullbringer", "human")),
+    "soul_bazaar": ("red", "white", (), ()),
+    "shinigami_drill": ("div11", "div2", (), ()),
 }
-FRIENDLY = ("soul_festival",)   # a festival match: the losing team keeps more of the reward
+FRIENDLY = ("soul_festival", "soul_bazaar", "shinigami_drill")   # a festival match: the losing team keeps more of the reward
 
 # the story behind each war, one line (fa, en)
 WAR_STORY = {
@@ -50,6 +58,10 @@ WAR_STORY = {
     "soul_festival": ("جشنواره‌ی ارواح: مسابقه‌ی دوستانه‌ی تیم سرخ و تیم سفید، مثل روز ورزش آکادمی.", "The Soul Festival: a friendly Red vs White match, like the Academy's sports day."),
     "hogyoku_awakening": ("هوگیوکو بیدار شده؛ ارتش آیزن در برابر یاران ایچیگو.", "The Hōgyoku has awakened; Aizen's Army against Ichigo's friends."),
     "reishi_storm": ("در طوفان ریشی، اکسکیوشن قدرت روحی را می‌مکد و گوتی ۱۳ به مقابله آمده.", "In the reishi storm Xcution siphons spiritual power, and the Gotei 13 strike back."),
+    "black_eclipse": ("خورشید سیاه شد و تاریک‌زادگان از دره‌ی فریادها بیرون آمده‌اند؛ گوتی ۱۳ باید جلویشان را بگیرد.", "The sun went black and the Dark Ones climbed out of the Valley of Screams; the Gotei 13 must hold them back."),
+    "hollow_tide": ("موج هالوها از سرزمین‌های تاریک سرازیر شده؛ سپاه هالوها در برابر همه.", "A tide of Hollows pours from the dark lands: the Hollow Horde against everyone."),
+    "soul_bazaar": ("مسابقه‌ی دوستانه‌ی بازار ارواح: تیم سرخ و تیم سفید سر جایزه‌های بازار رقابت می‌کنند.", "The Soul Bazaar's friendly match: the Red and White teams compete for the bazaar's prizes."),
+    "shinigami_drill": ("رزمایش گوتی: دسته‌ی یازدهمِ کنپاچی در برابر دسته‌ی دومِ سوی‌فون، دوستانه.", "The Gotei drill: Kenpachi's 11th Division against Suì-Fēng's 2nd, as friends."),
 }
 
 # soldiers of each faction (fa, en): what a player fights when they pick "enemy soldier"
@@ -79,13 +91,21 @@ SOLDIERS = {
     "white": [("دانشجوی آکادمی (سفید)", "Academy Student (White)"), ("قهرمان کندوی سفید", "White Kendō Champion"),
               ("استاد هاکودای آکادمی", "Academy Hakuda Tutor"), ("عضو انجمن مردان شینیگامی", "Shinigami Men's Association Member"),
               ("طبال جشنواره", "Festival Drummer"), ("پرچمدار جشن", "Festival Banner-bearer")],
+    "darkones": [("بلنک سرگردان", "Wandering Blank"), ("روح طردشده", "Rejected Soul"), ("تاریک‌زاده", "Dark One"),
+                 ("سایه‌ی دره‌ی فریادها", "Valley of Screams Shade"), ("زنجیر شکسته‌ی سرنوشت", "Broken Chain of Fate"), ("نگهبان خورشید سیاه", "Black Sun Warden")],
+    "div11": [("شینیگامی بی‌رده‌ی دسته‌ی ۱۱", "Unseated 11th Division Shinigami"), ("جنگجوی تشنه‌ی نبرد", "Battle-Mad Brawler"),
+              ("افسر رده‌دار دسته‌ی ۱۱", "11th Division Seated Officer"), ("شمشیرزن بی‌سپر", "Shieldless Swordsman"),
+              ("مبارز کوچه‌های زاراکی", "Zaraki Alley Fighter"), ("هم‌رزم کنپاچی", "Kenpachi's Comrade")],
+    "div2": [("قاتل اونمیتسوکیدو", "Onmitsukidō Assassin"), ("گشت کِیگون", "Keigun Patrol"), ("نگهبان زندان شین‌اونو", "Maggot's Nest Guard"),
+             ("پیک سایه", "Shadow Courier"), ("شینیگامی بی‌رده‌ی دسته‌ی ۲", "Unseated 2nd Division Shinigami"), ("شکارچی شونپو", "Shunpo Hunter")],
 }
 OFFICERS = {
     "gotei": ("ستوان گوتی", "Gotei Lieutenant"), "aizen": ("پریواران اسپادا", "Privarón Espada"),
     "wandenreich": ("اشتیرن‌ریتر", "Sternritter"), "hollows": ("آجوکاس گله‌دار", "Pack-leader Adjuchas"),
     "ryoka": ("محافظ کوکاکو", "Kūkaku's Bodyguard"), "bount": ("بونت کهنه‌کار", "Veteran Bount"),
     "xcution": ("مجری اکسکیوشن", "Xcution Enforcer"), "red": ("کاپیتان تیم سرخ", "Red Team Captain"),
-    "white": ("کاپیتان تیم سفید", "White Team Captain"),
+    "white": ("کاپیتان تیم سفید", "White Team Captain"), "darkones": ("ارباب تاریک‌زادگان", "Dark One Lord"),
+    "div11": ("ستوان دسته‌ی ۱۱", "11th Division Lieutenant"), "div2": ("فرمانده‌ی اونمیتسوکیدو", "Onmitsukidō Commander"),
 }
 # the enemy general, by the attacker's level tier (<30, 30-59, 60-89, 90+)
 GENERALS = {
@@ -98,6 +118,9 @@ GENERALS = {
     "xcution": [("جکی تریستان", "Jackie Tristan"), ("گیریکو کوتسوزاوا", "Giriko Kutsuzawa"), ("شوکورو تسوکیشیما", "Shūkurō Tsukishima"), ("کوگو جینجو", "Kūgo Ginjō")],
     "red": [("یاچیرو کوساجیشی", "Yachiru Kusajishi"), ("رانگیکو ماتسوموتو", "Rangiku Matsumoto"), ("کوکاکو شیبا", "Kūkaku Shiba"), ("یوروئیچی شیهوئین", "Yoruichi Shihōin")],
     "white": [("نانائو ایسه", "Nanao Ise"), ("روکیا کوچیکی", "Rukia Kuchiki"), ("رتسو اونوهانا", "Retsu Unohana"), ("جوشیرو اوکیتاکه", "Jūshirō Ukitake")],
+    "darkones": [("ریان", "Riyan"), ("بنین", "Benin"), ("مو", "Mū"), ("گانریو", "Ganryū")],
+    "div11": [("یومیچیکا آیاسه‌گاوا", "Yumichika Ayasegawa"), ("ایکاکو مادارامه", "Ikkaku Madarame"), ("یاچیرو کوساجیشی", "Yachiru Kusajishi"), ("کنپاچی زاراکی", "Kenpachi Zaraki")],
+    "div2": [("ماره‌چیو اوماِدا", "Marechiyo Ōmaeda"), ("فرمانده‌ی گروه اعدام", "Executive Militia Commander"), ("سوی‌فون", "Suì-Fēng"), ("یوروئیچی شیهوئین", "Yoruichi Shihōin")],
 }
 
 # ---- numbers ---------------------------------------------------------------------------------------------------------------

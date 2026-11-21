@@ -133,6 +133,8 @@ async def main():
     rw_task = asyncio.create_task(service_raceweapon.notify_pending(bot, stop))  # "choose your race weapon" notice
     from service_migrate_rework import notify_respec
     rs_task = asyncio.create_task(notify_respec(bot, stop))  # "your stat points came back" notice
+    import service_abilities
+    ab_task = asyncio.create_task(service_abilities.notify(bot, stop))  # "the ability panel is open" notice (Nov 21)
     try:
         # Telegram sometimes answers 502 Bad Gateway for a few seconds; retry instead of crashing the whole container
         for attempt in range(1, 7):
@@ -152,7 +154,7 @@ async def main():
         await dp.start_polling(bot, allowed_updates=["message", "callback_query", "my_chat_member"], handle_signals=True)
     finally:
         stop.set()
-        await asyncio.gather(task, log_task, notify_task, rw_task, rs_task, return_exceptions=True)
+        await asyncio.gather(task, log_task, notify_task, rw_task, rs_task, ab_task, return_exceptions=True)
         await bot.session.close()
         await runner.cleanup()
         await close_db()

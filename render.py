@@ -47,18 +47,72 @@ def dist_event_text(lang: str, e: dict) -> str:
     fa = lang == "fa"
     a, d = esc(e.get("a", "")), esc(e.get("d", ""))
     if e["k"] == "move":
-        tech = e.get("tech", "")
+        tech = e.get("tech", "") if fa else (e.get("tech_en") or e.get("tech", ""))  # English showed the Persian name
         return (f"🏃 {a} با {esc(tech)} به فاصله‌ی {dist_label(lang, e['to'])} رسید" if fa
                 else f"🏃 {a} closes in with {esc(tech)} → {dist_label(lang, e['to'])}")
     if e["k"] == "retreat":
         return (f"↩️ {a} عقب کشید ({dist_label(lang, e['to'])})" if fa
                 else f"↩️ {a} backs off ({dist_label(lang, e['to'])})")
     if e["k"] == "side":
-        return (f"↔️ {a} به حالت جانبی رفت؛ ضربه‌های بعدی سبک‌تر می‌خورن" if fa
-                else f"↔️ {a} sidesteps; the next blows land glancing")
+        return (f"↔️ {a} رفت به حالت جانبی: هوهو ×۲، قدرت ضربه‌ها نصف" if fa
+                else f"↔️ {a} turns side-on: Hohō x2, own blows at half power")
+    if e["k"] == "side_off":
+        return (f"↔️ {a} از حالت جانبی بیرون آمد و دوباره رو در رو ایستاد" if fa
+                else f"↔️ {a} squares up again: the side stance ends")
+    if e["k"] == "side_no":
+        return (f"↔️ این نوبت حالت جانبی رو یک بار عوض کردی (یا ریاتسو کافی نیست)" if fa
+                else f"↔️ The stance was already switched this turn (or not enough reiatsu)")
     if e["k"] == "outrange":
         return f"💨 {a} به برد نرسید و نوبتش هدر رفت" if fa else f"💨 {a} is out of range and loses the turn"
     return f"💥 {d} به عقب پرت شد" if fa else f"💥 {d} is knocked back"
+
+
+AB_EVENTS = ("ab", "ab_charge", "abfx", "ab_evade", "ab_shadow", "ab_doble", "ab_late", "ab_trap", "ab_trap_miss", "recoil",
+             "shikai", "mask_on")
+_ABFX = {"daze": ("گیج شد (۵۰٪ خطا)", "is dazed (50% misses)"), "seal": ("مهر شد: توانایی ویژه نمی‌زند", "is sealed: no abilities"),
+         "root": ("قفل شد: فاصله را عوض نمی‌کند", "is rooted: cannot change the gap"), "noregen": ("بازسازی‌اش قطع شد", "stops regenerating"),
+         "brk": ("سپرش شکست", "loses the barrier"), "debuff": ("ضعیف‌تر شد", "is weakened"), "copy": ("بافرهایش را از دست داد", "loses the buffs to the thief"),
+         "hierro": ("پوستش مثل فولاد شد", "skin turns to steel")}
+
+
+def ab_event_text(lang: str, e: dict) -> str:
+    import data_abilities as AB
+    fa = lang == "fa"
+    a, d, k = esc(e.get("a", "")), esc(e.get("d", "")), e["k"]
+    if k in ("ab", "ab_charge"):
+        fam, tid = e.get("fam"), e.get("tid")
+        if fam == "ironfist":
+            return f"🦾 {a} با مشت آهنین جلو رفت" if fa else f"🦾 {a} swings an Iron Fist"
+        t = AB.type_of(fam, tid)
+        name = esc(t["fa" if fa else "en"]) if t else str(tid)
+        icon = AB.FAMILIES.get(fam, {}).get("icon", "✨")
+        if k == "ab_charge":
+            return (f"{icon} {a} دارد «{name}» را شارژ می‌کند... یک ضربه‌ی سنگین می‌شکندش!" if fa
+                    else f"{icon} {a} gathers «{name}»... a hard hit can break it!")
+        return f"{icon} {a}: «{name}»!"
+    if k == "abfx":
+        fx = _ABFX.get(e.get("fx"), (e.get("fx"), e.get("fx")))
+        who = a if e.get("fx") == "hierro" else d
+        return f"✨ {who} {fx[0] if fa else fx[1]}"
+    if k == "ab_evade":
+        return f"💨 ضربه‌ی {d} از میان تصویر {a} گذشت" if fa else f"💨 {d}'s blow passes through {a}'s afterimage"
+    if k == "ab_shadow":
+        return f"🌑 {a} در سایه بود؛ ضربه‌ی {d} به هیچ خورد" if fa else f"🌑 {a} is in the shadow: {d} strikes nothing"
+    if k == "ab_doble":
+        return f"🔁 {a} حمله را بلعید و پس زد!" if fa else f"🔁 {a} swallows the attack and fires it back!"
+    if k == "ab_late":
+        return f"⏳ ضربه‌ی تاخیری {a} رسید!" if fa else f"⏳ {a}'s delayed blow arrives!"
+    if k == "ab_trap":
+        return f"💣 تله‌ی {a} منفجر شد!" if fa else f"💣 {a}'s trap explodes!"
+    if k == "ab_trap_miss":
+        return f"💨 دشمن از تله‌ی {a} بیرون پرید" if fa else f"💨 The foe slipped out of {a}'s trap"
+    if k == "recoil":
+        return f"🩸 {a} از ضربه‌ی خودش {fnum(e.get('n', 0), lang)} آسیب خورد" if fa else f"🩸 {a} takes {e.get('n', 0)} recoil"
+    if k == "shikai":
+        return f"🗡 {a}: «شیکای!» — تیغ شکل واقعی‌اش را گرفت" if fa else f"🗡 {a}: «Shikai!» — the blade takes its true form"
+    if k == "mask_on":
+        return f"🎭 {a} ماسک هالو را روی صورتش کشید" if fa else f"🎭 {a} pulls the Hollow mask over the face"
+    return ""
 
 
 def dist_line(lang: str, state: dict) -> str:
@@ -77,6 +131,8 @@ def events_text(lang: str, events: list) -> str:
                 line = pick(lang, "lg_getsuga", a=a, d=d, n=n)
             elif kind == "hvy" and e.get("mv") and move_name(e["mv"], lang):  # released blade: the real technique name
                 line = pick(lang, "lg_hit_move", a=a, d=d, n=n, move=esc(move_name(e["mv"], lang)))
+            elif kind == "bala":  # Bala: the 100% hit
+                line = (f"💥 بالای {a} بی‌خطا به {d} خورد: {n}" if lang == "fa" else f"💥 {a}'s Bala never misses: {d} takes {n}")
             else:
                 line = pick(lang, "lg_hit_" + kind, a=a, d=d, n=n, num=e.get("num", ""), spell=e.get("spell", ""))
             if e.get("chant"):  # a chanted spell is announced before it lands
@@ -113,7 +169,23 @@ def events_text(lang: str, events: list) -> str:
         elif k == "release_lost":  # a battered Bankai / Resurrección gets out of hand: each race has its own line
             rk = f"lg_release_lost_{e.get('r') or ''}"
             out.append(pick(lang, rk if rk in (LOCALES.get(lang) or LOCALES["en"]) else "lg_mask_lost", a=a))
-        elif k in ("move", "retreat", "outrange", "knock", "side"):  # distance (فاصله) events
+        elif k in AB_EVENTS:  # ability families (data_abilities)
+            out.append(ab_event_text(lang, e))
+        elif k == "nar":  # battle narration (data_narration)
+            from data_narration import line as nar_line
+            txt = nar_line(e, lang)
+            if txt:
+                out.append(f"<i>{esc(txt)}</i>")
+        elif k == "speed":  # fight start: the speed gap and what it means for dodging
+            r = e.get("r", 1.0)
+            if r < 1.05:
+                out.append("💨 سرعت دو طرف برابره؛ شانس جاخالی پایه ۵٪." if lang == "fa"
+                           else "💨 Both sides are equally fast: base dodge 5%.")
+            else:
+                rs = (f"{r:.2f}".rstrip("0").rstrip("."))
+                out.append(f"💨 {a} {fnum(rs, lang)} برابر سریع‌تر از {d}ه؛ {fnum(e.get('p', 5), lang)}٪ از ضربه‌های {d} رو جاخالی می‌ده." if lang == "fa"
+                           else f"💨 {a} is {rs}x faster than {d}: dodges {e.get('p', 5)}% of {d}'s blows.")
+        elif k in ("move", "retreat", "outrange", "knock", "side", "side_off", "side_no"):  # distance (فاصله) events
             out.append(dist_event_text(lang, e))
         elif k == "bt":  # blade technique
             out.append(pick(lang, "lg_bt_" + str(e.get("kind")), a=a))
@@ -168,8 +240,8 @@ def battle_text(lang: str, state: dict, events: list = None, title: str = "") ->
             tags = "، ".join(f"{n}({fnum(left, lang)})" for _, n, left in cool) if lang == "fa" else ", ".join(f"{n} ({left})" for _, n, left in cool)
             parts.append(t(lang, "bt_kido_cd", list=tags))
     shown = events if events is not None else state.get("last", [])
-    if not shown and state.get("turn") == 1 and state.get("intro"):  # opening of a fight: spirit pressure crushes the weaker side
-        shown = state["intro"]
+    if state.get("turn") == 1 and state.get("intro") and not any(x.get("k") in ("speed", "pressure") for x in shown):
+        shown = list(state["intro"]) + list(shown)  # opening of a fight: the speed gap and the spirit pressure
     ev = events_text(lang, shown)
     if ev:
         parts.append(ev)

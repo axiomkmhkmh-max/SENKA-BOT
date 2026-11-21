@@ -182,3 +182,15 @@ EN.update({
     "ev_shinigami_drill_name": "Shinigami Drill",
     "ev_shinigami_drill_desc": "Squads drill across Soul Society. Win player duels and strike the bosses.",
 })
+
+# ---- menus and categories of the Nov 19 systems (restored: they were missing, so the panels showed raw keys) ----
+FA.update({
+    "m_war": "⚔️ میدان جنگ", "m_lbs": "👹 باس سطح", "m_rsh": "🎰 شاپ رول", "m_els": "🏛 شاپ نخبگان", "m_in2": "🌌 دنیای درون ۲",
+    "cat_temper": "سنگ آبدیده‌سازی", "cat_inner_key": "کلید دنیای درون",
+    "m_abl": "⚔️ توانایی‌ها", "cat_ability_card": "کارت توانایی",
+})
+EN.update({
+    "m_war": "⚔️ Battlefield", "m_lbs": "👹 Level boss", "m_rsh": "🎰 Roll shop", "m_els": "🏛 Elite shop", "m_in2": "🌌 Inner World 2",
+    "cat_temper": "Tempering stone", "cat_inner_key": "Inner World key",
+    "m_abl": "⚔️ Abilities", "cat_ability_card": "Ability card",
+})

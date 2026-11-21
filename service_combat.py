@@ -185,7 +185,12 @@ async def build_player(ch: dict, name: str = None):
     fighter["evo"] = {k: v for k, v in evb.items() if k not in ("dmg", "def", "hp", "kido", "crit", "pierce", "regen")}
     fighter["evs"] = evo_stage(ch)  # evolution stage: opens the canon race techniques (data_race_tech)
     fighter["tm"] = {k: int(v) for k, v in (ch.get("tech_lvl") or {}).items()}  # technique mastery (race technique cards)
+    from service_abilities import loadout  # ability families: the type on each button, levels, the Kidō picks (Nov 21)
+    fighter.update(loadout(ch))
     return fighter
+
+
+DG_BOSS_HOHO, DG_FOE_HOHO = 0.40, 0.70   # dungeon boss Hohō -60%, other dungeon foes -30%
 
 
 def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
@@ -193,14 +198,17 @@ def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
     s = (4 + level * k["s"]) * scale
     stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + level * k["d"]) * scale, "hoho": 6 + level * 0.5, "reiatsu": 5 + level}
     w = {"attack": (3 + level * k["a"]) * scale, "crit": 0.03, "element": rng.choice(ELEMENTS), "skills": [], "weapon_type": "melee"}
-    foe = E.new_fighter(name, level, stats, (k["h0"] + level * k["h1"]) * scale, 80 + level * 10, w,
+    from data_misc import HP_MULT
+    foe = E.new_fighter(name, level, stats, (k["h0"] + level * k["h1"]) * scale * HP_MULT, 80 + level * 10, w,
                         armor=level * k["ar"] * scale, ai=True, sig=sig)
     foe["wild"] = True  # wild enemies never release (every player race can, since the release rework)
     return foe
 
 
 def _rewards(level: int, scale: float, st: dict):
-    xp = (20 * level ** 1.25 + 20) * (scale if scale > 1 else 1.0)
+    from data_misc import FARM_XP_MULT
+    # fights are long now (HP x6), so a win pays FARM_XP_MULT times the XP; coins stay as they were
+    xp = (20 * level ** 1.25 + 20) * (scale if scale > 1 else 1.0) * FARM_XP_MULT
     # coins grow faster than the level (more than linear), so higher levels earn clearly more per fight:
     # Lv1 ≈ 20, Lv10 ≈ 97, Lv30 ≈ 297, Lv50 ≈ 537, Lv80 ≈ 972, Lv100 ≈ 1312 (was 16 / 70 / 190 / 310 / 490 / 610)
     coins = (12 + 8 * level + 0.05 * level ** 2) * (scale if scale > 1 else 1.0) * float(st["coin_rate"])
@@ -264,7 +272,9 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     pick = rng.choice(loc["enemies"])
     sig_race = loc.get("race")
     name = pick[0 if lang == "fa" else 1]
-    lvl = max(1, ch["level"] + rng.randint(-1, 1))
+    from data_races import loc_band
+    lo_, hi_ = loc_band(ch["location"], ch["level"])  # every world has its own band of enemy levels (Nov 21)
+    lvl = max(1, rng.randint(lo_, hi_))
     tower = bool(dungeon and dungeon.get("tower"))
     fixed_dg = bool(dungeon and not tower and dungeon.get("id") in DUNGEONS)
     if fixed_dg:  # a dungeon's enemies keep the dungeon's own level, whatever level the player is
@@ -284,6 +294,10 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         lo, hi, b_fa, b_en, _c, b_race = LEVEL_BOSSES[int(dungeon["band"])]
         lvl, sig_race, pick = int(ch["level"]), b_race, (b_fa, b_en)
         name = pick[0 if lang == "fa" else 1]
+    war = bool(dungeon and dungeon.get("war"))
+    if war:  # event battlefield: the enemy faction's soldier, officer or general (a shadow is built from the player below)
+        from service_war import war_foe
+        lvl, name, scale, sig_race, pick = war_foe(dungeon, int(ch["level"]), lang, rng)
     if tower:  # Soul Tower: endless floors, a Warden every 5th
         from data_extras import TOWER_BOSS_EVERY, TOWER_ENEMIES
         floor = int(dungeon["stage"])
@@ -292,7 +306,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         if floor % TOWER_BOSS_EVERY == 0:
             scale *= 1.5
             name = "👑 " + name
-    elif dungeon:
+    elif dungeon and not war:
         stage, total = dungeon["stage"], dungeon["total"]
         mult = DIFFICULTY[dungeon["diff"]] * (1 + 0.12 * (stage - 1))
         if stage == total:
@@ -313,7 +327,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         scale, name = (1.55 if force_elite else 1.4), "💀 " + name
     if trial:
         scale, name = float(gs["evo_trial_scale"]) * (1 + 0.2 * (trial["stage"] - 1)), "🌀 " + name
-    elif not tower and not fixed_dg:  # dungeons stay fixed: no world-event scaling on top
+    elif not tower and not fixed_dg and not war:  # dungeons and the battlefield stay fixed: no world-event scaling on top
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
     player["x"]["bstack"] = int((ch.get("bount") or {}).get("stacks", 0))  # soul stacks: PvE only, settled in pve_settle
@@ -336,7 +350,27 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         foe["foe"] = "boss"
     else:  # every other wild enemy
         foe["foe"] = "pve"
-    state = E.new_state(player, foe, rng)
+    if fixed_dg or (dungeon and not war and not tower and not dungeon.get("gq") and not dungeon.get("lboss")):
+        # dungeon foes are slow (Nov 21): the boss of the last stage has 60% less Hohō, its guards 30% less, so a
+        # high-level dungeon is not a wall of dodged blows and fast counter-hits
+        foe["stats"]["hoho"] = foe["stats"]["hoho"] * (DG_BOSS_HOHO if dungeon["stage"] == dungeon["total"] else DG_FOE_HOHO)
+    shadow = False
+    if war:
+        if foe["foe"] == "boss" and dungeon.get("kind") != "general":
+            foe["foe"] = "pve"  # a battlefield soldier is not a dungeon boss (one-stage fight)
+        if dungeon.get("kind") == "shadow" and dungeon.get("tgt"):  # an AI copy of a real enemy player, with their gear
+            tch = await get_char(int(dungeon["tgt"]))
+            if tch:
+                from data_war import FACTIONS
+                foe = await build_player(tch, name="🪞 " + FACTIONS[dungeon["fac"]][2] + " " + tch["name"])
+                foe["ai"] = True
+                foe["foe"] = "pve"
+                lvl = int(tch["level"])
+                shadow = True
+    # a shadow is a real player's copy, so the fight follows duel rules (race balance of duels, Konpaku lives on both sides)
+    state = E.new_state(player, foe, rng, pvp=shadow)
+    from service_fightfx import start as fx_start  # the narrator's opening line, and a challenge for a normal fight
+    fx_start(state, rng, challenge=not dungeon and not trial)
     if carry:  # next dungeon stage: the player always opens, so no free enemy hit lands on carried HP / the Bakudō barrier
         state["cur"] = state["first"] = "a"
     E.run_ai(state, rng)
@@ -371,6 +405,8 @@ async def pve_act(uid: int, sid: str, action: str, potion: dict = None):
     else:
         ev = E.do_action(st, action, rng)
     ev += E.run_ai(st, rng)
+    from service_fightfx import after_turn  # challenge progress and maybe a narrator line
+    ev += after_turn(st, "pot" if action == "pot" else action, ev, rng)
     if not await _save(doc, st):
         return "stale", None, None
     doc["state"], doc["rev"] = st, doc["rev"] + 1
@@ -406,6 +442,12 @@ async def pve_settle(doc: dict):
             chain_win(uid) if plain else asyncio.sleep(0), mods_for(doc["loc"]), get_char(uid))
         if plain:  # Battle Rank: normal battles only
             out["br"] = br_res
+        if not d and not doc.get("trial"):  # open worlds: stronger foes pay more, far weaker ones pay little
+            from data_races import level_gap_k
+            gk = level_gap_k(doc["lvl"], (ch0 or {}).get("level", doc["lvl"]))
+            xp, coins = int(xp * gk), int(coins * gk)
+            if gk != 1.0:
+                out["gap_k"] = round(gk, 2)
         if plain:  # win chain: consecutive plain victories raise coin/XP rewards
             cn, cm, cdrop, cfull, cms = chain_res  # chain_win returns 5 values (the milestone was added; 4 broke every win)
             xp, coins = int(xp * cm), int(coins * cm)
@@ -416,6 +458,10 @@ async def pve_settle(doc: dict):
             xp, coins = int(xp * float(gs["gq_xp_k"]) * (1 + XP_BONUS_RANK * int(d["rank"]))), 0
             if d["stage"] == d["total"]:
                 xp = int(xp * float(gs["gq_final_xp_mult"]))
+        elif d and d.get("war"):  # battlefield: a normal fight's pay, more for officers, shadows and the general
+            from service_war import fight_k
+            kx, kc = fight_k(d)
+            xp, coins = int(xp * kx), int(coins * kc)
         elif d and d.get("lboss"):  # level boss: XP and coins x4, items from level_boss_loot
             xp, coins = int(xp * LEVEL_BOSS_REWARD), int(coins * LEVEL_BOSS_REWARD)
         elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
@@ -426,6 +472,20 @@ async def pve_settle(doc: dict):
             xp, coins = int(xp * MINI_BOSS_REWARD), int(coins * MINI_BOSS_REWARD)
         coins = int(coins * wm["coin"])
         coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
+        from service_fightfx import CHL_BONUS, CHL_CARD_CHANCE, result as fx_result
+        chl = fx_result(st, True)
+        if chl:
+            out["chl"] = chl
+            if chl["done"]:  # the fight's challenge was met: more pay, and maybe an ability card of the race
+                xp, coins = int(xp * (1 + CHL_BONUS)), int(coins * (1 + CHL_BONUS))
+                if random.random() < CHL_CARD_CHANCE:
+                    from data_items import race_cards
+                    pool = [c for c in race_cards(ch0.get("race"), random.choice(["Common", "Uncommon", "Rare"]))
+                            if c.startswith("ab")] or race_cards(ch0.get("race"), "Common")
+                    if pool:
+                        cid = random.choice(pool)
+                        await inv_add(uid, cid, 1, force=True)
+                        out["chl"]["card"] = cid
         ch, lv, got = await add_xp(uid, xp, "pve")
         # independent writes: run together instead of one after another
         await asyncio.gather(add_coins(uid, coins, "pve") if coins > 0 else asyncio.sleep(0),
@@ -460,6 +520,9 @@ async def pve_settle(doc: dict):
                                          "gauge": int((f.get("x") or {}).get("gauge", 0)),
                                          "shield": int(f.get("shield", 0))})  # a Bakudō barrier survives the stage change  # spirit carries over; HP and reiatsu are kept as fractions
             out["next"] = nxt["sid"]
+        elif d and d.get("war"):  # battlefield: war points for the player's side (not a dungeon clear)
+            from service_war import war_after_fight
+            out["war"] = await war_after_fight(uid, doc, True)
         elif d and d.get("lboss"):  # level boss down: not a dungeon clear
             from service_adventure import level_boss_loot
             out["lboss"] = await level_boss_loot(uid, int(d["band"]))
@@ -485,6 +548,12 @@ async def pve_settle(doc: dict):
         _bg(on_action(uid, "dungeon_clear" if out["dungeon_done"] else "elite_win" if doc["elite"] else "pve_win", doc["loc"]))
     else:
         await col("characters").update_one({"user_id": uid}, {"$inc": {"losses": 1}})
+        from service_fightfx import result as fx_result
+        if st.get("chl"):
+            out["chl"] = fx_result(st, False)
+        if (doc.get("dungeon") or {}).get("war"):  # a lost battlefield fight: an enemy shadow may score for its owner
+            from service_war import war_after_fight
+            out["war"] = await war_after_fight(uid, doc, False)
         if not doc.get("dungeon") and not doc.get("trial"):
             from service_battlerank import apply as br_apply
             out["br"] = await br_apply(uid, "loss")  # a loss costs more the higher the rank
@@ -608,8 +677,11 @@ async def pvp_act(uid: int, sid: str, action: str, forced: str = None):
     if st["cur"] != side or not st.get("awaiting"):
         return "notturn", None, None
     rng = random.Random()
-    ev = E.do_action(st, action, rng, int(gs["pvp_max_turns"]))
-    ev += E.run_ai(st, rng, int(gs["pvp_max_turns"]), ai_sides=())
+    mt = max(E.MAX_TURNS, int(gs["pvp_max_turns"]))  # a stored old value (30) would cut the long fights short
+    ev = E.do_action(st, action, rng, mt)
+    ev += E.run_ai(st, rng, mt, ai_sides=())
+    from service_fightfx import after_turn  # a narrator line now and then (duels have no challenge)
+    ev += after_turn(st, action, ev, rng, side=side)
     upd = {"deadline": int(time.time()) + int(gs["pvp_turn_seconds"]), f"timeouts.{side}": 0 if forced is None else doc["timeouts"][side] + 1}
     if not await _save(doc, st, upd):
         return "stale", None, None

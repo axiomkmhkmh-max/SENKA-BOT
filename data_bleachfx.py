@@ -55,8 +55,8 @@ RESOLVE = {"hp": 0.25, "heal": 0.03, "dmg": 1.06, "turns": 3}
 # can take the wheel: the turn is lost (the lg_mask_lost line), which is the price of the power.
 GAUGE = {
     "full": 100,
-    "deal": 9,          # gauge gained per hit you land
-    "take": 6,          # gauge gained per hit you take ...
+    "deal": 4,          # gauge gained per hit you land (was 9: fights are six times longer since HP x6)
+    "take": 3,          # gauge gained per hit you take ... (was 6)
     "take_share": 40,   # ... plus this many per 100% of your max HP the hit removed ...
     "take_cap": 12,     # ... capped at this bonus
     "cost": 0.10,       # reiatsu paid to unleash (share of max Reiatsu)

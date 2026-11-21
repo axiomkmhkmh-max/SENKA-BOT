@@ -164,10 +164,12 @@ async def swap_accessories_once() -> int:
 async def run_all() -> None:
     from service_racegear import migrate_armour_once
     from service_raceweapon import migrate_blades_once
+    from service_abilities import migrate_once as abilities_once
     for name, fn in (("evolution pin", pin_evolution_once), ("race weapons", migrate_blades_once),
                      ("race armour", migrate_armour_once), ("free stat reset", free_respec_once),
                      ("battle rank fair reset", battlerank_reset_once), ("bank credit reset", bank_credit_reset_once),
-                     ("materials merge", merge_materials_once), ("accessories swap", swap_accessories_once)):
+                     ("materials merge", merge_materials_once), ("accessories swap", swap_accessories_once),
+                     ("ability families + free stat reset", abilities_once)):
         try:
             log.info("%s: %s character(s) moved", name, await fn())
         except Exception:

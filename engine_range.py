@@ -53,8 +53,16 @@ def clamp(d: int) -> int:
     return max(ZONE_MIN, min(ZONE_MAX, d))
 
 
-def move_cost(f_max_re: int, move: str) -> int:
-    return int(f_max_re * MOVES[move]["cost"])
+HOHO_MOVE_DISCOUNT = (0.10, 100, 0.50)  # movement costs 10% less per 100 effective Hohō, at most 50% less
+
+
+def move_discount(hoho: float) -> float:
+    step, per, cap = HOHO_MOVE_DISCOUNT
+    return min(cap, step * max(0.0, float(hoho)) / per)
+
+
+def move_cost(f_max_re: int, move: str, hoho: float = 0.0) -> int:
+    return int(f_max_re * MOVES[move]["cost"] * (1 - move_discount(hoho)))
 
 
 def can_move(f: dict, move: str, dist: int) -> bool:
@@ -62,14 +70,14 @@ def can_move(f: dict, move: str, dist: int) -> bool:
     m = MOVES.get(move)
     if not m or dist <= 0:
         return False
-    return f["re"] >= f["max_re"] * m["cost"]
+    return f["re"] >= move_cost(f["max_re"], move, f.get("hoho_eff", 0.0))
 
 
 def apply_move(state: dict, side: str, move: str) -> dict:
     """Close the gap for `side` (toward the opponent). Returns the event dict."""
     f = state[side]
     m = MOVES[move]
-    f["re"] -= move_cost(f["max_re"], move)
+    f["re"] -= move_cost(f["max_re"], move, f.get("hoho_eff", 0.0))
     gap = get_dist(state)
     new = clamp(gap - m["zones"])
     gap_before = gap
@@ -90,7 +98,7 @@ def apply_knockback(state: dict, target_side: str, kind: str, dmg: int, max_hp: 
     base = KNOCKBACK.get(kind, 0)
     if base == 0:
         return 0
-    extra = 1 if dmg >= max_hp * 0.20 else 0
+    extra = 1 if dmg >= max_hp * 0.20 else 0  # max_hp here is the fighter's old-scale HP (engine passes max_hp / HP_MULT)
     push = base + extra
     state["dist"] = clamp(get_dist(state) + push)
     return push

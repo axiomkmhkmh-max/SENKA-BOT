@@ -233,7 +233,7 @@ class StandardKit(unittest.TestCase):
         rng = random.Random(5)
         wins = sum(1 for _ in range(300) if play_series(standard_fighter("A", 30, 20), standard_fighter("B", 30, 0), rng, 1)[0] == "a")
         self.assertGreater(wins, 150)
-        self.assertLess(wins, 260)  # an edge, not a guaranteed win
+        self.assertLess(wins, 290)  # an edge, not a guaranteed win (long fights since HP x6 let a small edge add up)
 
 
 class TrainingDuelKit(unittest.TestCase):

@@ -22,6 +22,8 @@ RACE_ABILITIES = {
     "bal": ("arrancar",),
     "neg": ("hollow",),
     "gar": ("hollow", "arrancar"),
+    "sk": SHINIGAMI_LIKE,   # Shikai (Shinigami) / Hollow Mask (Visored): the early state button (data_abilities)
+    "if": ("arrancar",),    # Iron Fist, only while Hierro holds
 }
 
 
@@ -42,14 +44,14 @@ def race_allows(race, action):
 # stat; balance_sim.allocation). Retuned again when every form (Shikai/Bankai, Resurrección...) moved behind the full
 # spirit gauge. PvP win rates: every race 48-51%. Against wild foes every race wins 77-96% (the strong
 # releases make players win far more often there than before the rework).
-RACE_CONTEXT_DMG = {
-    "shinigami": {"pvp": 1.4, "hollow": 1.4, "boss": 1.4, "pve": 1.4, "world_boss": 1.063},
-    "quincy": {"pvp": 0.869, "hollow": 0.798, "boss": 0.79, "pve": 0.799, "world_boss": 0.927},
-    "hollow": {"pvp": 0.737, "hollow": 0.6, "boss": 0.6, "pve": 0.6, "world_boss": 1.173},
-    "arrancar": {"pvp": 0.942, "hollow": 0.998, "boss": 1.005, "pve": 1.043, "world_boss": 1.073},
-    "fullbringer": {"pvp": 0.662, "hollow": 0.6, "boss": 0.6, "pve": 0.6, "world_boss": 0.878},
-    "human": {"pvp": 1.158, "hollow": 0.833, "boss": 0.945, "pve": 0.916, "world_boss": 1.026},
-    "visored": {"pvp": 1.4, "hollow": 1.4, "boss": 1.4, "pve": 1.4, "world_boss": 0.961},
+RACE_CONTEXT_DMG = {  # Nov 21 retune (HP x6, ability families, ratio dodge): balance_sim at levels 20/40/80, PvE ~35 turns for every race
+    "shinigami": {"pvp": 1.80, "hollow": 1.362, "boss": 1.362, "pve": 1.362, "world_boss": 1.063},
+    "quincy": {"pvp": 0.99, "hollow": 1.171, "boss": 1.157, "pve": 1.172, "world_boss": 0.927},
+    "hollow": {"pvp": 1.01, "hollow": 1.852, "boss": 1.852, "pve": 1.852, "world_boss": 1.173},
+    "arrancar": {"pvp": 1.115, "hollow": 1.184, "boss": 1.192, "pve": 1.237, "world_boss": 1.073},
+    "fullbringer": {"pvp": 0.715, "hollow": 0.761, "boss": 0.761, "pve": 0.761, "world_boss": 0.878},
+    "human": {"pvp": 1.145, "hollow": 1.362, "boss": 1.547, "pve": 1.499, "world_boss": 1.026},
+    "visored": {"pvp": 1.38, "hollow": 1.115, "boss": 1.115, "pve": 1.115, "world_boss": 0.961},
 }
 
 
