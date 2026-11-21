@@ -98,7 +98,7 @@ def apply_knockback(state: dict, target_side: str, kind: str, dmg: int, max_hp: 
     base = KNOCKBACK.get(kind, 0)
     if base == 0:
         return 0
-    extra = 1 if dmg >= max_hp * 0.20 else 0  # max_hp here is the fighter's old-scale HP (engine passes max_hp / HP_MULT)
+    extra = 1 if dmg >= max_hp * 0.20 else 0  # engine passes max_hp / HP_MULT
     push = base + extra
     state["dist"] = clamp(get_dist(state) + push)
     return push

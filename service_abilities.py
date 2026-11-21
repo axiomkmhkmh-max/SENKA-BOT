@@ -262,14 +262,14 @@ ABIL_NOTICE = {
           "هر دکمه‌ی ویژه‌ی نژادت حالا یک خانواده است با نوع‌های مختلف (مثلاً ۲۰ نوع سرو، شونپو، اوتسوسمی، سنکا...).\n"
           "• با کارت هر نوع، آن نوع باز می‌شود؛ کارت تکراری + سکه لِوِل خانواده را تا ۱۰ بالا می‌برد.\n"
           "• قبل از نبرد انتخاب کن هر دکمه کدام نوع را بزند.\n"
-          "• HP همه ۶ برابر شد و اکس‌پی فارم هم ۶ برابر: نبردها طولانی‌تر و حماسی‌تر.\n"
+          "• اثر هاکودا روی جان ۶ برابر شد (هر امتیاز ۶۰ جان) و همه‌ی ضربه‌ها ۲ برابر آسیب می‌زنند، به‌جز ضربه‌های باس‌ها؛ در عوض جان باس‌ها خیلی بیشتر شده. اکس‌پی فارم هم ۶ برابر شد.\n"
           "• هوهوی بیشتر = جاخالی بیشتر؛ حالت جانبی رایگان شد (هوهو ×۲، آسیب نصف).\n\n"
           "📊 همه‌ی امتیازهای استتت هم یک بار رایگان برگشت؛ دوباره پخششان کن.",
     "en": "⚔️ <b>The ability panel is open!</b>\n\n"
           "Every special button of your race is now a family with many types (20 Ceros, Shunpo, Utsusemi, Senka...).\n"
           "• A type's card opens it; duplicate cards + coins raise the family up to level 10.\n"
           "• Before a fight, pick which type each button fires.\n"
-          "• Everyone's HP is x6 and farm XP is x6 too: longer, more epic fights.\n"
+          "• Hakuda's effect on HP is x6 (60 HP a point) and every blow deals x2 damage, except a boss's own; bosses have far more HP instead. Farm XP is x6 too.\n"
           "• More Hohō = more dodging; the side stance is free now (Hohō x2, half damage).\n\n"
           "📊 All your stat points came back once, for free: spend them again.",
 }

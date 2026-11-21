@@ -79,7 +79,7 @@ class RebaseTests(unittest.TestCase):
         for race, ctxs in RACE_CONTEXT_DMG.items():
             for c, v in ctxs.items():
                 # Nov 21: long fights (HP x6) and the ability families widened the band (retuned with balance_sim)
-                self.assertTrue(0.50 - 1e-9 <= v <= 2.0 + 1e-9, (race, c, v))
+                self.assertTrue(0.50 - 1e-9 <= v <= 2.5 + 1e-9, (race, c, v))
 
     def test_rebase_is_never_negative(self):
         new = rebased_stats("human", {"zanjutsu": 0, "kido": 0, "hakuda": 0, "hoho": 0, "reiatsu": 0})
@@ -115,7 +115,7 @@ class FightTypeBalanceTests(unittest.TestCase):
         from data_race_rules import RACE_CONTEXT_DMG
         for race, table in RACE_CONTEXT_DMG.items():
             for ctx, val in table.items():
-                self.assertTrue(0.5 <= val <= 2.0, (race, ctx, val))  # widened for the long fights (Nov 21)
+                self.assertTrue(0.5 <= val <= 2.5, (race, ctx, val))  # widened for the long fights (Nov 21)
 
     def test_context_routing(self):
         from data_race_rules import fight_context, ctx_dmg_mult

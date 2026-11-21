@@ -11,10 +11,20 @@ FORMS = {  # race -> (form1 fa/en, form2 fa/en)
 FORM1 = (1.5, 6, 0, 0.20)
 FORM2 = {"default": (3.0, 5, 3, 0.30)}  # the same for every race: it now comes only with the full spirit gauge (engine "gx")
 FORM1_LEVEL, FORM2_LEVEL = 10, 30
-# Long fights (Nov 21): every fighter has 6x the HP it had (players, NPCs, bosses) and PvE pays 6x the XP. Heals, shields,
-# regen and damage-over-time that repeat during a fight are measured on the old HP (max_hp / HP_MULT), so they keep their
-# old size per use and do not stall a fight that is now six times longer.
-HP_MULT = 6
+# HP and damage (Nov 21, second pass). Not every HP is x6: only Hakuda's share is (60 HP a point, was 10). Enemies have
+# no stat points, so their Hakuda gives ENEMY_HAKUDA_HP a point (they carry about twice a player's Hakuda), which keeps them
+# in step with the players. Every blow deals DMG_MULT times its damage, except a boss's own blows (BOSS_FOES). A boss
+# already has about 3.5x its old HP (its Hakuda x HP_MULT); BOSS_HP_MULT adds more on top (the world boss: WORLD_BOSS_HP_MULT).
+# HP_MULT: every fighter's HP (players, NPCs, bosses) is x HP_MULT so a normal fight lasts about 15-25 turns with the x2
+# damage; heals, shields, regen and damage-over-time that repeat are measured on max_hp / HP_MULT (engine._hb), so they do
+# not grow with it and the longer fight does not stall.
+HP_MULT = 1.5
+HAKUDA_HP = 60
+ENEMY_HAKUDA_HP = 65
+DMG_MULT = 2.0
+BOSS_FOES = ("boss", "world_boss")
+BOSS_HP_MULT = 1.0
+WORLD_BOSS_HP_MULT = 3
 FARM_XP_MULT = 6
 MASK_RAGE = 0.12  # per-turn chance a Visored loses control of an active Hollow Mask (lose that action)
 # Bankai-level special effect per weapon type: (effect, power)

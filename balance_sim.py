@@ -14,8 +14,8 @@ RACE_LIST = ["shinigami", "quincy", "hollow", "arrancar", "fullbringer", "human"
 ENEMY_K = {"s": 1.6, "d": 1.2, "h0": 60, "h1": 30, "a": 2.6, "ar": 0.9}
 
 def max_hp(level, hakuda, mult=1.0):  # same as service_player.max_hp (HP x6 since Nov 21)
-    from data_misc import HP_MULT
-    return int((100 + level * 20 + hakuda * 10) * mult * HP_MULT)
+    from data_misc import HAKUDA_HP, HP_MULT
+    return int((100 + level * 20 + hakuda * HAKUDA_HP) * mult * HP_MULT)
 
 def max_reiatsu(level, reiatsu):
     return int(50 + level * 15 + reiatsu * 15)
@@ -113,10 +113,14 @@ def foe(scale, hollow):
     s = (4 + lvl * k["s"]) * scale
     stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + lvl * k["d"]) * scale, "hoho": 6 + lvl * 0.5, "reiatsu": 5 + lvl}
     w = {"attack": (3 + lvl * k["a"]) * scale, "crit": 0.03, "element": "light", "skills": [], "weapon_type": "melee"}
-    from data_misc import HP_MULT
-    f = E.new_fighter("hollow" if hollow else "boss", lvl, stats, (k["h0"] + lvl * k["h1"]) * scale * HP_MULT, 80 + lvl * 10, w,
+    from data_misc import ENEMY_HAKUDA_HP, HP_MULT
+    hp = (k["h0"] + lvl * k["h1"] + stats["hakuda"] / max(0.01, scale) * ENEMY_HAKUDA_HP) * scale * HP_MULT  # as service_combat.make_enemy
+    f = E.new_fighter("hollow" if hollow else "boss", lvl, stats, hp, 80 + lvl * 10, w,
                       armor=lvl * k["ar"] * scale, ai=True, sig=("cero" if hollow else None))
     f["foe"] = "hollow" if hollow else ("boss" if scale > 0.91 else "pve")
+    if f["foe"] == "boss":  # same as service_combat.pve_start
+        from data_misc import BOSS_HP_MULT
+        f["max_hp"] = f["hp"] = int(f["max_hp"] * BOSS_HP_MULT)
     f["wild"] = True
     return f
 

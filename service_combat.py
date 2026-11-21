@@ -198,8 +198,10 @@ def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
     s = (4 + level * k["s"]) * scale
     stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + level * k["d"]) * scale, "hoho": 6 + level * 0.5, "reiatsu": 5 + level}
     w = {"attack": (3 + level * k["a"]) * scale, "crit": 0.03, "element": rng.choice(ELEMENTS), "skills": [], "weapon_type": "melee"}
-    from data_misc import HP_MULT
-    foe = E.new_fighter(name, level, stats, (k["h0"] + level * k["h1"]) * scale * HP_MULT, 80 + level * 10, w,
+    from data_misc import ENEMY_HAKUDA_HP, HP_MULT
+    # their Hakuda gives them HP too (Nov 21: Hakuda's effect on HP is x6 for players; enemies carry about twice the Hakuda)
+    foe = E.new_fighter(name, level, stats, (k["h0"] + level * k["h1"] + (4 + level * k["d"]) * ENEMY_HAKUDA_HP) * scale * HP_MULT,
+                        80 + level * 10, w,
                         armor=level * k["ar"] * scale, ai=True, sig=sig)
     foe["wild"] = True  # wild enemies never release (every player race can, since the release rework)
     return foe
@@ -207,7 +209,7 @@ def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
 
 def _rewards(level: int, scale: float, st: dict):
     from data_misc import FARM_XP_MULT
-    # fights are long now (HP x6), so a win pays FARM_XP_MULT times the XP; coins stay as they were
+    # a win pays FARM_XP_MULT times the XP (Nov 21); coins stay as they were
     xp = (20 * level ** 1.25 + 20) * (scale if scale > 1 else 1.0) * FARM_XP_MULT
     # coins grow faster than the level (more than linear), so higher levels earn clearly more per fight:
     # Lv1 ≈ 20, Lv10 ≈ 97, Lv30 ≈ 297, Lv50 ≈ 537, Lv80 ≈ 972, Lv100 ≈ 1312 (was 16 / 70 / 190 / 310 / 490 / 610)
@@ -350,6 +352,9 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         foe["foe"] = "boss"
     else:  # every other wild enemy
         foe["foe"] = "pve"
+    if foe["foe"] == "boss":  # a boss hits with its old power but has far more HP (damage is x2 for everyone else)
+        from data_misc import BOSS_HP_MULT
+        foe["max_hp"] = foe["hp"] = int(foe["max_hp"] * BOSS_HP_MULT)
     if fixed_dg or (dungeon and not war and not tower and not dungeon.get("gq") and not dungeon.get("lboss")):
         # dungeon foes are slow (Nov 21): the boss of the last stage has 60% less Hohō, its guards 30% less, so a
         # high-level dungeon is not a wall of dodged blows and fast counter-hits

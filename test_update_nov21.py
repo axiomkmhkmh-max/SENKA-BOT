@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import data_abilities as AB
 import engine as E
-from data_misc import HP_MULT
+from data_misc import DMG_MULT, HAKUDA_HP, HP_MULT
 from data_narration import FA, TOTAL_FA
 from data_races import band_mark, level_gap_k, loc_band, soft_stat, TOP_LOC
 
@@ -27,11 +27,20 @@ class Numbers(unittest.TestCase):
         self.assertAlmostEqual(soft_stat(300), 150 + 150 * 0.85)
         self.assertAlmostEqual(soft_stat(700), 150 + 127.5 + 180 + 40)
 
-    def test_hp_x6_and_old_scale_regen(self):
+    def test_hakuda_hp_x6(self):
         from service_player import max_hp
-        self.assertEqual(max_hp(10, 10), (100 + 200 + 100) * HP_MULT)
-        f = _f("A")
-        self.assertEqual(E._hb(f), 6000 / HP_MULT)
+        self.assertEqual(HAKUDA_HP, 60)
+        self.assertEqual(max_hp(10, 10), int((100 + 200 + 600) * HP_MULT))  # Hakuda's share is x6, then all HP x HP_MULT
+        self.assertEqual(E._hb(_f("A")), 6000 / HP_MULT)
+
+    def test_damage_x2_except_a_boss_own_blows(self):
+        a, b = _f("A"), _f("B")
+        E.new_state(a, b, random.Random(1))
+        self.assertEqual((a["dmgx"], b["dmgx"]), (DMG_MULT, DMG_MULT))
+        p, boss = _f("P"), _f("Boss")
+        boss["foe"] = "boss"
+        E.new_state(p, boss, random.Random(1))
+        self.assertEqual((p["dmgx"], boss["dmgx"]), (DMG_MULT, 1.0))  # the player still hits x2, the boss does not
 
     def test_ratio_dodge(self):
         a, b = _f("A", hoho=50), _f("B", hoho=100)

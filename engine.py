@@ -5,7 +5,7 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
 from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, FULLBRING_LOW, HEAVY_REIATSU, TECH_SLOTS, tech_of
@@ -36,8 +36,7 @@ BAKUDO_SHIELD = 3.0    # Bakudō barriers are three times as thick (Nov 21)
 
 
 def _hb(f) -> float:
-    """The fighter's HP on the old scale (before every HP became x HP_MULT): repeating heals, shields, regen and DoT
-    are measured on it, so each use keeps its old size in a fight that is now HP_MULT times longer."""
+    """The HP that repeating heals, shields, regen and DoT are measured on (max_hp / HP_MULT; HP_MULT is 1 now)."""
     return f["max_hp"] / HP_MULT
 
 
@@ -151,7 +150,7 @@ def _foe_mult(att, dfn):
 
 
 def _dmg_mult(att):
-    m = att["mods"].get("dmg", 1.0)
+    m = att["mods"].get("dmg", 1.0) * att.get("dmgx", 1.0)  # x DMG_MULT outside boss fights (set by new_state)
     if att["form"]["fat"] > 0:
         m *= 0.6
     if has_fx(att, "fear"):
@@ -1355,6 +1354,8 @@ def _ai_core(state, side, rng):
 
 def new_state(a, b, rng, pvp=False):
     intro = []
+    for x in (a, b):  # every blow x2 (Nov 21), except a boss's own (bosses have more HP instead, see BOSS_HP_MULT)
+        x["dmgx"] = 1.0 if x.get("foe") in BOSS_FOES else DMG_MULT
     if pvp:  # duels give both fighters their Konpaku lives (SENKA+)
         a["lives"] = b["lives"] = KONPAKU["lives"]
     for x, y in ((a, b), (b, a)):  # spiritual pressure

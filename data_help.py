@@ -13,7 +13,7 @@ STATS_TOPIC = {
         "🔮 <b>کیدو</b> — قدرت جادوهای کیدو.\n"
         "آسیب هادو و قدرت باکودو را بالا می‌برد. برای <b>شینیگامی</b> ۷۰٪ قدرت همه‌ی ابیلیتی‌ها (شونپو، گتسوگا، تکنیک زانپاکتو، ضربه‌ی بانکای) از کیدو است.\n\n"
         "🛡️ <b>هاکودا</b> — بدنه و دفاع.\n"
-        "جون بیشینه را بالا می‌برد (هر امتیاز ۱۰ جون، ×۶ از آپدیت جدید) و آسیب دریافتی را کم می‌کند. برای <b>هالو</b> ۷۰٪ قدرت ابیلیتی‌ها، سپرها و درمان‌ها از هاکوداست.\n\n"
+        "جون بیشینه را بالا می‌برد (هر امتیاز ۶۰ جون؛ از آپدیت جدید اثرش ۶ برابر شد) و آسیب دریافتی را کم می‌کند. برای <b>هالو</b> ۷۰٪ قدرت ابیلیتی‌ها، سپرها و درمان‌ها از هاکوداست.\n\n"
         "💨 <b>هوهو</b> — سرعت و چابکی.\n"
         "جاخالی را به نسبت سرعت دو طرف بالا می‌برد (۵٪ + ۲۵٪ × (هوهوی مدافع ÷ هوهوی مهاجم − ۱)، تا ۶۰٪)، کمی ضربه‌ی کاری، نوبت اول و حرکت ارزان‌تر (هر ۱۰۰ هوهو ۱۰٪، تا ۵۰٪). برای <b>آرانکار</b> ۷۰٪ قدرت ابیلیتی‌ها و تقویت‌ها از هوهوست.\n\n"
         "✨ <b>ریاتسو</b> — منبع انرژی معنوی.\n"
@@ -35,7 +35,7 @@ STATS_TOPIC = {
         "🔮 <b>Kidō</b> — spell power.\n"
         "Raises Hadō damage and Bakudō strength. For a <b>Shinigami</b>, 70% of every ability (Shunpo, Getsuga, Zanpakutō technique, Bankai strike) comes from Kidō.\n\n"
         "🛡️ <b>Hakuda</b> — body and defence.\n"
-        "Raises max HP (10 per point, then x6 since the long-fight update) and cuts the damage you take. For a <b>Hollow</b>, 70% of abilities, shields and heals comes from Hakuda.\n\n"
+        "Raises max HP (60 per point: its effect is x6 since the Nov 21 update) and cuts the damage you take. For a <b>Hollow</b>, 70% of abilities, shields and heals comes from Hakuda.\n\n"
         "💨 <b>Hoho</b> — speed and agility.\n"
         "Raises dodge by the ratio of the two speeds (5% + 25% x (defender Hohō / attacker Hohō - 1), up to 60%), a little crit, the first turn, and cheaper movement (10% per 100 Hohō, up to 50%). For an <b>Arrancar</b>, 70% of abilities and buffs comes from Hoho.\n\n"
         "✨ <b>Reiatsu</b> — spiritual energy.\n"
@@ -57,7 +57,7 @@ def _t(fa, en):
 
 
 TOPICS = {
-    "fam": ("⚔️ توانایی‌ها، نوع‌ها و نبرد طولانی", "⚔️ Ability types and long fights", _t(
+    "fam": ("⚔️ توانایی‌ها، نوع‌ها و نبرد جدید", "⚔️ Ability types and the new fights", _t(
         "⚔️ <b>پنل توانایی‌ها</b>\n━━━━━━━━━━━━━━\n"
         "هر دکمه‌ی ویژه‌ی نژادت یک <b>خانواده</b> است با نوع‌های مختلف؛ مثلاً ۲۰ نوع سرو، یا شونپو / اوتسوسمی / سنکا / شونکو. "
         "نوع‌ها رتبه ندارند: رنگ کارت فقط کمیابی است، هر نوع کار خودش را می‌کند.\n"
@@ -69,7 +69,7 @@ TOPICS = {
         "• هر توانایی استت خودش را دارد و پنل آن را با مقدار استت تو نشان می‌دهد (مثلاً سرو = ریاتسو، هیرو = هاکودا، شونپو = ۷۰٪ هوهو + ۳۰٪ زنجوتسو).\n\n"
         "🔐 <b>حالت‌ها:</b> بعضی نوع‌ها فقط وقتی دیده می‌شوند که حالتی فعال باشد: گتسوگا بعد از <b>شیکای</b> (دکمه‌ی جدا از لِوِل ۱۰، یک نوبت و ۱۵٪ ریاتسو، تا آخر نبرد)، "
         "گتسوگای سیاه و موگتسو با بانکای، سرو و ماسک ویزورد با <b>ماسک هالو</b>، ضربه‌ی آهنین و بالای بی‌کول‌داون با هیرو، لانسا با رسورکسیون، اشپرنگر و هایزن با بلوت آرتری...\n\n"
-        "⏳ <b>نبرد طولانی:</b> جان همه ۶ برابر شد و اکس‌پی فارم هم ۶ برابر. بازسازی‌ها و درمان‌های تکراری با جان قدیمی حساب می‌شوند تا نبرد گیر نکند. سقف نبرد ۲۰۰ نوبت.\n"
+        "❤️ <b>جان و آسیب:</b> اثر هاکودا روی جان ۶ برابر شد (هر امتیاز ۶۰ جان) و دشمن‌ها هم به همان نسبت جان بیشتری دارند. همه‌ی ضربه‌ها ۲ برابر آسیب می‌زنند، به‌جز ضربه‌های خود باس‌ها؛ در عوض جان باس‌ها خیلی بیشتر شده. یک نبرد معمولی حدود ۱۵ تا ۲۵ نوبت طول می‌کشد. اکس‌پی فارم ۶ برابر شد.\n"
         "↔️ <b>حالت جانبی:</b> رایگان (نوبت نمی‌گیرد)، هر نوبت یک بار، ۳٪ ریاتسو: هوهو ×۲ و آسیب خودت ×۰٫۵.\n"
         "🌍 <b>دنیاها:</b> همه باز هستند و هر کدام سطح دشمن خودش را دارد (🟢 آسان، 🟡 چالش، 🔴 خطرناک). دشمن قوی‌تر جایزه‌ی بیشتر (تا +۶۰٪)، دشمن خیلی ضعیف‌تر کمتر.\n"
         "🎯 <b>چالش هر نبرد:</b> هر نبرد معمولی یک چالش تصادفی دارد؛ انجامش بدهی +۲۵٪ اکس‌پی و سکه و شانس کارت توانایی.",
@@ -84,7 +84,7 @@ TOPICS = {
         "• Every ability has its own stat, shown in the panel with your value (Cero = Reiatsu, Hierro = Hakuda, Shunpo = 70% Hohō + 30% Zanjutsu).\n\n"
         "🔐 <b>States:</b> some types show only while a state holds: Getsuga after <b>Shikai</b> (its own button from level 10, one turn and 15% reiatsu, for the whole fight), "
         "Black Getsuga and Mugetsu with Bankai, the Visored Cero and Mask with the <b>Hollow Mask</b>, Iron Fist and cooldown-free Bala with Hierro, Lanza with Resurrección...\n\n"
-        "⏳ <b>Long fights:</b> everyone's HP is x6 and farm XP is x6. Repeating heals and regen count on the old HP so fights do not stall. Turn cap 200.\n"
+        "❤️ <b>HP and damage:</b> Hakuda's effect on HP is x6 (60 HP a point) and enemies have more HP to match. Every blow deals x2 damage, except a boss's own blows; bosses have far more HP instead. A normal fight lasts about 15-25 turns. Farm XP is x6.\n"
         "↔️ <b>Side stance:</b> free (no turn), once a turn, 3% reiatsu: Hohō x2, your damage x0.5.\n"
         "🌍 <b>Worlds:</b> all open, each with its own enemy levels (🟢 easy, 🟡 a challenge, 🔴 dangerous). Stronger foes pay more (up to +60%), far weaker ones less.\n"
         "🎯 <b>Fight challenge:</b> every normal fight has a random challenge; meet it for +25% XP and coins and a chance of an ability card.")),

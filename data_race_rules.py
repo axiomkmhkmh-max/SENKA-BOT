@@ -44,14 +44,14 @@ def race_allows(race, action):
 # stat; balance_sim.allocation). Retuned again when every form (Shikai/Bankai, Resurrección...) moved behind the full
 # spirit gauge. PvP win rates: every race 48-51%. Against wild foes every race wins 77-96% (the strong
 # releases make players win far more often there than before the rework).
-RACE_CONTEXT_DMG = {  # Nov 21 retune (HP x6, ability families, ratio dodge): balance_sim at levels 20/40/80, PvE ~35 turns for every race
-    "shinigami": {"pvp": 1.80, "hollow": 1.362, "boss": 1.362, "pve": 1.362, "world_boss": 1.063},
-    "quincy": {"pvp": 0.99, "hollow": 1.171, "boss": 1.157, "pve": 1.172, "world_boss": 0.927},
-    "hollow": {"pvp": 1.01, "hollow": 1.852, "boss": 1.852, "pve": 1.852, "world_boss": 1.173},
-    "arrancar": {"pvp": 1.115, "hollow": 1.184, "boss": 1.192, "pve": 1.237, "world_boss": 1.073},
-    "fullbringer": {"pvp": 0.715, "hollow": 0.761, "boss": 0.761, "pve": 0.761, "world_boss": 0.878},
-    "human": {"pvp": 1.145, "hollow": 1.362, "boss": 1.547, "pve": 1.499, "world_boss": 1.026},
-    "visored": {"pvp": 1.38, "hollow": 1.115, "boss": 1.115, "pve": 1.115, "world_boss": 0.961},
+RACE_CONTEXT_DMG = {  # Nov 21 retune (Hakuda HP x6, all HP x1.5, damage x2 except a boss's own, ability families): balance_sim 20/40/80
+    "shinigami": {"pvp": 2.2, "hollow": 1.183, "boss": 1.183, "pve": 1.183, "world_boss": 1.063},
+    "quincy": {"pvp": 0.937, "hollow": 0.832, "boss": 0.822, "pve": 0.833, "world_boss": 0.927},
+    "hollow": {"pvp": 0.81, "hollow": 1.586, "boss": 1.586, "pve": 1.586, "world_boss": 1.173},
+    "arrancar": {"pvp": 1.115, "hollow": 1.054, "boss": 1.06, "pve": 1.101, "world_boss": 1.073},
+    "fullbringer": {"pvp": 0.647, "hollow": 0.632, "boss": 0.632, "pve": 0.632, "world_boss": 0.878},
+    "human": {"pvp": 1.086, "hollow": 1.1, "boss": 1.25, "pve": 1.212, "world_boss": 1.026},
+    "visored": {"pvp": 1.841, "hollow": 1.056, "boss": 1.056, "pve": 1.056, "world_boss": 0.961},
 }
 
 

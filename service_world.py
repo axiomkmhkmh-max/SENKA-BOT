@@ -61,7 +61,8 @@ async def spawn_boss(chat_id: int = None, boss_id: str = None):
         levels = await active_levels()
         b = BOSS_BY_ID.get(boss_id) if boss_id else pick_boss(levels)
         online = max(1, await online_players(int(st["boss_online_minutes"])))
-        hp = max(1, boss_hp_roll(online, st, random))
+        from data_misc import WORLD_BOSS_HP_MULT
+        hp = max(1, boss_hp_roll(online, st, random) * WORLD_BOSS_HP_MULT)  # players hit x2 now (Nov 21): far more HP
         scale = online
         now = int(time.time())
         doc = {"_id": sid, "scope": "global", "boss_id": b["_id"], "name_fa": b["name_fa"], "name_en": b["name_en"], "level": b["level"],
@@ -118,6 +119,8 @@ async def boss_hit(uid: int, sid: str):
     boss = E.new_fighter("Boss", b["level"], {"zanjutsu": 1, "kido": 1, "hakuda": b["defense"] * 2, "hoho": 1, "reiatsu": 1}, 10 ** 9, 100,
                          {"attack": 1, "element": ELEMENTS[sum(map(ord, b["_id"])) % 8], "skills": [], "weapon_type": "melee"}, armor=0)
     boss["foe"] = "world_boss"  # race balance by fight type (data_race_rules)
+    from data_misc import DMG_MULT
+    player["dmgx"] = DMG_MULT  # players hit x2 everywhere (Nov 21); the world boss has WORLD_BOSS_HP_MULT x HP instead
     state = {"a": player, "b": boss, "turn": 1, "cur": "a", "first": "a", "done": False, "winner": None}
     ev = []
     if ch.get("boss_style") == "kido" and E.can(player, "kd"):
