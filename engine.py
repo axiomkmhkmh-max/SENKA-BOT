@@ -1406,15 +1406,21 @@ def hp_bar(cur, mx, n=10):
     return "█" * k + "░" * (n - k)
 
 
+POTION_DEF_TURNS = 3   # a defense potion drunk mid-fight guards for this many of the drinker's turns
+
+
 def do_potion(state, kind, pct, max_turns=MAX_TURNS):
     f = state[state["cur"]]
     if kind == "hp":
         n = int(f["max_hp"] * pct / 100)
         f["hp"] = min(f["max_hp"], f["hp"] + n)
+    elif kind == "def":  # defense potion: pct is a share (0.05 = +5% defence), kept as a timed buff in x["bf"]
+        n = int(round(pct * 100))
+        add_bf(f, {"def": float(pct), "t": POTION_DEF_TURNS}, state["cur"], tag="potion_def")
     else:
         n = int(f["max_re"] * pct / 100)
         f["re"] = min(f["max_re"], f["re"] + n)
-    ev = [{"k": "potion", "a": f["name"], "n": n, "kind": kind}]
+    ev = [{"k": "potion", "a": f["name"], "n": n, "kind": kind if kind in ("hp", "def") else "re"}]  # log keys: lg_potion_hp / _def / _re
     advance(state, max_turns)
     state["last"] = ev
     return ev

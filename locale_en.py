@@ -83,7 +83,7 @@ TEXT = {
  "lg_crit": "✨ Decisive blow", "lg_absorbed": "(🛡 absorbed {n})", "lg_fx": "{a} afflicts {d}: {fx}", "lg_dot": "{d} suffers {n} ({fx})", "lg_miss": "🌫️ {a}'s blade cuts only air", "lg_dodge": "💨 {d} slips past {a}'s strike with hohō",
  "lg_heal": "💚 {a} catches a breath: +{n} HP", "lg_drain": "🌀 {a} steals {n} reiatsu from {d}", "lg_reflect": "🪞 {a} turns the blow back: {n}", "lg_double": "⚡ {a} strikes again, before you can even see!", "lg_skip": "⏸️ {a} loses the turn",
  "lg_guard": "🧱 {a} stands firm, wrapping reiatsu around themself", "lg_form_end": "💤 {a}'s released power fades", "lg_shield": "🛡️ {a} weaves Bakudō {num} {spell} ({n})", "lg_form1": "✨ {a}: reiatsu surges, the blade awakens!", "lg_form2": "🌟 {a} unleashes the final form — the air itself cracks!",
- "lg_potion_hp": "🧪 {a} heals {n} HP", "lg_potion_re": "🧪 {a} restores {n} reiatsu",
+ "lg_potion_hp": "🧪 {a} heals {n} HP", "lg_potion_re": "🧪 {a} restores {n} reiatsu", "lg_potion_def": "🧪 {a} gains +{n}% defence",
  # duel
  "duel_title": "Duel", "duel_ranked": "Ranked", "duel_friendly": "Friendly", "duel_invite": "🥊 <b>{a}</b> challenges <b>{b}</b> to a {mode} duel! Blades are drawn.", "duel_turn": "▶️ {name}'s turn",
  "duel_win": "🏆 <b>{name}</b> wins the duel!", "duel_draw": "🤝 A draw; neither blade took the lead.", "duel_declined": "Duel declined; the blades stay sheathed.", "duel_gone": "This duel is no longer available.", "duel_notplayer": "You are not in this duel.",

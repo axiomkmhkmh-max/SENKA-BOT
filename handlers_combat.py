@@ -193,14 +193,25 @@ def _kido_act(act):
     return None
 
 
+def battle_potion(iid):
+    """(kind, pct) if the item can be drunk mid-fight, else None. kind: hp (heal %), reiatsu (restore %), def (defence share)."""
+    it = ALL.get(iid) or {}
+    e = it.get("effect") or {}
+    if e.get("type") in ("hp", "reiatsu"):
+        return e["type"], e["pct"]
+    if it.get("category") == "potion" and e.get("type") == "buff" and e.get("stat") == "def":
+        return "def", e["pct"]
+    return None
+
+
+def _potion_rank(iid):
+    kind, pct = battle_potion(iid)
+    return ({"hp": 0, "reiatsu": 1, "def": 2}[kind], -pct)
+
+
 async def _has_potion(uid):
     inv = await inv_get(uid)
-    best = None
-    for i, q in inv["items"].items():
-        e = (ALL.get(i) or {}).get("effect")
-        if q > 0 and e and e["type"] == "hp" and (best is None or e["pct"] > ALL[best]["effect"]["pct"]):
-            best = i
-    return best
+    return next((i for i, q in inv["items"].items() if q > 0 and battle_potion(i)), None)
 
 
 def _tower_leave_row(ctx):
@@ -419,12 +430,17 @@ async def _potion_picker(ctx, sid: str):
     """The Potion button no longer drinks the strongest potion by itself: it lists every healing potion in the bag
     so the player picks which one to use (with its heal %)."""
     inv = await inv_get(ctx.uid)
-    pots = [(i, q) for i, q in inv["items"].items() if q > 0 and ((ALL.get(i) or {}).get("effect") or {}).get("type") == "hp"]
-    pots.sort(key=lambda x: -ALL[x[0]]["effect"]["pct"])
+    pots = [(i, q) for i, q in inv["items"].items() if q > 0 and battle_potion(i)]
+    pots.sort(key=lambda x: _potion_rank(x[0]))
     fa = ctx.lang == "fa"
     if not pots:
         return Out(alert=ctx.t("bt_no_potion"))
-    rows = [[(f"{nm(i, ctx.lang)} ×{q} · +{ALL[i]['effect']['pct']}%", "ba", f"{sid}.pot:{i}")] for i, q in pots]
+    def _what(i):
+        kind, pct = battle_potion(i)
+        if kind == "def":
+            return f"+{round(pct * 100):g}% " + (f"دفاع ({fnum(E.POTION_DEF_TURNS, ctx.lang)} نوبت)" if fa else f"defence ({E.POTION_DEF_TURNS} turns)")
+        return f"+{pct}% " + (("جان" if fa else "HP") if kind == "hp" else ("ریاتسو" if fa else "Reiatsu"))
+    rows = [[(f"{nm(i, ctx.lang)} ×{q} · {_what(i)}", "ba", f"{sid}.pot:{i}")] for i, q in pots]
     rows.append([("⬅️ برگشت" if fa else "⬅️ Back", "ba", f"{sid}.potb")])
     return Out(("🧪 کدام معجون را بخوری؟" if fa else "🧪 Which potion do you drink?"), rows)
 
@@ -451,9 +467,10 @@ async def battle_action(ctx, arg):
         return Out(battle_text(ctx.lang, st, [], head(ctx, "ttl_bt")) + "\n\n" + text, rows)
     if act.startswith("pot:"):
         iid = act[4:]
-        if ((ALL.get(iid) or {}).get("effect") or {}).get("type") != "hp" or not await inv_remove(ctx.uid, iid, 1):
+        bp = battle_potion(iid)
+        if not bp or not await inv_remove(ctx.uid, iid, 1):
             return Out(alert=ctx.t("bt_no_potion"))
-        potion = {"type": "hp", "pct": ALL[iid]["effect"]["pct"], "id": iid}
+        potion = {"type": bp[0], "pct": bp[1], "id": iid}
         act = "pot"
     status, doc, data = await pve_act(ctx.uid, sid, act, potion)
     if status != "ok":
