@@ -123,7 +123,7 @@ async def boss_hit(uid: int, sid: str):
     player["dmgx"] = DMG_MULT  # players hit x2 everywhere (Nov 21); the world boss has WORLD_BOSS_HP_MULT x HP instead
     state = {"a": player, "b": boss, "turn": 1, "cur": "a", "first": "a", "done": False, "winner": None}
     ev = []
-    if ch.get("boss_style") == "kido" and E.can(player, "kd"):
+    if ch.get("boss_style") == "kido" and E.ready_hado(player):
         # the player chose a Hadō strike for bosses: the spell replaces the blade for this hit (costs reiatsu)
         ev = E._do_action(state, "kd", rng)
     else:
@@ -132,6 +132,11 @@ async def boss_hit(uid: int, sid: str):
     crit = any(e.get("c") for e in ev if e["k"] == "hit")
     if dmg <= 0:
         return "miss", 0
+    # which spell really struck (None = a blade hit): the battle cry must name it, not the race's Mask / Getsuga line
+    kd_ev = next((e for e in ev if e.get("num") is not None and e.get("spell") is not None), None)  # (a reflect may follow the hit)
+    kido_hit = any(e.get("k") == "hit" and e.get("kind") == "hado" for e in ev)
+    kido_num = int(kd_ev["num"]) if (kido_hit and kd_ev) else 0
+    kido_spell = str(kd_ev.get("spell") or "") if (kido_hit and kd_ev) else ""
     # signature mechanics (the trait is chosen per boss in data_bosses)
     mult = 1.0
     if trait == "armor":
@@ -173,7 +178,7 @@ async def boss_hit(uid: int, sid: str):
     await bump_quest(uid, "boss_hit", 1)
     from service_worldstate import on_action_bg
     on_action_bg(uid, "boss_hit", ch["location"])
-    return "hit", {"dmg": dmg, "crit": crit, "doc": doc, "combo": combo, "special": special, "phase_up": phase_up, "race": ch["race"], "burst": burst and doc["hp"] > 0, "reduced": reduced}
+    return "hit", {"dmg": dmg, "crit": crit, "doc": doc, "combo": combo, "special": special, "phase_up": phase_up, "race": ch["race"], "burst": burst and doc["hp"] > 0, "reduced": reduced, "kido": kido_num, "spell": kido_spell}
 
 
 async def claim_burst_announce(sid: str, gap: int) -> bool:

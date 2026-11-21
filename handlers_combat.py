@@ -732,6 +732,12 @@ CALLS = {"shinigami": (["گتسوگا تنشو!", "بانکای!", "شیکای: 
          "visored": (["ماسک هالو!", "سرو ویزورد!"], ["Hollow Mask!", "Visored Cero!"])}
 
 
+def _kido_call(lang, num, spell):
+    """Battle cry of a Hadō strike: its own name, never the race's Mask / Getsuga line."""
+    name = f"{spell} " if spell else ""
+    return f" {name}" + (f"هادو {fnum(num, lang)}!" if lang == "fa" else f"Hadō {num}!")
+
+
 def _call(lang, race, always):
     import random
     if not always and random.random() > 0.5:
@@ -781,7 +787,7 @@ async def boss_hit_cb(ctx, arg):
                 burst += ctx.t("boss_burst_red")
         tail = (" · " + ctx.t("boss_combo_s", n=fnum(data["combo"], ctx.lang))) if data["combo"] >= 2 else ""
         fin = (" " + ctx.t("boss_final_blow")) if killing else ""
-        return Out(alert=head + ctx.t("boss_hit_ok", n=fnum(data["dmg"], ctx.lang)) + crit + _call(ctx.lang, data["race"], data["special"] or killing) + tail + burst + fin)
+        return Out(alert=head + ctx.t("boss_hit_ok", n=fnum(data["dmg"], ctx.lang)) + crit + (_kido_call(ctx.lang, data["kido"], data.get("spell", "")) if data.get("kido") else _call(ctx.lang, data["race"], data["special"] or killing)) + tail + burst + fin)
     if status == "cool":
         return Out(alert=ctx.t("wait_s", n=data))
     if status == "level":

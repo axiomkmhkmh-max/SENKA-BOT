@@ -496,6 +496,18 @@ def best_kido(f, branch):
     return ok[0] if ok else None
 
 
+def ready_hado(f) -> bool:
+    """True when a Hadō can be cast right now. A spell picked for the button that cannot be cast here (91+ needs the chant,
+    which the world-boss button has no turn for) is dropped for this hit, so the strongest castable Hadō is used instead of
+    the strike silently falling back to a blade that a Hadō build barely hurts anyone with."""
+    if can(f, "kd"):
+        return True
+    kp = f.get("kpick")
+    if kp and kp.get("had"):
+        f["kpick"] = {k: v for k, v in kp.items() if k != "had"}
+    return can(f, "kd")
+
+
 HADO_FLOOR = 1.0      # a Hadō never hits for less than this many plain attacks (chanted: x CHANT_HADO on top). 0 = off
 GETSUGA_COST = 0.15   # share of max reiatsu for the release
 GETSUGA_DMG = 2.4     # strike multiplier of the release (a heavy strike is 1.6)
