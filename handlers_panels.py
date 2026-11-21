@@ -198,13 +198,13 @@ async def world_map(ctx, arg):
                 + ("خطرناک (جایزه‌ی بیشتر)" if L == "fa" else "dangerous (bigger rewards)"))
     body.append("")
     for lid, loc in LOCATIONS.items():  # every world is open (Nov 21): its band of enemy levels says how hard it is
-        lo, hi = loc_band(lid, ch["level"])
-        mark = "📍" if lid == ch["location"] else band_mark(lid, ch["level"])
+        lo, hi = loc_band(lid, ch["level"], ch.get("race"))
+        mark = "📍" if lid == ch["location"] else band_mark(lid, ch["level"], ch.get("race"))
         extra = (f" 🏴{esc(owners[lid]['owner_fa' if L == 'fa' else 'owner_en'])}" if lid in owners else "") + (f" 👥{fnum(crowds[lid], L)}" if crowds.get(lid) else "")
         band = (("هم‌لِوِل تو" if L == "fa" else "your level") if lid == TOP_LOC else f"{fnum(lo, L)}–{fnum(hi, L)}")
         body.append(f"{mark} {loc_name(lid, L)} — {('دشمن‌ها' if L == 'fa' else 'foes')} {band}{extra}")
         if lid != ch["location"]:
-            rows.append((f"{band_mark(lid, ch['level'])} {loc_name(lid, L)}", "tr", lid))
+            rows.append((f"{band_mark(lid, ch['level'], ch.get('race'))} {loc_name(lid, L)}", "tr", lid))
     return Out(head(ctx, "ttl_map") + "\n".join(body), chunk(rows, 2) + [nav(ctx)])
 
 

@@ -352,18 +352,24 @@ BAND_WIDTH = 3
 TOP_LOC = max(LOCATIONS, key=lambda k: LOCATIONS[k]["level"])
 
 
-def loc_band(lid: str, player_level: int):
-    """(lowest, highest) enemy level of a location for this player."""
+def loc_band(lid: str, player_level: int, race: str = None):
+    """(lowest, highest) enemy level of a location for this player.
+    Your own race's home world never starts above you: a new Hollow (home level 20), Arrancar (35) or Quincy (55)
+    used to meet level 20-55 foes at level 1 and could not farm anything. There the band is capped at your level."""
     if lid == TOP_LOC or lid not in LOCATIONS:
         lv = max(1, int(player_level))
         return lv, lv
     lo = int(LOCATIONS[lid]["level"])
-    return lo, lo + BAND_WIDTH - 1
+    hi = lo + BAND_WIDTH - 1
+    if race and (RACES.get(race) or {}).get("home") == lid:
+        lv = max(1, int(player_level))
+        return min(lo, lv), min(hi, lv)
+    return lo, hi
 
 
-def band_mark(lid: str, player_level: int) -> str:
+def band_mark(lid: str, player_level: int, race: str = None) -> str:
     """🟢 easy (the band is at or under your level), 🟡 a challenge (up to 5 above), 🔴 dangerous (more than 5 above)."""
-    lo, hi = loc_band(lid, player_level)
+    lo, hi = loc_band(lid, player_level, race)
     if hi <= player_level:
         return "🟢"
     return "🟡" if lo <= player_level + 5 else "🔴"

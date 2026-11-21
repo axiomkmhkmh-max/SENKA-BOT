@@ -157,6 +157,13 @@ class Worlds(unittest.TestCase):
         self.assertEqual(loc_band(TOP_LOC, 37), (37, 37))
         self.assertEqual(band_mark("soul_society", 50), "🟢")
         self.assertEqual(band_mark("dangai", 21), "🔴")
+        # a race's own home world never starts above the player: a level-1 Hollow must not meet level-20 foes
+        self.assertEqual(loc_band("hueco_mundo", 1, "hollow"), (1, 1))
+        self.assertEqual(loc_band("las_noches", 5, "arrancar"), (5, 5))
+        self.assertEqual(loc_band("wandenreich", 10, "quincy"), (10, 10))
+        self.assertEqual(loc_band("hueco_mundo", 30, "hollow"), (20, 22))   # grown past it: the normal band
+        self.assertEqual(loc_band("hueco_mundo", 1, "human"), (20, 22))     # other races meet the fixed band there
+        self.assertEqual(band_mark("hueco_mundo", 1, "hollow"), "🟢")
 
     def test_reward_by_level_gap(self):
         self.assertAlmostEqual(level_gap_k(45, 21), 1.60)

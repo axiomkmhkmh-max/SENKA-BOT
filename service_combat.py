@@ -275,7 +275,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     sig_race = loc.get("race")
     name = pick[0 if lang == "fa" else 1]
     from data_races import loc_band
-    lo_, hi_ = loc_band(ch["location"], ch["level"])  # every world has its own band of enemy levels (Nov 21)
+    lo_, hi_ = loc_band(ch["location"], ch["level"], ch.get("race"))  # every world has its own band of enemy levels (Nov 21)
     lvl = max(1, rng.randint(lo_, hi_))
     tower = bool(dungeon and dungeon.get("tower"))
     fixed_dg = bool(dungeon and not tower and dungeon.get("id") in DUNGEONS)
