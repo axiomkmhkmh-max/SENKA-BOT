@@ -184,11 +184,19 @@ async def espada_rank(uid: int):
     return d["_id"] if d else None
 
 
-async def quick_fight(uid_a: int, uid_b: int) -> str:
-    """Instant simulated duel using the real combat engine on both sides. Returns "a" or "b"."""
+async def quick_fight(uid_a: int, uid_b: int, neutral: bool = False) -> str:
+    """Instant simulated duel using the real combat engine on both sides. Returns "a" or "b".
+    neutral=True (the Hōgyoku theft duel): the holder's Hōgyoku bonuses (x2 Reiatsu, +30% damage, +18% defence) and any
+    theft penalty are left out, so the duel is decided by the two fighters' own strength: a stronger challenger no longer
+    loses to a weaker holder who only had the Hōgyoku on his side."""
     import engine as E
     from service_combat import build_player
     ca, cb = await get_char(uid_a), await get_char(uid_b)
+    if neutral:
+        ca, cb = dict(ca), dict(cb)
+        for c in (ca, cb):
+            c.pop("hogyoku", None)
+            c.pop("reiatsu_pen_until", None)
     fa, fb = await build_player(ca), await build_player(cb)
     for f, c in ((fa, ca), (fb, cb)):
         m = stance_mult(c)

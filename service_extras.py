@@ -526,7 +526,7 @@ async def hogyoku_steal(thief: int, victim: int):
     need = hog_wins_needed(rounds_n)
     rounds, wa, wb = [], 0, 0
     for _ in range(rounds_n):
-        w = await quick_fight(thief, victim)  # holder's doubled Reiatsu (reiatsu_mult) is already inside build_player
+        w = await quick_fight(thief, victim, neutral=True)  # the Hōgyoku's own bonuses stay out of the duel (fair fight by real strength)
         rounds.append(w)
         wa, wb = wa + (w == "a"), wb + (w == "b")
         if wa >= need or wb >= need:

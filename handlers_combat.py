@@ -200,7 +200,8 @@ def battle_potion(iid):
     if e.get("type") in ("hp", "reiatsu"):
         return e["type"], e["pct"]
     if it.get("category") == "potion" and e.get("type") == "buff" and e.get("stat") == "def":
-        return "def", e["pct"]
+        from data_misc import POTION_DEF_BOOST
+        return "def", min(0.6, float(e["pct"]) * POTION_DEF_BOOST)  # +5-10% was not felt in a fight: the potion is worth more mid-battle
     return None
 
 

@@ -5,7 +5,7 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
 from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, FULLBRING_LOW, HEAVY_REIATSU, TECH_SLOTS, tech_of
@@ -343,6 +343,8 @@ def _gain(f, n, ev):
 def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     att, dfn = state[side], state["b" if side == "a" else "a"]
     absorbed = 0
+    if att.get("foe") in BOSS_FOES and not dfn.get("foe"):  # a boss never takes more than BOSS_HIT_CAP of a player's max HP in one blow
+        dmg = min(dmg, max(1, int(dfn["max_hp"] * BOSS_HIT_CAP)))
     if dfn["shield"] > 0:
         absorbed = min(dfn["shield"], dmg)
         dfn["shield"] -= absorbed
@@ -488,10 +490,13 @@ def best_kido(f, branch):
     """The spell that is cast: the one picked this turn (see do_action), else the highest castable number."""
     pick = _x(f).get("pick")
     if pick and pick[0] == ("kd" if branch == "had" else "bk"):
-        return pick[1] if kido_castable(f, branch, pick[1]) else None
+        if kido_castable(f, branch, pick[1]):
+            return pick[1]
+        # a menu pick that cannot be cast any more falls through to the strongest castable spell (never a dead button)
     kp = (f.get("kpick") or {}).get(branch)
-    if kp and kp in f["kido"][branch]:  # the spell the player put on this button before the fight (ability panel)
-        return kp if kido_castable(f, branch, kp) else None
+    if kp and kp in f["kido"][branch] and kido_castable(f, branch, kp):  # the spell the player put on this button (ability panel)
+        return kp
+    # a picked 91+ spell without the chant (or without reiatsu) is not cast: the button falls back to the strongest spell that can be
     ok = kido_list(f, branch)
     return ok[0] if ok else None
 
@@ -1367,7 +1372,7 @@ def _ai_core(state, side, rng):
 def new_state(a, b, rng, pvp=False):
     intro = []
     for x in (a, b):  # every blow x2 (Nov 21), except a boss's own (bosses have more HP instead, see BOSS_HP_MULT)
-        x["dmgx"] = 1.0 if x.get("foe") in BOSS_FOES else DMG_MULT
+        x["dmgx"] = BOSS_DMG_MULT if x.get("foe") in BOSS_FOES else DMG_MULT
     if pvp:  # duels give both fighters their Konpaku lives (SENKA+)
         a["lives"] = b["lives"] = KONPAKU["lives"]
     for x, y in ((a, b), (b, a)):  # spiritual pressure
