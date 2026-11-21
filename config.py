@@ -114,8 +114,9 @@ GAME_DEFAULTS = {
     "raid_min_msgs": 35, "raid_cooldown": 1800, "raid_ttl": 900, "raid_hp": 4000, "raid_menos_chance": 0.2, "raid_menos_mult": 4,
     "raid_daily_cap": 8, "raid_min_level": 3, "raid_strike_cd": 12, "raid_dmg_k": 1.0,
     # --- NEW BLEACH VIRAL SYSTEM ---
-    "espada_min_level": 10, "espada_cd": 300, "hog_min_level": 10, "hog_steal_cd_hours": 2, "hog_steal_chance": 0.08,
+    "espada_min_level": 10, "espada_cd": 300, "hog_min_level": 10, "hog_steal_cd_hours": 2,
     "hog_shield_minutes": 30, "hog_pen_hours": 3,
+    "hog_rounds": 3, "hog_min_power_ratio": 0.5, "hog_target_lock": 60,  # Hōgyoku duel: best of N, weakest allowed challenger, holder lock (s)
     "type_min_msgs": 45, "type_cooldown": 2400, "type_ttl": 90, "type_daily_cap": 10,
     "quincy_enabled": True, "quincy_interval_hours": 4, "quincy_active_minutes": 30, "quincy_max_groups": 20, "quincy_hp": 6000,
     "quincy_ttl_minutes": 10, "quincy_lock_minutes": 60,

@@ -492,7 +492,10 @@ async def hogyoku_holder():
 
 
 async def hogyoku_steal(thief: int, victim: int):
-    """Reply-to-holder theft. -> (result, extra). result: self | notholder | noreg | level | shield | cd | win | fail."""
+    """Reply-to-holder theft = a power duel, best of N rounds, each round the real combat engine (quick_fight).
+    -> (result, extra). result: self | notholder | noreg | level | shield | weak | cd | busy | win | fail.
+    extra: win / fail -> report dict {"pa", "pb", "rounds": ["a"|"b", ...], "wa", "wb", "hours"}; weak -> {"pa", "pb", "need"};
+    level / shield -> the number; cd -> seconds left."""
     if thief == victim:
         return "self", None
     d = await hogyoku_state()
@@ -507,18 +510,38 @@ async def hogyoku_steal(thief: int, victim: int):
         return "level", int(st["hog_min_level"])
     if now - int(d.get("since", 0)) < int(st["hog_shield_minutes"]) * 60:
         return "shield", int(st["hog_shield_minutes"])
+    from data_artifacts import hog_penalty_hours, hog_too_weak, hog_wins_needed, reiatsu_mult
+    from service_player import power
+    pa, pb = int(power(ct)), int(power(cv))
+    if hog_too_weak(pa, pb, float(st["hog_min_power_ratio"])):  # checked before any cooldown is spent
+        return "weak", {"pa": pa, "pb": pb, "need": int(pb * float(st["hog_min_power_ratio"]))}
     left = await try_cooldown(f"hog:steal:{thief}", int(st["hog_steal_cd_hours"]) * 3600)
     if left:
         return "cd", int(left)
-    from service_player import power
-    chance = float(st["hog_steal_chance"]) * max(0.5, min(2.0, power(ct) / max(1, power(cv))))
-    if random.random() < chance:
+    if await try_cooldown(f"hog:tgt:{victim}", int(st["hog_target_lock"])):  # one duel at a time against the holder
+        await col("cooldowns").delete_one({"key": f"hog:steal:{thief}"})   # the thief did not fight: give the try back
+        return "busy", None
+    from service_bleach_systems import quick_fight
+    rounds_n = max(1, int(st["hog_rounds"]))
+    need = hog_wins_needed(rounds_n)
+    rounds, wa, wb = [], 0, 0
+    for _ in range(rounds_n):
+        w = await quick_fight(thief, victim)  # holder's doubled Reiatsu (reiatsu_mult) is already inside build_player
+        rounds.append(w)
+        wa, wb = wa + (w == "a"), wb + (w == "b")
+        if wa >= need or wb >= need:
+            break
+    report = {"pa": pa, "pb": pb, "rounds": rounds, "wa": wa, "wb": wb, "hours": 0}
+    if wa >= need:
         got = await col("hogyoku").find_one_and_update({"_id": "main", "holder": victim}, {
             "$set": {"holder": thief, "since": now}, "$push": {"history": {"$each": [{"uid": thief, "from": victim, "at": now}], "$slice": -10}}})
         if not got:
             return "notholder", None
         await col("characters").update_one({"user_id": victim}, {"$unset": {"hogyoku": ""}})
         await col("characters").update_one({"user_id": thief}, {"$set": {"hogyoku": True}})
-        return "win", None
-    await col("characters").update_one({"user_id": thief}, {"$set": {"reiatsu_pen_until": now + int(st["hog_pen_hours"]) * 3600}})
-    return "fail", int(st["hog_pen_hours"])
+        return "win", report
+    hours = hog_penalty_hours(wa, wb, int(st["hog_pen_hours"]))
+    report["hours"] = hours
+    if hours:
+        await col("characters").update_one({"user_id": thief}, {"$set": {"reiatsu_pen_until": now + hours * 3600}})
+    return "fail", report

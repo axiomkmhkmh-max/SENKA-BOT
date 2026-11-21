@@ -373,6 +373,23 @@ def reiatsu_mult(ch: dict, now: float = None) -> float:
         m *= 0.5
     return m
 
+# --- Hōgyoku duel rules (pure, no DB): the theft is a real duel decided by power, not by a dice roll -----------------
+def hog_wins_needed(rounds: int) -> int:
+    """Best of `rounds` (odd): 3 -> 2 wins."""
+    return max(1, int(rounds)) // 2 + 1
+
+
+def hog_too_weak(power_thief: float, power_holder: float, min_ratio: float) -> bool:
+    """A challenger far below the holder cannot even try (no spam from low levels, no free cooldown burn)."""
+    return power_thief < max(1.0, power_holder) * float(min_ratio)
+
+
+def hog_penalty_hours(wins_thief: int, wins_holder: int, base_hours: int) -> int:
+    """A thief who lost every round pays the full penalty; one who took a round pays half (a close fight is no disgrace)."""
+    base = max(0, int(base_hours))
+    return base if wins_thief <= 0 else max(1, base // 2) if base else 0
+
+
 # --- TIERS (Bleach power ladder) ----------------------------------------------------------------------------------
 # Every Soul Artifact now has several copies: `cap` is how many players can hold the same artifact at once.
 # Stronger tiers mirror the anime's ranks: the more powerful the owner in canon, the fewer copies exist.

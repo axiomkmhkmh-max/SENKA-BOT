@@ -9,7 +9,7 @@ from aiogram.exceptions import TelegramAPIError
 from data_artifacts import HOGYOKU
 from data_bleach import DIV_BY_ID
 from data_items import iname
-from i18n import esc, fnum
+from i18n import bar, esc, fnum
 from render import glang
 from security import allow
 from service_bleach_systems import STANCE, STANCE_SECONDS, espada_board, espada_challenge, espada_rank, stance_set
@@ -34,7 +34,10 @@ T = {  # key -> (fa, en)
     "noreg": ("اول در ربات ثبت‌نام کن.", "Register with the bot first."),
     "gone": ("جایگاه همین الان دست‌به‌دست شد؛ دوباره امتحان کن.", "The seat just changed hands; try again."),
     "hog_win": ("🔮 {a} هوگیوکو را از دست {b} ربود!\n👁 حالا نام او در لیست تحت‌تعقیب است.", "🔮 {a} snatched the Hōgyoku from {b}!\n👁 Their name is now on the wanted list."),
-    "hog_fail": ("💢 {a} در دزدیدن هوگیوکو شکست خورد و {h} ساعت نصف ریاتسوی خود را از دست داد!", "💢 {a} failed to steal the Hōgyoku and loses half their Reiatsu for {h}h!"),
+    "hog_fail": ("💢 {a} در نبرد هوگیوکو شکست خورد و {h} ساعت نصف ریاتسوی خود را از دست داد!", "💢 {a} lost the Hōgyoku duel and loses half their Reiatsu for {h}h!"),
+    "hog_fail0": ("💢 {a} در نبرد هوگیوکو شکست خورد.", "💢 {a} lost the Hōgyoku duel."),
+    "hog_weak": ("⚖️ قدرتت ({pa}) برای این چالش کافی نیست؛ دست‌کم {need} لازم است (دارنده: {pb}). قوی‌تر شو و برگرد.", "⚖️ Your power ({pa}) is too low for this challenge; you need at least {need} (holder: {pb}). Grow stronger and come back."),
+    "hog_busy": ("⚔️ دارنده همین الان درگیر یک دوئل است؛ چند لحظه‌ی دیگر دوباره امتحان کن.", "⚔️ The holder is in the middle of a duel; try again in a moment."),
     "hog_shield": ("🔮 هوگیوکو تازه دست‌به‌دست شده؛ {n} دقیقه امن است.", "🔮 The Hōgyoku just changed hands; it is safe for {n} min."),
     "hog_cd": ("⏳ دوباره تلاش کردن تا {m} دقیقه‌ی دیگر ممکن است.", "⏳ You can try again in {m} min."),
     "q_hit": ("🩸 {who}: {dmg} آسیب به ارتش کوئینسی!", "🩸 {who}: {dmg} damage to the Quincy army!"),
@@ -45,7 +48,8 @@ T = {  # key -> (fa, en)
     "mask": ("🎭 ماسک روی صورتت نشست! ×{x} قدرت، اما در هر ضربه {p}٪ احتمال دارد هالوی درون کنترل را بگیرد.",
              "🎭 The mask clamps on! ×{x} power, but each strike has a {p}% chance the Hollow takes over."),
     "mask_cry": ("«خون… بیشتر!»", "“Blood… more!”"),
-     "steal_hint": ("برای دزدیدن هوگیوکو دکمه‌ی زیر را بزن، یا روی پیام دارنده‌اش ریپلای کن و «خیانت» بنویس.", "To steal the Hōgyoku, tap the button below, or reply to its holder and write “betray”."),
+    "steal_hint": ("برای نبرد با دارنده‌ی هوگیوکو دکمه‌ی زیر را بزن، یا روی پیام او ریپلای کن و «خیانت» بنویس.\n⚔️ نتیجه را قدرت تعیین می‌کند، نه شانس: دوئل واقعی، بهترین از {r} دور (برای بردن {w} دور لازم است).\n⚖️ دست‌کم {pct}٪ قدرت دارنده را لازم داری. اگر ببازی، ریاتسویت برای مدتی نصف می‌شود.",
+                   "To fight the Hōgyoku holder, tap the button below, or reply to them and write “betray”.\n⚔️ Power decides it, not luck: a real duel, best of {r} rounds ({w} wins needed).\n⚖️ You need at least {pct}% of the holder's power. Lose and your Reiatsu is halved for a while."),
     "q_gone": ("این حمله تمام شده.", "This invasion is over."),
     "q_pop": ("🩸 {dmg} آسیب! ❤️ {hp} مانده", "🩸 {dmg} damage! ❤️ {hp} left"),
     "q_last": ("🏆 ضربه‌ی آخر مال تو بود!", "🏆 You landed the final blow!"),
@@ -116,16 +120,16 @@ async def viral_hook(message, text: str, n: str) -> bool:
             return False
         lang = await _group_lang(chat.id)
         you = esc(target.full_name or target.first_name or "")
-        if res == "win":
-            await message.reply(_t(lang, "hog_win", a=me, b=you))
-        elif res == "fail":
-            await message.reply(_t(lang, "hog_fail", a=me, h=extra))
+        if res in ("win", "fail"):
+            await message.reply(_hog_report(lang, extra, me, you, res == "win"))
+        elif res == "weak":
+            await message.reply(_t(lang, "hog_weak", **{k: fnum(v, lang) for k, v in extra.items()}))
         elif res == "shield":
             await message.reply(_t(lang, "hog_shield", n=extra))
         elif res == "cd":
             await message.reply(_t(lang, "hog_cd", m=max(1, extra // 60)))
         else:
-            await message.reply(_t(lang, res, n=extra))
+            await message.reply(_t(lang, "hog_busy" if res == "busy" else res, n=extra))
         return True
     if n in STRIKE_WORDS and reply is None:  # the plain word opens the strike panel while an army is attacking this group
         if not await _active_quincy(chat.id):
@@ -216,6 +220,33 @@ async def quincy_press(ctx, arg):
     return Out(alert=_t(L, "q_pop", dmg=fnum(dmg, L), hp=fnum(max(0, doc["hp"]), L)))
 
 
+async def _hint(L: str) -> str:
+    """The rules line, built from the live settings so an admin change shows up at once."""
+    from data_artifacts import hog_wins_needed
+    st = await game_settings()
+    r = max(1, int(st["hog_rounds"]))
+    return _t(L, "steal_hint", r=fnum(r, L), w=fnum(hog_wins_needed(r), L), pct=fnum(int(float(st["hog_min_power_ratio"]) * 100), L))
+
+
+def _hog_report(L: str, rep: dict, a: str, b: str, won: bool) -> str:
+    """The duel card: both powers with a bar, every round, then the verdict."""
+    fa = L == "fa"
+    pa, pb = int(rep["pa"]), int(rep["pb"])
+    lines = [("🔮 <b>نبرد هوگیوکو</b>" if fa else "🔮 <b>Hōgyoku Duel</b>"), SEP,
+             f"⚔️ <b>{a}</b> · {fnum(pa, L)}",
+             f"🛡 <b>{b}</b> · {fnum(pb, L)}",
+             bar(pa, pa + pb, 12) + f"  {fnum(round(100 * pa / max(1, pa + pb)), L)}٪" if fa else bar(pa, pa + pb, 12) + f"  {round(100 * pa / max(1, pa + pb))}%"]
+    for i, w in enumerate(rep["rounds"], 1):
+        who = a if w == "a" else b
+        lines.append((f"دور {fnum(i, L)}: " if fa else f"Round {i}: ") + ("🟢 " if w == "a" else "🔴 ") + who)
+    lines.append(SEP)
+    if won:
+        lines.append(_t(L, "hog_win", a=a, b=b))
+    else:
+        lines.append(_t(L, "hog_fail", a=a, h=rep["hours"]) if rep.get("hours") else _t(L, "hog_fail0", a=a))
+    return "\n".join(lines)
+
+
 async def _hog_rows(ctx):
     h = await hogyoku_holder()
     rows = []
@@ -236,20 +267,23 @@ async def hog_press(ctx, arg):
         return Out(alert=_t(L, "hog_self"))
     res, extra = await hogyoku_steal(ctx.uid, h[0])
     me = esc(ctx.user.full_name or ctx.user.first_name or "")
+    if res in ("win", "fail"):
+        text = _hog_report(L, extra, me, esc(h[1]), res == "win")
     if res == "win":
-        text = _t(L, "hog_win", a=me, b=esc(h[1]))
         try:  # the old holder may be nowhere near this chat
             await ctx.bot.send_message(h[0], _t(await handlers_world._user_lang(h[0]), "hog_lost", a=me))
         except Exception:
             pass
     elif res == "fail":
-        text = _t(L, "hog_fail", a=me, h=extra)
+        pass
+    elif res == "weak":
+        return Out(alert=_t(L, "hog_weak", **{k: fnum(v, L) for k, v in extra.items()}))
     elif res == "cd":
         return Out(alert=_t(L, "hog_cd", m=max(1, extra // 60)))
     elif res == "shield":
         return Out(alert=_t(L, "hog_shield", n=extra))
-    else:  # level | noreg | notholder | self
-        return Out(alert=_t(L, res, n=extra))
+    else:  # level | noreg | notholder | self | busy
+        return Out(alert=_t(L, "hog_busy" if res == "busy" else res, n=extra))
     return Out(text, await _hog_rows(ctx))
 
 
@@ -351,7 +385,7 @@ async def bleach_status(ctx, arg):
 
 @action("hgs")
 async def steal_hint(ctx, arg):
-    return Out(_t(ctx.lang, "steal_hint"), await _hog_rows(ctx))
+    return Out(await _hint(ctx.lang), await _hog_rows(ctx))
 
 
 @action("wnt")
@@ -363,12 +397,18 @@ async def wanted_list(ctx, arg):
     lines = []
     if h:
         lines.append(f"{HOGYOKU['icon']} {HOGYOKU['name_fa' if fa else 'name_en']}: <b>{esc(h[1])}</b> (Lv.{h[2]})")
+        from service_player import power
+        hc, mc = await get_char(h[0]), await get_char(ctx.uid)
+        if hc and mc:
+            ph, pm = int(power(hc)), int(power(mc))
+            lines.append((f"⚔️ قدرت دارنده: {fnum(ph, ctx.lang)} · قدرت تو: {fnum(pm, ctx.lang)}" if fa
+                          else f"⚔️ Holder power: {ph} · Your power: {pm}") + "\n" + bar(pm, pm + ph, 12))
     if board:
         r, _u, name, lv = board[0]
         lines.append(("🔔 اسپادا " if fa else "🔔 Espada #") + f"{r}: <b>{esc(name)}</b> (Lv.{lv})")
     body = "\n".join(lines) or ("—")
     head = "🎯 هدف‌های تحت تعقیب" if fa else "🎯 Wanted targets"
-    return Out(f"⚔️ <b>{head}</b>\n{SEP}\n{body}\n\n" + _t(ctx.lang, "steal_hint"), await _hog_rows(ctx))
+    return Out(f"⚔️ <b>{head}</b>\n{SEP}\n{body}\n\n" + await _hint(ctx.lang), await _hog_rows(ctx))
 
 
 @action("esp")
