@@ -97,6 +97,26 @@ class Roles(unittest.TestCase):
         self.assertEqual(role_ok("", valid), "admin")
 
 
+class ReplyTargets(unittest.TestCase):
+    """Admin answers a panel prompt by replying to the player's message (no id typed)."""
+
+    def test_lone_number_is_the_amount(self):
+        self.assertEqual(split_target("500", 777, single_arg=True), (777, "500"))
+
+    def test_item_and_count_with_reply(self):
+        self.assertEqual(split_target("soul_sword 2", 777), (777, "soul_sword 2"))
+
+    def test_reason_with_reply(self):
+        self.assertEqual(split_target("spam links", 777), (777, "spam links"))
+
+    def test_typed_id_wins_over_reply(self):
+        self.assertEqual(split_target("12345678 500", 777, single_arg=True), (12345678, "500"))
+
+    def test_no_reply_and_no_id_is_none(self):
+        self.assertEqual(split_target("500", None, single_arg=True), (500, ""))
+        self.assertEqual(split_target("hello", None), (None, ""))
+
+
 if __name__ == "__main__":
     unittest.main()
 

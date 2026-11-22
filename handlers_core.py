@@ -297,8 +297,36 @@ async def handle_text(message: Message, text: str):
     await send_out(message, ctx, out)
 
 
+async def _admin_prompt_in_group(message: Message, text: str) -> bool:
+    """An admin pressed a panel button in this group (it asks for «id amount») and now types the answer here.
+    The pending prompt is stored for the user, not for the chat. Private chats read it in handle_text; groups never did,
+    so the answer was dropped and the panel looked dead. True when the message was consumed as that answer."""
+    user = message.from_user
+    if user is None or user.is_bot or await handlers_admin.admin_level(user.id) < 20:
+        return False
+    pend = await col("inputs").find_one({"user_id": user.id, "kind": {"$regex": "^ad_"}})
+    if not pend or pend.get("at", 0) < time.time() - 300 or pend.get("chat") not in (None, message.chat.id):
+        return False
+    pend = await col("inputs").find_one_and_delete({"_id": pend["_id"]})  # one taker only
+    if not pend or pend["kind"] not in INPUTS:
+        return False
+    ctx = await make_ctx(user, message.chat, message.bot, message)
+    ctx.pend = pend
+    try:
+        out = await INPUTS[pend["kind"]](ctx, text)
+    except Exception:
+        log.exception("admin prompt answer failed in group")
+        await message.reply(ctx.t("error"))
+        return True
+    if out is not None and out.text:
+        await message.reply(out.text, reply_markup=markup(ctx, out.rows))
+    return True
+
+
 async def on_group_text(message: Message, text: str):
     user, chat = message.from_user, message.chat
+    if await _admin_prompt_in_group(message, text):
+        return
     if chat.id < 0 and allow(chat.id, "gidlog", 3600):  # the numeric id of this group, for JOIN_GROUP_ID
         log.warning("GROUP CHAT ID: %s (%r) - put this in JOIN_GROUP_ID", chat.id, chat.title)
     n = normalize_text(text)

@@ -16,7 +16,7 @@ from datetime import datetime
 from aiogram.types import BotCommand, BotCommandScopeChat
 
 from admin_fa import LANG_FA, ROLE_FA, setting_label
-from admin_panel_logic import adjust_setting, coerce_setting, page_bounds, parse_amount, role_ok, split_id_rest
+from admin_panel_logic import adjust_setting, coerce_setting, page_bounds, parse_amount, role_ok, split_id_rest, split_target
 from cmdlist import ADMIN_CMDS_EN, ADMIN_CMDS_FA, CMD_EN, CMD_FA
 from config import GAME_DEFAULTS, settings
 from data_items import ALL
@@ -34,6 +34,11 @@ PAGE = 10
 PENDING_TTL = 180
 KEYS = sorted(GAME_DEFAULTS)
 ROLE_CHOICES = {"admin", "moderator", "support", "super"}
+# actions whose first word is a player id: a reply to that player's message can replace it
+REPLY_OK = {"ban", "unban", "warn", "give_coins", "take_coins", "give_xp", "give_cores", "take_cores", "give_item", "take_item",
+            "reset", "addadmin", "rmadmin"}
+# of those, the ones that take a single number (a lone word is then the number, not an id)
+REPLY_ONE_ARG = {"give_coins", "take_coins", "give_xp", "give_cores", "take_cores"}
 RESET_COLLECTIONS = ("characters", "inventories", "player_quests", "gacha", "registration")
 
 # action -> (permission level, prompt fa, prompt en, where «back» goes)
@@ -75,12 +80,19 @@ def _back(ctx, code="adm", arg=""):
 
 
 # ---- pending input state -------------------------------------------------------------------------------
-async def _pending_set(uid: int, action_name: str, target=None, extra=None):
+def _reply_id(ctx):
+    """Telegram id of the player the admin replied to (None when there is no reply, or it is a bot)."""
+    rp = getattr(getattr(ctx, "message", None), "reply_to_message", None)
+    u = getattr(rp, "from_user", None)
+    return u.id if u is not None and not getattr(u, "is_bot", False) else None
+
+
+async def _pending_set(uid: int, action_name: str, target=None, extra=None, chat_id=None):
     now = time.time()
     await col("admin_pending").update_one(
         {"_id": uid}, {"$set": {"action": action_name, "target": target, "extra": extra, "at": now}}, upsert=True)
     if action_name != "bcast_ready":
-        await col("inputs").update_one({"user_id": uid}, {"$set": {"kind": "ad_act", "at": int(now)}}, upsert=True)
+        await col("inputs").update_one({"user_id": uid}, {"$set": {"kind": "ad_act", "at": int(now), "chat": chat_id}}, upsert=True)
 
 
 async def _pending_get(uid: int):
@@ -282,12 +294,16 @@ async def ask_action(ctx, arg):
     if name == "setkey":
         if key not in GAME_DEFAULTS:
             return Out(alert="?")
-        await _pending_set(ctx.uid, "setkey", target=key)
+        await _pending_set(ctx.uid, "setkey", target=key, chat_id=ctx.chat_id)
         return Out(head(ctx, "ttl_adm") + f"<code>{key}</code>\n" + esc(T(ctx, fa, en))
                    + "\n\n" + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")),
                    [_back(ctx, back_code, back_arg)])
-    await _pending_set(ctx.uid, name)
-    return Out(head(ctx, "ttl_adm") + esc(T(ctx, fa, en)) + "\n\n"
+    await _pending_set(ctx.uid, name, chat_id=ctx.chat_id)
+    hint = ""
+    if name in REPLY_OK and not ctx.private:
+        hint = "\n" + esc(T(ctx, "یا روی پیام خود پلیر ریپلای کن و فقط بقیه را بفرست.",
+                            "Or reply to the player's own message and send only the rest."))
+    return Out(head(ctx, "ttl_adm") + esc(T(ctx, fa, en)) + hint + "\n\n"
                + esc(T(ctx, "برای لغو: «لغو» بفرست.", "To cancel: send «cancel».")),
                [_back(ctx, back_code, back_arg)])
 
@@ -578,9 +594,10 @@ async def act_input(ctx, text):
                      "❌ Invalid input. Try again from the panel."), [_back(ctx)])
 
 
-async def _target_or_none(raw: str, lvl: int, check_level: bool):
-    """(tid, rest, user doc) or (None, '', None) when the target is unknown or protected."""
-    tid, rest = split_id_rest(raw)
+async def _target_or_none(raw: str, lvl: int, check_level: bool, reply_id=None, single_arg: bool = False):
+    """(tid, rest, user doc) or (None, '', None) when the target is unknown or protected.
+    An admin who replied to a player's message may leave the id out (reply_id)."""
+    tid, rest = split_target(raw, reply_id, single_arg)
     if tid is None:
         raise ValueError(raw)
     u = await col("users").find_one({"telegram_id": tid})
@@ -602,7 +619,8 @@ async def _run_input(ctx, name, pend, raw):
 
     if name in ("ban", "unban", "warn", "give_coins", "take_coins", "give_xp", "give_cores", "take_cores",
                 "give_item", "take_item"):
-        tid, rest, u = await _target_or_none(raw, lvl, check_level=name in ("ban", "warn"))
+        tid, rest, u = await _target_or_none(raw, lvl, check_level=name in ("ban", "warn"), reply_id=_reply_id(ctx),
+                                             single_arg=name in REPLY_ONE_ARG)
         if u is None:
             return Out(T(ctx, "کاربر پیدا نشد.", "User not found."), [_back(ctx, "adu", "")])
         if u == "protected":
@@ -669,7 +687,7 @@ async def _run_input(ctx, name, pend, raw):
         return await user_card(ctx, tid)
 
     if name == "reset":
-        tid, _ = split_id_rest(raw)
+        tid, _ = split_target(raw, _reply_id(ctx))
         if tid is None or tid == settings.owner_id or await admin_level(tid) >= lvl:
             raise ValueError(raw)
         text = head(ctx, "ttl_adm") + T(
@@ -680,7 +698,7 @@ async def _run_input(ctx, name, pend, raw):
                           _back(ctx, "admo", "")])
 
     if name == "addadmin":
-        tid, rest = split_id_rest(raw)
+        tid, rest = split_target(raw, _reply_id(ctx))
         if tid is None or tid == settings.owner_id:
             raise ValueError(raw)
         role = role_ok(rest.split()[0] if rest else "", ROLE_CHOICES)
@@ -694,7 +712,7 @@ async def _run_input(ctx, name, pend, raw):
         await alog(ctx.uid, "addadmin", tid, None, role, "panel")
         return Out(T(ctx, "✅ ادمین ثبت شد.", "✅ Admin added."), [_back(ctx, "ada", "")])
     if name == "rmadmin":
-        tid, _ = split_id_rest(raw)
+        tid, _ = split_target(raw, _reply_id(ctx))
         if tid is None or tid == settings.owner_id:
             raise ValueError(raw)
         await col("admin_users").delete_one({"user_id": tid})
