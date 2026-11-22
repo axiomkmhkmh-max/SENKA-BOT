@@ -47,6 +47,8 @@ LEGEND_S1_DMG = 0.5
 BOSS_HIT_CAP = 0.30      # a single boss blow (crit included) can take at most this share of the target's max HP: no two-crit kills
 POTION_DEF_BOOST = 4.0   # a defence potion drunk mid-fight is worth this many times its stored % (5-10% was not felt)
 WORLD_BOSS_HP_MULT = 3
+WORLD_BOSS_FLOOR = 0.25  # a hit on the shared world boss deals at least this share of what it would do with the boss's armour ignored
+                         # (defence is subtracted from attack, so a player just below the boss's defence used to deal ~1 per hit; 0 = off)
 FARM_XP_MULT = 6
 MASK_RAGE = 0.12  # per-turn chance a Visored loses control of an active Hollow Mask (lose that action)
 # Bankai-level special effect per weapon type: (effect, power)

@@ -55,8 +55,8 @@ GAME_DEFAULTS = {
     # mode 1 = the player gets an extra boss_burst_cd seconds of cooldown, 2 = the boss takes
     # (1 - boss_burst_reduce) less damage from that player meanwhile, 3 = both. boss_burst_dmg 0 AND boss_burst_pct 0 = off.
     "boss_burst_dmg": 100000, "boss_burst_pct": 0.10, "boss_burst_announce_gap": 60, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
-    "level_max": 750, "stat_max": 350,  # Nov 23: level cap, and the most any one stat can reach by spending points (was 500)
-    "pts_per_level": 2, "pts_every5": 0,  # stat points per level-up, and the extra point on every 5th level (was 3 + 1): 750 levels = 1500 points, so only ~4 stats can ever be maxed
+    "level_max": 650, "stat_max": 350,  # Nov 23: level cap, and the most any one stat can reach by spending points (was 500)
+    "pts_per_level": 2, "pts_every5": 0,  # stat points per level-up, and the extra point on every 5th level (was 3 + 1): 650 levels = 1298 points, so only ~4 stats can ever be maxed
     "xp_curve_k": 2.5,  # level-up difficulty (was 1.5): XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,

@@ -5,7 +5,7 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP, DUEL
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP, DUEL, WORLD_BOSS_FLOOR
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
 from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, FULLBRING_LOW, HEAVY_REIATSU, TECH_SLOTS, tech_of
@@ -308,6 +308,8 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         dmg *= 1 + ex / 100
     if att.get("duel") and kind not in ("counter", "echo"):  # duel floor: armour never removes more than (1 - floor_share) of a blow,
         dmg *= max(1.0, nodef * DUEL["floor_share"])  # so a much weaker fighter still hurts, in proportion to their OWN power
+    if dfn.get("foe") == "world_boss" and WORLD_BOSS_FLOOR > 0 and kind not in ("counter", "echo"):  # world-boss floor: armour never eats more than (1 - floor) of a blow
+        dmg *= max(1.0, nodef * WORLD_BOSS_FLOOR)
     tm = _take_mult(dfn)
     if tmp.get("ng") and dfn["guard"]:  # Cero Oculto: the Guard does not soften it
         tm /= 0.5

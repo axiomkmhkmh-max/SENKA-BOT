@@ -185,7 +185,7 @@ async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = Tru
                 pass
         gain = max(0, int(gain))
         level, xp, pts, gained = ch["level"], ch["xp"] + gain, ch.get("points", 0), 0
-        lmax = int(st.get("level_max", 750))
+        lmax = int(st.get("level_max", 650))
         ppl, p5 = int(st.get("pts_per_level", 2)), int(st.get("pts_every5", 0))
         while level < lmax and xp >= xp_to_next(level) and gained < 200:
             xp -= xp_to_next(level)
