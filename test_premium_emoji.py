@@ -48,3 +48,17 @@ class PremiumEmoji(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Dynamic(unittest.TestCase):
+    def test_add_many_and_rules(self):
+        self.assertEqual(P.add_many({"✅": "111"}), 1)
+        self.assertIn('emoji-id="111">✅</tg-emoji>', P.apply("ok ✅"))
+        self.assertIn('emoji-id="111"', P.apply("ok ✔"[:0] + "✅\ufe0f"))  # VS16 variant matches too
+        self.assertEqual(P.add_many({"✅": "111"}), 0)            # same id: nothing changed
+        self.assertEqual(P.add_many({"✅": "222"}, overwrite=False), 0)  # pack import never replaces
+        self.assertEqual(P.add_many({"✅": "222"}), 1)            # an emoji sent by the admin replaces
+        self.assertEqual(P.add_many({"x": "1", "🎁": "abc"}), 0)  # junk is ignored
+
+    def test_never_maps_letters(self):
+        self.assertEqual(P.add_many({"a": "1", "ب": "2", "5": "3", " ": "4", "hello🔥": "5"}), 0)

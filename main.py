@@ -117,6 +117,12 @@ async def main():
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True))
     from premium_emoji import install as install_premium_emoji
     install_premium_emoji(bot)  # premium (custom) emoji in every outgoing message; PREMIUM_EMOJI=0 turns it off
+    try:
+        import premium_emoji
+        await premium_emoji.load_saved()  # emoji that admins taught the bot (kept in MongoDB)
+    except Exception:
+        log.exception("could not load saved premium emoji")
+    import handlers_premiumemoji  # noqa: F401  (admin sends premium emoji / a pack link in private chat -> bot learns the ids)
     from handlers_core import router
     from handlers_admincmd import router as admin_cmd_router  # admin slash commands + /redeem + /tokens (must come before the text router)
     import handlers_admincmd2  # noqa: F401  (admin slash commands, batch 2)

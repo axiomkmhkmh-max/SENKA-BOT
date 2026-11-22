@@ -98,14 +98,75 @@ def _strip(e):
 
 # one id per emoji, whatever the variation selector; every char may carry an optional U+FE0F
 _BY_PLAIN = {_strip(k): v for k, v in PREMIUM_EMOJI.items()}
-_EMOJI_RE = re.compile(
-    "(?<!\u200d)(?:"
-    + "|".join(
-        "".join(re.escape(c) + _VS16_OR_NOT for c in k)
-        for k in sorted(_BY_PLAIN, key=len, reverse=True)
+_EMOJI_RE = None
+
+
+def _rebuild():
+    """(Re)compile the matcher after the map changed."""
+    global _EMOJI_RE
+    _EMOJI_RE = re.compile(
+        "(?<!\u200d)(?:"
+        + "|".join(
+            "".join(re.escape(c) + _VS16_OR_NOT for c in k)
+            for k in sorted(_BY_PLAIN, key=len, reverse=True)
+        )
+        + ")(?![\u200d\U0001F3FB-\U0001F3FF])"
     )
-    + ")(?![\u200d\U0001F3FB-\U0001F3FF])"
-)
+
+
+_rebuild()
+
+
+def _looks_like_emoji(k):
+    """Safety net: a letter, digit or word must never become a key, or every such letter in the bot would change."""
+    return (0 < len(k) <= 16 and any(ord(c) > 127 for c in k)
+            and not any(c.isalpha() or c.isspace() for c in k))
+
+
+def add_many(mapping, overwrite=True):
+    """Add {emoji: custom_emoji_id} at runtime. Returns how many entries were added or changed."""
+    n = 0
+    for k, v in mapping.items():
+        k, v = _strip(k), str(v)
+        if not _looks_like_emoji(k) or not v.isdigit():
+            continue
+        if _BY_PLAIN.get(k) == v or (k in _BY_PLAIN and not overwrite):
+            continue
+        _BY_PLAIN[k] = v
+        n += 1
+    if n:
+        _rebuild()
+    return n
+
+
+async def load_saved():
+    """Load the emoji that admins taught the bot (kept in MongoDB, so they survive restarts)."""
+    from database import col
+    saved = {}
+    async for d in col("premium_emoji").find({}):
+        saved[d["_id"]] = d.get("id")
+    n = add_many({k: v for k, v in saved.items() if v})
+    log.info("premium emoji: %s saved emoji loaded, %s total", n, len(_BY_PLAIN))
+    return n
+
+
+async def save_many(mapping, overwrite=True):
+    """Persist and activate {emoji: id}. Returns how many were added or changed."""
+    from database import col
+    from pymongo import UpdateOne
+    clean = {_strip(k): str(v) for k, v in mapping.items() if _looks_like_emoji(_strip(k)) and str(v).isdigit()}
+    if not overwrite:
+        clean = {k: v for k, v in clean.items() if k not in _BY_PLAIN}
+    if not clean:
+        return 0
+    await col("premium_emoji").bulk_write([UpdateOne({"_id": k}, {"$set": {"id": v}}, upsert=True) for k, v in clean.items()])
+    return add_many(clean, overwrite=True)
+
+
+def mapped_count():
+    return len(_BY_PLAIN)
+
+
 _TAG_RE = re.compile(r"(<[^>]*>)")
 _TAG_NAME_RE = re.compile(r"<\s*(/?)\s*([a-zA-Z][\w-]*)")
 _SKIP_TAGS = {"tg-emoji", "code", "pre"}
