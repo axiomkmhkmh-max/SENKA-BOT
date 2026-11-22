@@ -756,8 +756,15 @@ async def pvp_settle(doc: dict):
         if await bump_counter(f"brpair:{pair}:{day_id()}", 1, DUEL_PAIR_DAILY):
             from service_battlerank import apply as br_apply, current as br_current
             rw, rl = br_current(cw)[0], br_current(cl)[0]
-            bw, bl = await asyncio.gather(br_apply(w_uid, "duel_win", opp_rp=rl), br_apply(l_uid, "duel_loss", opp_rp=rw))
+            bw = await br_apply(w_uid, "duel_win", opp_rp=rl)
+            if bw and bw.get("delta", 0) > 0:
+                bl = await br_apply(l_uid, "duel_loss", opp_rp=rw)
+            else:  # the winner's daily duel cap was already full: nobody earned anything, so the loser must not bleed rank for it
+                bl = None
+                res["br_note"] = "cap"
             res["br"] = {w_uid: bw, l_uid: bl}
+        else:  # this pair already used its rank duels today: say so instead of staying silent
+            res["br_note"] = "pair"
     log_event("pvp", w_uid, f"دوئل {'رنکد' if doc['ranked'] else 'دوستانه'}: برد مقابل {cl['name']} ({l_uid})" + (f" | رتبه {res['rating'][w_uid][1]:+d}" if rated else (f" | بدون امتیاز ({note})" if note else "")),
               loser=l_uid, ranked=bool(doc["ranked"]))
     wins_today = await col("battle_logs").count_documents({"user_id": w_uid, "mode": "pvp", "win": True, "at": {"$gte": now - 86400}})

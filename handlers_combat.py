@@ -662,6 +662,15 @@ def _final(ctx, doc, outcome):
                 d = br["delta"]
                 lines.append(f"🎖 {esc(nm_)}: {'+' if d >= 0 else '−'}{fnum(abs(d), L)} → {br['title_fa' if L == 'fa' else 'title_en']}"
                              + (" ⬆️" if br.get("up") else " ⬇️" if br.get("down") else ""))
+        bn = outcome.get("br_note")
+        if bn:
+            from data_battlerank import DUEL_DAILY_CAP, DUEL_PAIR_DAILY
+            if bn == "pair":
+                lines.append(f"⏳ با این حریف فقط {fnum(DUEL_PAIR_DAILY, L)} دوئل اول هر روز رنک دارد." if L == "fa"
+                             else f"⏳ Only the first {DUEL_PAIR_DAILY} duels a day against the same opponent change Battle Rank.")
+            else:
+                lines.append(f"⏳ سقف روزانه‌ی رنک دوئل ({fnum(DUEL_DAILY_CAP, L)}) برای برنده پر بود؛ رنک هیچ‌کدام تغییر نکرد." if L == "fa"
+                             else f"⏳ The winner's daily duel rank cap ({DUEL_DAILY_CAP}) was full; nobody's rank changed.")
         if outcome.get("note"):
             lines.append(t(L, "duel_note_" + outcome["note"]))
         if outcome.get("bounty"):

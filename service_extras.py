@@ -525,12 +525,17 @@ async def hogyoku_steal(thief: int, victim: int):
     rounds_n = max(1, int(st["hog_rounds"]))
     need = hog_wins_needed(rounds_n)
     rounds, wa, wb = [], 0, 0
-    for _ in range(rounds_n):
-        w = await quick_fight(thief, victim, neutral=True)  # the Hōgyoku's own bonuses stay out of the duel (fair fight by real strength)
-        rounds.append(w)
-        wa, wb = wa + (w == "a"), wb + (w == "b")
-        if wa >= need or wb >= need:
-            break
+    try:
+        for _ in range(rounds_n):
+            w = await quick_fight(thief, victim, neutral=True)  # the Hōgyoku's own bonuses stay out of the duel (fair fight by real strength)
+            rounds.append(w)
+            wa, wb = wa + (w == "a"), wb + (w == "b")
+            if wa >= need or wb >= need:
+                break
+    except Exception:  # a crashed fight must not burn the thief's 2h cooldown or lock the holder for a minute
+        await col("cooldowns").delete_one({"key": f"hog:steal:{thief}"})
+        await col("cooldowns").delete_one({"key": f"hog:tgt:{victim}"})
+        raise
     report = {"pa": pa, "pb": pb, "rounds": rounds, "wa": wa, "wb": wb, "hours": 0}
     from service_log import log_event
     seq = "".join("✅" if w == "a" else "❌" for w in rounds)
