@@ -55,7 +55,8 @@ GAME_DEFAULTS = {
     # mode 1 = the player gets an extra boss_burst_cd seconds of cooldown, 2 = the boss takes
     # (1 - boss_burst_reduce) less damage from that player meanwhile, 3 = both. boss_burst_dmg 0 AND boss_burst_pct 0 = off.
     "boss_burst_dmg": 100000, "boss_burst_pct": 0.10, "boss_burst_announce_gap": 60, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
-    "level_max": 750, "stat_max": 500,  # Nov 23: level cap, and the most any one stat can reach by spending points
+    "level_max": 750, "stat_max": 350,  # Nov 23: level cap, and the most any one stat can reach by spending points (was 500)
+    "pts_per_level": 2, "pts_every5": 0,  # stat points per level-up, and the extra point on every 5th level (was 3 + 1): 750 levels = 1500 points, so only ~4 stats can ever be maxed
     "xp_curve_k": 2.5,  # level-up difficulty (was 1.5): XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
@@ -125,6 +126,7 @@ GAME_DEFAULTS = {
     "znp_shikai_level": 20, "znp_shikai_bond": 50, "znp_bankai_level": 60, "znp_bankai_mastery": 150,
     "chain_cap": 10, "chain_step": 0.05, "chain_expire_hours": 12, "chain_bonus_every": 5,
     "chain_shield_min": 10, "chain_shield_hours": 24,  # a long chain survives one loss per window
+    "shop_card_daily": 5,  # skill cards (ability / Kidō) one player can buy from Urahara per day (0 = no limit)
     "shop_disc_5": 0.05, "shop_disc_10": 0.10, "shop_disc_25": 0.15,  # Urahara bulk-buy discounts
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,
     "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,

@@ -633,6 +633,11 @@ async def _shop_item_view(ctx, item_id, note=""):
         lines.append(f"×{fnum(q, L)} → {fnum(total, L)}🪙{tag}")
     hdr = ("🛒 خرید تعدادی (تخفیف حجمی):" if L == "fa" else "🛒 Bulk buy (volume discount):")
     body = head(ctx, "ttl_shp") + item_card(ctx, item_id, shop_price=unit) + "\n\n" + hdr + "\n" + "\n".join(lines)
+    if ALL[item_id]["category"] in ("ability_card", "kido_card"):
+        from service_economy import shop_card_left
+        left = await shop_card_left(ctx.uid, today())
+        if left >= 0:
+            body += "\n\n" + (f"🎴 کارت مهارت امروز قابل خرید: {fnum(left, L)}" if L == "fa" else f"🎴 Skill cards you can still buy today: {left}")
     if note:
         body += "\n\n" + note
     rows = [[(f"{'🟢 ' if q == 1 else ''}×{fnum(q, L)}", "sb", f"{item_id}|{q}") for q in SHOP_QTYS], nav(ctx, ("shp", "0"))]

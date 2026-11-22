@@ -405,6 +405,40 @@ async def shop_quote(item_id: str, qty: int = 1) -> tuple:
     return unit, total, disc
 
 
+SHOP_CARD_CATS = ("ability_card", "kido_card")  # skill cards level abilities up, so the shelf only sells a few a day
+
+
+async def _card_quota_take(uid: int, item_id: str, day: str, qty: int) -> bool:
+    """Reserve `qty` of today's per-player skill-card allowance (setting shop_card_daily, 0 = no limit). Atomic."""
+    if (ALL.get(item_id) or {}).get("category") not in SHOP_CARD_CATS:
+        return True
+    cap = int((await game_settings()).get("shop_card_daily", 5))
+    if cap <= 0:
+        return True
+    if qty > cap:
+        return False
+    from pymongo.errors import DuplicateKeyError
+    try:
+        await col("shop_card_buys").update_one({"_id": f"{uid}:{day}", "n": {"$lte": cap - qty}}, {"$inc": {"n": qty}}, upsert=True)
+    except DuplicateKeyError:  # the day's counter exists and the order would pass the cap
+        return False
+    return True
+
+
+async def _card_quota_give(uid: int, item_id: str, day: str, qty: int):
+    if (ALL.get(item_id) or {}).get("category") in SHOP_CARD_CATS:
+        await col("shop_card_buys").update_one({"_id": f"{uid}:{day}"}, {"$inc": {"n": -qty}})
+
+
+async def shop_card_left(uid: int, day: str) -> int:
+    """Skill cards the player can still buy today (-1 = no limit)."""
+    cap = int((await game_settings()).get("shop_card_daily", 5))
+    if cap <= 0:
+        return -1
+    d = await col("shop_card_buys").find_one({"_id": f"{uid}:{day}"}) or {}
+    return max(0, cap - int(d.get("n", 0)))
+
+
 async def shop_buy(uid: int, item_id: str, day: str, qty: int = 1) -> str:
     qty = int(qty)
     ch = await get_char(uid)
@@ -413,10 +447,14 @@ async def shop_buy(uid: int, item_id: str, day: str, qty: int = 1) -> str:
     if qty < 1 or qty > max(SHOP_QTYS):
         return "gone"
     _, total, _ = await shop_quote(item_id, qty)
+    if not await _card_quota_take(uid, item_id, day, qty):
+        return "limit"
     if not await add_coins(uid, -total, "shop_buy"):
+        await _card_quota_give(uid, item_id, day, qty)
         return "funds"
     if not await inv_add(uid, item_id, qty):
         await add_coins(uid, total, "shop_refund")
+        await _card_quota_give(uid, item_id, day, qty)
         return "full"
     log_event("shop", uid, f"از اوراهارا خرید: {iname(item_id, 'fa')} ×{qty} به قیمت {total:,} 🪙", item=item_id, price=total, qty=qty)
     return "ok"

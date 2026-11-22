@@ -63,7 +63,7 @@ TEXT = {
  "mkt_body": "Urahara's shop is open; everything has a price.\nBrowse player listings and auctions too. Fees: seller 5%, buyer 2%. Epic+ items are auction only.",
  "mk_shop": "🏪 Urahara shop", "mk_fixed": "🏷️ Listings", "mk_auction": "🔨 Auctions", "mk_mine": "📦 My listings", "mk_empty": "Nothing listed.", "mk_page": "Page {p}/{n}",
  "mk_price": "Price: <b>{p}</b> 🪙 (+{fee} buyer fee)", "mk_gone": "Someone beat you to it.", "mk_bought": "✅ Purchased!", "mk_cancelled": "Listing cancelled.", "mk_mine_body": "Tap to cancel a listing.",
- "mk_e_gone": "Someone was faster.", "mk_e_funds": "Not enough coins.", "mk_e_full": "Your bag is full.", "mk_e_cant": "You can't cancel that.",
+ "mk_e_limit": "Daily skill-card buying limit reached; come back tomorrow.", "mk_e_gone": "Someone was faster.", "mk_e_funds": "Not enough coins.", "mk_e_full": "Your bag is full.", "mk_e_cant": "You can't cancel that.",
  "shp_body": "Today's rotating stock. Page {p}/{n}",
  "ml_fixed": "Fixed-price listing (72h).", "ml_auction": "Auction (24h, +5% bids, anti-snipe).", "ml_pick": "Pick a price. Suggested: {sp} 🪙",
  "ml_e_notrade": "Can't be traded.", "ml_e_auction_only": "Epic+ is auction only.", "ml_e_price": "Bad price.", "ml_e_slots": "No free listing slots.", "ml_e_missing": "You don't have it.",
