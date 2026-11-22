@@ -352,6 +352,15 @@ def _gain(f, n, ev):
         ev.append({"k": "gauge_full", "a": f["name"]})
 
 
+def _shield_add(f, n):
+    """Add a shield. In a duel the total shield is capped at DUEL shield_cap of max HP; returns what was really added."""
+    n = int(n)
+    if f.get("duel"):
+        n = max(0, min(n, int(f["max_hp"] * DUEL["shield_cap"]) - int(f["shield"])))
+    f["shield"] += n
+    return n
+
+
 def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     att, dfn = state[side], state["b" if side == "a" else "a"]
     absorbed = 0
@@ -914,7 +923,7 @@ def _signature(state, side, rng, ev):
         _deal(state, side, c["mult"] * sm, rng, ev, "soul", allow_procs=True)
     elif sg == "guts":  # Santen Kesshun: a shield that soaks the next hits
         n = max(1, int(_hb(f) * c["shield"]))
-        f["shield"] += n
+        n = _shield_add(f, n)
         ev.append({"k": "guts", "a": f["name"], "n": n})
 
 
@@ -956,7 +965,7 @@ def _technique(state, side, slot, rng, ev):
                 ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": t["fx"]})
     elif kind == "shield":
         n = max(1, int(_hb(f) * t["shield"] * pw * rf))
-        f["shield"] += n
+        n = _shield_add(f, n)
         ev.append({"k": "shield_t", "a": f["name"], "n": n})
     elif kind == "heal":
         n = max(1, int(_hb(f) * t["heal"] * pw * rf))
@@ -1003,7 +1012,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         n = max(1, int(_hb(f) * c["shield"] * evb(f, "blut", 1.0) * race_factor(f) * fixed_k(f, "vene")))
         if fab:
             acd["blv"], _x(f)["cd"] = c["cd"] + 1, 0
-        f["shield"] += n
+        n = _shield_add(f, n)
         ev.append({"k": "blut_vene", "a": f["name"], "n": n})
     elif action == "bla":  # Blut Arterie: the blood runs through the blade, stronger strikes for a while
         from data_bleachfx import BLUT
@@ -1023,7 +1032,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         n = max(1, int(_hb(f) * NEGACION["shield"] * race_factor(f) * fixed_k(f, "neg")))
         if fab:
             acd["neg"], _x(f)["cd"] = NEGACION["cd"] + 1, 0
-        f["shield"] += n
+        n = _shield_add(f, n)
         ev.append({"k": "negacion", "a": f["name"], "n": n})
     elif action == "gar":  # Garganta: a tunnel opens and the gap to the foe is the full range
         from data_bleachfx import GARGANTA
@@ -1057,7 +1066,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         _x(f)["gcd"] = spec["cd"]
         if key == "guard":
             n = max(1, int(_hb(f) * spec["shield"] * pw))
-            f["shield"] += n
+            n = _shield_add(f, n)
             ev.append({"k": "gen", "a": f["name"], "skill": key, "n": n})
         elif key == "strike":
             ev.append({"k": "gen", "a": f["name"], "skill": key})
@@ -1135,7 +1144,9 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             _x(f)["chant"] = 0
         else:
             gain *= KD.unchanted_mult(n)
-        f["shield"] += int(gain)
+        if f.get("duel"):
+            gain *= DUEL["bak_share"]
+        _shield_add(f, int(gain))
         ev.append({"k": "shield", "a": f["name"], "n": f["shield"], "num": n, "spell": KIDO_NAMES.get(("bak", n), "")})
         # the bind is the spell's own: Sai / Hainawa often, Rikujōkōrō always, Sajō Sabaku for two turns; the walls
         # (Enkōsen, Tozanshō, Danku) do not bind at all. Bosses resist half as well, so they can be bound but not chain-locked.
@@ -1771,7 +1782,7 @@ def _ab_run(state, side, action, rng, ev):
         f["fx"] = [z for z in f["fx"] if z["k"] not in ("bleed", "burn", "poison", "fear", "weaken", "shock")]
     if s.get("shield"):
         n = max(1, int(_hb(f) * s["shield"] * k * rf))
-        f["shield"] += n
+        n = _shield_add(f, n)
         ev.append({"k": "shield_t", "a": f["name"], "n": n})
     if s.get("hot"):
         add_bf(f, {"hot": s["hot"][0] * k * rf, "t": AB.lv_turns(s["hot"][1], lv)}, side)
@@ -1821,7 +1832,7 @@ def _ab_turn_start(state, side, ev, rng):
             f["hp"] = min(f["max_hp"], f["hp"] + h)
             ev.append({"k": "heal", "a": f["name"], "n": h})
         if b.get("sot"):
-            f["shield"] += max(1, int(_hb(f) * b["sot"]))
+            _shield_add(f, max(1, int(_hb(f) * b["sot"])))
         if b.get("drain_re"):
             f["re"] = max(0, f["re"] - int(f["max_re"] * b["drain_re"]))
     acd = x.get("acd") or {}

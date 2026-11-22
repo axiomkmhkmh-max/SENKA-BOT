@@ -113,3 +113,16 @@ class Rules(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShieldCap(unittest.TestCase):
+    def test_shield_capped_in_duel(self):
+        a, b = fighter("A", 50, 100, 50, 10000), fighter("B", 50, 100, 50, 10000)
+        E.new_state(a, b, random.Random(1), pvp=True)
+        E._shield_add(a, 10 ** 7)
+        self.assertEqual(a["shield"], int(a["max_hp"] * DUEL["shield_cap"]))
+        E._shield_add(a, 5000)
+        self.assertEqual(a["shield"], int(a["max_hp"] * DUEL["shield_cap"]))
+        b["duel"] = False
+        E._shield_add(b, 10 ** 7)
+        self.assertEqual(b["shield"], 10 ** 7)

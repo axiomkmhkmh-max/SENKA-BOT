@@ -38,6 +38,8 @@ DUEL = {
     "bk_flat": 1000,     # a release costs at least this much Reiatsu ...
     "bk_pool_cap": 0.35, # ... but never more than this share of the pool, so a small pool can still release
     "bk_per_duel": 1,    # releases per duel
+    "bak_share": 0.5,    # Bakudo barriers count this share of their normal thickness in a duel (the x3 of Nov 21 is halved)
+    "shield_cap": 0.5,   # all shields together never pass this share of the owner's max HP (no 200K barrier on a 10K fighter)
 }
 # Legendary dungeon, stage 1 (feedback: far too strong): its enemy gets more HP and hits for less. Not a wall, a longer, fairer fight.
 LEGEND_S1_HP = 1.4
