@@ -13,7 +13,7 @@ ACTION_FA = {
     "world_set": "تغییر دنیا", "world_reset": "ریست دنیا", "world_event_start": "شروع رویداد", "world_event_end": "پایان رویداد",
     "world_boss_spawn": "ظهور باس", "give_summon": "دادن احضار", "world_boss_end": "پایان باس", "world_season_end": "پایان فصل", "territory_reset": "ریست قلمرو",
     "give_art": "دادن آرتیفکت", "take_art": "گرفتن آرتیفکت", "free_art": "آزاد کردن آرتیفکت", "give_hogyoku": "دادن هوگیوکو",
-    "give_tokens": "دادن توکن", "take_tokens": "گرفتن توکن", "set_token": "تنظیم توکن", "refill": "پر کردن انرژی",
+    "give_tokens": "دادن توکن", "take_tokens": "گرفتن توکن", "set_token": "تنظیم توکن", "refill": "پر کردن انرژی", "racecd": "برداشتن تایمر نژاد/ریسپک",
     "code_new": "ساخت کد هدیه", "code_off": "خاموش کردن کد", "code_on": "روشن کردن کد", "code_del": "حذف کد", "gift_all": "هدیه‌ی همگانی",
 }
 # Persian words accepted as arguments of admin text commands (free-text positions such as reasons/messages are never translated)

@@ -384,6 +384,29 @@ async def c_refill(e: Env):
     await e.say(e.t("⚡ انرژی پر شد: ", "⚡ Energy refilled: ") + await _name(tid))
 
 
+@acmd("racecd", 60, "/racecd <id|@user|reply> [respec]", "برداشتن تایمر تغییر نژاد (یا ریسپک)", "Clear race-change timer (or respec)")
+async def c_racecd(e: Env):
+    which = (e.args[-1].lower() if e.args else "")
+    respec = which in ("respec", "ریسپک")
+    if respec:
+        e.args = e.args[:-1]
+    tid = await target(e)
+    if tid is None:
+        return
+    key = "respec_at" if respec else "race_changed_at"
+    ch = await get_char(tid)
+    if not int(ch.get(key) or 0):
+        return await e.say(e.t("ℹ️ این پلیر تایمری ندارد: ", "ℹ️ This player has no timer: ") + await _name(tid))
+    await col("characters").update_one({"user_id": tid}, {"$unset": {key: ""}})
+    await alog(e.uid, "racecd", tid, int(ch.get(key) or 0), 0, "respec" if respec else "race")
+    if respec:
+        await _dm(e.bot, tid, "🔄 ادمین تایمر ریسپک تو را برداشت؛ می‌توانی دوباره ریسپک کنی.", "🔄 An admin cleared your respec timer; you can respec again.")
+        await e.say(e.t("✅ تایمر ریسپک برداشته شد: ", "✅ Respec timer cleared: ") + await _name(tid))
+    else:
+        await _dm(e.bot, tid, "🔄 ادمین تایمر تغییر نژاد تو را برداشت؛ می‌توانی نژادت را عوض کنی.", "🔄 An admin cleared your race-change timer; you can change your race now.")
+        await e.say(e.t("✅ تایمر تغییر نژاد برداشته شد: ", "✅ Race-change timer cleared: ") + await _name(tid))
+
+
 # ---- items ------------------------------------------------------------------------------------------------------------
 @acmd("finditem", 20, "/finditem <name or id>", "جست‌وجوی آیتم (نام فارسی/انگلیسی)", "Search items by name or id")
 async def c_finditem(e: Env):
