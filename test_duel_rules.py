@@ -26,19 +26,24 @@ class Rules(unittest.TestCase):
             E._deal(st, "a", 5.0, random.Random(seed), ev)
             self.assertGreaterEqual(weak["hp"], weak["max_hp"] * (1 - DUEL["hit_cap"]) - 1)
 
-    def test_floor_counts_for_the_weak(self):
-        strong, weak = fighter("S", 100, 4000, 500, 20000), fighter("W", 40, 5, 5, 3000)
-        st = E.new_state(weak, strong, random.Random(1), pvp=True)
-        before = strong["hp"]
-        E._apply(st, "a", 1, False, random.Random(2), [], "atk", False)   # a pitiful blow that lands
-        self.assertEqual(before - strong["hp"], int(strong["max_hp"] * DUEL["floor"]))
-        strong["guard"] = True
-        before = strong["hp"]
-        E._apply(st, "a", 1, False, random.Random(2), [], "atk", False)   # guarding halves the floor
-        self.assertEqual(before - strong["hp"], int(strong["max_hp"] * DUEL["floor"] * 0.5))
-        before = strong["hp"]
-        E._apply(st, "a", 1, False, random.Random(2), [], "reflect", False)  # reflected damage has no floor
-        self.assertEqual(before - strong["hp"], 1)
+    def test_floor_follows_attacker_power_not_target_hp(self):
+        weak, strong, tank = fighter("W", 40, 60, 5, 3000), fighter("S", 100, 4000, 500, 20000), fighter("T", 100, 100, 3000, 60000)
+        tank["armor"] = 5000
+        def avg(att, dfn, rules):
+            tot = 0
+            for seed in range(40):
+                a, d = dict(att), dict(dfn)
+                import copy
+                a, d = copy.deepcopy(att), copy.deepcopy(dfn)
+                st = E.new_state(a, d, random.Random(seed), pvp=True, duel_rules=rules)
+                st["dist"] = 0
+                ev = []
+                E._deal(st, "a", 1.0, random.Random(seed), ev, "atk")
+                tot += sum(e.get("n", 0) for e in ev if e["k"] == "hit")
+            return tot / 40
+        on, off = avg(weak, tank, True), avg(weak, tank, False)
+        self.assertGreater(on, off)                      # the floor lifts a weak hitter against heavy armour
+        self.assertGreater(avg(strong, tank, True), on)  # ... but a stronger hitter still hits harder (no flattening)
 
     def test_rules_off_outside_duels(self):
         a, b = fighter("A", 100, 4000, 500, 20000), fighter("B", 40, 50, 20, 3000)

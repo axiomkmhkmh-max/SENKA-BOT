@@ -28,8 +28,11 @@ BOSS_DMG_MULT = 0.75     # ... and their own blows are 25% weaker (was 1.0, only
 # Duel rules (players against players, Nov 2026). They exist because the plain damage comparison let a high level one-shot a
 # low level. They apply only where new_state(..., duel_rules=True): never to bosses, PvE or the tournament standard kit.
 DUEL = {
+    "dmg_share": 1.0,    # every duel blow counts this share of its normal damage. 1.0 = off. Measured (level 367 pair, 37K HP):
+                         # 1.0 -> median 31 turns, 0.7 -> 63, 0.5 -> 133, 0.35 and below never ends (200-turn cap). 0.05 is unplayable.
     "hit_cap": 0.25,     # one blow (crit included) takes at most this share of the target's max HP: no one-shots
-    "floor": 0.015,      # a blow that lands takes at least this share of the target's max HP: the weaker side still counts
+    "floor_share": 0.30, # a blow that lands deals at least this share of what it would do with the target's armour ignored:
+                         # the weaker side still counts, and a stronger attacker still hits harder (the floor follows the attacker's power)
     "mult_cap": 3.0,     # all damage perks, buffs, release, Resolve multiplied together never pass this (no x10 stacks)
     "form_cap": 2.5,     # a form's stat multiplier (Bankai x3.0) counts at most this in a duel
     "bk_flat": 1000,     # a release costs at least this much Reiatsu ...

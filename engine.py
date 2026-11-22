@@ -297,6 +297,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         zone = max(1.0, _zone(state, side) / stance) * stance
     else:
         zone = _zone(state, side)
+    nodef = max(1.0, base) * power / max(1.0, raw)  # how much bigger the blow is with the target's armour ignored
     dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * zone * _foe_mult(att, dfn)
     if dfn["hp"] < dfn["max_hp"] * 0.5:
         dmg *= 1 + bsum(att, "lowfoe")
@@ -305,6 +306,8 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     ex = skill_p(att, "execute")
     if ex and dfn["hp"] < dfn["max_hp"] * 0.3:
         dmg *= 1 + ex / 100
+    if att.get("duel") and kind not in ("counter", "echo"):  # duel floor: armour never removes more than (1 - floor_share) of a blow,
+        dmg *= max(1.0, nodef * DUEL["floor_share"])  # so a much weaker fighter still hurts, in proportion to their OWN power
     tm = _take_mult(dfn)
     if tmp.get("ng") and dfn["guard"]:  # Cero Oculto: the Guard does not soften it
         tm /= 0.5
@@ -354,10 +357,9 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     absorbed = 0
     if att.get("foe") in BOSS_FOES and not dfn.get("foe"):  # a boss never takes more than BOSS_HIT_CAP of a player's max HP in one blow
         dmg = min(dmg, max(1, int(dfn["max_hp"] * BOSS_HIT_CAP)))
-    if state.get("duel"):  # duel rules: no one-shots (cap) and a landed blow always counts (floor)
-        if kind not in ("reflect", "counter", "dot", "echo"):
-            fl = int(dfn["max_hp"] * DUEL["floor"] * (0.5 if dfn["guard"] else 1.0))
-            dmg = max(dmg, fl)
+    if state.get("duel"):  # duel rules: a share of the normal damage, and never more than hit_cap of the target's HP
+        if kind not in ("reflect", "dot"):
+            dmg = max(1, int(dmg * DUEL["dmg_share"]))
         dmg = min(dmg, max(1, int(dfn["max_hp"] * DUEL["hit_cap"])))
     if dfn["shield"] > 0:
         absorbed = min(dfn["shield"], dmg)
