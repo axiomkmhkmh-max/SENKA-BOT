@@ -38,6 +38,9 @@ Type spec keys (read by engine._ab_run):
 from data_weapons import RARITIES, PRICE
 
 LV_MAX = 10
+# Player-side damage factor per ability family (Nov 22 feedback: Cero and the Mask hit for a tenth of a high Hadō). Applies to the
+# damage `m` of that family's techniques, for players only (wild enemies keep their own numbers). 1.0 = as written in FAMILIES.
+FAMILY_DMG_K = {"cero": 3.0, "mask": 2.0}
 LV_STEP = 0.06       # +6% to the main numbers per level
 # cards and coins to go from level L to L+1 (index L-1): 25 cards and 172k coins from 1 to 10
 UPGRADE = [(1, 2000), (1, 4000), (2, 7000), (2, 10000), (3, 15000), (3, 20000), (4, 28000), (4, 36000), (5, 50000)]

@@ -28,9 +28,9 @@ HIGH_SPELL_PCT = 0.08        # ... 8% (was 22.5% for Kurohitsugi and more above 
 # stun = chance the target loses its next turn, cost_k = reiatsu factor.
 # Hadō damage factor by spell number. It used to be 0.7 + 0.3 * n (Kurohitsugi x27.7): a high-level caster hit for 200K while every
 # other attack (a plain blow, Hollow Claw, Mask Strike) hit for about 1K, so nothing else was worth pressing. Now the first
-# HADO_KNEE numbers keep the old slope and the numbers above it grow at HADO_SLOPE_HIGH per number (Kurohitsugi about x12).
+# HADO_KNEE numbers keep the old slope and the numbers above it grow at HADO_SLOPE_HIGH per number (Kurohitsugi about x10).
 HADO_KNEE = 20
-HADO_SLOPE_HIGH = 0.08
+HADO_SLOPE_HIGH = 0.05
 
 
 def hado_factor(n: int) -> float:

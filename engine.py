@@ -885,6 +885,8 @@ def _signature(state, side, rng, ev):
             x["cd"] = int(evb(f, "sig_cd", c["cd"]))
             mult, pierce = (c["ai_mult"], c["ai_pierce"]) if f.get("ai") else (c["mult"], c["pierce"])
             mult *= evb(f, "cero_mult", 1.0) * evb(f, "sig_mult", 1.0)
+            if not f.get("ai"):
+                mult *= AB.FAMILY_DMG_K.get("cero", 1.0)  # players' Cero (wild enemies keep ai_mult)
             x["tmp"] = {"crit": 0.0, "cdmg": 0.0, "ng": False, "any": False, "nopen": True}  # Cero reaches every zone: the weapon's spacing never reduces it
             try:
                 _deal(state, side, mult, rng, ev, "cero", allow_procs=True, extra_pierce=pierce)
@@ -1677,6 +1679,8 @@ def _ab_run(state, side, action, rng, ev):
         m = rng.uniform(lo, hi)
     if m:
         m *= k
+        if not f.get("wild"):
+            m *= AB.FAMILY_DMG_K.get(a["fam"], 1.0)  # Cero / Mask for players (data_abilities)
         if s.get("rel_m") and released(f):
             m = s["rel_m"] * k
         if s.get("low_foe") and o["hp"] < o["max_hp"] * s["low_foe"][0]:
