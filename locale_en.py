@@ -89,7 +89,7 @@ TEXT = {
  "duel_win": "🏆 <b>{name}</b> wins the duel!", "duel_draw": "🤝 A draw; neither blade took the lead.", "duel_declined": "Duel declined; the blades stay sheathed.", "duel_gone": "This duel is no longer available.", "duel_notplayer": "You are not in this duel.",
  "duel_need_reply": "Reply to a player's message with «duel».", "duel_group_only": "Duels happen in groups: reply to a player with «duel».",
  "duel_e_self": "You can't duel yourself.", "duel_e_noreg": "Create your character first (private chat).", "duel_e_opp_noreg": "That player has no character yet.", "duel_e_minlevel": "Ranked duels need level {n}.", "duel_e_busy": "One of you is already in a duel.",
- "duel_note_pair_cap": "ℹ️ Daily rating cap reached against this opponent: no rating change.", "duel_note_level_gap": "ℹ️ Level gap too large: unrated.", "duel_note_new_account": "ℹ️ New accounts can't gain rating yet.",
+ "duel_note_pair_cap": "ℹ️ Daily rating cap reached against this opponent: no rating change.", "duel_note_level_gap": "ℹ️ The winner is more than 10 levels above the loser: unrated.", "duel_note_new_account": "ℹ️ New accounts can't gain rating yet.",
  # boss
  "boss_title": "World Boss", "boss_phase_1": "Phase 1: awakening", "boss_phase_2": "⚠️ Phase 2: reiatsu trembles", "boss_phase_3": "🔥 Phase 3: ENRAGE (+30% XP)", "boss_left": "⏳ About {m} min left", "boss_hits": "⚔️ Total hits: {n}",
  "boss_dead": "💀 The boss has fallen! The world drew a breath.", "boss_escaped": "🏃 The boss slipped back into the rift…", "boss_enrage_bonus": "🔥 Enrage bonus +30% XP", "boss_hit_ok": "💥 {n} damage!", "boss_none": "No boss is active; the rifts are quiet.", "boss_private": "Bosses tear out of group rifts.",

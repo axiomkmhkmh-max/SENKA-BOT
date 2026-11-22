@@ -736,7 +736,7 @@ async def pvp_settle(doc: dict):
         pair_n = await col("battle_logs").count_documents({"pair": pair, "rated": True, "win": True, "at": {"$gte": now - 86400}})  # one log per duel (each duel stores two)
         if pair_n >= int(gs["pvp_pair_daily_cap"]):
             note = "pair_cap"
-        elif abs(cw["level"] - cl["level"]) > 10:
+        elif cw["level"] - cl["level"] > 10:  # only a much STRONGER-level winner is unrated (anti-farming); a lower level beating a higher one always counts
             note = "level_gap"
         elif now - cw["created_at"] < 3600 or now - cl["created_at"] < 3600:
             note = "new_account"
