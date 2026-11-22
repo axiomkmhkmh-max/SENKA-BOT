@@ -190,6 +190,8 @@ def neutral_char(c: dict) -> dict:
     c = dict(c)
     c.pop("hogyoku", None)
     c.pop("reiatsu_pen_until", None)
+    if c.get("artifact") == "art_hogyoku":  # the Hōgyoku Shard relic (+30% dmg, +18% def) is a Hōgyoku bonus too
+        c.pop("artifact", None)
     return c
 
 
