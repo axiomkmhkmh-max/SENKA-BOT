@@ -32,7 +32,7 @@ class _Chars:
 
 
 async def _settings():
-    return {"dp_pity_bronze": 6, "dp_pity_silver": 5, "dp_pity_gold": 4}
+    return {"dp_pity_bronze": 6, "dp_pity_silver": 5, "dp_pity_gold": 4, "dp_chest_daily": 0}  # 0 = no daily limit
 
 
 async def _add_coins(uid, n, why):
@@ -75,6 +75,17 @@ class ChestTests(unittest.TestCase):
             lst.clear()
         self._saved = {k: getattr(S, k) for k in ("col", "game_settings", "add_coins", "inv_add", "roll_drop", "log_event")}
         S.col, S.game_settings, S.add_coins, S.inv_add, S.roll_drop = (lambda n: _Chars()), _settings, _add_coins, _inv_add, _roll_drop
+        _n = {"n": 0}
+
+        async def _counter_get(key):
+            return _n["n"]
+
+        async def _bump(key, amount, cap):  # the daily chest limit (Nov 23)
+            if _n["n"] + amount > cap:
+                return False
+            _n["n"] += amount
+            return True
+        S.counter_get, S.bump_counter = _counter_get, _bump
         S.log_event = lambda *a, **k: None
 
     def tearDown(self):
@@ -151,6 +162,17 @@ class ChestTests(unittest.TestCase):
         self.assertLess(low, high)
         self.assertLess(high, hard)
 
+    def test_daily_chest_limit_blocks_and_keeps_dp(self):  # Nov 23: dp_chest_daily (6) chests a day
+        CHAR["dp"] = 10000
+
+        async def _lim():
+            return {**await _settings(), "dp_chest_daily": 6}
+        S.game_settings = _lim  # setUp's saved copy is restored in tearDown
+        st = [asyncio.run(S.buy_box(1, "bronze", _Forced(0)))[0] for _ in range(8)]
+        self.assertEqual(st, ["ok"] * 6 + ["limit"] * 2)
+        self.assertEqual(CHAR["dp"], 10000 - 6 * S.BOXES["bronze"]["cost"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

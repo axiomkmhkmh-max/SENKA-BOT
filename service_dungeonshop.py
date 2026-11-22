@@ -5,7 +5,7 @@ chest's own colours. Pure rules first, then the database parts."""
 import random
 
 from data_world import day_id
-from database import bump_counter, col, game_settings
+from database import bump_counter, col, counter_get, game_settings
 from service_economy import inv_add, roll_drop
 from service_log import log_event
 from service_player import add_coins, get_char
@@ -21,8 +21,8 @@ DP_DAILY_CAP = 4000  # fallback only: the live value is GAME_DEFAULTS["dp_daily_
 # Pity (GAME_DEFAULTS dp_pity_<key>): after that many chests in a row with the lower colour, the next one is the higher.
 BOXES = {
     "bronze": {"cost": 40, "rar": (0, 1), "odds": (60, 40), "coins": (150, 450), "icon": "🥉", "fa": "جعبه‌ی برنزی", "en": "Bronze Chest"},
-    "silver": {"cost": 120, "rar": (2, 3), "odds": (65, 35), "coins": (600, 1500), "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
-    "gold": {"cost": 360, "rar": (4, 5), "odds": (80, 20), "coins": (2250, 5000), "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
+    "silver": {"cost": 120, "rar": (2, 3), "odds": (75, 25), "coins": (600, 1500), "icon": "🥈", "fa": "جعبه‌ی نقره‌ای", "en": "Silver Chest"},
+    "gold": {"cost": 360, "rar": (4, 5), "odds": (92, 8), "coins": (2250, 5000), "icon": "🥇", "fa": "جعبه‌ی طلایی", "en": "Gold Chest"},
 }
 # Evolution relics (the fuel of evolution and of a race weapon's colour) come from these chests by luck, on top of the
 # item: key -> (chance, relic rarities it can be). Relics only exist up to Epic (purple), so the gold chest gives purple.
@@ -32,7 +32,7 @@ RELIC_ODDS = {"bronze": (0.20, ("Common", "Uncommon")), "silver": (0.30, ("Rare"
 # The gold chest also pays what the in-game help promises: a second prize (Epic / Legendary material, potion or book; materials
 # always come 2-3 at a time) and a small chance of a Tempering Stone.
 GOLD_BONUS_RARITIES = {"material": ("Rare", "Epic", "Legendary"), "potion": ("Epic", "Legendary"), "book": ("Epic", "Legendary")}
-GOLD_STONE_CHANCE = 0.15
+GOLD_STONE_CHANCE = 0.08
 GOLD_MAT_QTY = (2, 3)
 
 
@@ -99,11 +99,17 @@ async def buy_box(uid: int, key: str, rng=random):
     b = BOXES.get(key)
     if not b:
         return "nobox", None
+    st = await game_settings()
+    cap = int(st.get("dp_chest_daily", 6))  # chests a player may open per day (0 = no limit)
+    if cap and int(await counter_get(f"chest:{uid}:{day_id()}") or 0) >= cap:
+        return "limit", cap
     # atomic: the DP is taken only if the balance covers it, so a double tap cannot overspend
     hit = await col("characters").find_one_and_update({"user_id": uid, "dp": {"$gte": b["cost"]}}, {"$inc": {"dp": -b["cost"]}})
     if not hit:
         return "poor", None
-    st = await game_settings()
+    if cap and not await bump_counter(f"chest:{uid}:{day_id()}", 1, cap):  # atomic: two taps cannot pass the limit
+        await col("characters").update_one({"user_id": uid}, {"$inc": {"dp": b["cost"]}})
+        return "limit", cap
     pity_n = int(st[f"dp_pity_{key}"])  # 0 = no pity
     streak = int((hit.get("box_pity") or {}).get(key, 0))
     lo, hi = b["rar"]

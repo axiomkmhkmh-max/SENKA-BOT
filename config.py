@@ -55,7 +55,7 @@ GAME_DEFAULTS = {
     # mode 1 = the player gets an extra boss_burst_cd seconds of cooldown, 2 = the boss takes
     # (1 - boss_burst_reduce) less damage from that player meanwhile, 3 = both. boss_burst_dmg 0 AND boss_burst_pct 0 = off.
     "boss_burst_dmg": 100000, "boss_burst_pct": 0.10, "boss_burst_announce_gap": 60, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
-    "xp_curve_k": 1.5,  # level-up difficulty: XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
+    "xp_curve_k": 2.5,  # level-up difficulty (was 1.5): XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
     "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
     "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 300,
@@ -68,7 +68,7 @@ GAME_DEFAULTS = {
     "gacha_cost": 1500, "gacha_pity_legendary": 80, "gacha_pity_rare": 10,
     "dp_daily_cap": 4000,  # dungeon points one player can earn per day (was a fixed 1500)
     "dg_special_on": 1, "dg_special_day_cap": 6,  # dungeon-only special items: on/off, most drops per player per day
-    "dp_pity_bronze": 4, "dp_pity_silver": 3, "dp_pity_gold": 3,  # dungeon chests: this many in a row without a better item guarantees one (0 = off)
+    "dp_pity_bronze": 6, "dp_pity_silver": 5, "dp_pity_gold": 10, "dp_chest_daily": 6,  # dungeon chests: this many in a row without a better item guarantees one (0 = off)
     "gacha_mythic_cap": 10,  # most Mythic results one player can get from summons, ever (0 = no limit)
     "guild_create_cost": 5000, "guild_min_level": 20, "squad_change_days": 7,
     "minigame_daily_xp_cap": 500, "hollow_daily_xp_cap": 50,
@@ -128,7 +128,7 @@ GAME_DEFAULTS = {
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,
     "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,
     # ---- 100 wheels (Soul Core) ----------------------------------------------------------------
-    "wheel2_enabled": True, "wheel_free_daily": 1, "pity_leg": 30, "pity_myth": 90,
+    "wheel2_enabled": True, "wheel_free_daily": 1, "pity_leg": 60, "pity_myth": 250,
     "core_quest_chance": 0.03, "core_dungeon_chance": 0.03, "core_day_cap": 1,
     "core_new_day_cap": 1, "core_new_dungeon_k": 1.5, "core_event_chance": 0.05,  # Nov 22: cores from the six new dungeons and event rewards (own daily cap)
     "skin_chance_epic": 0.05, "skin_chance_leg": 0.20, "skin_chance_myth": 0.40, "skin_chance_legacy": 0.70,  # a big wheel result may also carry a skin

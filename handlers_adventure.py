@@ -1,7 +1,7 @@
 """Panels for the Nov 19 batch: 🗺 the Guild Quest Board (adventures), 👹 level boss, 🎰 roll shop, 🏛 elite shop, 🌌 Inner World 2 and the
 companion upgrade button (services in service_adventure, numbers in data_extras2)."""
 from data_extras2 import (ELITE_MIN_LEVEL, INNER2, INNER_KEY, LEVEL_BOSSES, PET_MAX_TIER,
-                          ROLL_COST, ROLL_JACKPOT_EVERY, ROLL_TEN_COST, ROLL_WEIGHTS)
+                          ROLL_COST, ROLL_DAILY_LIMIT, ROLL_JACKPOT_EVERY, ROLL_TEN_COST, ROLL_WEIGHTS)
 from data_guildquest import reward_preview, title as gq_title
 from data_items import ALL, iname
 from i18n import fnum
@@ -99,16 +99,21 @@ async def roll_shop(ctx, arg):
     ch = await get_char(ctx.uid)
     done = int(ch.get("rolls", 0))
     left = ROLL_JACKPOT_EVERY - done % ROLL_JACKPOT_EVERY
+    from data_world import day_id
+    from database import counter_get
+    used = await counter_get(f"rolld:{ctx.uid}:{day_id()}")
+    todo = max(0, ROLL_DAILY_LIMIT - used)
     odds = " · ".join(f"{rarity_name(r, L)} {fnum(w, L)}{'٪' if L == 'fa' else '%'}" for r, w in ROLL_WEIGHTS.items())
     kind = _T(ctx, "کارت‌های کیدو (باکودو و هادو)" if ch.get("race") in ("shinigami", "visored") else "کارت‌های تکنیک نژادت",
               "Kidō cards (Bakudō and Hadō)" if ch.get("race") in ("shinigami", "visored") else "your race's technique cards")
-    lines = [_T(ctx, f"🎰 <b>شاپ رول</b>\nهر رول یک {kind} یا تخم روح آبی به بالا. شانس رنگ‌ها: {odds}",
-                f"🎰 <b>Roll shop</b>\nEach roll gives {kind} or a spirit egg, blue and up. Colour odds: {odds}"),
+    lines = [_T(ctx, f"🎰 <b>شاپ رول</b>\nهر رول یک {kind} یا تخم روح بنفش به بالا. شانس رنگ‌ها: {odds}",
+                f"🎰 <b>Roll shop</b>\nEach roll gives {kind} or a spirit egg, purple and up. Colour odds: {odds}"),
+             _T(ctx, f"📅 سقف روزانه: {fnum(ROLL_DAILY_LIMIT, L)} رول (امروز {fnum(todo, L)} رول مانده).",
+                f"📅 Daily limit: {ROLL_DAILY_LIMIT} rolls ({todo} left today)."),
              _T(ctx, f"🌟 جک‌پات: هر {fnum(ROLL_JACKPOT_EVERY, L)} رول یک اکسسوری قرمز + سنگ آبدیده‌سازی. {fnum(left, L)} رول تا جک‌پات بعدی.",
                 f"🌟 Jackpot: every {ROLL_JACKPOT_EVERY} rolls a red accessory + a Tempering Stone. {left} rolls to the next one."),
              _T(ctx, f"💰 سکه‌ی تو: {fnum(ch.get('coins', 0), L)}", f"💰 Your coins: {fnum(ch.get('coins', 0), L)}")]
-    rows = [[(_T(ctx, f"🎲 ۱ رول · {fnum(ROLL_COST, L)}", f"🎲 1 roll · {fnum(ROLL_COST, L)}"), "rr1", "1"),
-             (_T(ctx, f"🎲 ۱۰ رول · {fnum(ROLL_TEN_COST, L)}", f"🎲 10 rolls · {fnum(ROLL_TEN_COST, L)}"), "rr1", "10")],
+    rows = [[(_T(ctx, f"🎲 ۱ رول · {fnum(ROLL_COST, L)}", f"🎲 1 roll · {fnum(ROLL_COST, L)}"), "rr1", "1")],
             nav(ctx)]
     return Out(head(ctx, "m_rsh") + "\n".join(lines), rows)
 
@@ -116,9 +121,11 @@ async def roll_shop(ctx, arg):
 @action("rr1")
 async def roll_do(ctx, arg):
     L = ctx.lang
-    status, data = await roll(ctx.uid, 10 if arg == "10" else 1)
+    status, data = await roll(ctx.uid, 1)  # the x10 button is gone (daily limit); an old button's arg "10" rolls once
     if status == "funds":
         return Out(alert=_T(ctx, f"{fnum(data, L)} 🪙 لازم است.", f"Needs {fnum(data, L)} 🪙."))
+    if status == "limit":
+        return Out(alert=_T(ctx, f"📅 سقف امروز ({fnum(data, L)} رول) پر شده؛ فردا برگرد.", f"📅 Today's limit ({data} rolls) is used up; come back tomorrow."))
     if status != "ok":
         return Out(alert="⏳")
     got = [("🌟 " if r["jackpot"] else "• ") + iname(r["id"], L) for r in data["results"]]

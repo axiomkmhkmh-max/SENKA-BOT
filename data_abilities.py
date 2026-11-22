@@ -43,7 +43,10 @@ LV_MAX = 10
 FAMILY_DMG_K = {"cero": 3.0, "mask": 2.0}
 LV_STEP = 0.06       # +6% to the main numbers per level
 # cards and coins to go from level L to L+1 (index L-1): 25 cards and 172k coins from 1 to 10
-UPGRADE = [(1, 2000), (1, 4000), (2, 7000), (2, 10000), (3, 15000), (3, 20000), (4, 28000), (4, 36000), (5, 50000)]
+UPGRADE = [(2, 6000), (2, 12000), (3, 21000), (4, 30000), (6, 45000), (8, 60000), (10, 84000), (14, 108000), (18, 150000)]
+# character level needed to raise a family / Kidō mastery from level L to L + 1 (index L-1): the last step (9 -> 10) needs level 300
+UPGRADE_MIN_LEVEL = [10, 25, 45, 70, 100, 140, 190, 250, 300]
+# 67 duplicate cards and 516k coins from 1 to 10 (was 25 cards and 172k)
 
 C_FA, C_EN = "کانن", "canon"
 I_FA, I_EN = "ابداعی", "original"
@@ -399,6 +402,13 @@ def scaled_buff(b: dict, lv: int) -> dict:
         else:
             out[k] = v * lv_k(lv)
     return out
+
+
+def upgrade_min_level(lv: int) -> int:
+    """Character level needed to go from lv to lv + 1 (0 at the top)."""
+    if lv >= LV_MAX or lv < 1:
+        return 0
+    return UPGRADE_MIN_LEVEL[lv - 1]
 
 
 def upgrade_cost(lv: int):

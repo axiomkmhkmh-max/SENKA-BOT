@@ -102,8 +102,11 @@ class Families(unittest.TestCase):
         self.assertEqual(AB.lv_cd(4, 8), 3)
         self.assertEqual(AB.lv_cd(1, 10), 1)
         self.assertAlmostEqual(AB.lv_cost(0.10, 10), 0.082)
-        self.assertEqual(sum(c for c, _ in AB.UPGRADE), 25)
-        self.assertEqual(sum(c for _, c in AB.UPGRADE), 172000)
+        self.assertEqual(sum(c for c, _ in AB.UPGRADE), 67)      # Nov 23: harder (was 25 cards / 172k coins)
+        self.assertEqual(sum(c for _, c in AB.UPGRADE), 516000)
+        self.assertEqual(len(AB.UPGRADE_MIN_LEVEL), len(AB.UPGRADE))
+        self.assertEqual(AB.upgrade_min_level(9), 300)
+        self.assertEqual(AB.upgrade_min_level(10), 0)
 
     def test_bala_always_hits(self):
         a = _f("A", race="arrancar", ab={"sg": {"fam": "cero", "tid": "cero", "lv": 1}})

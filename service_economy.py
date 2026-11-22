@@ -21,9 +21,9 @@ PETS = [("Spirit Fox", "روباه روحی"), ("Moon Cat", "گربه‌ی ما�
         ("Tide Serpent", "مار جزرومد"), ("Hollow Pup", "توله‌ی تهی"), ("Storm Hawk", "عقاب توفان")]
 from data_extras2 import NEW_PETS  # noqa: E402
 PETS += NEW_PETS  # appended, so the species of companions already hatched (index sp) never change
-DROP_W = [50, 25, 15, 7, 2.5, 0.5]
+DROP_W = [55, 27, 12, 5, 0.9, 0.1]  # Nov 23: Legendary 2.5 -> 0.9, Mythic 0.5 -> 0.1 (it dropped far too often)
 # Pity: this many drops in a row below the tier guarantees it. It used to be 1000 / 200 / 50, which almost nobody ever reached.
-PITY = (("legendary", 4, 150), ("epic", 3, 40), ("rare", 2, 15))
+PITY = (("legendary", 4, 400), ("epic", 3, 60), ("rare", 2, 20))
 
 
 # ---- inventory ---------------------------------------------------------------
@@ -146,9 +146,10 @@ async def use_item(uid: int, item_id: str):
         if not race_allows(ch.get("race"), "kd"):  # only Shinigami / Visored cast Kidō: other races used to lose the item for nothing
             return "race", None
     if t == "kido":
-        import math as _m
-        if ch["level"] < _m.ceil(eff["num"] * 0.8):
-            return "level", _m.ceil(eff["num"] * 0.8)
+        from data_kido import card_min_level
+        need = card_min_level(eff["num"])
+        if ch["level"] < need:
+            return "level", need
         if eff["num"] in ch["kido"][eff["branch"]]:
             return "known", None
         if not await inv_remove(uid, item_id, 1):
@@ -212,8 +213,9 @@ async def use_item(uid: int, item_id: str):
         pick = next((n for n in range(1, min(99, eff["cap"]) + 1) if n not in known), None)
         if pick is None:
             return "known", None
-        if ch["level"] < math.ceil(pick * 0.8):
-            return "level", math.ceil(pick * 0.8)
+        from data_kido import card_min_level
+        if ch["level"] < card_min_level(pick):
+            return "level", card_min_level(pick)
         if not await inv_remove(uid, item_id, 1):
             return "missing", None
         await col("characters").update_one({"user_id": uid}, {"$addToSet": {f"kido.{eff['branch']}": pick}})

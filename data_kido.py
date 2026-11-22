@@ -80,6 +80,18 @@ BAKUDO = {
 }
 
 
+def card_min_level(n: int) -> int:
+    """Level a player needs to learn spell n from a card. Up to 59 it is the old 80% of the number; an Epic card (60-79)
+    needs level 100-195 and a Legendary card (80-99) level 205-300, so nobody gets the top spells early."""
+    n = int(n)
+    base = -(-n * 8 // 10)  # ceil(n * 0.8)
+    if n >= 80:
+        return max(base, 205 + (n - 80) * 5)
+    if n >= 60:
+        return max(base, 100 + (n - 60) * 5)
+    return base
+
+
 def hado_params(n: int) -> dict:
     p = {"mult": 1.0, "pierce": 0.0, "burn": False, "weaken": False, "stun": 0.0, "cost_k": 1.0}
     p.update(HADO.get(int(n), {}))

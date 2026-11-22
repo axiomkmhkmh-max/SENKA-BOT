@@ -172,9 +172,15 @@ async def roll(uid: int, n: int, rng=random):
         return "bad", None
     if await try_cooldown(f"roll:{uid}", 2):
         return "wait", None
+    from data_extras2 import ROLL_DAILY_LIMIT
+    if n > ROLL_DAILY_LIMIT or int(await counter_get(f"rolld:{uid}:{day_id()}") or 0) + n > ROLL_DAILY_LIMIT:
+        return "limit", ROLL_DAILY_LIMIT  # checked before the coins are taken
     cost = ROLL_COST if n == 1 else ROLL_TEN_COST
     if not await add_coins(uid, -cost, "roll_shop"):
         return "funds", cost
+    if not await bump_counter(f"rolld:{uid}:{day_id()}", n, ROLL_DAILY_LIMIT):  # atomic: a double tap cannot pass the limit
+        await add_coins(uid, cost, "roll_shop_refund")
+        return "limit", ROLL_DAILY_LIMIT
     ch = await get_char(uid)
     after = await col("characters").find_one_and_update({"user_id": uid}, {"$inc": {"rolls": n}}, return_document=True)
     total = int((after or {}).get("rolls", n))

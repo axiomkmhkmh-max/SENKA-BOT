@@ -249,7 +249,8 @@ async def abandon_tower(uid: int) -> bool:
     return bool(r.modified_count)
 
 
-DG_XP_MULT = 2.0        # dungeon stages pay this much more XP than a normal fight (they pay no coins or items)
+DG_XP_MULT = 1.0        # dungeon stages pay this much of a normal fight's XP (was 2.0; they pay no coins or items)
+DG_FINAL_XP_MULT = 2    # the last stage pays this much more again (was x3)
 DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
 
@@ -557,8 +558,10 @@ async def pve_settle(doc: dict):
             xp, coins = int(xp * LEVEL_BOSS_REWARD), int(coins * LEVEL_BOSS_REWARD)
         elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
             xp, coins = int(xp * DG_XP_MULT), 0
+            sc = max(1.0, float(doc.get("scale") or 1.0))
+            xp = int(xp / sc ** 0.5)  # the difficulty's power multiplier now counts at its square root (abyss x8 paid x8 XP, now x2.8)
             if d["stage"] == d["total"]:
-                xp *= 3
+                xp *= DG_FINAL_XP_MULT
         if doc.get("mini"):
             xp, coins = int(xp * MINI_BOSS_REWARD), int(coins * MINI_BOSS_REWARD)
         coins = int(coins * wm["coin"])

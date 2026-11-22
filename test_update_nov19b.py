@@ -120,9 +120,11 @@ class RemovedPieces(unittest.TestCase):
 
 
 class RollWeights(unittest.TestCase):
-    def test_blue_and_up(self):
-        self.assertEqual(set(X.ROLL_WEIGHTS), {"Rare", "Epic", "Legendary", "Mythic"})
+    def test_purple_and_up(self):  # Nov 23: Epic and up only, Legendary is rare, no Mythic from rolls, two rolls a day
+        self.assertEqual(set(X.ROLL_WEIGHTS), {"Epic", "Legendary"})
         self.assertEqual(sum(X.ROLL_WEIGHTS.values()), 100)
+        self.assertLessEqual(X.ROLL_WEIGHTS["Legendary"], 5)
+        self.assertEqual(X.ROLL_DAILY_LIMIT, 2)
         self.assertEqual(X.ROLL_TEN_COST, X.ROLL_COST * 9)
 
 

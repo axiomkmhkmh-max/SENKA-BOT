@@ -67,9 +67,11 @@ def _up_line(ctx, ch, inv_items, fam):
     if not cost:
         return _T(ctx, "⭐ حداکثر لِوِل (۱۰)", "⭐ Max level (10)"), None
     cards, coins = cost
+    need_lv = AB.upgrade_min_level(lv)
     have = sum(q for _i, q in dup_cards(ch, inv_items, fam))
     txt = _T(ctx, f"⬆️ لِوِل بعد: {fnum(cards, 'fa')} کارت تکراری (داری {fnum(have, 'fa')}) + {fnum(coins, 'fa')} 🪙",
              f"⬆️ Next level: {cards} duplicate card(s) (you have {have}) + {coins:,} 🪙")
+    txt += _T(ctx, f"\n🔒 لِوِل شخصیت لازم: {fnum(need_lv, 'fa')}", f"\n🔒 Character level needed: {need_lv}")
     return txt, (cards, coins, have)
 
 
@@ -328,6 +330,8 @@ async def ability_upgrade(ctx, arg):
         out = await ability_family(ctx, arg)
         out.alert = _T(ctx, f"⬆️ لِوِل {fnum(info, 'fa')}!", f"⬆️ Level {info}!")
         return out
+    if r == "level":
+        return Out(alert=_T(ctx, f"🔒 برای این ارتقا لِوِل {fnum(info, 'fa')} لازم است.", f"🔒 This upgrade needs level {info}."))
     msg = {"max": _T(ctx, "⭐ به حداکثر رسیده.", "⭐ Already at the top."),
            "cards": _T(ctx, "🎴 کارت تکراری کافی نداری.", "🎴 Not enough duplicate cards."),
            "coins": _T(ctx, "🪙 سکه کافی نداری.", "🪙 Not enough coins.")}.get(r, "—")

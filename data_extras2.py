@@ -126,7 +126,8 @@ def level_band(level: int):
 ROLL_COST = 3000
 ROLL_TEN_COST = 27000           # ten rolls for the price of nine
 ROLL_JACKPOT_EVERY = 100        # every 100th roll is a guaranteed jackpot
-ROLL_WEIGHTS = {"Rare": 60, "Epic": 30, "Legendary": 9, "Mythic": 1}   # Kidō/race cards and spirit eggs, Rare and up
+ROLL_WEIGHTS = {"Epic": 96, "Legendary": 4}   # Kidō/race cards and spirit eggs: Epic and up only, Legendary is rare, no Mythic from rolls
+ROLL_DAILY_LIMIT = 2             # rolls a player may open per day (the x10 button is gone: it cannot fit this limit)
 ROLL_EGG_SHARE = 0.35            # the rest are cards (Kidō cards for Shinigami/Visored, technique cards for others)
 
 # ---- companions: new spirits and upgrades -----------------------------------------------------------------------------------

@@ -37,6 +37,8 @@ async def dungeon_shop_buy(ctx, arg):
     status, res = await buy_box(ctx.uid, arg)
     if status == "poor":
         return Out(alert=("دانجن پوینتت کافی نیست." if fa else "Not enough dungeon points."))
+    if status == "limit":
+        return Out(alert=(f"📅 سقف امروز ({fnum(res, L)} جعبه) پر شده؛ فردا برگرد." if fa else f"📅 Today's limit ({res} chests) is used up; come back tomorrow."))
     if status != "ok":
         return Out()
     b = BOXES[arg]

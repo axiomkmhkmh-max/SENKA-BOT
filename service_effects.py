@@ -114,7 +114,8 @@ async def use_tome(uid: int, item_id: str):
     import math
     eff, ch, st = ALL[item_id]["effect"], await get_char(uid), await game_settings()
     if eff["kind"] == "kido":
-        need = math.ceil(eff["num"] * 0.8)
+        from data_kido import card_min_level
+        need = card_min_level(eff["num"])
         if ch["level"] < need:
             return "level", need
         if eff["num"] in ch["kido"][eff["branch"]]:

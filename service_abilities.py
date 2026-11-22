@@ -179,6 +179,9 @@ async def upgrade(uid: int, fam: str):
     if not cost:
         return "max", lv
     cards, coins = cost
+    need_lv = AB.upgrade_min_level(lv)
+    if int(ch.get("level", 1)) < need_lv:
+        return "level", need_lv  # checked first: nothing is taken from a player who is too low
     inv = await inv_get(uid)
     have = dup_cards(ch, inv.get("items") or {}, fam)
     if sum(q for _i, q in have) < cards:

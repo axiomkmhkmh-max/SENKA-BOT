@@ -17,7 +17,7 @@ COST_TIERS = [(10, 1), (40, 2), (90, 4), (None, 8)]
 
 # Rarity outcomes of a spin. Weights do not need to sum to 100.
 RARITY_WEIGHTS = {
-    "Common": 45, "Rare": 25, "Epic": 14, "Legendary": 9, "Mythic": 3, "Legacy": 1,
+    "Common": 52, "Rare": 29, "Epic": 14, "Legendary": 4, "Mythic": 0.8, "Legacy": 0.2,  # Nov 23: top tiers were ~13%, now ~5%
 }
 RARITY_ICON = {"Common": "⬜", "Rare": "🟦", "Epic": "🟪", "Legendary": "🟧",
                "Mythic": "🟥", "Legacy": "🌌", "Soul Core": "🔮"}
