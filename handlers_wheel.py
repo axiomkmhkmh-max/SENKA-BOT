@@ -157,7 +157,8 @@ def _reward_lines(ctx, res: dict) -> str:
     if res["cores_won"]:
         out.append(f"🔮 +{res['cores_won']} {T(ctx, 'هسته‌ی روح', 'Soul Core')}")
     if res["item"]:
-        out.append(f"🎁 {esc(str(nm(res['item'], L)))}")
+        out.append(f"🎁 {esc(str(nm(res['item'], L)))} · " + (T(ctx, "🎒 داخل کوله‌ات", "🎒 in your bag") if res.get("in_bag")
+                                                          else T(ctx, "⚠️ به کوله نرسید؛ به ادمین خبر بده", "⚠️ not added; tell an admin")))
     return "\n".join(out)
 
 

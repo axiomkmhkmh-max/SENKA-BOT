@@ -175,6 +175,11 @@ _WHEEL_LIST = {
 COST_OVERRIDE = {"w_yamamoto": 75, "w_ichigo": 60, "w_hitsugaya": 25}
 OWNER_ONLY = {"w_hitsugaya"}
 
+# The "item specialist" wheels pay what their name says (a potion wheel pays potions, an egg wheel eggs ...).
+# Before, every wheel paid the same generic materials / relics, so players never saw the item they spun for in the bag.
+WHEEL_ITEM_CAT = {"w_relic": "relic", "w_material": "material", "w_potion": "potion", "w_egg": "egg",
+                  "w_book": "book", "w_cosmetic": "cosmetic", "w_key": "key"}
+
 
 def _build():
     out = {}

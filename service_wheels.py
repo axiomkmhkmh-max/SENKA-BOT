@@ -13,7 +13,7 @@ import random
 from pymongo import ReturnDocument
 
 from data_wheels import (
-    TOKEN, RARITY_ICON, can_spin, next_streaks, reward_for, resolve_rarity,
+    TOKEN, RARITY_ICON, WHEEL_ITEM_CAT, can_spin, next_streaks, reward_for, resolve_rarity,
     spin_cost, wheel_by_id,
 )
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
@@ -118,12 +118,17 @@ async def spin(uid: int, wid: str, owner_id: int):
         from data_items import EVO_BY_RARITY
         pool = EVO_BY_RARITY[{"Legendary": "Rare", "Mythic": "Epic", "Legacy": "Epic"}[rarity]] or EVO_BY_RARITY["Common"]
         item = random.choice(pool)
+    cat = WHEEL_ITEM_CAT.get(wid)
+    if cat and item and rarity in ("Epic", "Legendary", "Mythic", "Legacy"):
+        idx = {"Epic": [1, 2, 2, 3], "Legendary": [2, 3, 3, 4], "Mythic": [3, 4, 4, 5], "Legacy": [4, 5]}[rarity]
+        item = pick_item(cat, idx) or item  # the wheel's own kind of item; the generic pick stays as a fallback
+    in_bag = False
     if coins:
         await add_coins(uid, coins, "wheel2")
     if xp:
         await add_xp(uid, xp, "wheel2")
     if item:
-        await inv_add(uid, item, 1, force=True)
+        in_bag = bool(await inv_add(uid, item, 1, force=True))
     if cores:
         await grant_cores(uid, cores, f"wheel:{wid}")
 
@@ -132,7 +137,7 @@ async def spin(uid: int, wid: str, owner_id: int):
     return "ok", {
         "wid": wid, "n": n, "cost": cost, "free": bool(free), "rarity": rarity,
         "rarity_icon": RARITY_ICON[rarity], "icon": icon, "fa": fa, "en": en,
-        "coins": coins, "xp": xp, "cores_won": cores, "item": item,
+        "coins": coins, "xp": xp, "cores_won": cores, "item": item, "in_bag": in_bag,
         "cores_left": w_after["cores"], "leg": leg1, "myth": myth1,
         "token": TOKEN,
     }

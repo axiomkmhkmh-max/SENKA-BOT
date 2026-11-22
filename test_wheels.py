@@ -119,5 +119,18 @@ class Pity(unittest.TestCase):
         self.assertEqual(wheels_in("nope"), [])
 
 
+class ItemWheels(unittest.TestCase):
+    def test_item_wheels_exist_and_have_items_in_every_paying_tier(self):
+        import sys, types
+        from data_wheels import WHEEL_ITEM_CAT, WHEELS
+        from data_items import ALL
+        from service_extras import BY_CAT, RARITIES
+        for wid, cat in WHEEL_ITEM_CAT.items():
+            self.assertIn(wid, WHEELS)
+            pool = [i for r in RARITIES for i in BY_CAT.get(cat, {}).get(r, [])]
+            self.assertTrue(pool, cat)
+            self.assertTrue(all(i in ALL for i in pool), cat)
+
+
 if __name__ == "__main__":
     unittest.main()
