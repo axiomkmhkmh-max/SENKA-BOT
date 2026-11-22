@@ -23,7 +23,7 @@ from database import col, game_settings, try_cooldown
 from handlers_zanpakuto import _chant, _state
 import handlers_world
 
-DUEL_WORDS = {"مبارزه", "دوئل", "fight", "duel"}
+DUEL_WORDS = {"مبارزه", "fight"}  # Espada challenge only; «دوئل»/«duel» must stay an ordinary player-vs-player duel
 STEAL_WORDS = {"دزدی", "خیانت", "steal", "betray"}
 STRIKE_WORDS = {"حمله", "ضربه", "attack", "strike"}
 
