@@ -1094,7 +1094,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             _kcd(f)[KD.key("had", n)] = KD.spell_cd(n)
         o = state["b" if side == "a" else "a"]
         # hadō power: kidō stat and level set the base, the spell number scales it, the spell's own factor shapes it
-        raw = (eff(f, "kido") * 1.1 + f["level"] * 1.0) * (0.7 + 0.3 * n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
+        raw = (eff(f, "kido") * 1.1 + f["level"] * 1.0) * KD.hado_factor(n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
         chanted = bool(_x(f)["chant"])
         if chanted:  # the incantation is spent: full-power spell
             raw *= CHANT_HADO

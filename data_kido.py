@@ -26,6 +26,20 @@ HIGH_SPELL_PCT = 0.08        # ... 8% (was 22.5% for Kurohitsugi and more above 
 
 # Hadō: mult = damage factor, pierce = share of the target's armour ignored, burn / weaken = status for 3 turns,
 # stun = chance the target loses its next turn, cost_k = reiatsu factor.
+# Hadō damage factor by spell number. It used to be 0.7 + 0.3 * n (Kurohitsugi x27.7): a high-level caster hit for 200K while every
+# other attack (a plain blow, Hollow Claw, Mask Strike) hit for about 1K, so nothing else was worth pressing. Now the first
+# HADO_KNEE numbers keep the old slope and the numbers above it grow at HADO_SLOPE_HIGH per number (Kurohitsugi about x12).
+HADO_KNEE = 20
+HADO_SLOPE_HIGH = 0.08
+
+
+def hado_factor(n: int) -> float:
+    n = int(n)
+    if n <= HADO_KNEE:
+        return 0.7 + 0.3 * n
+    return 0.7 + 0.3 * HADO_KNEE + HADO_SLOPE_HIGH * (n - HADO_KNEE)
+
+
 HADO = {
     1:  {"mult": 0.9, "cost_k": 0.5},                                  # Shō: a quick palm strike, cheap
     4:  {"pierce": 0.5},                                               # Byakurai: a thin bolt that pierces armour

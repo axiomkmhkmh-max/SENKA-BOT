@@ -104,14 +104,14 @@ FAMILIES = {
         T("final", "سرو فینال", "Cero Final", I_FA, I_EN, 5, 0.40, None, once=True, m=5.0, fatigue=1),
     ]},
     "mask": {"fa": "ماسک", "en": "Mask", "icon": "🎭", "stat": {"reiatsu": 0.7, "zanjutsu": 0.3}, "types": [
-        T("mask_strike", "ضربه‌ی ماسک", "Mask Strike", C_FA, C_EN, 0, 0.10, 3, "mask", m=2.2, pierce=0.20),
+        T("mask_strike", "ضربه‌ی ماسک", "Mask Strike", C_FA, C_EN, 0, 0.10, 3, "mask", m=3.0, pierce=0.20),
         T("sakanade", "ساکاناده", "Sakanade", "شینجی", "Shinji", 3, 0.12, 6, "mask", debuff={"miss": 0.35, "t": 2}),
         T("mask_regen", "بازسازی هالو", "Hollow Regeneration", C_FA, C_EN, 1, 0.12, 6, "mask", heal=0.12),
         T("kinshara", "کینشارا", "Kinshara", "رُز", "Rose", 2, 0.12, 6, "mask", debuff={"dmg": -0.20, "crit": -0.20, "t": 2}),
         T("hollow_rage", "خشم هالو", "Hollow Rage", I_FA, I_EN, 1, 0.08, 5, "mask", buff={"dmg": 0.25, "def": -0.10, "t": 2}),
         T("howl", "زوزه‌ی هالو", "Hollow Howl", I_FA, I_EN, 1, 0.10, 5, "mask", debuff={"dmg": -0.15, "t": 2}),
         T("full_mask", "ماسک کامل", "Full Mask", I_FA, I_EN, 4, 0.10, None, "mask", once=True, mask_full=True),
-        T("claw", "پنجه‌ی هالو", "Hollow Claw", I_FA, I_EN, 2, 0.10, 3, "mask", hits=3, m=0.8),
+        T("claw", "پنجه‌ی هالو", "Hollow Claw", I_FA, I_EN, 2, 0.10, 3, "mask", hits=3, m=1.3),
     ]},
     "hiren": {"fa": "هیرن‌کیاکو", "en": "Hirenkyaku", "icon": "💨", "stat": {"reiatsu": 1.0}, "types": [
         T("hiren", "هیرن‌کیاکو", "Hirenkyaku", C_FA, C_EN, 0, 0.10, 4, m=0.7, buff={"dodge": 0.25, "crit": 0.12, "t": 2}),

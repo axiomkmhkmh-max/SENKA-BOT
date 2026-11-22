@@ -83,8 +83,8 @@ def effect_text(ctx, it: dict) -> str:
         n = int(e["num"])
         if e["branch"] == "had":
             import data_kido as _KD
-            return (f"هادو {n}: جادوی تهاجمی؛ ضریب آسیب ×{0.7 + 0.3 * n:.1f}؛ هزینه {_KD.cost_pct('had', n):g}٪ ریاتسوی حداکثر"
-                    if L == "fa" else f"Hadō {n}: attack spell; damage ×{0.7 + 0.3 * n:.1f}; costs {_KD.cost_pct('had', n):g}% of max reiatsu")
+            return (f"هادو {n}: جادوی تهاجمی؛ ضریب آسیب ×{_KD.hado_factor(n):.1f}؛ هزینه {_KD.cost_pct('had', n):g}٪ ریاتسوی حداکثر"
+                    if L == "fa" else f"Hadō {n}: attack spell; damage ×{_KD.hado_factor(n):.1f}; costs {_KD.cost_pct('had', n):g}% of max reiatsu")
         import data_kido as _KD
         return (f"باکودو {n}: سپر محافظ + {min(60, 10 + 5 * n)}٪ شانس بستن دشمن (نصف روی باس)؛ هزینه {_KD.cost_pct('bak', n):g}٪ ریاتسوی حداکثر"
                 if L == "fa" else f"Bakudō {n}: a shield + {min(60, 10 + 5 * n)}% chance to bind the foe (half on bosses); costs {_KD.cost_pct('bak', n):g}% of max reiatsu")
