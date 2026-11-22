@@ -287,7 +287,13 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     crit_p += bsum(att, "crit") + tmp.get("crit", 0.0)
     crit = rng.random() < crit_p
     cm = 1.5 + eff(att, "zanjutsu") * CRIT_ZAN + skill_p(att, "surge") / 100 + bsum(att, "cdmg") + tmp.get("cdmg", 0.0)
-    zone = (SIDE_DMG if in_side(state, side) else 1.0) if tmp.get("any") else _zone(state, side)
+    if tmp.get("any"):
+        zone = SIDE_DMG if in_side(state, side) else 1.0
+    elif tmp.get("nopen"):  # Cero: reaches every zone, so a far target never cuts it (the close-range bonus stays)
+        stance = SIDE_DMG if in_side(state, side) else 1.0
+        zone = max(1.0, _zone(state, side) / stance) * stance
+    else:
+        zone = _zone(state, side)
     dmg = raw * (cm if crit else 1.0) * elem_mult(att, dfn) * rng.uniform(0.9, 1.1) * _dmg_mult(att) * zone * _foe_mult(att, dfn)
     if dfn["hp"] < dfn["max_hp"] * 0.5:
         dmg *= 1 + bsum(att, "lowfoe")
@@ -854,7 +860,11 @@ def _signature(state, side, rng, ev):
             x["cd"] = int(evb(f, "sig_cd", c["cd"]))
             mult, pierce = (c["ai_mult"], c["ai_pierce"]) if f.get("ai") else (c["mult"], c["pierce"])
             mult *= evb(f, "cero_mult", 1.0) * evb(f, "sig_mult", 1.0)
-            _deal(state, side, mult, rng, ev, "cero", allow_procs=True, extra_pierce=pierce)
+            x["tmp"] = {"crit": 0.0, "cdmg": 0.0, "ng": False, "any": False, "nopen": True}  # Cero reaches every zone: the weapon's spacing never reduces it
+            try:
+                _deal(state, side, mult, rng, ev, "cero", allow_procs=True, extra_pierce=pierce)
+            finally:
+                x["tmp"] = None
         return
     f["re"] -= int(f["max_re"] * c["cost"])
     x["cd"] = int(evb(f, "sig_cd", c["cd"]))
@@ -1650,7 +1660,7 @@ def _ab_run(state, side, action, rng, ev):
         src = {"mix": mix, "wpn2": bool(s.get("wpn2"))}
         hp0 = o["hp"]
         x["tmp"] = {"crit": AB.lv_p(s["crit_add"], lv) if s.get("crit_add") else 0.0, "cdmg": s.get("cdmg_add", 0) * k,
-                    "ng": bool(s.get("noguard")), "any": bool(s.get("anyrange"))}
+                    "ng": bool(s.get("noguard")), "any": bool(s.get("anyrange")), "nopen": a["fam"] == "cero"}
         last_crit = False
         for i in range(hits):
             if o["hp"] <= 0:
