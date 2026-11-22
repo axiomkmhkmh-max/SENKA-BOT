@@ -55,14 +55,17 @@ async def wheels_home(ctx, arg):
     body = T(ctx,
              "هر گردونه با «هسته‌ی روح» 🔮 می‌چرخد.\nهرچه یک گردونه را بیشتر بچرخانی، گرانتر می‌شود.\n"
              "ضمانت دارد: جایزه‌ی بزرگ دیرتر ولی حتماً می‌آید.\n\n"
-             "🔮 هسته‌ی روح فقط از سخت‌ترین کوئست‌ها (افسانه‌ای، بانکای، سطح ۳۰) و دانجن‌های "
-             "«ورطه» و «افسانه‌ای» به‌دست می‌آید، و شانسش کم است.",
+             "🔮 هسته‌ی روح از سخت‌ترین کوئست‌ها، دانجن‌های «ورطه» و «افسانه‌ای»، دانجن‌های جدید "
+             "(از سختی «کابوس») و پاداش ایونت‌ها به‌دست می‌آید، و شانسش کم است.\n"
+             "🎭 گردونه‌ها اسکین و ارتقای کاتانا هم می‌دهند.",
              "Each wheel spins for Soul Cores 🔮.\nThe more you spin one wheel, the pricier it gets.\n"
              "Pity guarantees a big prize eventually.\n\n"
-             "🔮 Soul Cores drop only from the hardest quests (Legend, Bankai, level 30) and "
-             "the Abyss and Legendary dungeon difficulties, and the chance is low.")
+             "🔮 Soul Cores drop from the hardest quests, the Abyss and Legendary dungeons, the new dungeons "
+             "(from Nightmare up) and event rewards, and the chance is low.\n"
+             "🎭 Wheels can also give skins and katana boosts.")
     body += f"\n\n🔮 {T(ctx, 'هسته‌ی روح', 'Soul Cores')}: <b>{fnum(w['cores'], ctx.lang)}</b>"
     rows = [[(_cat_name(ctx, c), "whc", c) for c in pair] for pair in _pairs(list(CATEGORIES))]
+    rows.append([(T(ctx, "🎭 اسکین‌های من", "🎭 My Skins"), "skn", "")])
     rows.append(nav(ctx, ("mg", "fun")))
     return Out(_title() + body, rows)
 
@@ -159,6 +162,22 @@ def _reward_lines(ctx, res: dict) -> str:
     if res["item"]:
         out.append(f"🎁 {esc(str(nm(res['item'], L)))} · " + (T(ctx, "🎒 داخل کوله‌ات", "🎒 in your bag") if res.get("in_bag")
                                                           else T(ctx, "⚠️ به کوله نرسید؛ به ادمین خبر بده", "⚠️ not added; tell an admin")))
+    b = res.get("bonus")
+    if b and b["kind"] == "skin":
+        from data_skins import RARITY_ICON as SK_ICON, bonus_text, skin_by_id
+        sk = skin_by_id(b["skin"])
+        nm_ = sk["fa"] if L == "fa" else sk["en"]
+        out.append(f"🎭 {T(ctx, 'اسکین', 'Skin')}: {sk['icon']} <b>{esc(nm_)}</b> {SK_ICON[sk['rarity']]}")
+        out.append(f"   {bonus_text(sk, L)}")
+        out.append(T(ctx, "   ✅ به مجموعه‌ات اضافه شد (از «اسکین‌ها» بپوشش)", "   ✅ added to your collection (wear it in Skins)")
+                   if b["status"] == "new" else
+                   T(ctx, f"   🔁 تکراری بود؛ {fnum(b['coins'], L)} 🪙 گرفتی", f"   🔁 duplicate; you got {fnum(b['coins'], L)} 🪙"))
+    elif b and b["kind"] == "katana":
+        out.append(T(ctx, "🗡️ <b>کاتانا ارتقا گرفت!</b> سلاح نژادی‌ات رایگان یک رنگ بالا رفت.",
+                     "🗡️ <b>Katana boost!</b> Your race weapon rose one colour for free."))
+    elif b and b["kind"] == "katana_relic":
+        out.append(T(ctx, "🗡️ کاتانا بالا نرفت (حد سطح/رنگ)، پس سوخت تکامل گرفتی: ", "🗡️ The katana could not rise (level/colour cap), so you got evolution fuel: ")
+                   + esc(str(nm(b["item"], L))))
     return "\n".join(out)
 
 

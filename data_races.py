@@ -257,6 +257,15 @@ DUNGEONS.update({
     "soulking_heart": {"fa": "هزارتوی قلب شاه ارواح", "en": "Labyrinth of the Soul King's Heart", "level": 164, "stages": 9},
     "beyond_reioukyuu": {"fa": "آن‌سوی ریئوکیو", "en": "Beyond the Reiōkyū", "level": 190, "stages": 10},
 })
+# ---- Bleach content pack 8 (Nov 22): six new dungeons (keys are the "keyw" block in data_items; they also drop Soul Cores, see service_cores) ----
+DUNGEONS.update({
+    "eleventh_arena": {"fa": "میدان نبرد جوخه‌ی یازدهم", "en": "Eleventh Division Arena", "level": 28, "stages": 4},
+    "kuchiki_archive": {"fa": "آرشیو ممنوعه‌ی کوچیکی", "en": "Kuchiki Forbidden Archive", "level": 44, "stages": 5},
+    "fake_karakura_rift": {"fa": "شکاف کاراکورای جعلی", "en": "Rift of the Fake Karakura", "level": 64, "stages": 6},
+    "bankai_dojo": {"fa": "دوجوی بانکای", "en": "Bankai Training Dojo", "level": 86, "stages": 7},
+    "vasto_lair": {"fa": "لانه‌ی واستو لوردها", "en": "Vasto Lorde Lair", "level": 108, "stages": 8},
+    "final_trial_gate": {"fa": "دروازه‌ی آزمون نهایی", "en": "Gate of the Final Trial", "level": 140, "stages": 9},
+})
 DUNGEONS = dict(sorted(DUNGEONS.items(), key=lambda kv: kv[1]["level"]))
 
 # Each dungeon fights its own Bleach enemies (before, dungeons borrowed the enemy list of wherever the player stood,
@@ -335,6 +344,20 @@ DUNGEON_ENEMIES.update({
         "enemies": [("پرتو قلب", "Heart's Gleam"), ("نگهبان رگ‌های ریشی", "Reishi Vein Keeper"), ("پژواک میمی‌هاگی", "Mimihagi's Echo")]},
     "beyond_reioukyuu": {"race": None, "boss": ("نگهبان آستانه‌ی بی‌نام", "Nameless Threshold Guardian"),
         "enemies": [("سایه‌ی آن‌سوی جهان", "Shade Beyond the World"), ("پژواک اراده‌ی شاه", "Echo of the King's Will"), ("پاره‌ی هستی", "Fragment of Existence")]},
+})
+DUNGEON_ENEMIES.update({   # pack 8 (Nov 22)
+    "eleventh_arena": {"race": None, "boss": ("دوئل‌باز خون‌خواه جوخه‌ی ۱۱", "Bloodthirsty 11th Division Duelist"),
+        "enemies": [("نبردجوی بی‌رده‌ی جوخه‌ی ۱۱", "Unseated 11th Division Brawler"), ("افسر کرسی ششم جوخه‌ی ۱۱", "11th Division Sixth Seat"), ("حریف تمرینی میدان", "Arena Sparring Partner")]},
+    "kuchiki_archive": {"race": None, "boss": ("نگهبان سایه‌ی آرشیو", "Shade Warden of the Archive"),
+        "enemies": [("خدمتکار آرشیو کوچیکی", "Kuchiki Archive Attendant"), ("طومار نفرین‌شده", "Cursed Scroll"), ("نگهبان مهر ممنوعه", "Forbidden Seal Guard")]},
+    "fake_karakura_rift": {"race": None, "boss": ("پژواک جنگ زمستانی", "Echo of the Winter War"),
+        "enemies": [("ماکت ساختمان‌های کاراکورا", "Karakura Building Replica"), ("پژواک آرانکار جنگ", "War Arrancar Echo"), ("کاپیتان سایه‌ی شکاف", "Rift Shadow Captain")]},
+    "bankai_dojo": {"race": None, "boss": ("روح تیغه‌ی شکست‌ناپذیر", "Spirit of the Unbroken Blade"),
+        "enemies": [("سایه‌ی شیکای", "Shikai Shade"), ("حریف آزمون بانکای", "Bankai Trial Opponent"), ("پژواک تیغه‌ی شکسته", "Echo of a Broken Blade")]},
+    "vasto_lair": {"race": 'hollow', "boss": ("واستو لورد باستانی", "Ancient Vasto Lorde"),
+        "enemies": [("جیلیان غول‌پیکر لانه", "Lair Gillian Giant"), ("آجوکاس نگهبان لانه", "Lair Guardian Adjuchas"), ("واستو لورد گرسنه", "Starving Vasto Lorde")]},
+    "final_trial_gate": {"race": None, "boss": ("نگهبان دروازه‌ی نهایی", "Guardian of the Final Gate"),
+        "enemies": [("پژواک ده‌ها نبرد", "Echo of a Hundred Battles"), ("نگهبان بی‌نام دروازه", "Nameless Gate Warden"), ("سایه‌ی بهترین خودت", "Shade of Your Best Self")]},
 })
 # Dungeons have a FIXED enemy level (DUNGEONS[id]["level"]) that does not follow the player's level.
 # Difficulty only multiplies the enemies' strength (hp, attack, defense) and, in the same direction, the rewards:

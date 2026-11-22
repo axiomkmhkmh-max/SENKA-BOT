@@ -111,14 +111,16 @@ DUNGEON_IDS = ["trial", "hollow_den", "menos_forest", "noches_depths", "quincy_f
                "clinic_nightwatch", "visored_gauntlet", "srdi_lab", "schatten_depths",
                "karakura_midnight", "captains_trial", "jigoku_pit", "hogyoku_vault",
                "riverbank_vigil", "bount_labyrinth", "precipice_run", "zero_trial", "rukongai_sewers", "fullbring_nexus", "sokyoku_execution", "hueco_sands", "espada_arena",
-               "valley_depths", "zanpakuto_graveyard", "inverted_palace", "silbern_ruins", "soulking_heart", "beyond_reioukyuu"]
+               "valley_depths", "zanpakuto_graveyard", "inverted_palace", "silbern_ruins", "soulking_heart", "beyond_reioukyuu",
+               "eleventh_arena", "kuchiki_archive", "fake_karakura_rift", "bankai_dojo", "vasto_lair", "final_trial_gate"]
 # key recipe price multiplier per dungeon (old dungeons keep their index-based price; new ones are priced by level)
 _KEY_COST_K = {"academy_exam": 1, "urahara_pit": 2, "senzaikyu_tower": 3, "maggot_nest": 4, "muken": 7,
                "clinic_nightwatch": 1, "visored_gauntlet": 4, "srdi_lab": 5, "schatten_depths": 8,
                "karakura_midnight": 1, "captains_trial": 4, "jigoku_pit": 7, "hogyoku_vault": 10,
                "riverbank_vigil": 1, "bount_labyrinth": 2, "precipice_run": 5, "zero_trial": 9,
                "rukongai_sewers": 2, "fullbring_nexus": 4, "sokyoku_execution": 7, "hueco_sands": 6, "espada_arena": 11,
-               "valley_depths": 12, "zanpakuto_graveyard": 14, "inverted_palace": 16, "silbern_ruins": 17, "soulking_heart": 22, "beyond_reioukyuu": 26}
+               "valley_depths": 12, "zanpakuto_graveyard": 14, "inverted_palace": 16, "silbern_ruins": 17, "soulking_heart": 22, "beyond_reioukyuu": 26,
+               "eleventh_arena": 3, "kuchiki_archive": 5, "fake_karakura_rift": 8, "bankai_dojo": 11, "vasto_lair": 15, "final_trial_gate": 20}
 DIFFS = ["normal", "hard", "nightmare", "abyss", "legendary"]
 
 
@@ -243,6 +245,10 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
             b[kind] += v
     for kind, v in kido_collection_bonus(ch).items():  # Kidō collection
         b[kind] += v
+    from data_skins import skin_bonus  # the equipped skin: small useful passives (xp / coin / drop / calm / stab), never damage
+    for kind, v in skin_bonus(ch).items():
+        if kind in b:
+            b[kind] += v
     art = (_ART_BY_ID.get(ch.get("artifact") or "") or {}).get("bonus") or {}
     for kind, v in art.items():
         if kind in b:

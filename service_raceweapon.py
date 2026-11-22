@@ -149,6 +149,29 @@ async def ascend(uid: int):
     return "ok", new
 
 
+async def free_ascend(uid: int):
+    """A wheel prize: the player's own race weapon rises ONE colour for free (forge level and bond are kept).
+    Never skips the level gate and never goes down. Returns (status, info): ok (new id) | level (gate) | max | choose | retry."""
+    ch = await get_char(uid)
+    if not ch or needs_choice(ch):
+        return "choose", None
+    p = parse_rw(ch.get("weapon_id"))
+    if not p or p[2] >= COLOURS - 1:
+        return "max", None
+    gate = LEVEL_BY_COLOUR[p[2] + 1]
+    if int(ch["level"]) < gate:
+        return "level", gate
+    race, n, c = p
+    old, new = ch["weapon_id"], rw_id(race, n, c + 1)
+    plus = int((ch.get("weapon_plus") or {}).get(old, 0))
+    r = await col("characters").update_one({"user_id": uid, "weapon_id": old},
+                                           {"$set": {"weapon_id": new, f"weapon_plus.{new}": plus},
+                                            "$unset": {f"weapon_plus.{old}": ""}})
+    if not r.modified_count:
+        return "retry", None
+    return "ok", new
+
+
 async def on_race_change(uid: int, old_race: str, new_race: str):
     """A new race cannot hold the old race's weapon: the choice opens again, at the same colour, forge and bond."""
     ch = await get_char(uid)

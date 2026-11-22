@@ -194,3 +194,26 @@ EN.update({
     "cat_temper": "Tempering stone", "cat_inner_key": "Inner World key",
     "m_abl": "⚔️ Abilities", "cat_ability_card": "Ability card",
 })
+
+
+# ---- event pack 3 texts (Nov 22) ----
+FA.update({
+    "ev_core_rift_name": "شکاف هسته‌ی روح",
+    "ev_core_rift_desc": "شکافی از انرژی هسته‌ی روح باز شده. دانجن‌ها را پاک کن، نخبگان را شکار کن و شانس هسته‌ی روح بیشتری بگیر.",
+    "ev_kenpachi_rampage_name": "یورش کنپاچی",
+    "ev_kenpachi_rampage_desc": "کنپاچی افسار پاره کرده. در دوئل‌ها پیروز شو، نخبگان را بزن و به باس‌ها ضربه بزن؛ تجربه‌ی بیشتر و شانس هسته.",
+    "ev_blade_festival_name": "جشن تیغه‌ها",
+    "ev_blade_festival_desc": "جشنی برای شمشیرزنان. دانجن بزن، کاوش کن و غنیمت و سکه‌ی بیشتر بگیر؛ شانس هسته هم هست.",
+    "ev_mask_masquerade_name": "مهمانی نقاب‌ها",
+    "ev_mask_masquerade_desc": "مهمانی نقاب‌داران. کاوش کن، کلید جمع کن و سکه و تجربه‌ی بیشتر ببر؛ شانس هسته هم هست.",
+})
+EN.update({
+    "ev_core_rift_name": "Soul Core Rift",
+    "ev_core_rift_desc": "A rift of Soul Core energy has opened. Clear dungeons, hunt elites and get a better chance at Soul Cores.",
+    "ev_kenpachi_rampage_name": "Kenpachi's Rampage",
+    "ev_kenpachi_rampage_desc": "Kenpachi is off the leash. Win duels, strike elites and bosses for extra XP and a Soul Core chance.",
+    "ev_blade_festival_name": "Blade Festival",
+    "ev_blade_festival_desc": "A festival for swordsmen. Clear dungeons and explore for more loot and coins; Soul Cores can drop too.",
+    "ev_mask_masquerade_name": "Masquerade of Masks",
+    "ev_mask_masquerade_desc": "A masked ball among the spirits. Explore, gather keys and earn more coins and XP; Soul Cores can drop too.",
+})

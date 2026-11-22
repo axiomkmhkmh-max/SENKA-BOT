@@ -16,14 +16,64 @@ from data_wheels import (
     TOKEN, RARITY_ICON, WHEEL_ITEM_CAT, can_spin, next_streaks, reward_for, resolve_rarity,
     spin_cost, wheel_by_id,
 )
+from data_skins import (KATANA_CHANCE_DEFAULT, KATANA_CHANCE_KEY, SKIN_CHANCE_DEFAULT, SKIN_CHANCE_KEY, SKIN_RARITY_OF,
+                        skin_extra, wheel_boost)
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from service_cores import grant_cores, spend_cores
 from data_world import day_id
 from service_economy import inv_add
 from service_extras import pick_item
 from service_player import add_coins, add_xp, get_char
+from service_skins import grant_skin, pick_skin
 
 WALLET = "wheel_wallet"  # one doc per user: {_id, cores, spins: {wid: n}, pity: {wid: {leg, myth}}}
+
+
+def discounted(cost: int, disc: float) -> int:
+    """Skin discount on a paid spin: never below 1, never more than the skin cap (already capped in skin_extra)."""
+    if cost <= 0 or disc <= 0:
+        return cost
+    return max(1, int(round(cost * (1.0 - disc))))
+
+
+def pity_at(base: int, closer: int) -> int:
+    """A pity threshold of 0 stays off; otherwise a skin pulls it closer but never below 5 spins."""
+    return base if base <= 0 else max(5, base - int(closer))
+
+
+async def bonus_prize(uid: int, wid: str, rarity: str, ch: dict, st: dict, rng=random):
+    """Extra prize that rides on top of a big result: a skin (any wheel) or a katana boost (free colour for the race weapon).
+    Returns None or a dict. Never raises: a failed bonus must not undo a paid, decided spin."""
+    try:
+        if not ch or rarity not in SKIN_RARITY_OF:
+            return None
+        w = wheel_by_id(wid) or {}
+        sk_mult, kt_mult = wheel_boost(wid, w.get("cat", ""))
+        p = float(st.get(SKIN_CHANCE_KEY[rarity], SKIN_CHANCE_DEFAULT[rarity])) * sk_mult
+        if rng.random() < min(0.95, p):
+            sid = pick_skin(SKIN_RARITY_OF[rarity], ch.get("skins_owned"), rng)
+            if sid:
+                status, coins = await grant_skin(uid, sid, f"wheel:{wid}")
+                if status in ("new", "dup"):
+                    return {"kind": "skin", "skin": sid, "status": status, "coins": coins}
+        if rarity in KATANA_CHANCE_KEY:
+            pk = float(st.get(KATANA_CHANCE_KEY[rarity], KATANA_CHANCE_DEFAULT[rarity])) * kt_mult
+            if rng.random() < min(0.95, pk):
+                from service_raceweapon import free_ascend
+                status, info = await free_ascend(uid)
+                if status == "ok":
+                    return {"kind": "katana", "weapon": info}
+                # the weapon could not rise (level gate, max colour, no weapon): pay evolution fuel instead, never an empty prize
+                from data_items import EVO_BY_RARITY
+                pool = EVO_BY_RARITY.get("Rare") or EVO_BY_RARITY.get("Common") or []
+                if pool:
+                    item = rng.choice(pool)
+                    if await inv_add(uid, item, 1, force=True):
+                        return {"kind": "katana_relic", "item": item, "why": status}
+    except Exception:
+        import logging
+        logging.getLogger("senka.wheel").exception("wheel bonus prize failed for %s", uid)
+    return None
 
 
 async def wallet(uid: int) -> dict:
@@ -65,9 +115,11 @@ async def spin(uid: int, wid: str, owner_id: int):
         {"_id": uid}, {"$inc": {f"spins.{wid}": 1}}, upsert=True, return_document=ReturnDocument.AFTER)
     n = int((doc.get("spins") or {}).get(wid, 1))
 
-    # 2) free daily spin (capped counter) or paid spin (conditional debit)
+    # 2) free daily spin (capped counter) or paid spin (conditional debit); the equipped skin may give a small discount
+    ch = await get_char(uid)
+    ex = skin_extra(ch)
     free = await bump_counter(f"wheel2:free:{uid}:{day_id()}", 1, int(st["wheel_free_daily"]))
-    cost = 0 if free else spin_cost(wid, n)
+    cost = 0 if free else discounted(spin_cost(wid, n), ex["wheel"])
     if cost:
         if not await spend_cores(uid, cost, f"spin:{wid}"):
             await col(WALLET).update_one({"_id": uid}, {"$inc": {f"spins.{wid}": -1}})
@@ -77,13 +129,12 @@ async def spin(uid: int, wid: str, owner_id: int):
     w = await wallet(uid)
     p = w["pity"].get(wid, {})
     leg0, myth0 = int(p.get("leg", 0)), int(p.get("myth", 0))
-    rarity = resolve_rarity(random, leg0, myth0, int(st["pity_leg"]), int(st["pity_myth"]))
+    rarity = resolve_rarity(random, leg0, myth0, pity_at(int(st["pity_leg"]), ex["pity"]), pity_at(int(st["pity_myth"]), ex["pity"]))
     leg1, myth1 = next_streaks(rarity, leg0, myth0)
     await col(WALLET).update_one({"_id": uid},
                                  {"$set": {f"pity.{wid}.leg": leg1, f"pity.{wid}.myth": myth1}}, upsert=True)
 
     # 4) rewards (the prize is decided; everything below is only granting it)
-    ch = await get_char(uid)
     lvl = int(ch["level"]) if ch else 1
     cr = float(st["coin_rate"])
     coins = xp = cores = 0
@@ -131,13 +182,14 @@ async def spin(uid: int, wid: str, owner_id: int):
         in_bag = bool(await inv_add(uid, item, 1, force=True))
     if cores:
         await grant_cores(uid, cores, f"wheel:{wid}")
+    bonus = await bonus_prize(uid, wid, rarity, ch, st)
 
     icon, fa, en = reward_for(rarity, wid)
     w_after = await wallet(uid)
     return "ok", {
         "wid": wid, "n": n, "cost": cost, "free": bool(free), "rarity": rarity,
         "rarity_icon": RARITY_ICON[rarity], "icon": icon, "fa": fa, "en": en,
-        "coins": coins, "xp": xp, "cores_won": cores, "item": item, "in_bag": in_bag,
+        "coins": coins, "xp": xp, "cores_won": cores, "item": item, "in_bag": in_bag, "bonus": bonus,
         "cores_left": w_after["cores"], "leg": leg1, "myth": myth1,
         "token": TOKEN,
     }

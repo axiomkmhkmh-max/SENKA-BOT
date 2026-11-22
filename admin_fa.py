@@ -3,7 +3,8 @@
 ROLE_FA = {"owner": "مالک", "super": "سوپر ادمین", "admin": "ادمین", "moderator": "ناظر", "support": "پشتیبان"}
 ROLE_ALIAS = {v: k for k, v in ROLE_FA.items()} | {"سوپر": "super", "ناظر": "moderator"}
 EVENT_FA = {"garganta": "گارگانتا", "siege": "محاصره", "wandenreich": "وندن‌رایش", "winter_war": "جنگ زمستانی", "dangai": "دانگای",
-            "black_eclipse": "خورشید سیاه", "reishi_storm": "طوفان ریشی", "hollow_tide": "موج هالوها", "soul_bazaar": "بازار ارواح", "shinigami_drill": "رزمایش شینیگامی"}
+            "black_eclipse": "خورشید سیاه", "reishi_storm": "طوفان ریشی", "hollow_tide": "موج هالوها", "soul_bazaar": "بازار ارواح", "shinigami_drill": "رزمایش شینیگامی",
+            "core_rift": "شکاف هسته‌ی روح", "kenpachi_rampage": "یورش کنپاچی", "blade_festival": "جشن تیغه‌ها", "mask_masquerade": "مهمانی نقاب‌ها"}
 LANG_FA = {"fa": "فارسی", "en": "انگلیسی"}
 ACTION_FA = {
     "ban": "بن", "unban": "آنبن", "warn": "اخطار", "mute": "سکوت", "reset": "ریست بازیکن", "set": "تغییر تنظیم", "item": "تغییر آیتم",
@@ -93,6 +94,9 @@ SETTING_FA = {
     "wheel_cost": "هزینه‌ی چرخ", "wheel_extra_daily": "چرخش اضافه‌ی روزانه", "inner_weekly": "دنیای درون در هفته",
     "wheel2_enabled": "گردونه‌ها فعال", "wheel_free_daily": "چرخش رایگان گردونه در روز", "pity_leg": "ضمانت Legendary (چرخش)",
     "pity_myth": "ضمانت Mythic (چرخش)",
+    "core_new_day_cap": "سقف هسته‌ی روزانه از دانجن‌های جدید و ایونت", "core_new_dungeon_k": "ضریب شانس هسته در دانجن‌های جدید", "core_event_chance": "شانس هسته‌ی پاداش ایونت",
+    "skin_chance_epic": "شانس اسکین از چرخش Epic", "skin_chance_leg": "شانس اسکین از چرخش Legendary", "skin_chance_myth": "شانس اسکین از چرخش Mythic", "skin_chance_legacy": "شانس اسکین از چرخش Legacy",
+    "katana_chance_leg": "شانس ارتقای کاتانا از Legendary", "katana_chance_myth": "شانس ارتقای کاتانا از Mythic", "katana_chance_legacy": "شانس ارتقای کاتانا از Legacy",
     "core_quest_chance": "شانس هسته از کوئست‌های سخت", "core_dungeon_chance": "شانس هسته از دانجن ورطه/افسانه‌ای", "core_day_cap": "سقف هسته‌ی روزانه‌ی هر بازیکن",
     "drop_enabled": "دراپ گروهی فعال", "drop_min_msgs": "حداقل پیام برای دراپ", "drop_min_users": "حداقل کاربر برای دراپ", "drop_chance": "شانس دراپ",
     "drop_cooldown_minutes": "کولداون دراپ (دقیقه)", "drop_ttl_seconds": "مهلت دراپ (ثانیه)", "drop_daily_per_user": "سقف روزانه‌ی دراپ هر نفر",

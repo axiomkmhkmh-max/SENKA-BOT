@@ -263,8 +263,20 @@ async def event_end(eid: str = None, force_success: bool = None):
             prize = random.choice(EVO_BY_RARITY["Common"] + EVO_BY_RARITY["Uncommon"])
         if prize and not await inv_add(uid, prize, 1):
             prize = None
+        core_got, skin_got = False, None
+        try:  # Nov 22: a small chance of a Soul Core for everyone, and an Epic skin for the top three of a won event
+            from service_cores import on_event_end
+            core_got = bool(await on_event_end(uid, rank, ok, doc["kind"]))
+            if ok and rank < 3 and random.random() < (0.30, 0.20, 0.10)[rank]:
+                from service_skins import grant_skin, pick_skin
+                sid = pick_skin("Epic", ch.get("skins_owned"))
+                if sid and (await grant_skin(uid, sid, "event"))[0] in ("new", "dup"):
+                    skin_got = sid
+        except Exception:
+            log.exception("event bonus rewards failed for %s", uid)
         await season_add(uid, min(60, int(pts)) + (20 if ok else 5), ch["name"])
-        rows.append({"uid": uid, "name": (doc.get("nm") or {}).get(str(uid)) or ch["name"], "pts": pts, "xp": xp, "coins": coins, "prize": prize})
+        rows.append({"uid": uid, "name": (doc.get("nm") or {}).get(str(uid)) or ch["name"], "pts": pts, "xp": xp, "coins": coins, "prize": prize,
+                     "core": core_got, "skin": skin_got})
     war = None
     try:  # the event's battlefield closes with it (paid separately: its own winners and losers)
         from service_war import war_settle

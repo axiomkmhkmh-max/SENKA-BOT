@@ -752,10 +752,23 @@ async def announce_event_end(bot, summary):
     for r in summary["rows"][:400]:
         try:
             tl = await _user_lang(r["uid"])
-            await bot.send_message(r["uid"], t(tl, "ev_dm", xp=fnum(r["xp"], tl), coins=fnum(r["coins"], tl)) + (("\n🎁 " + nm(r["prize"], tl)) if r["prize"] else ""))
+            await bot.send_message(r["uid"], t(tl, "ev_dm", xp=fnum(r["xp"], tl), coins=fnum(r["coins"], tl)) + (("\n🎁 " + nm(r["prize"], tl)) if r["prize"] else "")
+                                   + (("\n🔮 " + ("یک هسته‌ی روح هم گرفتی!" if tl == "fa" else "You also found a Soul Core!")) if r.get("core") else "")
+                                   + _event_skin_line(tl, r.get("skin")))
         except Exception:
             pass
         await bulk_slot()  # shared pace for all bulk sends (service_pace)
+
+
+def _event_skin_line(tl: str, sid) -> str:
+    """One line for the DM when the event paid a skin (empty when it did not)."""
+    if not sid:
+        return ""
+    from data_skins import skin_by_id
+    sk = skin_by_id(sid)
+    if not sk:
+        return ""
+    return "\n🎭 " + (f"اسکین {sk['icon']} {sk['fa']}" if tl == "fa" else f"Skin {sk['icon']} {sk['en']}")
 
 
 async def announce_territories(bot, changes):

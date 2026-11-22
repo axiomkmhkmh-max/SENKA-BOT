@@ -125,7 +125,8 @@ async def finish_registration(uid: int, reg: dict):
            "energy": int(st["energy_max"]), "energy_ts": int(time.time()), "kido": kido, "rating": 1000,
            "wins": 0, "losses": 0, "pvp_w": 0, "pvp_l": 0, "pity": {"rare": 0, "epic": 0, "legendary": 0},
            "pets": [], "party": [], "guild_id": None, "created_at": int(time.time()), "daily_streak": 0, "last_daily": None,
-           "evo": 0, "relics": [], "cosmetics": {}, "armor_plus": {}, "buffs": {}, "seen_at": int(time.time())}
+           "evo": 0, "relics": [], "cosmetics": {}, "armor_plus": {}, "buffs": {}, "seen_at": int(time.time()),
+           "skins_owned": [], "skin": None}
     try:
         await col("characters").insert_one(doc)
     except DuplicateKeyError:

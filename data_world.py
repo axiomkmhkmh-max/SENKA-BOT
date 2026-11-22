@@ -55,6 +55,21 @@ EVENTS.update({
                         "locs": SEI_LOCS, "mods": {"enemy": 1.0, "drop": 1.0, "xp": 1.20, "coin": 1.15}, "mod_locs": SEI_LOCS,
                         "win": {"threat": 0.0, "stability": 15.0}, "lose": {"threat": 3.0, "stability": -6.0}},
 })
+# ---- event pack 3 (Nov 22): four more events. "core" multiplies the Soul Core chance paid at settlement (service_cores.on_event_end). ----
+EVENTS.update({
+    "core_rift": {"icon": "🔮", "pts": {"dungeon_clear": 6, "elite_win": 3, "key": 2, "pve_win": 1},
+                  "locs": None, "mods": {"enemy": 1.15, "drop": 1.30, "xp": 1.10, "coin": 1.0}, "mod_locs": None, "core": 2.0,
+                  "win": {"threat": -8.0, "stability": 6.0}, "lose": {"threat": 5.0, "stability": -5.0}},
+    "kenpachi_rampage": {"icon": "🪓", "pts": {"pvp_win": 4, "elite_win": 3, "boss_hit": 2, "pve_win": 1, "key": 1},
+                         "locs": None, "mods": {"enemy": 1.20, "drop": 1.10, "xp": 1.30, "coin": 1.0}, "mod_locs": None, "core": 1.5,
+                         "win": {"threat": -6.0, "stability": 8.0}, "lose": {"threat": 6.0, "stability": -6.0}},
+    "blade_festival": {"icon": "🗡️", "pts": {"explore": 1, "pve_win": 1, "boss_hit": 2, "dungeon_clear": 4, "key": 1},
+                       "locs": None, "mods": {"enemy": 1.0, "drop": 1.35, "xp": 1.0, "coin": 1.20}, "mod_locs": None, "core": 1.5,
+                       "win": {"threat": 0.0, "stability": 10.0}, "lose": {"threat": 2.0, "stability": -6.0}},
+    "mask_masquerade": {"icon": "🎭", "pts": {"explore": 2, "pve_win": 1, "key": 2, "elite_win": 2},
+                        "locs": None, "mods": {"enemy": 1.0, "drop": 1.15, "xp": 1.15, "coin": 1.25}, "mod_locs": None, "core": 1.5,
+                        "win": {"threat": 0.0, "stability": 12.0}, "lose": {"threat": 2.0, "stability": -6.0}},
+})
 EVENT_KINDS = list(EVENTS)
 
 

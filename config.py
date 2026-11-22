@@ -130,6 +130,9 @@ GAME_DEFAULTS = {
     # ---- 100 wheels (Soul Core) ----------------------------------------------------------------
     "wheel2_enabled": True, "wheel_free_daily": 1, "pity_leg": 30, "pity_myth": 90,
     "core_quest_chance": 0.03, "core_dungeon_chance": 0.03, "core_day_cap": 1,
+    "core_new_day_cap": 1, "core_new_dungeon_k": 1.5, "core_event_chance": 0.05,  # Nov 22: cores from the six new dungeons and event rewards (own daily cap)
+    "skin_chance_epic": 0.05, "skin_chance_leg": 0.20, "skin_chance_myth": 0.40, "skin_chance_legacy": 0.70,  # a big wheel result may also carry a skin
+    "katana_chance_leg": 0.06, "katana_chance_myth": 0.15, "katana_chance_legacy": 0.35,  # ... or one free colour for the race weapon
     # ---- group drops, Soul Artifacts, Artifact Exchange, log channel -------------------------------
     "drop_enabled": True, "drop_min_msgs": 30, "drop_min_users": 3, "drop_chance": 0.6, "drop_cooldown_minutes": 60,
     "drop_ttl_seconds": 180, "drop_daily_per_user": 6, "drop_min_level": 3, "drop_artifact_chance": 0.12, "drop_art_pity_hours": 6,

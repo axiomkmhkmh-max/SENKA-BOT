@@ -45,8 +45,13 @@ WARS = {
     "hollow_tide": ("hollows", "gotei", ("hollow", "arrancar"), ("shinigami", "visored", "quincy", "fullbringer", "human")),
     "soul_bazaar": ("red", "white", (), ()),
     "shinigami_drill": ("div11", "div2", (), ()),
+    # event pack 3 (Nov 22)
+    "core_rift": ("hollows", "gotei", ("hollow", "arrancar"), ("shinigami", "visored", "quincy", "fullbringer", "human")),
+    "kenpachi_rampage": ("div11", "div2", (), ()),
+    "blade_festival": ("red", "white", (), ()),
+    "mask_masquerade": ("red", "white", (), ()),
 }
-FRIENDLY = ("soul_festival", "soul_bazaar", "shinigami_drill")   # a festival match: the losing team keeps more of the reward
+FRIENDLY = ("soul_festival", "soul_bazaar", "shinigami_drill", "blade_festival", "mask_masquerade")   # a festival match: the losing team keeps more of the reward
 
 # the story behind each war, one line (fa, en)
 WAR_STORY = {
@@ -62,6 +67,10 @@ WAR_STORY = {
     "hollow_tide": ("موج هالوها از سرزمین‌های تاریک سرازیر شده؛ سپاه هالوها در برابر همه.", "A tide of Hollows pours from the dark lands: the Hollow Horde against everyone."),
     "soul_bazaar": ("مسابقه‌ی دوستانه‌ی بازار ارواح: تیم سرخ و تیم سفید سر جایزه‌های بازار رقابت می‌کنند.", "The Soul Bazaar's friendly match: the Red and White teams compete for the bazaar's prizes."),
     "shinigami_drill": ("رزمایش گوتی: دسته‌ی یازدهمِ کنپاچی در برابر دسته‌ی دومِ سوی‌فون، دوستانه.", "The Gotei drill: Kenpachi's 11th Division against Suì-Fēng's 2nd, as friends."),
+    "core_rift": ("شکافی از هسته‌ی روح باز شده؛ هالوها از آن بیرون می‌ریزند و گوتی ۱۳ باید آن را ببندد.", "A rift of raw Soul Core energy has opened; Hollows pour out and the Gotei 13 must seal it."),
+    "kenpachi_rampage": ("کنپاچی از شادی نبرد افسار پاره کرده؛ دسته‌ی یازدهم و دسته‌ی دوم بر سر مهار او رقابت می‌کنند.", "Kenpachi is out of control with joy of battle; the 11th and 2nd Divisions race to contain him."),
+    "blade_festival": ("جشن تیغه‌ها: تیم سرخ و تیم سفید در یک مسابقه‌ی دوستانه‌ی شمشیرزنی.", "The Blade Festival: a friendly swordsmanship match between the Red and White teams."),
+    "mask_masquerade": ("مهمانی نقاب‌ها: تیم سرخ و تیم سفید با ماسک‌های جشن، دوستانه رقابت می‌کنند.", "The Masquerade of Masks: Red and White teams compete in festival masks, as friends."),
 }
 
 # soldiers of each faction (fa, en): what a player fights when they pick "enemy soldier"
