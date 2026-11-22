@@ -5,7 +5,7 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP, DUEL
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
 from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, FULLBRING_LOW, HEAVY_REIATSU, TECH_SLOTS, tech_of
@@ -71,7 +71,7 @@ def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, 
 def eff(f, k):
     v = soft_stat(f["stats"].get(k, 0))
     if f["form"]["on"] and k in ("zanjutsu", "kido", "hakuda"):
-        v *= f["form"]["mult"]
+        v *= min(f["form"]["mult"], DUEL["form_cap"]) if f.get("duel") else f["form"]["mult"]
     return v
 
 
@@ -150,7 +150,8 @@ def _foe_mult(att, dfn):
 
 
 def _dmg_mult(att):
-    m = att["mods"].get("dmg", 1.0) * att.get("dmgx", 1.0)  # x DMG_MULT outside boss fights (set by new_state)
+    base = att["mods"].get("dmg", 1.0) * att.get("dmgx", 1.0)  # x DMG_MULT outside boss fights (set by new_state)
+    m = 1.0  # the situational part: buffs, release, Resolve, perks
     if att["form"]["fat"] > 0:
         m *= 0.6
     if has_fx(att, "fear"):
@@ -162,7 +163,9 @@ def _dmg_mult(att):
         m *= GAUGE["dmg"]
     if x and (x.get("bf") or x.get("perm")):  # ability buffs (dmg +/-) and lasting bonuses (Shikai, Adjuchas, Full Mask)
         m *= max(0.1, 1 + bsum(att, "dmg") + float(x.get("perm", 0.0)))
-    return m
+    if att.get("duel"):  # duel: stacked bonuses stop at mult_cap (penalties above still apply)
+        m = min(m, DUEL["mult_cap"])
+    return base * m
 
 
 def _take_mult(dfn):
@@ -213,14 +216,14 @@ def strike_base(att, src="atk"):
             else:
                 v = eff(att, stat)
                 if att["form"]["on"] and stat not in ("zanjutsu", "kido", "hakuda"):
-                    v *= att["form"]["mult"]
+                    v *= min(att["form"]["mult"], DUEL["form_cap"]) if att.get("duel") else att["form"]["mult"]
                 part += wt * v
         return part + w
 
     def power_of(stat):  # a form (mask, Shikai, Vollständig...) strengthens the race's ability stat too
         v = eff(att, stat)
         if att["form"]["on"] and stat not in ("zanjutsu", "kido", "hakuda"):  # eff() already scales those three
-            v *= att["form"]["mult"]
+            v *= min(att["form"]["mult"], DUEL["form_cap"]) if att.get("duel") else att["form"]["mult"]
         return v
     if src == "hvy":
         return (1 - HEAVY_REIATSU) * zpart + HEAVY_REIATSU * power_of("reiatsu") + w
@@ -351,6 +354,11 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     absorbed = 0
     if att.get("foe") in BOSS_FOES and not dfn.get("foe"):  # a boss never takes more than BOSS_HIT_CAP of a player's max HP in one blow
         dmg = min(dmg, max(1, int(dfn["max_hp"] * BOSS_HIT_CAP)))
+    if state.get("duel"):  # duel rules: no one-shots (cap) and a landed blow always counts (floor)
+        if kind not in ("reflect", "counter", "dot", "echo"):
+            fl = int(dfn["max_hp"] * DUEL["floor"] * (0.5 if dfn["guard"] else 1.0))
+            dmg = max(dmg, fl)
+        dmg = min(dmg, max(1, int(dfn["max_hp"] * DUEL["hit_cap"])))
     if dfn["shield"] > 0:
         absorbed = min(dfn["shield"], dmg)
         dfn["shield"] -= absorbed
@@ -615,6 +623,8 @@ def can(f, action, state=None):
         return True
     if not race_allows(f.get("race"), action):  # e.g. Arrancar cannot cast Kidō or release Bankai
         return False
+    if f.get("duel") and action in DUEL_RELEASE_LOCK and _x(f)["awake"] > 0:
+        return False
     if f.get("ab"):  # a player's ability families (data_abilities)
         if action == "sk":
             return sk_can(f)
@@ -685,7 +695,9 @@ def can(f, action, state=None):
         if f.get("wild"):
             return False  # wild enemies have no release
         x = _x(f)
-        return x["gauge"] >= GAUGE["full"] and x["awake"] <= 0 and f["re"] >= f["max_re"] * GAUGE["cost"]
+        if f.get("duel") and int(f.get("dl_rel", 0)) >= DUEL["bk_per_duel"]:
+            return False  # one release per duel
+        return x["gauge"] >= GAUGE["full"] and x["awake"] <= 0 and f["re"] >= gx_cost(f)
     if action in TECH_SLOTS:  # canon race technique (data_race_tech): unlocked by evolution, own cost and cooldown
         t = tech_of(f.get("race"), action)
         if not t or f.get("ai") and f.get("wild") or int(f.get("evs", -1)) < t["unlock"]:
@@ -704,6 +716,19 @@ def can(f, action, state=None):
         # start of a fight: they come only with the full spirit gauge, as part of the 👑 release ("gx" in do_action).
         return False
     return False
+
+
+def gx_cost(f) -> int:
+    """Reiatsu paid for the 👑 release. In a duel: a flat price (DUEL bk_flat), at least the normal share, never more than
+    bk_pool_cap of the pool (a small pool can still release). Everywhere else: the normal GAUGE cost share."""
+    base = int(f["max_re"] * GAUGE["cost"])
+    if not f.get("duel"):
+        return base
+    return min(int(f["max_re"] * DUEL["bk_pool_cap"]), max(DUEL["bk_flat"], base))
+
+
+# while a duel release is active these cannot be used (the anime's Bankai user does not also chant, mask and fire Getsuga)
+DUEL_RELEASE_LOCK = ("gc", "gt", "kd", "bk", "ch", "sk")
 
 
 def release_form(f) -> int:
@@ -1149,7 +1174,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         _technique(state, side, action, rng, ev)
     elif action == "gx":
         x = _x(f)
-        f["re"] -= int(f["max_re"] * GAUGE["cost"])
+        f["re"] -= gx_cost(f)
+        f["dl_rel"] = int(f.get("dl_rel", 0)) + 1
         x["gauge"] = 0
         # +1: the countdown ticks at the start of each of your turns, so this covers `turns` actions (evolution adds more)
         x["awake"] = GAUGE["turns"] + int(evb(f, "release_turns", 0)) + 1
@@ -1379,10 +1405,15 @@ def _ai_core(state, side, rng):
     return "atk"
 
 
-def new_state(a, b, rng, pvp=False):
+def new_state(a, b, rng, pvp=False, duel_rules=None):
+    """duel_rules (default: same as pvp) switches on the duel balance rules (DUEL in data_misc). A bracket tournament with the
+    standard kit passes pvp=True, duel_rules=False: Konpaku lives, but the plain damage rules."""
+    duel = bool(pvp) if duel_rules is None else bool(duel_rules)
     intro = []
     for x in (a, b):  # every blow x2 (Nov 21), except a boss's own (bosses have more HP instead, see BOSS_HP_MULT)
         x["dmgx"] = BOSS_DMG_MULT if x.get("foe") in BOSS_FOES else DMG_MULT
+        x["duel"] = bool(duel and not x.get("wild") and x.get("foe") not in BOSS_FOES)
+        x["dl_rel"] = 0
     if pvp:  # duels give both fighters their Konpaku lives (SENKA+)
         a["lives"] = b["lives"] = KONPAKU["lives"]
     for x, y in ((a, b), (b, a)):  # spiritual pressure
@@ -1397,7 +1428,7 @@ def new_state(a, b, rng, pvp=False):
     intro.append({"k": "speed", "a": fast["name"], "d": slow["name"], "r": round(ratio, 2),
                   "p": int(round(min(DODGE_CAP, DODGE_BASE + DODGE_RATIO * (ratio - 1)) * 100))})
     return {"a": a, "b": b, "turn": 1, "cur": first, "first": first, "done": False, "winner": None,
-            "awaiting": False, "last": [], "intro": intro, "pvp": bool(pvp), "dist": START_DIST}
+            "awaiting": False, "last": [], "intro": intro, "pvp": bool(pvp), "duel": duel, "dist": START_DIST}
 
 
 def run_ai(state, rng, max_turns=MAX_TURNS, ai_sides=("b",)):

@@ -435,6 +435,10 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     if foe["foe"] == "boss":  # a boss hits with its old power but has far more HP (damage is x2 for everyone else)
         from data_misc import BOSS_HP_MULT
         foe["max_hp"] = foe["hp"] = int(foe["max_hp"] * BOSS_HP_MULT)
+    if dungeon and not war and not tower and dungeon.get("diff") == "legendary" and int(dungeon.get("stage", 1)) == 1:
+        from data_misc import LEGEND_S1_HP, LEGEND_S1_DMG  # legendary dungeon, stage 1: more HP, weaker blows
+        foe["max_hp"] = foe["hp"] = int(foe["max_hp"] * LEGEND_S1_HP)
+        foe["mods"]["dmg"] = foe["mods"].get("dmg", 1.0) * LEGEND_S1_DMG
     if fixed_dg or (dungeon and not war and not tower and not dungeon.get("gq") and not dungeon.get("lboss")):
         # dungeon foes are slow (Nov 21): the boss of the last stage has 60% less Hohō, its guards 30% less, so a
         # high-level dungeon is not a wall of dodged blows and fast counter-hits

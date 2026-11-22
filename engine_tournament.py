@@ -28,7 +28,7 @@ def play_match(a, b, rng, max_turns=200, pvp=True):
     """Fight a vs b on fresh copies. Returns 'a', 'b' (the winner's side) — never a draw.
     pvp=True gives both the duel rules (Konpaku lives), so a bracket match plays like a real duel."""
     fa, fb = copy.deepcopy(a), copy.deepcopy(b)
-    st = E.new_state(fa, fb, rng, pvp=pvp)
+    st = E.new_state(fa, fb, rng, pvp=pvp, duel_rules=False)  # standard-kit bracket: Konpaku lives, plain damage rules
     E.run_ai(st, rng, max_turns, ai_sides=("a", "b"))
     if st.get("winner") in ("a", "b"):
         return st["winner"]

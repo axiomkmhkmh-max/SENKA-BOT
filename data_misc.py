@@ -25,6 +25,20 @@ DMG_MULT = 2.0
 BOSS_FOES = ("boss", "world_boss")
 BOSS_HP_MULT = 1.25      # Nov 21 (feedback): bosses hit less and last longer, so their HP goes up ...
 BOSS_DMG_MULT = 0.75     # ... and their own blows are 25% weaker (was 1.0, only players got the x2)
+# Duel rules (players against players, Nov 2026). They exist because the plain damage comparison let a high level one-shot a
+# low level. They apply only where new_state(..., duel_rules=True): never to bosses, PvE or the tournament standard kit.
+DUEL = {
+    "hit_cap": 0.25,     # one blow (crit included) takes at most this share of the target's max HP: no one-shots
+    "floor": 0.015,      # a blow that lands takes at least this share of the target's max HP: the weaker side still counts
+    "mult_cap": 3.0,     # all damage perks, buffs, release, Resolve multiplied together never pass this (no x10 stacks)
+    "form_cap": 2.5,     # a form's stat multiplier (Bankai x3.0) counts at most this in a duel
+    "bk_flat": 1000,     # a release costs at least this much Reiatsu ...
+    "bk_pool_cap": 0.35, # ... but never more than this share of the pool, so a small pool can still release
+    "bk_per_duel": 1,    # releases per duel
+}
+# Legendary dungeon, stage 1 (feedback: far too strong): its enemy gets more HP and hits for less. Not a wall, a longer, fairer fight.
+LEGEND_S1_HP = 1.4
+LEGEND_S1_DMG = 0.5
 BOSS_HIT_CAP = 0.30      # a single boss blow (crit included) can take at most this share of the target's max HP: no two-crit kills
 POTION_DEF_BOOST = 4.0   # a defence potion drunk mid-fight is worth this many times its stored % (5-10% was not felt)
 WORLD_BOSS_HP_MULT = 3
