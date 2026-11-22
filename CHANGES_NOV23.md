@@ -17,3 +17,7 @@
 ## Tests
 - New: test_limits_nov23.py. Updated: test_update_nov19b.py, test_update_nov21.py, test_dungeon_chests.py.
 - Pre-existing failures (same before and after): test_kido_system x2, test_update_nov21 x2, test_wheels x1; test_update_nov19b does not import.
+
+## Later additions (same day)
+- Admin: /lvl_all <n> (two-step confirm with /lvl_yes <code>), /lvl_undo yes — take n levels from every player, with a backup (handlers_admincmd2.py, owner only).
+- Caps: level_max = 750 (service_player.add_xp), stat_max = 500 per stat when spending points (handlers_panels.py); both are live settings (config.py, admin_fa.py).

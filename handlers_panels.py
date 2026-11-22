@@ -171,16 +171,20 @@ async def general_skill_switch(ctx, arg):
 @action("upg")
 async def upgrade(ctx, arg):
     L = ctx.lang
+    smax = int((await game_settings()).get("stat_max", 500))  # Nov 23: no stat goes above this by spending points
     k, _, many = (arg or "").partition(":")  # "zanjutsu" = +1, "zanjutsu:10" = +10 (or all points left when fewer)
     if k in STATS:
         want = 10 if many == "10" else 1
-        have = int(((await col("characters").find_one({"user_id": ctx.uid}, {"points": 1})) or {}).get("points", 0))
-        n = min(want, have)
-        r = await col("characters").update_one({"user_id": ctx.uid, "points": {"$gte": n}}, {"$inc": {"points": -n, f"stats.{k}": n}}) if n >= 1 else None
+        doc = (await col("characters").find_one({"user_id": ctx.uid}, {"points": 1, f"stats.{k}": 1})) or {}
+        have, cur = int(doc.get("points", 0)), int((doc.get("stats") or {}).get(k, 0))
+        if cur >= smax:
+            return Out(alert=(f"⭐ این استت به سقف {fnum(smax, L)} رسیده." if L == "fa" else f"⭐ This stat is at the cap ({smax})."))
+        n = min(want, have, smax - cur)
+        r = await col("characters").update_one({"user_id": ctx.uid, "points": {"$gte": n}, f"stats.{k}": {"$lte": smax - n}}, {"$inc": {"points": -n, f"stats.{k}": n}}) if n >= 1 else None
         if not r or not r.modified_count:
             return Out(alert=ctx.t("no_points"))
     ch = await get_char(ctx.uid)
-    rows = [[(f"➕ {STAT_ICON[s]} {ctx.t('stat_' + s)}: {fnum(int(ch['stats'][s]), L)}", "upg", s), ("+" + fnum(10, L), "upg", s + ":10")]
+    rows = [[(f"➕ {STAT_ICON[s]} {ctx.t('stat_' + s)}: {fnum(int(ch['stats'][s]), L)}/{fnum(smax, L)}", "upg", s), ("+" + fnum(10, L), "upg", s + ":10")]
             for s in STATS]
     rows.append(nav(ctx, ("prof", "")))
     return Out(head(ctx, "ttl_upg") + ctx.t("upg_body", pts=fnum(ch.get("points", 0), L)), rows)

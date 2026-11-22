@@ -185,11 +185,14 @@ async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = Tru
                 pass
         gain = max(0, int(gain))
         level, xp, pts, gained = ch["level"], ch["xp"] + gain, ch.get("points", 0), 0
-        while xp >= xp_to_next(level) and gained < 200:
+        lmax = int(st.get("level_max", 750))
+        while level < lmax and xp >= xp_to_next(level) and gained < 200:
             xp -= xp_to_next(level)
             level += 1
             gained += 1
             pts += 3 + (1 if level % 5 == 0 else 0)
+        if level >= lmax:
+            xp = 0  # at the level cap XP no longer piles up (a player already above the cap keeps their level)
         upd = {"xp": xp, "level": level, "points": pts}
         r = await col("characters").update_one({"user_id": uid, "level": ch["level"], "xp": ch["xp"]}, {"$set": upd})
         if r.modified_count:

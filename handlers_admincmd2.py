@@ -6,10 +6,12 @@ here bypasses the existing checks. /acmds lists these automatically (it reads AD
 import asyncio
 import csv
 import io
+import random
 import re
 import time
 
 from aiogram.types import BufferedInputFile
+from pymongo import UpdateOne
 
 from database import col, game_settings, ping, set_game_setting
 from handlers_admin import alog
@@ -369,3 +371,82 @@ async def c_setjoingroup(e: Env):
     await set_group_id(ch.id)
     await e.say(e.t(f"✅ گروه ثبت شد (<code>{ch.id}</code>). از الان عضویت در کانال و گروه هر دو چک می‌شود. ربات باید در گروه ادمین باشد.",
                     f"✅ Group saved (<code>{ch.id}</code>). Channel and group are both checked now. The bot must be an admin here."))
+
+
+# ---- mass level cut (two steps, with a backup and an undo) --------------------------------------------------------------
+MAX_CUT = 1000
+_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def cut_level(level: int, n: int) -> int:
+    """The level after taking n levels away: never below 1."""
+    return max(1, int(level) - int(n))
+
+
+@acmd("lvl_all", 100, "/lvl_all <n>", "کم کردن n لول از همه‌ی بازیکن‌ها (با تایید)", "Take n levels from every player (needs confirmation)")
+async def c_lvl_all(e: Env):
+    raw = (e.args[0] if e.args else "").translate(_DIGITS)
+    if not raw.isdigit() or not 1 <= int(raw) <= MAX_CUT:
+        return await e.usage()
+    n = int(raw)
+    hit = await col("characters").count_documents({"level": {"$gt": 1}})
+    top = await col("characters").find({}, {"level": 1}).sort("level", -1).limit(1).to_list(1)
+    top_lv = int(top[0]["level"]) if top else 1
+    code = str(random.randint(100000, 999999))
+    await col("admin_level_confirms").update_one({"admin": e.uid}, {"$set": {"code": code, "n": n, "at": int(time.time())}}, upsert=True)
+    await e.say(e.t(
+        f"⚠️ <b>کم کردن لول از همه</b>\n−{fnum(n, e.lang)} لول از <b>{fnum(hit, e.lang)}</b> بازیکن (کف لول ۱؛ تجربه‌ی نیمه‌راه صفر می‌شود).\n"
+        f"بالاترین لول: {fnum(top_lv, e.lang)} ← {fnum(cut_level(top_lv, n), e.lang)}\n"
+        f"استت‌ها، پوینت‌ها و آیتم‌ها دست‌نخورده می‌مانند. قبل از اجرا یک نسخه‌ی پشتیبان گرفته می‌شود (/lvl_undo).\n"
+        f"برای تایید تا ۲ دقیقه: <code>/lvl_yes {code}</code>",
+        f"⚠️ <b>Cut everyone's level</b>\n−{n} levels for <b>{hit:,}</b> players (floor level 1; partial XP is reset).\n"
+        f"Top level: {top_lv} → {cut_level(top_lv, n)}\n"
+        f"Stats, points and items are untouched. A backup is taken first (/lvl_undo).\n"
+        f"Confirm within 2 minutes: <code>/lvl_yes {code}</code>"))
+
+
+@acmd("lvl_yes", 100, "/lvl_yes <code>", "تایید کم کردن لول همگانی", "Confirm the mass level cut")
+async def c_lvl_yes(e: Env):
+    d = await col("admin_level_confirms").find_one_and_delete({"admin": e.uid})
+    if not d or not e.args or e.args[0] != d["code"] or time.time() - d["at"] > 120:
+        return await e.say(e.t("❌ کد تایید اشتباه است یا منقضی شده.", "❌ Wrong or expired confirmation code."))
+    n = int(d["n"])
+    await alog(e.uid, "lvl_all", None, None, {"n": n}, "cmd")
+    await e.say(e.t("🚀 کم کردن لول شروع شد؛ نتیجه را در پیوی می‌فرستم.", "🚀 Level cut started; I will DM you the result."))
+
+    async def run():
+        msg = None
+        try:
+            rows = [{"user_id": c["user_id"], "level": int(c["level"]), "xp": int(c.get("xp", 0))}
+                    async for c in col("characters").find({"level": {"$gt": 1}}, {"user_id": 1, "level": 1, "xp": 1})]
+            await col("admin_level_backup").delete_many({})  # only the last cut can be undone
+            for i in range(0, len(rows), 1000):
+                await col("admin_level_backup").insert_many(rows[i:i + 1000])
+            res = await col("characters").update_many(
+                {"level": {"$gt": 1}},
+                [{"$set": {"level": {"$max": [1, {"$subtract": ["$level", n]}]}, "xp": 0}}])
+            msg = e.t(f"✅ لول‌ها کم شد: {res.modified_count:,} بازیکن (−{n}). برگرداندن: /lvl_undo yes",
+                      f"✅ Levels cut: {res.modified_count:,} players (−{n}). Undo: /lvl_undo yes")
+        except Exception as ex:  # the backup is written first, so a failure here never loses levels silently
+            msg = e.t(f"❌ خطا: {ex}", f"❌ Failed: {ex}")
+        try:
+            await e.bot.send_message(e.uid, msg)
+        except Exception:
+            pass
+    asyncio.create_task(run())
+
+
+@acmd("lvl_undo", 100, "/lvl_undo yes", "برگرداندن آخرین کم کردن لول همگانی", "Undo the last mass level cut")
+async def c_lvl_undo(e: Env):
+    rows = await col("admin_level_backup").find({}).to_list(None)
+    if not rows:
+        return await e.say(e.t("ℹ️ پشتیبانی برای برگرداندن نیست.", "ℹ️ No backup to restore."))
+    if not e.args or e.args[0].lower() != "yes":
+        return await e.say(e.t(f"⚠️ لول و تجربه‌ی {len(rows):,} بازیکن به قبل از آخرین کاهش برمی‌گردد.\nتایید: <code>/lvl_undo yes</code>",
+                               f"⚠️ This restores level and XP of {len(rows):,} players to before the last cut.\nConfirm: <code>/lvl_undo yes</code>"))
+    ops = [UpdateOne({"user_id": r["user_id"]}, {"$set": {"level": int(r["level"]), "xp": int(r["xp"])}}) for r in rows]
+    for i in range(0, len(ops), 1000):
+        await col("characters").bulk_write(ops[i:i + 1000], ordered=False)
+    await col("admin_level_backup").delete_many({})
+    await alog(e.uid, "lvl_undo", None, None, {"players": len(rows)}, "cmd")
+    await e.say(e.t(f"✅ برگردانده شد: {len(rows):,} بازیکن.", f"✅ Restored: {len(rows):,} players."))
