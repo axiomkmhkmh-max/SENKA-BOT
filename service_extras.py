@@ -491,11 +491,12 @@ async def hogyoku_holder():
     return (d["holder"], ch["name"], ch["level"]) if ch else None
 
 
-async def hogyoku_steal(thief: int, victim: int):
-    """Reply-to-holder theft = a power duel, best of N rounds, each round the real combat engine (quick_fight).
-    -> (result, extra). result: self | notholder | noreg | level | shield | weak | cd | busy | win | fail.
-    extra: win / fail -> report dict {"pa", "pb", "rounds": ["a"|"b", ...], "wa", "wb", "hours"}; weak -> {"pa", "pb", "need"};
-    level / shield -> the number; cd -> seconds left."""
+async def hogyoku_steal(thief: int, victim: int, lang: str = "fa"):
+    """Reply-to-holder theft = a Hōgyoku duel, best of N rounds, PLAYED by the challenger with the normal battle panel against
+    an AI copy of the holder's build (service_combat._hog_round_start / _hog_round_settle decide the rounds and the theft).
+    -> (result, extra). result: self | notholder | noreg | level | shield | weak | cd | busy | infight | start.
+    start -> extra = the open battle document (round 1, or the challenger's own unfinished duel with this holder, resumed);
+    weak -> {"pa", "pb", "need"}; level / shield -> the number; cd -> seconds left."""
     if thief == victim:
         return "self", None
     d = await hogyoku_state()
@@ -510,47 +511,39 @@ async def hogyoku_steal(thief: int, victim: int):
         return "level", int(st["hog_min_level"])
     if now - int(d.get("since", 0)) < int(st["hog_shield_minutes"]) * 60:
         return "shield", int(st["hog_shield_minutes"])
-    from data_artifacts import hog_penalty_hours, hog_too_weak, hog_wins_needed, reiatsu_mult
+    from data_artifacts import hog_too_weak
     from service_player import power
     pa, pb = int(power(ct)), int(power(cv))
     if hog_too_weak(pa, pb, float(st["hog_min_power_ratio"])):  # checked before any cooldown is spent
         return "weak", {"pa": pa, "pb": pb, "need": int(pb * float(st["hog_min_power_ratio"]))}
+    from service_combat import active_pve, pve_start
+    cur = await active_pve(thief)
+    if cur:  # one fight at a time: an open duel with this holder is simply continued
+        dg = cur.get("dungeon") or {}
+        if dg.get("hog") and int(dg.get("tgt", 0)) == victim:
+            return "start", cur
+        return "infight", None
     left = await try_cooldown(f"hog:steal:{thief}", int(st["hog_steal_cd_hours"]) * 3600)
     if left:
         return "cd", int(left)
-    if await try_cooldown(f"hog:tgt:{victim}", int(st["hog_target_lock"])):  # one duel at a time against the holder
+    # one challenger at a time against the holder (a duel nobody finishes stops counting after 15 minutes)
+    if await col("battles").find_one({"mode": "pve", "status": "active", "dungeon.hog": True, "dungeon.tgt": victim,
+                                      "dungeon.t0": {"$gte": now - 900}}):
         await col("cooldowns").delete_one({"key": f"hog:steal:{thief}"})   # the thief did not fight: give the try back
         return "busy", None
-    from service_bleach_systems import quick_fight
     rounds_n = max(1, int(st["hog_rounds"]))
-    need = hog_wins_needed(rounds_n)
-    rounds, wa, wb = [], 0, 0
     try:
-        for _ in range(rounds_n):
-            w = await quick_fight(thief, victim, neutral=True)  # the Hōgyoku's own bonuses stay out of the duel (fair fight by real strength)
-            rounds.append(w)
-            wa, wb = wa + (w == "a"), wb + (w == "b")
-            if wa >= need or wb >= need:
-                break
-    except Exception:  # a crashed fight must not burn the thief's 2h cooldown or lock the holder for a minute
+        doc = await pve_start(thief, lang, dungeon={"hog": True, "tgt": victim, "tgt_name": str(cv["name"]), "round": 1,
+                                                    "rounds_n": rounds_n, "wa": 0, "wb": 0, "seq": [], "pa": pa, "pb": pb, "t0": now})
+    except Exception:  # a crashed start must not burn the thief's cooldown
         await col("cooldowns").delete_one({"key": f"hog:steal:{thief}"})
-        await col("cooldowns").delete_one({"key": f"hog:tgt:{victim}"})
         raise
-    report = {"pa": pa, "pb": pb, "rounds": rounds, "wa": wa, "wb": wb, "hours": 0}
-    from service_log import log_event
-    seq = "".join("✅" if w == "a" else "❌" for w in rounds)
-    log_event("hog", thief, f"{'هوگیوکو را از «' + str(cv['name']) + '» (' + str(victim) + ') دزدید' if wa >= need else 'در دزدی هوگیوکو از «' + str(cv['name']) + '» (' + str(victim) + ') شکست خورد'}"
-                            f" | قدرت {pa} در برابر {pb} | دورها {seq}", victim=victim, won=wa >= need)
-    if wa >= need:
-        got = await col("hogyoku").find_one_and_update({"_id": "main", "holder": victim}, {
-            "$set": {"holder": thief, "since": now}, "$push": {"history": {"$each": [{"uid": thief, "from": victim, "at": now}], "$slice": -10}}})
-        if not got:
-            return "notholder", None
-        await col("characters").update_one({"user_id": victim}, {"$unset": {"hogyoku": ""}})
-        await col("characters").update_one({"user_id": thief}, {"$set": {"hogyoku": True}})
-        return "win", report
-    hours = hog_penalty_hours(wa, wb, int(st["hog_pen_hours"]))
-    report["hours"] = hours
-    if hours:
-        await col("characters").update_one({"user_id": thief}, {"$set": {"reiatsu_pen_until": now + hours * 3600}})
-    return "fail", report
+    return "start", doc
+
+
+async def hogyoku_forfeit(uid: int, sid: str) -> bool:
+    """The challenger gives up an open Hōgyoku duel: the fight is closed, the holder keeps the Hōgyoku, no penalty
+    (the try's cooldown stays spent). True when a duel was closed."""
+    r = await col("battles").update_one({"sid": sid, "user_id": uid, "mode": "pve", "status": "active", "dungeon.hog": True},
+                                        {"$set": {"status": "fled"}})
+    return bool(r.modified_count)

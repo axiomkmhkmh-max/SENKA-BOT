@@ -264,9 +264,89 @@ def _is_boss_stage(dungeon, tower_floor_flag) -> bool:
     return dungeon.get("stage") == dungeon.get("total")
 
 
+async def _hog_round_start(uid: int, lang: str, ch: dict, dungeon: dict):
+    """One round of the Hōgyoku duel. The challenger plays it with the normal battle panel (every button, Cero included)
+    against an AI copy of the holder's real build. Both sides are 'neutral': no Hōgyoku bonuses, no theft penalty, and
+    the fight follows duel rules (race balance of duels, Konpaku lives), like a battlefield shadow."""
+    from service_bleach_systems import apply_stance, neutral_char
+    tch = await get_char(int(dungeon["tgt"]))
+    if not ch or not tch:
+        raise ValueError("Hōgyoku duel: a fighter is missing")
+    rng = random.Random()
+    ca, cb = neutral_char(ch), neutral_char(tch)
+    player = await build_player(ca)
+    foe = await build_player(cb, name="🔮 " + str(tch.get("name", "?")))
+    for f, c in ((player, ca), (foe, cb)):
+        apply_stance(f, c)
+    foe["ai"] = True
+    foe["foe"] = "pve"
+    state = E.new_state(player, foe, rng, pvp=True)
+    from service_fightfx import start as fx_start
+    fx_start(state, rng, challenge=False)
+    E.run_ai(state, rng)
+    doc = {"sid": uuid.uuid4().hex[:8], "user_id": uid, "mode": "pve", "state": state, "status": "active", "rev": 0,
+           "created_at": int(time.time()), "expire_at": _exp(), "scale": 1.0, "elite": False, "mini": False,
+           "lvl": int(ch["level"]), "dungeon": dungeon, "trial": None, "loc": ch.get("location"), "lang": lang}
+    await col("battles").insert_one(doc)
+    return doc
+
+
+async def _hog_round_settle(doc: dict, st: dict):
+    """A Hōgyoku duel round is over: count it, then start the next round or settle the whole duel (theft or nothing)."""
+    from data_artifacts import hog_duel_over
+    d = doc["dungeon"]
+    uid, victim = doc["user_id"], int(d["tgt"])
+    winner = st.get("winner")
+    if winner not in ("a", "b"):  # turn cap: the healthier fighter takes the round
+        fa, fb = st["a"], st["b"]
+        winner = "a" if fa["hp"] / max(1, fa["max_hp"]) >= fb["hp"] / max(1, fb["max_hp"]) else "b"
+    won = winner == "a"
+    wa, wb = int(d["wa"]) + (1 if won else 0), int(d["wb"]) + (0 if won else 1)
+    seq = list(d["seq"]) + [winner]
+    rep = {"pa": int(d["pa"]), "pb": int(d["pb"]), "rounds": seq, "wa": wa, "wb": wb, "hours": 0}
+    out = {"win": won, "xp": 0, "coins": 0, "drop": None, "levels": 0, "next": None, "dungeon_done": False}
+    info = {"done": False, "rep": rep, "round": int(d["round"]), "rounds_n": int(d["rounds_n"]), "victim": victim,
+            "victim_name": d.get("tgt_name", "?")}
+    verdict = hog_duel_over(wa, wb, int(d["rounds_n"]))
+    if verdict is None:  # still undecided: the holder must still be the holder for another round to make sense
+        h = await col("hogyoku").find_one({"_id": "main"})
+        if not h or h.get("holder") != victim:
+            verdict = "gone"
+        else:
+            try:
+                nxt = await pve_start(uid, doc.get("lang", "fa"), dungeon={**d, "round": int(d["round"]) + 1, "wa": wa, "wb": wb, "seq": seq})
+                out["next"] = nxt["sid"]
+            except Exception:
+                logging.getLogger("senka.combat").exception("hogyoku next round failed")
+                verdict = "gone"
+    if verdict is not None:
+        info["done"] = True
+        if verdict == "win":
+            now = int(time.time())
+            got = await col("hogyoku").find_one_and_update({"_id": "main", "holder": victim}, {
+                "$set": {"holder": uid, "since": now},
+                "$push": {"history": {"$each": [{"uid": uid, "from": victim, "at": now}], "$slice": -10}}})
+            if got:
+                await col("characters").update_one({"user_id": victim}, {"$unset": {"hogyoku": ""}})
+                await col("characters").update_one({"user_id": uid}, {"$set": {"hogyoku": True}})
+            else:
+                verdict = "gone"  # the Hōgyoku changed hands while the duel was running
+        info["result"] = verdict
+        seq_txt = "".join("✅" if w == "a" else "❌" for w in seq)
+        name = d.get("tgt_name", "?")
+        text = ("هوگیوکو را از «" + str(name) + "» (" + str(victim) + ") دزدید" if verdict == "win"
+                else "در دزدی هوگیوکو از «" + str(name) + "» (" + str(victim) + ") شکست خورد" if verdict == "fail"
+                else "دوئل هوگیوکو با «" + str(name) + "» (" + str(victim) + ") بی‌نتیجه ماند (هوگیوکو دست‌به‌دست شد)")
+        log_event("hog", uid, f"{text} | قدرت {rep['pa']} در برابر {rep['pb']} | دورها {seq_txt}", victim=victim, won=verdict == "win")
+    out["hog"] = info
+    return out
+
+
 async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = None, carry: dict = None, trial: dict = None,
                     force_elite: bool = False):
     ch = await get_char(uid)
+    if dungeon and dungeon.get("hog"):  # one round of the Hōgyoku duel (its own build of the fight, see _hog_round_start)
+        return await _hog_round_start(uid, lang, ch, dungeon)
     gs = await game_settings()
     wm = await mods_for(ch["location"])
     rng = random.Random()
@@ -423,6 +503,8 @@ async def pve_settle(doc: dict):
     won = await col("battles").find_one_and_update({"sid": doc["sid"], "status": "active"}, {"$set": {"status": "done"}})
     if not won:
         return None
+    if (doc.get("dungeon") or {}).get("hog"):  # Hōgyoku duel round: no XP, coins, drops or Battle Rank
+        return await _hog_round_settle(doc, doc["state"])
     uid, st = doc["user_id"], doc["state"]
     gs = await game_settings()
     win = st["winner"] == "a"

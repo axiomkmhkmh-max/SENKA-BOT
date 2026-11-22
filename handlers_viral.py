@@ -16,7 +16,7 @@ from service_bleach_systems import STANCE, STANCE_SECONDS, espada_board, espada_
 from service_extras import hogyoku_holder, hogyoku_state, hogyoku_steal
 from service_log import log_event, log_text
 from service_hollowraid import bankai_lock_left, quincy_strike, raid_settle
-from service_player import get_char
+from service_player import get_char, user_lang
 from service_world import group_doc
 from ui import RED, SEP, Out, action, chunk, nav
 from database import col, game_settings, try_cooldown
@@ -39,6 +39,11 @@ T = {  # key -> (fa, en)
     "hog_fail0": ("💢 {a} در نبرد هوگیوکو شکست خورد.", "💢 {a} lost the Hōgyoku duel."),
     "hog_weak": ("⚖️ قدرتت ({pa}) برای این چالش کافی نیست؛ دست‌کم {need} لازم است (دارنده: {pb}). قوی‌تر شو و برگرد.", "⚖️ Your power ({pa}) is too low for this challenge; you need at least {need} (holder: {pb}). Grow stronger and come back."),
     "hog_busy": ("⚔️ دارنده همین الان درگیر یک دوئل است؛ چند لحظه‌ی دیگر دوباره امتحان کن.", "⚔️ The holder is in the middle of a duel; try again in a moment."),
+    "hog_infight": ("⚔️ اول نبرد باز خودت را تمام کن (یا «تسلیم» بزن)، بعد به هوگیوکو حمله کن.", "⚔️ Finish your open fight first (or forfeit it), then go for the Hōgyoku."),
+    "infight": ("⚔️ اول نبرد باز خودت را تمام کن (یا «تسلیم» بزن)، بعد به هوگیوکو حمله کن.", "⚔️ Finish your open fight first (or forfeit it), then go for the Hōgyoku."),
+    "hog_gone": ("🔮 هوگیوکو وسط دوئل دست‌به‌دست شد؛ این دوئل بی‌نتیجه ماند.", "🔮 The Hōgyoku changed hands during the duel; this duel is void."),
+    "hog_forfeit": ("🏳️ دوئل را رها کردی؛ هوگیوکو دست دارنده ماند. تلاش بعدی بعد از کولداون ممکن است.", "🏳️ You gave up the duel; the holder keeps the Hōgyoku. You can try again after the cooldown."),
+    "hog_nofight": ("دوئل بازی نداری.", "You have no open duel."),
     "hog_shield": ("🔮 هوگیوکو تازه دست‌به‌دست شده؛ {n} دقیقه امن است.", "🔮 The Hōgyoku just changed hands; it is safe for {n} min."),
     "hog_cd": ("⏳ دوباره تلاش کردن تا {m} دقیقه‌ی دیگر ممکن است.", "⏳ You can try again in {m} min."),
     "q_hit": ("🩸 {who}: {dmg} آسیب به ارتش کوئینسی!", "🩸 {who}: {dmg} damage to the Quincy army!"),
@@ -49,8 +54,8 @@ T = {  # key -> (fa, en)
     "mask": ("🎭 ماسک روی صورتت نشست! ×{x} قدرت، اما در هر ضربه {p}٪ احتمال دارد هالوی درون کنترل را بگیرد.",
              "🎭 The mask clamps on! ×{x} power, but each strike has a {p}% chance the Hollow takes over."),
     "mask_cry": ("«خون… بیشتر!»", "“Blood… more!”"),
-    "steal_hint": ("برای نبرد با دارنده‌ی هوگیوکو دکمه‌ی زیر را بزن، یا روی پیام او ریپلای کن و «خیانت» بنویس.\n⚔️ نتیجه را قدرت تعیین می‌کند، نه شانس: دوئل واقعی، بهترین از {r} دور (برای بردن {w} دور لازم است).\n⚖️ دست‌کم {pct}٪ قدرت دارنده را لازم داری. اگر ببازی، ریاتسویت برای مدتی نصف می‌شود.",
-                   "To fight the Hōgyoku holder, tap the button below, or reply to them and write “betray”.\n⚔️ Power decides it, not luck: a real duel, best of {r} rounds ({w} wins needed).\n⚖️ You need at least {pct}% of the holder's power. Lose and your Reiatsu is halved for a while."),
+    "steal_hint": ("برای نبرد با دارنده‌ی هوگیوکو دکمه‌ی زیر را بزن، یا روی پیام او ریپلای کن و «خیانت» بنویس.\n⚔️ نتیجه را مهارت و قدرت خودت تعیین می‌کند، نه شانس: یک دوئل واقعی با پنل نبرد (اتک، سنگین، سرو و ...) علیه بیلد دارنده، بهترین از {r} دور (برای بردن {w} دور لازم است).\n⚖️ دست‌کم {pct}٪ قدرت دارنده را لازم داری. اگر ببازی فقط باید تا تلاش بعدی صبر کنی (ریاتسویت کم نمی‌شود).",
+                   "To fight the Hōgyoku holder, tap the button below, or reply to them and write “betray”.\n⚔️ Your own skill decides it, not luck: a real duel you play with the battle panel (Attack, Heavy, Cero ...) against the holder's build, best of {r} rounds ({w} wins needed).\n⚖️ You need at least {pct}% of the holder's power. Lose and you just wait for the next try (your Reiatsu is untouched)."),
     "q_gone": ("این حمله تمام شده.", "This invasion is over."),
     "q_pop": ("🩸 {dmg} آسیب! ❤️ {hp} مانده", "🩸 {dmg} damage! ❤️ {hp} left"),
     "q_last": ("🏆 ضربه‌ی آخر مال تو بود!", "🏆 You landed the final blow!"),
@@ -119,14 +124,20 @@ async def viral_hook(message, text: str, n: str) -> bool:
             await message.reply(_t(lang, res, n=extra))
         return True
     if target and n in STEAL_WORDS:
-        res, extra = await hogyoku_steal(user.id, target.id)
+        lang = await _group_lang(chat.id)
+        ulang = (await user_lang(user.id)) or lang
+        res, extra = await hogyoku_steal(user.id, target.id, ulang)
         if res in ("self", "notholder", "noreg"):
             return False
-        lang = await _group_lang(chat.id)
-        you = esc(target.full_name or target.first_name or "")
         log_text(user.id, "خیانت (ریپلای)", chat.type)  # this hook answers before the group's own text log runs
-        if res in ("win", "fail"):
-            await message.reply(_hog_report(lang, extra, me, you, res == "win"))
+        if res == "start":  # the duel is played with the normal battle panel (buttons are bound to the challenger)
+            import handlers_combat
+            from ui import Ctx, markup
+            ctx = Ctx(user.id, ulang, chat.id, chat.type, user, message.bot, message)
+            out = await handlers_combat.battle_panel(ctx, extra, [])
+            await message.reply(out.text, reply_markup=markup(ctx, out.rows))
+        elif res == "infight":
+            await message.reply(_t(lang, "hog_infight"))
         elif res == "weak":
             await message.reply(_t(lang, "hog_weak", **{k: fnum(v, lang) for k, v in extra.items()}))
         elif res == "shield":
@@ -270,26 +281,60 @@ async def hog_press(ctx, arg):
         return Out(alert=_t(L, "hog_none"))
     if h[0] == ctx.uid:
         return Out(alert=_t(L, "hog_self"))
-    res, extra = await hogyoku_steal(ctx.uid, h[0])
+    res, extra = await hogyoku_steal(ctx.uid, h[0], L)
+    if res == "start":  # the duel is played right here with the normal battle panel (Attack, Heavy, Cero ...)
+        import handlers_combat
+        return await handlers_combat.battle_panel(ctx, extra, [])
+    if res == "weak":
+        return Out(alert=_t(L, "hog_weak", **{k: fnum(v, L) for k, v in extra.items()}))
+    if res == "cd":
+        return Out(alert=_t(L, "hog_cd", m=max(1, extra // 60)))
+    if res == "shield":
+        return Out(alert=_t(L, "hog_shield", n=extra))
+    # level | noreg | notholder | self | busy | infight
+    return Out(alert=_t(L, "hog_busy" if res == "busy" else res, n=extra))
+
+
+def hog_title(L: str, d: dict) -> str:
+    """The duel line above a Hōgyoku fight: the round and the rounds already decided."""
+    seq = "".join("🟢" if w == "a" else "🔴" for w in d.get("seq") or [])
+    head_ = (f"🔮 <b>نبرد هوگیوکو</b> · دور {fnum(d['round'], L)} از {fnum(d['rounds_n'], L)}" if L == "fa"
+             else f"🔮 <b>Hōgyoku Duel</b> · round {d['round']} of {d['rounds_n']}")
+    return head_ + (f"  {seq}" if seq else "") + "\n"
+
+
+async def hog_result(ctx, doc, ev, o):
+    """What the battle screen shows when a duel round ends: the next-round button, or the final duel card."""
+    from render import battle_text
+    from ui import head
+    L, fa = ctx.lang, ctx.lang == "fa"
+    info, d = o["hog"], doc["dungeon"]
+    body = battle_text(L, doc["state"], ev, head(ctx, "ttl_bt") + hog_title(L, d))
+    rep = info["rep"]
+    if not info["done"]:
+        verdict = ("✅ این دور را بردی!" if fa else "✅ You won this round!") if o["win"] else ("❌ این دور را باختی." if fa else "❌ You lost this round.")
+        score = f"\n{fnum(rep['wa'], L)} – {fnum(rep['wb'], L)}"
+        return Out(body + "\n\n" + verdict + score, [[("⚔️ " + ("دور بعد" if fa else "Next round"), "bn", o["next"])], nav(ctx)])
     me = esc(ctx.user.full_name or ctx.user.first_name or "")
-    if res in ("win", "fail"):
-        text = _hog_report(L, extra, me, esc(h[1]), res == "win")
-    if res == "win":
+    won = info["result"] == "win"
+    text = _hog_report(L, rep, me, esc(info["victim_name"]), True) if won else \
+        (_t(L, "hog_gone") if info["result"] == "gone" else _hog_report(L, rep, me, esc(info["victim_name"]), False))
+    if won:
         try:  # the old holder may be nowhere near this chat
-            await ctx.bot.send_message(h[0], _t(await handlers_world._user_lang(h[0]), "hog_lost", a=me))
+            await ctx.bot.send_message(info["victim"], _t(await handlers_world._user_lang(info["victim"]), "hog_lost", a=me))
         except Exception:
             pass
-    elif res == "fail":
-        pass
-    elif res == "weak":
-        return Out(alert=_t(L, "hog_weak", **{k: fnum(v, L) for k, v in extra.items()}))
-    elif res == "cd":
-        return Out(alert=_t(L, "hog_cd", m=max(1, extra // 60)))
-    elif res == "shield":
-        return Out(alert=_t(L, "hog_shield", n=extra))
-    else:  # level | noreg | notholder | self | busy
-        return Out(alert=_t(L, "hog_busy" if res == "busy" else res, n=extra))
-    return Out(text, await _hog_rows(ctx))
+    return Out(body + "\n\n" + text, [nav(ctx)])
+
+
+@action("vrf")
+async def hog_forfeit_press(ctx, arg):
+    """«🏳️ تسلیم» on a Hōgyoku duel screen: close the duel (no penalty; the try's cooldown stays spent)."""
+    from service_extras import hogyoku_forfeit
+    L = ctx.lang
+    if not await hogyoku_forfeit(ctx.uid, arg):
+        return Out(alert=_t(L, "hog_nofight"))
+    return Out(_t(L, "hog_forfeit"), [nav(ctx)])
 
 
 async def _esp_view(ctx):

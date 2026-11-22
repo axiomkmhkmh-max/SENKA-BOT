@@ -228,6 +228,9 @@ async def battle_panel(ctx, doc, events=None):
     d = doc.get("dungeon")
     if d and d.get("tower"):
         title += ctx.t("tw_floor_boss" if d["stage"] % 5 == 0 else "tw_floor", n=fnum(d["stage"], ctx.lang)) + "\n"
+    elif d and d.get("hog"):  # Hōgyoku duel: round counter and the rounds already decided
+        from handlers_viral import hog_title
+        title += hog_title(ctx.lang, d)
     elif d and d.get("war"):
         from handlers_war import battle_title
         title += battle_title(ctx.lang, d)
@@ -252,6 +255,8 @@ async def battle_panel(ctx, doc, events=None):
     rows = _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st), side_on=E.in_side(st, "a")) + [tail]
     if d and d.get("tower") and not st.get("done"):  # a tower climb can always be left from the fight screen itself
         rows.append(_tower_leave_row(ctx))
+    if d and d.get("hog") and not st.get("done"):  # a Hōgyoku duel can be given up (no penalty, the try stays spent)
+        rows.append([("🏳️ " + ("تسلیم" if ctx.lang == "fa" else "Forfeit"), "vrf", doc["sid"])])
     return Out(text, rows)
 
 
@@ -319,6 +324,9 @@ async def _pve_result(ctx, doc, ev, o):
     log = events_text(L, ev)
     if o.get("tower"):
         return _tower_result(ctx, doc, ev, o)
+    if o.get("hog"):  # Hōgyoku duel round / final card
+        from handlers_viral import hog_result
+        return await hog_result(ctx, doc, ev, o)
     if not o["win"]:
         text = battle_text(L, doc["state"], ev, head(ctx, "ttl_bt")) + "\n\n" + ctx.t("bt_lose")
         if o.get("chain_shield"):

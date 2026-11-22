@@ -184,6 +184,21 @@ async def espada_rank(uid: int):
     return d["_id"] if d else None
 
 
+def neutral_char(c: dict) -> dict:
+    """A copy of the character without the Hōgyoku's own bonuses (x2 Reiatsu, +30% damage, +18% defence) and without any old
+    theft penalty: used by the Hōgyoku duel so it is decided by the two fighters' own strength."""
+    c = dict(c)
+    c.pop("hogyoku", None)
+    c.pop("reiatsu_pen_until", None)
+    return c
+
+
+def apply_stance(f: dict, c: dict):
+    """Bake the character's active group stance (Shikai / Bankai / Mask) into the fighter's damage modifier."""
+    m = stance_mult(c)
+    f["mods"]["dmg"] = f["mods"].get("dmg", 1.0) * (m if m else 0.5)
+
+
 async def quick_fight(uid_a: int, uid_b: int, neutral: bool = False) -> str:
     """Instant simulated duel using the real combat engine on both sides. Returns "a" or "b".
     neutral=True (the Hōgyoku theft duel): the holder's Hōgyoku bonuses (x2 Reiatsu, +30% damage, +18% defence) and any
@@ -193,14 +208,10 @@ async def quick_fight(uid_a: int, uid_b: int, neutral: bool = False) -> str:
     from service_combat import build_player
     ca, cb = await get_char(uid_a), await get_char(uid_b)
     if neutral:
-        ca, cb = dict(ca), dict(cb)
-        for c in (ca, cb):
-            c.pop("hogyoku", None)
-            c.pop("reiatsu_pen_until", None)
+        ca, cb = neutral_char(ca), neutral_char(cb)
     fa, fb = await build_player(ca), await build_player(cb)
     for f, c in ((fa, ca), (fb, cb)):
-        m = stance_mult(c)
-        f["mods"]["dmg"] = f["mods"].get("dmg", 1.0) * (m if m else 0.5)
+        apply_stance(f, c)
     rng = _rnd.Random()
     st = E.new_state(fa, fb, rng)
     E.run_ai(st, rng, E.MAX_TURNS, ai_sides=("a", "b"))

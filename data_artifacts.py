@@ -366,17 +366,24 @@ def norm_phrase(s: str) -> str:
 
 
 def reiatsu_mult(ch: dict, now: float = None) -> float:
-    """Hogyoku doubles Reiatsu; a failed theft halves it until `reiatsu_pen_until`."""
-    now = now or _time.time()
-    m = HOGYOKU["reiatsu_mult"] if (ch or {}).get("hogyoku") else 1.0
-    if float((ch or {}).get("reiatsu_pen_until") or 0) > now:
-        m *= 0.5
-    return m
+    """Hogyoku doubles Reiatsu. A failed theft no longer halves it (the old `reiatsu_pen_until` field is ignored,
+    so penalties already stored on characters stop counting too)."""
+    return HOGYOKU["reiatsu_mult"] if (ch or {}).get("hogyoku") else 1.0
 
 # --- Hōgyoku duel rules (pure, no DB): the theft is a real duel decided by power, not by a dice roll -----------------
 def hog_wins_needed(rounds: int) -> int:
     """Best of `rounds` (odd): 3 -> 2 wins."""
     return max(1, int(rounds)) // 2 + 1
+
+
+def hog_duel_over(wins_thief: int, wins_holder: int, rounds: int):
+    """State of the manual Hōgyoku duel after a round: "win" (thief has enough rounds), "fail" (holder has, or the rounds
+    ran out without the thief getting there), None = play the next round."""
+    if wins_thief >= hog_wins_needed(rounds):
+        return "win"
+    if wins_holder >= hog_wins_needed(rounds) or wins_thief + wins_holder >= max(1, int(rounds)):
+        return "fail"
+    return None
 
 
 def hog_too_weak(power_thief: float, power_holder: float, min_ratio: float) -> bool:
