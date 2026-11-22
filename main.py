@@ -115,6 +115,8 @@ async def main():
     await rework_migrations()  # evolution titles, race weapons, race armour (each runs once)
     runner = await health_server()
     bot = Bot(settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML, link_preview_is_disabled=True))
+    from premium_emoji import install as install_premium_emoji
+    install_premium_emoji(bot)  # premium (custom) emoji in every outgoing message; PREMIUM_EMOJI=0 turns it off
     from handlers_core import router
     from handlers_admincmd import router as admin_cmd_router  # admin slash commands + /redeem + /tokens (must come before the text router)
     import handlers_admincmd2  # noqa: F401  (admin slash commands, batch 2)
