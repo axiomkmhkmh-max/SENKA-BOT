@@ -40,7 +40,8 @@ from data_weapons import RARITIES, PRICE
 LV_MAX = 10
 # Player-side damage factor per ability family (Nov 22 feedback: Cero and the Mask hit for a tenth of a high Hadō). Applies to the
 # damage `m` of that family's techniques, for players only (wild enemies keep their own numbers). 1.0 = as written in FAMILIES.
-FAMILY_DMG_K = {"cero": 3.0, "mask": 2.0}
+# Nov 24: x3.0 / x2.0 overshot (lv10 Cero and Hollow Claw took ~70% of a duel foe's HP in one press). Now Cero ~ Hadō 90.
+FAMILY_DMG_K = {"cero": 2.2, "mask": 1.6}
 LV_STEP = 0.06       # +6% to the main numbers per level
 # cards and coins to go from level L to L+1 (index L-1): 25 cards and 172k coins from 1 to 10
 UPGRADE = [(2, 6000), (2, 12000), (3, 21000), (4, 30000), (6, 45000), (8, 60000), (10, 84000), (14, 108000), (18, 150000)]
@@ -117,7 +118,7 @@ FAMILIES = {
         T("hollow_rage", "خشم هالو", "Hollow Rage", I_FA, I_EN, 1, 0.08, 5, "mask", buff={"dmg": 0.25, "def": -0.10, "t": 2}),
         T("howl", "زوزه‌ی هالو", "Hollow Howl", I_FA, I_EN, 1, 0.10, 5, "mask", debuff={"dmg": -0.15, "t": 2}),
         T("full_mask", "ماسک کامل", "Full Mask", I_FA, I_EN, 4, 0.10, None, "mask", once=True, mask_full=True),
-        T("claw", "پنجه‌ی هالو", "Hollow Claw", I_FA, I_EN, 2, 0.10, 3, "mask", hits=3, m=1.3),
+        T("claw", "پنجه‌ی هالو", "Hollow Claw", I_FA, I_EN, 2, 0.10, 3, "mask", hits=3, m=0.9),
     ]},
     "hiren": {"fa": "هیرن‌کیاکو", "en": "Hirenkyaku", "icon": "💨", "stat": {"reiatsu": 1.0}, "types": [
         T("hiren", "هیرن‌کیاکو", "Hirenkyaku", C_FA, C_EN, 0, 0.10, 4, m=0.7, buff={"dodge": 0.25, "crit": 0.12, "t": 2}),

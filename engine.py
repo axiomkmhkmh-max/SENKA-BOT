@@ -373,7 +373,14 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
             dmg = max(1, int(dmg * DUEL["dmg_share"]))
             if state.get("turn") == 1 and side == state.get("first"):  # the opener's first turn is a probing blow
                 dmg = max(1, int(dmg * float(DUEL.get("opening_dmg", 1.0))))
-        dmg = min(dmg, max(1, int(dfn["max_hp"] * DUEL["hit_cap"])))
+        cap = max(1, int(dfn["max_hp"] * DUEL["hit_cap"]))
+        left = state.get("cap_left")
+        if left is not None and kind not in ("reflect", "dot"):
+            # one ability press (Hollow Claw x3, Metralleta x6...) shares ONE hit_cap: multi-hit used to take 3x the cap
+            cap = max(0, min(cap, int(left)))
+        dmg = min(dmg, cap)
+        if left is not None and kind not in ("reflect", "dot"):
+            state["cap_left"] = int(left) - dmg
     if dfn["shield"] > 0:
         absorbed = min(dfn["shield"], dmg)
         dfn["shield"] -= absorbed
@@ -542,6 +549,7 @@ def ready_hado(f) -> bool:
     return can(f, "kd")
 
 
+DUEL_PRESS_CAP = 1.2  # in a duel one ability press (all its blows together) takes at most 1.2 x hit_cap of the foe's HP
 HADO_FLOOR = 1.0      # a Hadō never hits for less than this many plain attacks (chanted: x CHANT_HADO on top). 0 = off
 GETSUGA_COST = 0.15   # share of max reiatsu for the release
 GETSUGA_DMG = 2.4     # strike multiplier of the release (a heavy strike is 1.6)
@@ -1725,6 +1733,8 @@ def _ab_run(state, side, action, rng, ev):
         x["tmp"] = {"crit": AB.lv_p(s["crit_add"], lv) if s.get("crit_add") else 0.0, "cdmg": s.get("cdmg_add", 0) * k,
                     "ng": bool(s.get("noguard")), "any": bool(s.get("anyrange")), "nopen": a["fam"] == "cero"}
         last_crit = False
+        if state.get("duel"):
+            state["cap_left"] = int(o["max_hp"] * DUEL["hit_cap"] * DUEL_PRESS_CAP)
         for i in range(hits):
             if o["hp"] <= 0:
                 break
@@ -1736,6 +1746,7 @@ def _ab_run(state, side, action, rng, ev):
             last_crit = any(e.get("k") == "hit" and e.get("c") for e in ev[n0:])
         if s.get("combo") and last_crit and o["hp"] > 0:
             _deal(state, side, s["combo"] * k, rng, ev, "tech", allow_procs=False, src=src)
+        state.pop("cap_left", None)
         x["tmp"] = None
         dealt = max(0, hp0 - o["hp"])
         if s.get("curhp") and o["hp"] > 0:

@@ -393,7 +393,7 @@ async def c_lvl_all(e: Env):
     top = await col("characters").find({}, {"level": 1}).sort("level", -1).limit(1).to_list(1)
     top_lv = int(top[0]["level"]) if top else 1
     code = str(random.randint(100000, 999999))
-    await col("admin_level_confirms").update_one({"admin": e.uid}, {"$set": {"code": code, "n": n, "at": int(time.time())}}, upsert=True)
+    await col("admin_level_confirms").update_one({"admin": e.uid}, {"$set": {"code": code, "n": n, "kind": "lvl", "at": int(time.time())}}, upsert=True)
     await e.say(e.t(
         f"⚠️ <b>کم کردن لول از همه</b>\n−{fnum(n, e.lang)} لول از <b>{fnum(hit, e.lang)}</b> بازیکن (کف لول ۱؛ تجربه‌ی نیمه‌راه صفر می‌شود).\n"
         f"بالاترین لول: {fnum(top_lv, e.lang)} ← {fnum(cut_level(top_lv, n), e.lang)}\n"
@@ -407,7 +407,7 @@ async def c_lvl_all(e: Env):
 
 @acmd("lvl_yes", 100, "/lvl_yes <code>", "تایید کم کردن لول همگانی", "Confirm the mass level cut")
 async def c_lvl_yes(e: Env):
-    d = await col("admin_level_confirms").find_one_and_delete({"admin": e.uid})
+    d = await col("admin_level_confirms").find_one_and_delete({"admin": e.uid, "kind": {"$ne": "pts"}})
     if not d or not e.args or e.args[0] != d["code"] or time.time() - d["at"] > 120:
         return await e.say(e.t("❌ کد تایید اشتباه است یا منقضی شده.", "❌ Wrong or expired confirmation code."))
     n = int(d["n"])
@@ -449,4 +449,80 @@ async def c_lvl_undo(e: Env):
         await col("characters").bulk_write(ops[i:i + 1000], ordered=False)
     await col("admin_level_backup").delete_many({})
     await alog(e.uid, "lvl_undo", None, None, {"players": len(rows)}, "cmd")
+    await e.say(e.t(f"✅ برگردانده شد: {len(rows):,} بازیکن.", f"✅ Restored: {len(rows):,} players."))
+
+
+# ---- Nov 24: reset everyone's stat points (levels untouched) ------------------------------------------------------
+def refund_stats(race_base: dict, stats: dict) -> tuple:
+    """(new stats = the race base, points returned = everything allocated above the base)."""
+    from data_races import STATS
+    back = sum(max(0, int((stats or {}).get(k, 0)) - int(race_base.get(k, 0))) for k in STATS)
+    return {k: int(race_base.get(k, 0)) for k in STATS}, back
+
+
+@acmd("pts_all", 100, "/pts_all", "ریست امتیاز استت همه‌ی بازیکن‌ها (لول دست نمی‌خورد، با تایید)",
+      "Reset every player's stat points (levels kept, needs confirmation)")
+async def c_pts_all(e: Env):
+    hit = await col("characters").count_documents({})
+    code = str(random.randint(100000, 999999))
+    await col("admin_level_confirms").update_one({"admin": e.uid}, {"$set": {"code": code, "n": -1, "kind": "pts", "at": int(time.time())}}, upsert=True)
+    await e.say(e.t(
+        f"⚠️ <b>ریست امتیاز استت همه</b>\nاستت‌های <b>{fnum(hit, e.lang)}</b> بازیکن به پایه‌ی نژاد برمی‌گردد و همه‌ی امتیازهای خرج‌شده پس داده می‌شود.\n"
+        f"لول، تجربه و آیتم‌ها دست‌نخورده می‌مانند. استت‌های بالای سقف (مثلاً کیدو ۵۰۰) هم ریست می‌شوند. پشتیبان: /pts_undo\n"
+        f"تایید تا ۲ دقیقه: <code>/pts_yes {code}</code>",
+        f"⚠️ <b>Reset everyone's stat points</b>\n<b>{hit:,}</b> players go back to their race base and get every spent point back.\n"
+        f"Levels, XP and items are kept. Stats above the cap (e.g. Kidō 500) are reset too. Backup: /pts_undo\n"
+        f"Confirm within 2 minutes: <code>/pts_yes {code}</code>"))
+
+
+@acmd("pts_yes", 100, "/pts_yes <code>", "تایید ریست امتیاز همگانی", "Confirm the mass stat point reset")
+async def c_pts_yes(e: Env):
+    d = await col("admin_level_confirms").find_one_and_delete({"admin": e.uid, "kind": "pts"})
+    if not d or not e.args or e.args[0] != d["code"] or time.time() - d["at"] > 120:
+        return await e.say(e.t("❌ کد تایید اشتباه است یا منقضی شده.", "❌ Wrong or expired confirmation code."))
+    await alog(e.uid, "pts_all", None, None, {}, "cmd")
+    await e.say(e.t("🚀 ریست امتیاز شروع شد؛ نتیجه را در پیوی می‌فرستم.", "🚀 Point reset started; I will DM you the result."))
+
+    async def run():
+        from data_races import RACES
+        try:
+            rows, ops = [], []
+            async for c in col("characters").find({}, {"user_id": 1, "race": 1, "stats": 1, "points": 1, "awk_stats": 1}):
+                race = RACES.get(c.get("race"))
+                if not race:
+                    continue
+                new, back = refund_stats(race["stats"], c.get("stats"))
+                rows.append({"user_id": c["user_id"], "stats": c.get("stats") or {}, "points": int(c.get("points", 0)),
+                             "awk_stats": c.get("awk_stats") or []})
+                ops.append(UpdateOne({"user_id": c["user_id"]}, {"$set": {"stats": new, "awk_stats": []}, "$inc": {"points": back}}))
+            await col("admin_pts_backup").delete_many({})
+            for i in range(0, len(rows), 1000):
+                await col("admin_pts_backup").insert_many(rows[i:i + 1000])
+            for i in range(0, len(ops), 1000):
+                await col("characters").bulk_write(ops[i:i + 1000], ordered=False)
+            msg = e.t(f"✅ امتیاز {len(ops):,} بازیکن ریست شد. برگرداندن: /pts_undo yes",
+                      f"✅ Points reset for {len(ops):,} players. Undo: /pts_undo yes")
+        except Exception as ex:
+            msg = e.t(f"❌ خطا: {ex}", f"❌ Failed: {ex}")
+        try:
+            await e.bot.send_message(e.uid, msg)
+        except Exception:
+            pass
+    asyncio.create_task(run())
+
+
+@acmd("pts_undo", 100, "/pts_undo yes", "برگرداندن آخرین ریست امتیاز همگانی", "Undo the last mass point reset")
+async def c_pts_undo(e: Env):
+    rows = await col("admin_pts_backup").find({}).to_list(None)
+    if not rows:
+        return await e.say(e.t("ℹ️ پشتیبانی برای برگرداندن نیست.", "ℹ️ No backup to restore."))
+    if not e.args or e.args[0].lower() != "yes":
+        return await e.say(e.t(f"⚠️ استت و امتیاز {len(rows):,} بازیکن برمی‌گردد.\nتایید: <code>/pts_undo yes</code>",
+                               f"⚠️ Stats and points of {len(rows):,} players are restored.\nConfirm: <code>/pts_undo yes</code>"))
+    ops = [UpdateOne({"user_id": r["user_id"]}, {"$set": {"stats": r["stats"], "points": int(r["points"]), "awk_stats": r.get("awk_stats") or []}})
+           for r in rows]
+    for i in range(0, len(ops), 1000):
+        await col("characters").bulk_write(ops[i:i + 1000], ordered=False)
+    await col("admin_pts_backup").delete_many({})
+    await alog(e.uid, "pts_undo", None, None, {"players": len(rows)}, "cmd")
     await e.say(e.t(f"✅ برگردانده شد: {len(rows):,} بازیکن.", f"✅ Restored: {len(rows):,} players."))

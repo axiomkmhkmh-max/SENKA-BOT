@@ -258,7 +258,9 @@ async def abandon_tower(uid: int) -> bool:
     return bool(r.modified_count)
 
 
-DG_XP_MULT = 1.0        # dungeon stages pay this much of a normal fight's XP (was 2.0; they pay no coins or items)
+DG_XP_MULT = 1.2        # Nov 24: 1.0 -> 1.2 (a one-tap open-world fight paid more than an abyss stage); dungeon stages pay this much of a normal fight's XP (was 2.0; they pay no coins or items)
+DG_SCALE_XP_EXP = 0.75  # Nov 24: was 0.5 (abyss paid x2.8 for x8 power, less than a one-tap open-world fight)
+FAST_KILL_XP = {1: 0.5, 2: 0.7}  # plain open-world fights won in 1 / 2 turns pay this share (one-tap farming paid 500K)
 DG_FINAL_XP_MULT = 2    # the last stage pays this much more again (was x3)
 DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
@@ -549,6 +551,8 @@ async def pve_settle(doc: dict):
             xp, coins = int(xp * gk), int(coins * gk)
             if gk != 1.0:
                 out["gap_k"] = round(gk, 2)
+        if plain:  # a one-tap farm win pays less than a real fight
+            xp = int(xp * FAST_KILL_XP.get(int(st.get("turn", 3)), 1.0))
         if plain:  # win chain: consecutive plain victories raise coin/XP rewards
             cn, cm, cdrop, cfull, cms = chain_res  # chain_win returns 5 values (the milestone was added; 4 broke every win)
             xp, coins = int(xp * cm), int(coins * cm)
@@ -568,7 +572,7 @@ async def pve_settle(doc: dict):
         elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
             xp, coins = int(xp * DG_XP_MULT), 0
             sc = max(1.0, float(doc.get("scale") or 1.0))
-            xp = int(xp / sc ** 0.5)  # the difficulty's power multiplier now counts at its square root (abyss x8 paid x8 XP, now x2.8)
+            xp = int(xp / sc ** (1 - DG_SCALE_XP_EXP))  # the difficulty multiplier counts at sc ** DG_SCALE_XP_EXP (abyss x8 -> x4.8 XP)
             if d["stage"] == d["total"]:
                 xp *= DG_FINAL_XP_MULT
         if doc.get("mini"):

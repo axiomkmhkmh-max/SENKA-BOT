@@ -116,7 +116,7 @@ async def respec_stats(uid: int):
     base = RACES[ch["race"]]["stats"]
     r = await col("characters").update_one(
         {"user_id": uid, "stats": ch["stats"]},
-        {"$set": {"stats": {k: int(base.get(k, 0)) for k in STATS}, "respec_at": int(time.time())},
+        {"$set": {"stats": {k: int(base.get(k, 0)) for k in STATS}, "respec_at": int(time.time()), "awk_stats": []},
          "$inc": {"points": q["points"]}})
     if not r.modified_count:
         await add_coins(uid, q["coins"], "respec_refund")  # someone else changed stats meanwhile

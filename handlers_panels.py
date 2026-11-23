@@ -171,12 +171,25 @@ async def general_skill_switch(ctx, arg):
 @action("upg")
 async def upgrade(ctx, arg):
     L = ctx.lang
-    smax = int((await game_settings()).get("stat_max", 500))  # Nov 23: no stat goes above this by spending points
+    from service_soul import AWK_LEVEL, AWK_SLOTS, stat_cap
+    base_max = int((await game_settings()).get("stat_max", 500))  # Nov 23: no stat goes above this by spending points
     k, _, many = (arg or "").partition(":")  # "zanjutsu" = +1, "zanjutsu:10" = +10 (or all points left when fewer)
+    if k == "awk" and many in STATS:  # level 300+: mark a stat as Awakened (its cap grows with every level past 300)
+        me = await get_char(ctx.uid)
+        awk = list(me.get("awk_stats") or [])
+        if int(me["level"]) < AWK_LEVEL:
+            return Out(alert=(f"🔒 از لول {fnum(AWK_LEVEL, L)} باز می‌شود." if L == "fa" else f"🔒 Opens at level {AWK_LEVEL}."))
+        if many not in awk:
+            if len(awk) >= AWK_SLOTS:
+                return Out(alert=("هر دو استت بیدار انتخاب شده‌اند (با ریست استت آزاد می‌شوند)." if L == "fa"
+                                  else "Both Awakened stats are chosen (a stat reset frees them)."))
+            await col("characters").update_one({"user_id": ctx.uid, "awk_stats.1": {"$exists": False}}, {"$addToSet": {"awk_stats": many}})
+        k = ""
     if k in STATS:
         want = 10 if many == "10" else 1
-        doc = (await col("characters").find_one({"user_id": ctx.uid}, {"points": 1, f"stats.{k}": 1})) or {}
+        doc = (await col("characters").find_one({"user_id": ctx.uid}, {"points": 1, f"stats.{k}": 1, "level": 1, "awk_stats": 1})) or {}
         have, cur = int(doc.get("points", 0)), int((doc.get("stats") or {}).get(k, 0))
+        smax = stat_cap(doc, k, base_max)
         if cur >= smax:
             return Out(alert=(f"⭐ این استت به سقف {fnum(smax, L)} رسیده." if L == "fa" else f"⭐ This stat is at the cap ({smax})."))
         n = min(want, have, smax - cur)
@@ -184,10 +197,19 @@ async def upgrade(ctx, arg):
         if not r or not r.modified_count:
             return Out(alert=ctx.t("no_points"))
     ch = await get_char(ctx.uid)
-    rows = [[(f"➕ {STAT_ICON[s]} {ctx.t('stat_' + s)}: {fnum(int(ch['stats'][s]), L)}/{fnum(smax, L)}", "upg", s), ("+" + fnum(10, L), "upg", s + ":10")]
+    awk = list(ch.get("awk_stats") or [])
+    rows = [[(f"➕ {STAT_ICON[s]}{'🌟' if s in awk else ''} {ctx.t('stat_' + s)}: {fnum(int(ch['stats'][s]), L)}/{fnum(stat_cap(ch, s, base_max), L)}", "upg", s),
+             ("+" + fnum(10, L), "upg", s + ":10")]
             for s in STATS]
+    body = ctx.t("upg_body", pts=fnum(ch.get("points", 0), L))
+    if int(ch["level"]) >= AWK_LEVEL:
+        body += ("\n\n🌟 <b>استت بیدار</b>: از لول ۳۰۰ دو استت انتخاب کن؛ سقف آن‌ها به ازای هر لول بالای ۳۰۰ یکی بالا می‌رود."
+                 if L == "fa" else "\n\n🌟 <b>Awakened stats</b>: from level 300 pick two stats; their cap rises by 1 for every level past 300.")
+        if len(awk) < AWK_SLOTS:
+            pick = [(f"🌟 {ctx.t('stat_' + s)}", "upg", "awk:" + s) for s in STATS if s not in awk]
+            rows += [pick[i:i + 3] for i in range(0, len(pick), 3)]
     rows.append(nav(ctx, ("prof", "")))
-    return Out(head(ctx, "ttl_upg") + ctx.t("upg_body", pts=fnum(ch.get("points", 0), L)), rows)
+    return Out(head(ctx, "ttl_upg") + body, rows)
 
 
 # ---- map / travel -------------------------------------------------------------------
