@@ -23,7 +23,10 @@ HAKUDA_HP = 60
 ENEMY_HAKUDA_HP = 65
 DMG_MULT = 2.0
 BOSS_FOES = ("boss", "world_boss")
+PLAYER_VS_BOSS_DMG = 1.35  # Nov 23: players hit dungeon and world bosses 35% harder (stat points per level 3 -> 2 and a stat cap of 350 made them weaker)
+PLAYER_VS_PVE_DMG = 1.15   # ... and other wild enemies (hollows, soldiers, normal fights) 15% harder; PvP is untouched
 BOSS_HP_MULT = 1.25      # Nov 21 (feedback): bosses hit less and last longer, so their HP goes up ...
+BOSS_REGEN_SHARE = 0.2   # Nov 23: a boss recovers only this share of the normal per-turn regen and Guard heal (3% of a 270K boss = 5K a turn undid a plain hit)
 BOSS_DMG_MULT = 0.75     # ... and their own blows are 25% weaker (was 1.0, only players got the x2)
 # Duel rules (players against players, Nov 2026). They exist because the plain damage comparison let a high level one-shot a
 # low level. They apply only where new_state(..., duel_rules=True): never to bosses, PvE or the tournament standard kit.

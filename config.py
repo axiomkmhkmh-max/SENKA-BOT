@@ -67,7 +67,7 @@ GAME_DEFAULTS = {
     "pvp_full_xp_wins": 10, "pvp_turn_seconds": 30, "pvp_max_turns": 200,
     "market_seller_fee": 0.05, "market_buyer_fee": 0.02, "market_slots": 5,
     "market_hours": 72, "auction_snipe_seconds": 60, "auction_extend_seconds": 120,
-    "gacha_cost": 1500, "gacha_pity_legendary": 80, "gacha_pity_rare": 10,
+    "gacha_cost": 1500, "gacha_pity_legendary": 50, "gacha_pity_rare": 10,
     "dp_daily_cap": 4000,  # dungeon points one player can earn per day (was a fixed 1500)
     "dg_special_on": 1, "dg_special_day_cap": 6,  # dungeon-only special items: on/off, most drops per player per day
     "dp_pity_bronze": 6, "dp_pity_silver": 5, "dp_pity_gold": 10, "dp_chest_daily": 6,  # dungeon chests: this many in a row without a better item guarantees one (0 = off)
@@ -131,7 +131,7 @@ GAME_DEFAULTS = {
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,
     "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,
     # ---- 100 wheels (Soul Core) ----------------------------------------------------------------
-    "wheel2_enabled": True, "wheel_free_daily": 1, "pity_leg": 60, "pity_myth": 250,
+    "wheel2_enabled": True, "wheel_free_daily": 3, "pity_leg": 60, "pity_myth": 250,
     "core_quest_chance": 0.03, "core_dungeon_chance": 0.03, "core_day_cap": 1,
     "core_new_day_cap": 1, "core_new_dungeon_k": 1.5, "core_event_chance": 0.05,  # Nov 22: cores from the six new dungeons and event rewards (own daily cap)
     "skin_chance_epic": 0.05, "skin_chance_leg": 0.20, "skin_chance_myth": 0.40, "skin_chance_legacy": 0.70,  # a big wheel result may also carry a skin

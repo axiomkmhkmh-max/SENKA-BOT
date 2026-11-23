@@ -5,7 +5,7 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP, DUEL, WORLD_BOSS_FLOOR
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP, DUEL, WORLD_BOSS_FLOOR, PLAYER_VS_BOSS_DMG, PLAYER_VS_PVE_DMG, BOSS_REGEN_SHARE
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
 from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, FULLBRING_LOW, HEAVY_REIATSU, TECH_SLOTS, tech_of
@@ -802,7 +802,7 @@ def start_turn(state, rng):
             ev.append({"k": "unleash_end", "a": f["name"]})
     f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * TURN_RE_REGEN)))
     if 0 < f["hp"] < f["max_hp"] and not bhas(f, "noregen"):  # natural recovery every turn (tunable: TURN_HP_REGEN)
-        h = max(1, int(_hb(f) * TURN_HP_REGEN))
+        h = max(1, int(_hb(f) * TURN_HP_REGEN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0)))
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})
         fs["nat_h"] = h
@@ -1164,7 +1164,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * GUARD_RE_GAIN))
         ev.append({"k": "guard", "a": f["name"]})
         if 0 < f["hp"] < f["max_hp"]:  # guarding also recovers HP, but replaces the natural recovery instead of stacking on it
-            h = max(0, int(_hb(f) * GUARD_HP_GAIN) - int(_x(f).get("nat_h", 0)))
+            h = max(0, int(_hb(f) * GUARD_HP_GAIN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0)) - int(_x(f).get("nat_h", 0)))
             if h > 0:
                 f["hp"] = min(f["max_hp"], f["hp"] + h)
                 ev.append({"k": "heal", "a": f["name"], "n": h})
@@ -1427,8 +1427,8 @@ def new_state(a, b, rng, pvp=False, duel_rules=None):
     standard kit passes pvp=True, duel_rules=False: Konpaku lives, but the plain damage rules."""
     duel = bool(pvp) if duel_rules is None else bool(duel_rules)
     intro = []
-    for x in (a, b):  # every blow x2 (Nov 21), except a boss's own (bosses have more HP instead, see BOSS_HP_MULT)
-        x["dmgx"] = BOSS_DMG_MULT if x.get("foe") in BOSS_FOES else DMG_MULT
+    for x, y in ((a, b), (b, a)):  # every blow x2 (Nov 21), except a boss's own (bosses have more HP instead, see BOSS_HP_MULT)
+        x["dmgx"] = BOSS_DMG_MULT if x.get("foe") in BOSS_FOES else DMG_MULT * ((PLAYER_VS_BOSS_DMG if y.get("foe") in BOSS_FOES else PLAYER_VS_PVE_DMG if y.get("foe") else 1.0) if not x.get("foe") else 1.0)
         x["duel"] = bool(duel and not x.get("wild") and x.get("foe") not in BOSS_FOES)
         x["dl_rel"] = 0
     if pvp:  # duels give both fighters their Konpaku lives (SENKA+)
