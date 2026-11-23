@@ -363,6 +363,10 @@ def _shield_add(f, n):
     return n
 
 
+def duel_cap_hp(state):
+    return max(1, min(int(state["a"]["max_hp"]), int(state["b"]["max_hp"])))
+
+
 def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     att, dfn = state[side], state["b" if side == "a" else "a"]
     absorbed = 0
@@ -373,7 +377,9 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
             dmg = max(1, int(dmg * DUEL["dmg_share"]))
             if state.get("turn") == 1 and side == state.get("first"):  # the opener's first turn is a probing blow
                 dmg = max(1, int(dmg * float(DUEL.get("opening_dmg", 1.0))))
-        cap = max(1, int(dfn["max_hp"] * DUEL["hit_cap"]))
+        # the cap is measured on the SMALLER of the two HP pools: capping on the target's own HP meant the
+        # tankier fighter lost more per blow (25% of 37K vs 25% of 10K), so high HP became a weakness
+        cap = max(1, int(duel_cap_hp(state) * DUEL["hit_cap"]))
         left = state.get("cap_left")
         if left is not None and kind not in ("reflect", "dot"):
             # one ability press (Hollow Claw x3, Metralleta x6...) shares ONE hit_cap: multi-hit used to take 3x the cap
@@ -1734,7 +1740,7 @@ def _ab_run(state, side, action, rng, ev):
                     "ng": bool(s.get("noguard")), "any": bool(s.get("anyrange")), "nopen": a["fam"] == "cero"}
         last_crit = False
         if state.get("duel"):
-            state["cap_left"] = int(o["max_hp"] * DUEL["hit_cap"] * DUEL_PRESS_CAP)
+            state["cap_left"] = int(duel_cap_hp(state) * DUEL["hit_cap"] * DUEL_PRESS_CAP)
         for i in range(hits):
             if o["hp"] <= 0:
                 break
