@@ -43,6 +43,12 @@ DUEL = {
     "bk_per_duel": 1,    # releases per duel
     "bak_share": 0.5,    # Bakudo barriers count this share of their normal thickness in a duel (the x3 of Nov 21 is halved)
     "shield_cap": 0.5,   # all shields together never pass this share of the owner's max HP (no 200K barrier on a 10K fighter)
+    # ---- first-strike fairness (Pack 1): "whoever hits first wins" ----
+    "init_spread": 0.25,   # who opens is a weighted coin: the faster side (Hohō) opens at most 50% + this share of the time (was always)
+    "opening_dmg": 0.5,    # the opener's first turn deals this share of its damage: a probing first blow, not a free 25% chunk
+    "second_guard": 0.06,  # the side that moves second starts with a barrier of this share of its max HP (the "answer" stance)
+    "stun_guard": 2,       # after a stun/freeze skip, the fighter cannot be stunned again for this many of their own turns
+    "pressure_fear": 1,    # spiritual-pressure fear at the start of a duel lasts this many turns (3 outside duels)
 }
 # Legendary dungeon, stage 1 (feedback: far too strong): its enemy gets more HP and hits for less. Not a wall, a longer, fairer fight.
 LEGEND_S1_HP = 1.4

@@ -109,6 +109,10 @@ def ab_event_text(lang: str, e: dict) -> str:
     if k == "recoil":
         return f"🩸 {a} از ضربه‌ی خودش {fnum(e.get('n', 0), lang)} آسیب خورد" if fa else f"🩸 {a} takes {e.get('n', 0)} recoil"
     if k == "shikai":
+        from data_zanpakuto import release_call
+        call = release_call(e.get("bl"), lang)
+        if call:
+            return f"🗡 {a}: «{esc(call)}» — تیغ شکل واقعی‌اش را گرفت" if fa else f"🗡 {a}: «{esc(call)}» — the blade takes its true form"
         return f"🗡 {a}: «شیکای!» — تیغ شکل واقعی‌اش را گرفت" if fa else f"🗡 {a}: «Shikai!» — the blade takes its true form"
     if k == "mask_on":
         return f"🎭 {a} ماسک هالو را روی صورتش کشید" if fa else f"🎭 {a} pulls the Hollow mask over the face"
@@ -185,6 +189,9 @@ def events_text(lang: str, events: list) -> str:
                 rs = (f"{r:.2f}".rstrip("0").rstrip("."))
                 out.append(f"💨 {a} {fnum(rs, lang)} برابر سریع‌تر از {d}ه؛ {fnum(e.get('p', 5), lang)}٪ از ضربه‌های {d} رو جاخالی می‌ده." if lang == "fa"
                            else f"💨 {a} is {rs}x faster than {d}: dodges {e.get('p', 5)}% of {d}'s blows.")
+        elif k == "second_guard":  # duel opening: the side that answers starts behind a thin guard
+            out.append(f"🛡 {a} در حالت پاسخ ایستاده: سپر {n} — ضربه‌ی اول حریف فقط نیمه‌جان است." if lang == "fa"
+                       else f"🛡 {a} stands ready to answer: a {n} guard — the opener's first blow lands at half power.")
         elif k in ("move", "retreat", "outrange", "knock", "side", "side_off", "side_no"):  # distance (فاصله) events
             out.append(dist_event_text(lang, e))
         elif k == "bt":  # blade technique

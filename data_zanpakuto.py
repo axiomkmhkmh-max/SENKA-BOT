@@ -6,36 +6,37 @@ Blades not listed keep the generic release. Pure data, no I/O.
 """
 
 BLADE_STAGES = {
-    "zangetsu": {"shikai": ("تنسا زانگتسو", "Tensa Zangetsu"), "bankai": ("تنسا زانگتسو (بانکای)", "Tensa Zangetsu (Bankai)"),
+    "zangetsu": {"shikai": ("زانگتسو", "Zangetsu"), "bankai": ("تنسا زانگتسو", "Tensa Zangetsu"),
                  "shikai_bonus": 0.00, "bankai_bonus": 0.04},
-    "senbonzakura": {"shikai": ("سنبون‌زاکورا کاگیوشی", "Senbonzakura Kageyoshi"),
-                     "bankai": ("سنبون‌زاکورا کاگیوشی (بانکای)", "Senbonzakura Kageyoshi (Bankai)"),
+    "senbonzakura": {"shikai": ("سنبون‌زاکورا", "Senbonzakura"),
+                     "bankai": ("سنبون‌زاکورا کاگیوشی", "Senbonzakura Kageyoshi"),
                      "shikai_bonus": 0.02, "bankai_bonus": 0.05},
     "hyorinmaru": {"shikai": ("هیورین‌مارو", "Hyōrinmaru"), "bankai": ("دایگورن هیورین‌مارو", "Daiguren Hyōrinmaru"),
                    "shikai_bonus": 0.08, "bankai_bonus": 0.12},  # Daiguren: among the strongest Bankai
     "kyoka_suigetsu": {"shikai": ("کیوکا سویگتسو", "Kyōka Suigetsu"), "bankai": ("کیوکا سویگتسو (بانکای)", "Kyōka Suigetsu (Bankai)"),
                        "shikai_bonus": 0.03, "bankai_bonus": 0.05},
-    "zanka_no_tachi": {"shikai": ("زانکا نو تاچی", "Zanka no Tachi"), "bankai": ("زانکا نو تاچی (بانکای)", "Zanka no Tachi (Bankai)"),
+    "zanka_no_tachi": {"shikai": ("ریوجین جاکا", "Ryūjin Jakka"), "bankai": ("زانکا نو تاچی", "Zanka no Tachi"),
                        "shikai_bonus": 0.02, "bankai_bonus": 0.06},
     "sode_no_shirayuki": {"shikai": ("سوده نو شیرایوکی", "Sode no Shirayuki"),
-                          "bankai": ("سوده نو شیرایوکی (بانکای)", "Sode no Shirayuki (Bankai)"),
+                          "bankai": ("هاکا نو توگامه", "Hakka no Togame"),
                           "shikai_bonus": 0.02, "bankai_bonus": 0.03},
-    "zabimaru": {"shikai": ("زابیمارو", "Zabimaru"), "bankai": ("زابیمارو (بانکای)", "Zabimaru (Bankai)"),
+    "zabimaru": {"shikai": ("زابیمارو", "Zabimaru"), "bankai": ("هیهیئو زابیمارو", "Hihiō Zabimaru"),
                  "shikai_bonus": 0.02, "bankai_bonus": 0.04},
     "wabisuke": {"shikai": ("وابی‌سوکه", "Wabisuke"), "bankai": ("وابی‌سوکه (بانکای)", "Wabisuke (Bankai)"),
                  "shikai_bonus": 0.02, "bankai_bonus": 0.03},
     # ---- roster extension: Shinigami and Visored blades whose owners are confirmed in the Bleach sources
-    # (CANON_AUDIT.md). Only the Shikai name is listed; Bankai names are not invented, so these show the generic Bankai.
-    "minazuki": {"shikai": ("میناتسوکی", "Minazuki"), "shikai_bonus": 0.03, "bankai_bonus": 0.0},
+    # (CANON_AUDIT.md). A Bankai name is listed only when the source names it (Pack 1: Tenken/Kokujō, Kinshara Butōdan,
+    # Sakashima Yokoshima Happō Fusagari, Minazuki); the rest show the generic Bankai. Display names only: ids never change.
+    "minazuki": {"shikai": ("مینازوکی", "Minazuki"), "bankai": ("مینازوکی (بانکای)", "Minazuki (Bankai)"), "shikai_bonus": 0.03, "bankai_bonus": 0.0},
     "ruri_iro_kujaku": {"shikai": ("روری‌ایرو کوجاکو", "Ruri'iro Kujaku"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
     "haineko": {"shikai": ("هاینکو", "Haineko"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
     "nejibana": {"shikai": ("نجی‌بانا", "Nejibana"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
-    "kokujo_tengen_myoo": {"shikai": ("کوکوجو تنگن میوئو", "Kokujō Tengen Myōō"), "shikai_bonus": 0.03, "bankai_bonus": 0.0},
+    "kokujo_tengen_myoo": {"shikai": ("تنکن", "Tenken"), "bankai": ("کوکوجو تنگن میوئو", "Kokujō Tengen Myōō"), "shikai_bonus": 0.03, "bankai_bonus": 0.0},
     "tachikaze": {"shikai": ("تاچیکازه", "Tachikaze"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
     "tengumaru": {"shikai": ("تنگومارو", "Tengumaru"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
     "haguro_tonbo": {"shikai": ("هاگورو تونبو", "Haguro Tonbo"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
-    "kinshara": {"shikai": ("کینشارا", "Kinshara"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
-    "sakanade": {"shikai": ("ساکانادِه", "Sakanade"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
+    "kinshara": {"shikai": ("کینشارا", "Kinshara"), "bankai": ("کینشارا بوتودان", "Kinshara Butōdan"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
+    "sakanade": {"shikai": ("ساکانادِه", "Sakanade"), "bankai": ("ساکاشیما یوکوشیما هاپو فوساگاری", "Sakashima Yokoshima Happō Fusagari"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
     "kubikiri_orochi": {"shikai": ("کوبیکیری اوروچی", "Kubikiri Orochi"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
 }
 
@@ -68,6 +69,33 @@ BLADE_STYLE = {
     "tengumaru": {"dmg": 1.05}, "haguro_tonbo": {"crit": 0.05}, "kinshara": {"def": 1.06},
     "sakanade": {"dmg": 1.06, "kido": 1.05}, "kubikiri_orochi": {"dmg": 1.07},
 }
+
+
+# Release commands (kaigo) as spoken in the source. Only canon commands are listed; other blades use a race line.
+RELEASE_CALL = {
+    "senbonzakura": ("پراکنده شو، سنبون‌زاکورا!", "Scatter, Senbonzakura!"),
+    "hyorinmaru": ("بر آسمانِ یخ‌زده بنشین، هیورین‌مارو!", "Sit upon the frozen heavens, Hyōrinmaru!"),
+    "kyoka_suigetsu": ("درهم بشکن، کیوکا سویگتسو!", "Shatter, Kyōka Suigetsu!"),
+    "zanka_no_tachi": ("همه‌ی آفرینش را به خاکستر بدل کن، ریوجین جاکا!", "Reduce all creation to ash, Ryūjin Jakka!"),
+    "sode_no_shirayuki": ("برقص، سوده نو شیرایوکی!", "Dance, Sode no Shirayuki!"),
+    "zabimaru": ("زوزه بکش، زابیمارو!", "Howl, Zabimaru!"),
+    "wabisuke": ("سرت را بالا بگیر، وابی‌سوکه!", "Raise your head, Wabisuke!"),
+    "haineko": ("بغُر، هاینکو!", "Growl, Haineko!"),
+    "ruri_iro_kujaku": ("شکوفه کن، روری‌ایرو کوجاکو!", "Bloom, Ruri'iro Kujaku!"),
+    "nejibana": ("دریاها و آسمان‌ها را طوفانی کن، نجی‌بانا!", "Flood the seas and the heavens, Nejibana!"),
+    "kokujo_tengen_myoo": ("بخروش، تنکن!", "Roar, Tenken!"),
+    "kinshara": ("بنواز، کینشارا!", "Play, Kinshara!"),
+    "sakanade": ("فرو بیفت، ساکانادِه!", "Collapse, Sakanade!"),
+}
+
+
+def release_call(blade_id, lang, stage="shikai"):
+    """The spoken release line: the canon Shikai command, or 'Bankai! <name>' for the second form. None if unknown."""
+    if stage == "bankai":
+        name = stage_name(blade_id, "bankai", lang)
+        return (f"بانکای! {name}!" if lang == "fa" else f"Bankai! {name}!") if name else None
+    c = RELEASE_CALL.get(blade_id)
+    return c[0 if lang == "fa" else 1] if c else None
 
 
 def unlocked_blades(level: int):

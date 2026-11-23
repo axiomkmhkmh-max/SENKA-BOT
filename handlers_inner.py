@@ -17,6 +17,11 @@ def T(ctx, fa, en):
 
 
 def _blade(ch: dict, lang: str) -> str:
+    """The spirit you talk to is your bound zanpakutō (zanpakuto.blade_id), not whatever weapon is in your hand."""
+    from data_zanpakuto import stage_name
+    bound = stage_name(((ch or {}).get("zanpakuto") or {}).get("blade_id"), "shikai", lang)
+    if bound:
+        return esc(bound)
     return esc(nm(ch.get("weapon_id"), lang) if ch and ch.get("weapon_id") else T_BLADE_FALLBACK[lang])
 
 

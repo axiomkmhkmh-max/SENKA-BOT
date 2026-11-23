@@ -664,6 +664,10 @@ def _final(ctx, doc, outcome):
         for uid, (rt, delta) in outcome["rating"].items():
             nm_ = doc["a_name"] if uid == doc["a_uid"] else doc["b_name"]
             lines.append(f"{esc(nm_)}: {rank_letter(rt)} {fnum(rt, L)} ({'+' if delta > 0 else ''}{fnum(delta, L)})")
+        for uid, got in (outcome.get("xp") or {}).items():
+            if got:
+                nm_ = doc["a_name"] if uid == doc["a_uid"] else doc["b_name"]
+                lines.append(f"📈 {esc(nm_)}: +{fnum(got, L)} " + ("تجربه" if L == "fa" else "XP"))
         for uid, br in (outcome.get("br") or {}).items():
             if br:
                 nm_ = doc["a_name"] if uid == doc["a_uid"] else doc["b_name"]

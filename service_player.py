@@ -35,6 +35,12 @@ def xp_to_next(level: int) -> int:
     return math.floor((100 * level ** 1.85 + 50 * level + 25 * math.sqrt(level)) * k)
 
 
+def newbie_xp_mult(level: int, st: dict = None) -> float:
+    """Catch-up XP for young characters: below newbie_xp_level every gain is x newbie_xp_mult."""
+    st = st or settings_cached()
+    return float(st.get("newbie_xp_mult", 1.0)) if level < int(st.get("newbie_xp_level", 0)) else 1.0
+
+
 def max_hp(level: int, hakuda: float, mult: float = 1.0) -> int:
     """Nov 21: Hakuda gives HAKUDA_HP (60) HP a point (was 8): its effect on HP is x6. All of it is x HP_MULT so a
     fight lasts about 15-25 turns with the x2 damage (data_misc)."""
@@ -183,6 +189,7 @@ async def add_xp(uid: int, amount: int, source: str = "", apply_rate: bool = Tru
                 gain *= (await mods_for(ch["location"]))["xp"]
             except Exception:
                 pass
+            gain *= newbie_xp_mult(int(ch.get("level", 1)), st)
         gain = max(0, int(gain))
         level, xp, pts, gained = ch["level"], ch["xp"] + gain, ch.get("points", 0), 0
         lmax = int(st.get("level_max", 650))

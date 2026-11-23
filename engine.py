@@ -371,6 +371,8 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     if state.get("duel"):  # duel rules: a share of the normal damage, and never more than hit_cap of the target's HP
         if kind not in ("reflect", "dot"):
             dmg = max(1, int(dmg * DUEL["dmg_share"]))
+            if state.get("turn") == 1 and side == state.get("first"):  # the opener's first turn is a probing blow
+                dmg = max(1, int(dmg * float(DUEL.get("opening_dmg", 1.0))))
         dmg = min(dmg, max(1, int(dfn["max_hp"] * DUEL["hit_cap"])))
     if dfn["shield"] > 0:
         absorbed = min(dfn["shield"], dmg)
@@ -849,9 +851,10 @@ def start_turn(state, rng):
             _x(f)["charge"] = 0
             _x(f)["chg"] = {}
             ev.append({"k": "charge_break", "a": f["name"]})
-        fs["stun_im"] = 1  # the foe cannot stun this fighter again before they get to act
+        # the foe cannot stun this fighter again before they get to act; in a duel the guard lasts stun_guard own turns
+        fs["stun_im"] = 1 + (max(0, int(DUEL.get("stun_guard", 1)) - 1) if state.get("duel") else 0)
         return merge_heals(ev), True
-    fs["stun_im"] = 0
+    fs["stun_im"] = max(0, int(fs.get("stun_im", 0)) - 1)
     state["awaiting"] = True
     return merge_heals(ev), False
 
@@ -1435,10 +1438,20 @@ def new_state(a, b, rng, pvp=False, duel_rules=None):
         a["lives"] = b["lives"] = KONPAKU["lives"]
     for x, y in ((a, b), (b, a)):  # spiritual pressure
         if x["max_re"] >= 2 * y["max_re"]:
-            add_fx(y, "fear", 3)
+            add_fx(y, "fear", int(DUEL.get("pressure_fear", 1)) if duel else 3)
             intro.append({"k": "pressure", "a": x["name"], "d": y["name"]})
     ea, eb = eff(a, "hoho"), eff(b, "hoho")
-    first = "a" if ea > eb or (ea == eb and rng.random() < 0.5) else "b"
+    if duel:  # duels: speed tilts the coin (at most 50% + init_spread), it no longer decides the opener outright
+        tilt = (ea - eb) / max(1.0, ea + eb) * 2
+        p_a = 0.5 + max(-1.0, min(1.0, tilt)) * float(DUEL.get("init_spread", 0.25))
+        first = "a" if rng.random() < p_a else "b"
+    else:
+        first = "a" if ea > eb or (ea == eb and rng.random() < 0.5) else "b"
+    if duel:  # the side that answers starts behind a thin guard, so the opener's tempo is not a free win
+        g = b if first == "a" else a
+        added = _shield_add(g, g["max_hp"] * float(DUEL.get("second_guard", 0.0)))
+        if added > 0:
+            intro.append({"k": "second_guard", "a": g["name"], "n": added})
     # the speed line: who is faster and by how much, and what that means for dodging (dodge_chance)
     fast, slow = (a, b) if ea >= eb else (b, a)
     ratio = max(1.0, max(ea, eb)) / max(1.0, min(ea, eb))
@@ -1917,7 +1930,7 @@ def sk_run(state, side, ev):
     x["sk"] = 1
     lv = int((f.get("abx") or {}).get("sk_shikai" if f["race"] == "shinigami" else "sk_mask", 1))
     x["perm"] = x.get("perm", 0.0) + AB.SHIKAI_DMG * AB.lv_k(lv)
-    ev.append({"k": SHIKAI_EVENTS[f["race"]], "a": f["name"], "mv": f.get("mv")})
+    ev.append({"k": SHIKAI_EVENTS[f["race"]], "a": f["name"], "mv": f.get("mv"), "bl": f.get("blade")})
 
 
 def if_can(f) -> bool:

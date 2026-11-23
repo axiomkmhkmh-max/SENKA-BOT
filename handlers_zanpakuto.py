@@ -49,12 +49,18 @@ GENERIC = {"shinigami": ("بیدار شو، {b}!", "Awaken, {b}!"), "quincy": ("
 PRESSURE = [(50, "خفته", "Dormant"), (150, "بیدار", "Awakened"), (400, "غران", "Roaring"), (800, "سنگین", "Overwhelming"), (10**9, "فرمانروا", "Sovereign")]
 
 
-def _chant(ch, z, lang):
+def _chant(ch, z, lang, stage="shikai"):
+    from data_zanpakuto import release_call
+    canon = release_call(z.get("blade_id"), lang, stage)
+    if canon:
+        return canon
     c = CHANTS.get(z.get("blade_id"))
     if c:
         return c[0 if lang == "fa" else 1]
+    # the blade's own display name (blade ids are not items, so iname() used to print the raw id)
+    b = stage_name(z.get("blade_id"), "shikai", lang) or iname(z.get("blade_id") or "", lang) or ""
     g = GENERIC.get(ch.get("race"), ("آزاد شو، {b}!", "Break free, {b}!"))
-    return g[0 if lang == "fa" else 1].format(b=iname(z.get("blade_id") or "", lang) or "")
+    return g[0 if lang == "fa" else 1].format(b=b)
 
 
 def _pressure(mastery, lang):
@@ -213,7 +219,9 @@ async def zanpakuto_release(ctx, arg):
         return Out(alert=_t(ctx.lang, "locked"))
     if not r.modified_count:  # double tap
         return await zanpakuto_panel(ctx, "")
-    await butterfly(ctx.bot, ctx.uid, ctx.lang, "shikai" if arg == "1" else "bankai", blade=iname(z.get("blade_id") or "", ctx.lang) or "—")
+    stage = "shikai" if arg == "1" else "bankai"
+    await butterfly(ctx.bot, ctx.uid, ctx.lang, stage,
+                    blade=stage_name(z.get("blade_id"), stage, ctx.lang) or iname(z.get("blade_id") or "", ctx.lang) or "—")
     out = await zanpakuto_panel(ctx, "")
-    out.text = "🗡 <i>" + _chant(ch, z, ctx.lang) + "</i>\n" + _t(ctx.lang, key, f=name[0 if ctx.lang == "fa" else 1]) + "\n" + out.text
+    out.text = "🗡 <i>" + _chant(ch, z, ctx.lang, stage) + "</i>\n" + _t(ctx.lang, key, f=name[0 if ctx.lang == "fa" else 1]) + "\n" + out.text
     return out

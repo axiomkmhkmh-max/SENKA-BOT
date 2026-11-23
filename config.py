@@ -57,7 +57,10 @@ GAME_DEFAULTS = {
     "boss_burst_dmg": 100000, "boss_burst_pct": 0.10, "boss_burst_announce_gap": 60, "boss_burst_mode": 1, "boss_burst_cd": 20, "boss_burst_seconds": 30, "boss_burst_reduce": 0.5,
     "level_max": 650, "stat_max": 350,  # Nov 23: level cap, and the most any one stat can reach by spending points (was 500)
     "pts_per_level": 2, "pts_every5": 0,  # stat points per level-up, and the extra point on every 5th level (was 3 + 1): 650 levels = 1298 points, so only ~4 stats can ever be maxed
-    "xp_curve_k": 2.5,  # level-up difficulty (was 1.5): XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
+    "xp_curve_k": 1.6,  # level-up difficulty (Pack 1: 2.5 -> 1.6, ~36% less XP per level): XP needed per level is multiplied by this (live: `set xp_curve_k 2.2`)
+    "newbie_xp_level": 40, "newbie_xp_mult": 1.5,  # Pack 1: below this level every XP gain is x newbie_xp_mult (catch-up for new players)
+    "pvp_xp_mult": 1.5,    # Pack 1: a duel win pays this many PvE wins' worth of XP at the winner's level (was a flat 30 + 8/level)
+    "pvp_loser_xp": 0.35,  # Pack 1: the loser of a counted duel gets this share of the winner's XP (a lost duel is no longer worth 0)
     "boss_min_minutes": 45, "boss_max_minutes": 60,  # gap between world bosses (was a fixed 120)
     "boss_duration_minutes": 20, "boss_min_level": 5, "boss_hit_cooldown": 10,
     "energy_max": 100, "explore_cost": 10, "energy_regen_seconds": 300,

@@ -161,6 +161,26 @@ async def swap_accessories_once() -> int:
     return moved
 
 
+BALANCE_PACK1_ID = "balance_pack1_xp"
+PACK1_XP_CURVE = 1.6
+
+
+async def balance_pack1_once() -> int:
+    """Pack 1: a live `set xp_curve_k` stored in the settings document would hide the new, easier default.
+    Lower a stored curve above the new default once; an admin can still `set xp_curve_k ...` afterwards."""
+    if await col("migrations").find_one({"_id": BALANCE_PACK1_ID}):
+        return 0
+    r = await col("settings").update_one({"_id": "game", "xp_curve_k": {"$gt": PACK1_XP_CURVE}},
+                                         {"$set": {"xp_curve_k": PACK1_XP_CURVE}})
+    await col("migrations").update_one({"_id": BALANCE_PACK1_ID}, {"$set": {"at": int(time.time()), "n": r.modified_count}}, upsert=True)
+    try:
+        from database import game_settings
+        await game_settings(force=True)
+    except Exception:
+        pass
+    return r.modified_count
+
+
 async def run_all() -> None:
     from service_racegear import migrate_armour_once
     from service_raceweapon import migrate_blades_once
@@ -169,7 +189,7 @@ async def run_all() -> None:
                      ("race armour", migrate_armour_once), ("free stat reset", free_respec_once),
                      ("battle rank fair reset", battlerank_reset_once), ("bank credit reset", bank_credit_reset_once),
                      ("materials merge", merge_materials_once), ("accessories swap", swap_accessories_once),
-                     ("ability families + free stat reset", abilities_once)):
+                     ("ability families + free stat reset", abilities_once), ("balance pack 1 xp curve", balance_pack1_once)):
         try:
             log.info("%s: %s character(s) moved", name, await fn())
         except Exception:

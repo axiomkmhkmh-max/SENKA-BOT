@@ -185,6 +185,7 @@ async def build_player(ch: dict, name: str = None):
                             bt=(__import__("data_zanpakuto").blade_technique(zstate.get("blade_id"))
                                 if released and zstate.get("blade_id") and zstate.get("shikai") else None))
     fighter["evo"] = {k: v for k, v in evb.items() if k not in ("dmg", "def", "hp", "kido", "crit", "pierce", "regen")}
+    fighter["blade"] = zstate.get("blade_id")  # Pack 1: the in-battle Shikai line speaks this blade's release command
     fighter["evs"] = evo_stage(ch)  # evolution stage: opens the canon race techniques (data_race_tech)
     fighter["tm"] = {k: int(v) for k, v in (ch.get("tech_lvl") or {}).items()}  # technique mastery (race technique cards)
     from service_abilities import loadout  # ability families: the type on each button, levels, the Kidō picks (Nov 21)
@@ -217,6 +218,12 @@ def _rewards(level: int, scale: float, st: dict):
     # Lv1 ≈ 20, Lv10 ≈ 97, Lv30 ≈ 297, Lv50 ≈ 537, Lv80 ≈ 972, Lv100 ≈ 1312 (was 16 / 70 / 190 / 310 / 490 / 610)
     coins = (12 + 8 * level + 0.05 * level ** 2) * (scale if scale > 1 else 1.0) * float(st["coin_rate"])
     return int(xp), int(coins)
+
+
+def duel_xp(level: int, gs: dict, frac: float = 1.0) -> int:
+    """XP of a duel win: pvp_xp_mult plain PvE wins at the same level (a duel is harder than a wild Hollow).
+    It used to be a flat 30 + 8 per level, which at level 50 was ~3% of one PvE win."""
+    return int(_rewards(level, 1.0, gs)[0] * float(gs.get("pvp_xp_mult", 1.5)) * frac)
 
 
 # ---- PvE ---------------------------------------------------------------------------
@@ -823,6 +830,12 @@ async def pvp_settle(doc: dict):
     res["winner"] = w_uid
     pair = _pair(a_uid, b_uid)
     note = None
+    if not doc["ranked"]:  # Pack 1: duel XP is real now, so friendly duels share the same pair-per-day and fresh-account guards
+        pair_any = await col("battle_logs").count_documents({"pair": pair, "win": True, "at": {"$gte": now - 86400}})
+        if pair_any >= int(gs["pvp_pair_daily_cap"]):
+            note = "pair_cap"
+        elif now - cw["created_at"] < 3600 or now - cl["created_at"] < 3600:
+            note = "new_account"
     if doc["ranked"]:
         pair_n = await col("battle_logs").count_documents({"pair": pair, "rated": True, "win": True, "at": {"$gte": now - 86400}})  # one log per duel (each duel stores two)
         if pair_n >= int(gs["pvp_pair_daily_cap"]):
@@ -861,11 +874,16 @@ async def pvp_settle(doc: dict):
     wins_today = await col("battle_logs").count_documents({"user_id": w_uid, "mode": "pvp", "win": True, "at": {"$gte": now - 86400}})
     frac = 1.0 if wins_today < int(gs["pvp_full_xp_wins"]) else 0.3
     if note != "pair_cap":
-        xp = int((30 + cw["level"] * 8) * frac)
+        xp = duel_xp(cw["level"], gs, frac)
         _, _, got = await add_xp(w_uid, xp, "pvp")
         await add_coins(w_uid, int((60 + cw["level"] * 4) * float(gs["coin_rate"]) * frac), "pvp")
         res["xp"][w_uid] = got
         await bump_quest(w_uid, "pvp_win", 1)
+        if note != "new_account":  # Pack 1: a fought-out loss still teaches something
+            lose_xp = int(duel_xp(cl["level"], gs, frac) * float(gs.get("pvp_loser_xp", 0.0)))
+            if lose_xp > 0:
+                _, _, lgot = await add_xp(l_uid, lose_xp, "pvp")
+                res["xp"][l_uid] = lgot
     res["note"] = note
     from service_interact import claim_bounty
     from service_worldstate import on_action_bg
