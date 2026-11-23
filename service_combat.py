@@ -12,6 +12,8 @@ from data_extras2 import (LEVEL_BOSS_REWARD, LEVEL_BOSS_SCALE, LEVEL_BOSSES, MIN
 from data_guildquest import XP_BONUS_RANK
 from data_items import ALL
 from data_races import DIFFICULTY, DUNGEON_ENEMIES, DUNGEONS, LOCATIONS, RACES, soft_stat
+
+RATED_LEVEL_GAP = 50  # ranked duel: a winner more than this many levels above the loser is unrated (anti-farming)
 from data_weapons import ELEMENTS
 from data_zanpakuto import BLADE_STAGES, BLADE_STYLE
 import engine as E
@@ -825,7 +827,7 @@ async def pvp_settle(doc: dict):
         pair_n = await col("battle_logs").count_documents({"pair": pair, "rated": True, "win": True, "at": {"$gte": now - 86400}})  # one log per duel (each duel stores two)
         if pair_n >= int(gs["pvp_pair_daily_cap"]):
             note = "pair_cap"
-        elif cw["level"] - cl["level"] > 10:  # only a much STRONGER-level winner is unrated (anti-farming); a lower level beating a higher one always counts
+        elif cw["level"] - cl["level"] > RATED_LEVEL_GAP:  # only a much STRONGER-level winner is unrated (anti-farming); a lower level beating a higher one always counts
             note = "level_gap"
         elif now - cw["created_at"] < 3600 or now - cl["created_at"] < 3600:
             note = "new_account"
