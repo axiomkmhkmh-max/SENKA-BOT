@@ -61,10 +61,11 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
         chg = (f.get("x") or {}).get("chg") or {}
         name = t["fa" if L == "fa" else "en"]
         return f"{icon} {name}" + ((" 🔥" if L == "fa" else " 🔥") if chg.get(act) else "")
+    from engine_range import move_label
     rows = [[mk(ctx.t("a_atk"), "atk")]]
-    rows.append([mk("🏃 شونپو" if L == "fa" else "🏃 Shunpo", "mvs"),
-                 mk("⚡ سونیدو" if L == "fa" else "⚡ Sonido", "mvn"),
-                 mk("↩️ عقب" if L == "fa" else "↩️ Back", "rt"),
+    rows.append([mk("🏃 " + move_label(f.get("race"), "shunpo")[i], "mvs"),
+                 mk("💨 " + move_label(f.get("race"), "sonido")[i], "mvn")])
+    rows.append([mk("↩️ عقب" if L == "fa" else "↩️ Back", "rt"),
                  mk(("↔️ خروج از جانبی" if L == "fa" else "↔️ Leave side") if side_on
                     else ("↔️ جانبی" if L == "fa" else "↔️ Side"), "sd")])  # side stance: a free toggle (no turn)
     if E.can(f, "hvy"):
@@ -594,42 +595,92 @@ async def dungeon_start(ctx, arg):
 
 
 # ---- duels ---------------------------------------------------------------------------------------
-async def challenge(ctx, target, ranked: bool):
-    """Called from the text router when someone replies 'duel' to another player."""
-    status, extra = await duel_challenge(ctx.chat_id, ctx.uid, target.id, ranked)
+def _invite_text(L, d, ca, cb, ranked):
+    """The challenge card: both fighters side by side (race, level, rank, record) before the blades are drawn."""
+    import duel_ui as DU
+    from i18n import t
+    fa = L == "fa"
+
+    def card(side, c):
+        rt = int(c.get("rating", 0) or 0)
+        w, l_ = int(c.get("pvp_w", 0) or 0), int(c.get("pvp_l", 0) or 0)
+        lv = ("سطح " if fa else "Lv ") + fnum(c.get("level", 1), L)
+        rec = (f"📈 {fnum(w, L)} برد · {fnum(l_, L)} باخت" if fa else f"📈 {w}W · {l_}L")
+        return (f"{DU.SIDE[side]} <b>{esc(c['name'])}</b>\n"
+                f"   {DU.RACE_EMBLEM.get(c.get('race'), '⚔️')} <i>{esc(DU.race_name(L, c.get('race')))}</i> · {lv}\n"
+                f"   🏅 {rank_letter(rt)} · {fnum(rt, L)} · {rec}")
+    mode = t(L, "duel_ranked" if ranked else "duel_friendly")
+    title = ("🥊 <b>چالش دوئل " + mode + "!</b>" if fa else f"🥊 <b>{mode} duel challenge!</b>") + (" 🏅" if ranked else "")
+    lines = [title, DU.SEP,
+             t(L, "duel_invite", a=esc(d["a_name"]), b=esc(d["b_name"]), mode=mode), "",
+             card("a", ca), "            ⚡ 𝗩𝗦 ⚡", card("b", cb), DU.SEP,
+             (f"⏳ <b>{esc(d['b_name'])}</b> پنج دقیقه فرصت داره قبول کنه." if fa
+              else f"⏳ <b>{esc(d['b_name'])}</b> has five minutes to answer.")]
+    if ranked:
+        lines.append("🎖 " + ("برنده رتبه و رنک نبرد می‌گیره؛ بازنده از دست می‌ده." if fa
+                              else "The winner gains rating and Battle Rank; the loser drops."))
+    return "\n".join(lines)
+
+
+async def _invite(chat_id, a_uid, b_uid, ranked):
+    """Create the duel and build its invite. Returns (status, extra, text, kb)."""
+    status, extra = await duel_challenge(chat_id, a_uid, b_uid, ranked)
     if status != "ok":
-        return Out(ctx.t("duel_e_" + status, n=extra or ""))
+        return status, extra, None, None
     d = extra
-    g = await group_doc(ctx.chat_id)
-    text = both(glang(g), lambda L: __import__("i18n").t(L, "duel_invite", a=esc(d["a_name"]), b=esc(d["b_name"]),
-                mode=__import__("i18n").t(L, "duel_ranked" if ranked else "duel_friendly")))
-    rows = [[(ctx.t("b_accept"), "dua", d["sid"], False), (ctx.t("b_decline"), "dud", d["sid"], False)]]
+    g = await group_doc(chat_id)
+    L = glang(g)
+    ca, cb = await get_char(a_uid), await get_char(b_uid)
+    text = _invite_text(L, d, ca or {"name": d["a_name"]}, cb or {"name": d["b_name"]}, ranked)
     # accept/decline are bound to the challenged player
     from security import make_cb
     from aiogram.types import InlineKeyboardMarkup
     from ui import make_button
-    kb = InlineKeyboardMarkup(inline_keyboard=[[make_button(gl(glang(g), "✅ قبول", "✅ Accept"), make_cb("dua", d["sid"], d["b_uid"]), "dua"),
-                                                make_button(gl(glang(g), "❌ رد", "❌ Decline"), make_cb("dud", d["sid"], d["b_uid"]), "dud")]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[[make_button(gl(L, "⚔️ قبول دوئل", "⚔️ Accept duel"), make_cb("dua", d["sid"], d["b_uid"]), "dua"),
+                                                make_button(gl(L, "🏳️ رد", "🏳️ Decline"), make_cb("dud", d["sid"], d["b_uid"]), "dud")]])
+    return status, extra, text, kb
+
+
+async def challenge(ctx, target, ranked: bool):
+    """Called from the text router when someone replies 'duel' to another player."""
+    status, extra, text, kb = await _invite(ctx.chat_id, ctx.uid, target.id, ranked)
+    if status != "ok":
+        return Out(ctx.t("duel_e_" + status, n=extra or ""))
     return Out(text, new=True), kb
 
 
-async def _pvp_panel(chat_lang, ctx, doc, events, final=None):
-    st = doc["state"]
-    cur = st[st["cur"]]["name"]
+class _LangCtx:
+    """The clicker's context, speaking the group's language: a duel panel is shared, so its buttons must not follow
+    whoever pressed last."""
+    def __init__(self, ctx, lang):
+        self._ctx, self.lang = ctx, lang
 
-    def render(L):
+    def __getattr__(self, name):
+        return getattr(self._ctx, name)
+
+    def t(self, key, **kw):
         from i18n import t
-        txt = battle_text(L, st, events, f"⚔️ <b>{t(L, 'duel_title')}</b> ({t(L, 'duel_ranked' if doc['ranked'] else 'duel_friendly')})")
-        if final is not None:
-            txt += "\n\n" + final(L)
-        else:
-            txt += "\n\n" + t(L, "duel_turn", name=esc(cur))
-        return txt
-    text = both(chat_lang, render)
-    rows = []
+        return t(self.lang, key, **kw)
+
+
+async def _pvp_panel(chat_lang, ctx, doc, events, final=None):
+    import duel_ui as DU
+    st = doc["state"]
+    L = chat_lang if chat_lang in ("fa", "en") else "en"
+    gctx = _LangCtx(ctx, L)
+    text = DU.panel_text(L, doc, events, final(L) if final is not None else None)
+    if len(text) > 4000:  # Telegram's limit: drop the move log before anything else
+        text = DU.panel_text(L, doc, [], final(L) if final is not None else None)
+    sid = doc["sid"]
     if final is None:
-        rows = _act_rows(ctx, st[st["cur"]], doc["sid"], pub=True, dist=E.dist_of(st), side_on=E.in_side(st, st["cur"]))
-    return text, markup(ctx, rows)
+        cur = st["cur"]
+        turn = (f"🎯 نوبت {DU.SIDE[cur]} {st[cur]['name']}" if L == "fa" else f"🎯 {DU.SIDE[cur]} {st[cur]['name']}'s turn")
+        rows = [[(turn[:60], "noop", "", True)]]
+        rows += _act_rows(gctx, st[cur], sid, pub=True, dist=E.dist_of(st), side_on=E.in_side(st, cur))
+        rows.append([("🏳️ " + ("تسلیم" if L == "fa" else "Yield"), "pff", sid, True)])
+    else:
+        rows = [[("🔁 " + ("دوئل دوباره" if L == "fa" else "Rematch"), "drm", sid, True)]] if not doc.get("tournament") else []
+    return text, markup(gctx, rows)
 
 
 @action("dua")
@@ -655,15 +706,24 @@ async def duel_decline_cb(ctx, arg):
 def _final(ctx, doc, outcome):
     from i18n import t
 
+    import duel_ui as DU
+
     def fn(L):
-        if outcome is None or outcome.get("draw"):
-            return t(L, "duel_draw")
         st = doc["state"]
-        wname = doc["a_name"] if outcome["winner"] == doc["a_uid"] else doc["b_name"]
-        lines = [t(L, "duel_win", name=esc(wname))]
+        if st.get("winner") not in ("a", "b") or (outcome or {}).get("draw"):
+            return "\n".join([t(L, "duel_draw")] + [""] + DU.report_lines(L, st))
+        lines = DU.winner_banner(L, doc, random.Random(doc.get("sid")))  # the same line on every refresh of this card
+        report = DU.report_lines(L, st)
+        if report:
+            lines += [""] + report
+        if outcome is None:  # settled by another tap a moment earlier: the banner is all this card can show
+            return "\n".join(lines)
+        if outcome["rating"] or outcome.get("xp") or outcome.get("br"):
+            lines += ["", "🎖 <b>" + ("پاداش‌ها" if L == "fa" else "Rewards") + "</b>"]
         for uid, (rt, delta) in outcome["rating"].items():
             nm_ = doc["a_name"] if uid == doc["a_uid"] else doc["b_name"]
-            lines.append(f"{esc(nm_)}: {rank_letter(rt)} {fnum(rt, L)} ({'+' if delta > 0 else ''}{fnum(delta, L)})")
+            arrow = "🔺" if delta > 0 else "🔻"
+            lines.append(f"{arrow} {esc(nm_)}: 🏅 {rank_letter(rt)} {fnum(rt, L)} ({'+' if delta > 0 else ''}{fnum(delta, L)})")
         for uid, got in (outcome.get("xp") or {}).items():
             if got:
                 nm_ = doc["a_name"] if uid == doc["a_uid"] else doc["b_name"]
@@ -708,6 +768,47 @@ async def pvp_action(ctx, arg):
     return Out()
 
 
+FORFEIT_CONFIRM_S = 8   # a second tap on Yield within this window ends the duel (one stray tap never does)
+
+
+@action("pff")
+async def pvp_forfeit_cb(ctx, arg):
+    from database import try_cooldown
+    from service_combat import pvp_forfeit
+    doc = await col("battles").find_one({"sid": arg, "mode": "pvp", "status": "active"}, {"a_uid": 1, "b_uid": 1})
+    if not doc:
+        return Out(alert=ctx.t("bt_gone"))
+    if ctx.uid not in (doc["a_uid"], doc["b_uid"]):
+        return Out(alert=ctx.t("duel_notplayer"))
+    if not await try_cooldown(f"pff:{arg}:{ctx.uid}", FORFEIT_CONFIRM_S):
+        return Out(alert=(f"🏳️ مطمئنی؟ برای تسلیم ظرف {fnum(FORFEIT_CONFIRM_S, ctx.lang)} ثانیه دوباره بزن. تسلیم یعنی باخت."
+                          if ctx.lang == "fa" else
+                          f"🏳️ Sure? Tap Yield again within {FORFEIT_CONFIRM_S}s. Yielding counts as a loss."))
+    status, doc, outcome = await pvp_forfeit(ctx.uid, arg)
+    if status != "ok":
+        return Out(alert=ctx.t("bt_gone" if status != "notplayer" else "duel_notplayer"))
+    g = await group_doc(doc["chat_id"])
+    text, kb = await _pvp_panel(glang(g), ctx, doc, [], _final(ctx, doc, outcome))
+    await _edit(ctx, text, kb)
+    return Out()
+
+
+@action("drm")
+async def duel_rematch_cb(ctx, arg):
+    """Rematch from the final card: the presser challenges the other fighter again, same mode, same group."""
+    doc = await col("battles").find_one({"sid": arg, "mode": "pvp"})
+    if not doc or doc.get("status") != "done" or doc.get("tournament"):
+        return Out(alert=ctx.t("duel_gone"))
+    if ctx.uid not in (doc["a_uid"], doc["b_uid"]):
+        return Out(alert=ctx.t("duel_notplayer"))
+    other = doc["b_uid"] if ctx.uid == doc["a_uid"] else doc["a_uid"]
+    status, extra, text, kb = await _invite(doc["chat_id"], ctx.uid, other, bool(doc.get("ranked")))
+    if status != "ok":
+        return Out(alert=ctx.t("duel_e_" + status, n=extra or ""))
+    await ctx.bot.send_message(doc["chat_id"], text, reply_markup=kb)
+    return Out(alert="🔁 " + ("دعوت دوئل دوباره فرستاده شد!" if ctx.lang == "fa" else "Rematch challenge sent!"))
+
+
 async def _pvp_kido_menu(ctx, sid, km, act):
     doc = await col("battles").find_one({"sid": sid, "mode": "pvp", "status": "active"})
     if not doc:
@@ -723,7 +824,7 @@ async def _pvp_kido_menu(ctx, sid, km, act):
     if km:
         if not E.kido_menu(st[side], km[0]):
             return Out(alert=ctx.t("bt_notturn"))
-        mtext, rows = _kido_menu(ctx, st[side], sid, km[0], km[1], True)
+        mtext, rows = _kido_menu(_LangCtx(ctx, glang(g)), st[side], sid, km[0], km[1], True)
         text, kb = text + "\n\n" + mtext, markup(ctx, rows)
     await _edit(ctx, text, kb)
     return Out()

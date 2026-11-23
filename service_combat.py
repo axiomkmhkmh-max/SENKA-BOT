@@ -789,12 +789,33 @@ async def pvp_act(uid: int, sid: str, action: str, forced: str = None):
     ev += E.run_ai(st, rng, mt, ai_sides=())
     from service_fightfx import after_turn  # a narrator line now and then (duels have no challenge)
     ev += after_turn(st, action, ev, rng, side=side)
+    from duel_ui import tally
+    tally(st, ev)  # the battle report on the final card (damage, biggest hit, crits per side)
     upd = {"deadline": int(time.time()) + int(gs["pvp_turn_seconds"]), f"timeouts.{side}": 0 if forced is None else doc["timeouts"][side] + 1}
     if not await _save(doc, st, upd):
         return "stale", None, None
     doc["state"], doc["rev"] = st, doc["rev"] + 1
     outcome = await pvp_settle(doc) if st["done"] else None
     return "ok", doc, (ev, outcome)
+
+
+async def pvp_forfeit(uid: int, sid: str):
+    """A fighter yields: the other side wins, settled like any finished duel (rating, XP and caps apply).
+    Returns (status, doc, outcome); status is ok / gone / notplayer / stale."""
+    doc = await col("battles").find_one({"sid": sid, "mode": "pvp", "status": "active"})
+    if not doc or doc["state"].get("done"):
+        return "gone", None, None
+    side = "a" if uid == doc["a_uid"] else "b" if uid == doc["b_uid"] else None
+    if side is None:
+        return "notplayer", None, None
+    st = doc["state"]
+    st[side]["hp"] = 0
+    st["done"], st["winner"], st["end"], st["awaiting"] = True, "b" if side == "a" else "a", "ff", False
+    st["last"] = []
+    if not await _save(doc, st):
+        return "stale", None, None
+    doc["state"], doc["rev"] = st, doc["rev"] + 1
+    return "ok", doc, await pvp_settle(doc)
 
 
 async def pvp_timeouts():
@@ -807,7 +828,8 @@ async def pvp_timeouts():
         if d["timeouts"][side] + 1 >= 3:
             st = d["state"]
             st[side]["hp"] = 0
-            st["done"], st["winner"] = True, "b" if side == "a" else "a"
+            st["done"], st["winner"], st["end"] = True, "b" if side == "a" else "a", "afk"
+            st["awaiting"] = False
             if await _save(d, st):
                 d["state"], d["rev"] = st, d["rev"] + 1
                 out.append((d, [], await pvp_settle(d), True))

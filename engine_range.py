@@ -25,6 +25,26 @@ MOVES = {
 }
 RETREAT = {"zones": 1, "cost": 0.0}  # backing off one zone (costs the turn)
 
+# what each race calls the short (shunpo, 2 zones) and long (sonido, 3 zones) dash: a Quincy never "shunpos"
+RACE_MOVE_NAMES = {
+    "shinigami": {"shunpo": ("شونپو", "Shunpo"), "sonido": ("شونپوی برق‌آسا", "Flash Shunpo")},
+    "visored": {"shunpo": ("شونپو", "Shunpo"), "sonido": ("سونیدو", "Sonído")},
+    "hollow": {"shunpo": ("گام سونیدو", "Sonído step"), "sonido": ("سونیدو", "Sonído")},
+    "arrancar": {"shunpo": ("گام سونیدو", "Sonído step"), "sonido": ("سونیدو", "Sonído")},
+    "quincy": {"shunpo": ("هیرن‌کیاکو", "Hirenkyaku"), "sonido": ("هیرن‌کیاکوی بلند", "Long Hirenkyaku")},
+    "fullbringer": {"shunpo": ("برینگر لایت", "Bringer Light"), "sonido": ("برینگر لایت کامل", "Full Bringer Light")},
+    "human": {"shunpo": ("گام سریع", "Quick step"), "sonido": ("دوی روح", "Spirit dash")},
+}
+
+
+def move_label(race, move):
+    """(fa, en) name of a movement technique for this race; the generic MOVES name for anything else."""
+    pair = (RACE_MOVE_NAMES.get(race) or {}).get(move)
+    if pair:
+        return pair
+    m = MOVES.get(move) or MOVES["shunpo"]
+    return m["fa"], m["en"]
+
 KNOCKBACK = {"hvy": 1, "gt": 2, "unleash": 2}  # zones pushed by attack kind
 
 
@@ -84,7 +104,8 @@ def apply_move(state: dict, side: str, move: str) -> dict:
     state["dist"] = new
     if m["prep"]:  # Hirenkyaku: arrives, but the blade is not ready this turn
         f.setdefault("x", {})["open"] = m["prep"]
-    return {"k": "move", "a": f["name"], "tech": m["fa"], "tech_en": m["en"], "from": gap_before, "to": new}
+    fa_name, en_name = move_label(f.get("race"), move) if not f.get("foe") else (m["fa"], m["en"])
+    return {"k": "move", "a": f["name"], "tech": fa_name, "tech_en": en_name, "from": gap_before, "to": new}
 
 
 def apply_retreat(state: dict, side: str) -> dict:
