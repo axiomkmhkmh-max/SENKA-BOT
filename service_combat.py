@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from data_crafting import player_bonus, tagged_name, temper_def
 from data_extras2 import (LEVEL_BOSS_REWARD, LEVEL_BOSS_SCALE, LEVEL_BOSSES, MINI_BOSS_CHANCE, MINI_BOSS_NAMES, MINI_BOSS_RELIC,
-                          MINI_BOSS_REWARD, MINI_BOSS_SCALE)
+                          MINI_BOSS_REWARD, MINI_BOSS_SCALE, BOSS_XP_BONUS)
 from data_guildquest import XP_BONUS_RANK
 from data_items import ALL
 from data_races import DIFFICULTY, DUNGEON_ENEMIES, DUNGEONS, LOCATIONS, RACES, soft_stat
@@ -555,7 +555,7 @@ async def pve_settle(doc: dict):
             kx, kc = fight_k(d)
             xp, coins = int(xp * kx), int(coins * kc)
         elif d and d.get("lboss"):  # level boss: XP and coins x4, items from level_boss_loot
-            xp, coins = int(xp * LEVEL_BOSS_REWARD), int(coins * LEVEL_BOSS_REWARD)
+            xp, coins = int(xp * LEVEL_BOSS_REWARD * BOSS_XP_BONUS), int(coins * LEVEL_BOSS_REWARD)
         elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
             xp, coins = int(xp * DG_XP_MULT), 0
             sc = max(1.0, float(doc.get("scale") or 1.0))
@@ -563,7 +563,7 @@ async def pve_settle(doc: dict):
             if d["stage"] == d["total"]:
                 xp *= DG_FINAL_XP_MULT
         if doc.get("mini"):
-            xp, coins = int(xp * MINI_BOSS_REWARD), int(coins * MINI_BOSS_REWARD)
+            xp, coins = int(xp * MINI_BOSS_REWARD * BOSS_XP_BONUS), int(coins * MINI_BOSS_REWARD)
         coins = int(coins * wm["coin"])
         coins = int(coins * (1 + player_bonus(ch0, ALL, gs)["coin"]))
         from service_fightfx import CHL_BONUS, CHL_CARD_CHANCE, result as fx_result

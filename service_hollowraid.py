@@ -118,7 +118,8 @@ async def raid_settle(doc: dict) -> dict:
             continue
         paid_uids.add(uid)
         share = min(1.0, dmg / total * 3)  # even small contributors earn a fair cut
-        xp = int((30 + 6 * lv) * mult * (0.5 + share / 2))
+        from data_extras2 import BOSS_XP_BONUS
+        xp = int((30 + 6 * lv) * mult * (0.5 + share / 2) * BOSS_XP_BONUS)  # +20% boss XP
         coins = int((60 + 12 * lv) * mult * (0.5 + share / 2))
         await add_xp(uid, xp, "raid")
         await add_coins(uid, coins, "raid")

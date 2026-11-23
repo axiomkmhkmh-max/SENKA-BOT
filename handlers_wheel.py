@@ -8,18 +8,19 @@ import asyncio
 import logging
 import random
 
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 
 from config import settings
 from data_wheels import CATEGORIES, RARITY_ICON, can_spin, odds_table, wheel_by_id, wheels_in
 from fmt import nm
 from i18n import esc, fnum
 from service_wheels import spin, wallet, wheel_info
-from ui import SEP, Out, action, nav
+from ui import SEP, Out, action, markup, nav
 
 log = logging.getLogger("senka.wheel")
 
 FRAME_DELAYS = (0.35, 0.4, 0.5, 0.65)  # pause after each animation frame; the wheel slows down
+GROUP_FRAME_DELAYS = (0.9, 1.1)  # groups have a much stricter edit limit: fewer, slower frames
 ICONS = list(RARITY_ICON.values())
 
 
@@ -141,6 +142,9 @@ async def _show(ctx, text: str) -> bool:
     try:
         await ctx.message.edit_text(text, reply_markup=None)
         return True
+    except TelegramRetryAfter as e:
+        log.warning("wheel frame flood-limited (%ss): animation stops", getattr(e, "retry_after", "?"))
+        return False
     except TelegramBadRequest as e:
         if "not modified" not in str(e):
             log.warning("wheel frame failed: %s", e)
@@ -148,6 +152,36 @@ async def _show(ctx, text: str) -> bool:
     except Exception:
         log.exception("wheel frame crashed")
         return False
+
+
+async def _deliver_result(ctx, text: str, rows) -> bool:
+    """Put the final result on the screen no matter what: edit, wait out a flood limit and retry, then fall back to a new message.
+    The spin is already paid and granted, so the player must always see the prize (before, a flood-limited last edit left the message on the last frame)."""
+    kb = markup(ctx, rows)
+    for attempt in range(3):
+        try:
+            await ctx.message.edit_text(text, reply_markup=kb)
+            return True
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(min(float(getattr(e, "retry_after", 1) or 1), 8.0) + 0.3)
+        except TelegramBadRequest as e:
+            if "not modified" in str(e):
+                return True
+            log.warning("wheel result edit failed (%s); sending a new message", e)
+            break
+        except Exception:
+            log.exception("wheel result edit crashed")
+            await asyncio.sleep(0.8)
+    for attempt in range(3):
+        try:
+            await ctx.bot.send_message(ctx.chat_id, text, reply_markup=kb)
+            return True
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(min(float(getattr(e, "retry_after", 1) or 1), 8.0) + 0.3)
+        except Exception:
+            log.exception("wheel result send failed")
+            await asyncio.sleep(0.8)
+    return False
 
 
 def _reward_lines(ctx, res: dict) -> str:
@@ -160,7 +194,7 @@ def _reward_lines(ctx, res: dict) -> str:
     if res["cores_won"]:
         out.append(f"🔮 +{res['cores_won']} {T(ctx, 'هسته‌ی روح', 'Soul Core')}")
     if res["item"]:
-        out.append(f"🎁 {esc(str(nm(res['item'], L)))} · " + (T(ctx, "🎒 داخل کوله‌ات", "🎒 in your bag") if res.get("in_bag")
+        out.append(f"🎁 {nm(res['item'], L)} · " + (T(ctx, "🎒 داخل کوله‌ات", "🎒 in your bag") if res.get("in_bag")
                                                           else T(ctx, "⚠️ به کوله نرسید؛ به ادمین خبر بده", "⚠️ not added; tell an admin")))
     b = res.get("bonus")
     if b and b["kind"] == "skin":
@@ -177,8 +211,24 @@ def _reward_lines(ctx, res: dict) -> str:
                      "🗡️ <b>Katana boost!</b> Your race weapon rose one colour for free."))
     elif b and b["kind"] == "katana_relic":
         out.append(T(ctx, "🗡️ کاتانا بالا نرفت (حد سطح/رنگ)، پس سوخت تکامل گرفتی: ", "🗡️ The katana could not rise (level/colour cap), so you got evolution fuel: ")
-                   + esc(str(nm(b["item"], L))))
+                   + nm(b["item"], L))
     return "\n".join(out)
+
+
+def _safe_reward_lines(ctx, res: dict) -> str:
+    """A bad detail line (a missing skin or item record) must never stop the result from showing: the spin is already paid."""
+    try:
+        return _reward_lines(ctx, res)
+    except Exception:
+        log.exception("wheel reward lines failed")
+        parts = []
+        if res.get("coins"):
+            parts.append(f"🪙 +{fnum(res['coins'], ctx.lang)}")
+        if res.get("xp"):
+            parts.append(f"✨ +{fnum(res['xp'], ctx.lang)} XP")
+        if res.get("item"):
+            parts.append("🎁 " + T(ctx, "جایزه به کوله‌ات اضافه شد", "prize added to your bag"))
+        return "\n".join(parts)
 
 
 @action("whs")
@@ -202,7 +252,7 @@ async def wheel_spin_cb(ctx, arg):
         except Exception:
             pass
         head = f"⚔️ <b>𝖲𝖤𝖭𝖪𝖠</b> | <b>{esc(_name(ctx, w))}</b>\n{SEP}\n"
-        for delay in FRAME_DELAYS:
+        for delay in (FRAME_DELAYS if ctx.chat_type == "private" else GROUP_FRAME_DELAYS):
             frame = " ".join(random.choice(ICONS) for _ in range(5))
             if not await _show(ctx, head + T(ctx, "🎡 در حال چرخش...", "🎡 Spinning...") + f"\n\n{frame}"):
                 break
@@ -216,11 +266,14 @@ async def wheel_spin_cb(ctx, arg):
     text = (_title()
             + f"{w['icon']} <b>{esc(_name(ctx, w))}</b> · #{fnum(res['n'], L)}\n{paid}\n{SEP}\n"
             + f"{res['rarity_icon']} <b>{res['rarity']}</b>\n{res['icon']} <b>{name}</b>\n"
-            + (_reward_lines(ctx, res) or "—")
+            + (_safe_reward_lines(ctx, res) or "—")
             + (f"\n\n✨ {T(ctx, 'جایزه‌ی بزرگ!', 'Big win!')}" if big else "")
             + f"\n\n🔮 {T(ctx, 'هسته‌ی روح باقی‌مانده', 'Soul Cores left')}: <b>{fnum(res['cores_left'], L)}</b>")
     rows = []
     if can_spin(arg, ctx.uid, settings.owner_id):
         rows.append([(f"🎡 {T(ctx, 'دوباره', 'Again')}", "whs", arg)])
     rows.append(nav(ctx, ("whw", arg)))
+    if ctx.cb is not None and ctx.message is not None:
+        await _deliver_result(ctx, text, rows)
+        return Out()  # already on screen; an empty Out only acknowledges the callback
     return Out(text, rows)

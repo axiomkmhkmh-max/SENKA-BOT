@@ -244,7 +244,8 @@ async def _pay(doc: dict, killed: bool):
     total = sum(contrib.values()) or 1
     n = len(contrib)
     pool_mult = (min(n, int(st["boss_pool_cap"])) ** 0.7) if n > 1 else 1.0  # more fighters, bigger prize pool
-    xp_pool = int(300 * lvl ** 1.3 + 500) * (1.0 if killed else 0.3) * pool_mult
+    from data_extras2 import BOSS_XP_BONUS
+    xp_pool = int(300 * lvl ** 1.3 + 500) * (1.0 if killed else 0.3) * pool_mult * BOSS_XP_BONUS  # +20% boss XP
     coin_pool = int((120 * lvl ** 1.2 + 300) * float(st["coin_rate"])) * (1.0 if killed else 0.3) * pool_mult
     enraged = doc["hp"] <= 0 and doc["max_hp"] > 0 and killed
     if enraged:

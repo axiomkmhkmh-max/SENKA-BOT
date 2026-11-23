@@ -60,6 +60,7 @@ for _n, (_en, _fa, _c, _k) in enumerate(_RELICS, 1):
                             [120, 400, 1500, 5000, 22000][_R[_c]], eff={"type": "relic", "kind": _k, "loc": None, "v": _v}, stack=99))
 
 # ---- mini-boss: a rare stronger foe in a normal battle ------------------------------------------------------------------
+BOSS_XP_BONUS = 1.2             # +20% XP on every boss kind (world boss, level boss, mini-boss, raid incursions)
 MINI_BOSS_CHANCE = 0.02
 MINI_BOSS_SCALE = 2.0
 MINI_BOSS_REWARD = 3.0          # XP and coins x3
