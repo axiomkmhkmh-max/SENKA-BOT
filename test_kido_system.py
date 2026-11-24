@@ -41,7 +41,7 @@ class PickAndChant(unittest.TestCase):
 
     def test_without_a_pick_the_best_castable_is_used(self):
         st = battle()
-        self.assertEqual(E.best_kido(st["a"], "had"), 90)    # 88 / 90 are cast bare now; 91-99 wait for the incantation
+        self.assertEqual(E.best_kido(st["a"], "had"), 96)    # 88 / 90 / 96 are all cast bare now; the top spell wins
         self.assertEqual(E.best_kido(st["a"], "bak"), 81)
 
     def test_unknown_or_bad_pick_is_a_plain_attack(self):
@@ -51,11 +51,14 @@ class PickAndChant(unittest.TestCase):
         self.assertFalse(E.has_fx(st["b"], "burn"))
         self.assertFalse([e for e in cast(battle(), "kd:abc") if e.get("num")])
 
-    def test_high_spells_need_the_chant(self):
+    def test_high_spells_cast_bare_or_chanted(self):
         st = battle()
         self.assertTrue(E.kido_castable(st["a"], "had", 90))   # 90 is cast bare
-        self.assertFalse(E.kido_castable(st["a"], "had", 96))
-        self.assertFalse([e for e in cast(st, "kd:96") if e.get("num")])      # pressing it does nothing special
+        self.assertTrue(E.kido_castable(st["a"], "had", 96))   # and so is 96 now
+        bare = [e for e in cast(battle(), "kd:96") if e.get("num")][0]
+        self.assertEqual(bare["num"], 96)
+        self.assertFalse(bare["chant"])
+        self.assertTrue(bare["short"])                         # bare = weaker
         cast(st, "ch")
         self.assertTrue(E.kido_castable(st["a"], "had", 96))
         ev = cast(st, "kd:96")
@@ -77,9 +80,7 @@ class PickAndChant(unittest.TestCase):
     def test_low_spells_do_not_lose_power_without_the_chant(self):
         self.assertEqual(KD.unchanted_mult(31), 1.0)
         self.assertLess(KD.unchanted_mult(60), 1.0)
-        self.assertTrue(KD.needs_chant(91) and not KD.needs_chant(90))
-        self.assertFalse(KD.needs_chant(90, "bak"))          # up to 90 is cast bare
-        self.assertTrue(KD.needs_chant(99, "bak"))
+        self.assertFalse(KD.needs_chant(91) or KD.needs_chant(99) or KD.needs_chant(99, "bak"))  # nothing needs the chant any more
 
 
 class Cooldowns(unittest.TestCase):
@@ -141,7 +142,7 @@ class SpellEffects(unittest.TestCase):
         self.assertFalse(E.has_fx(danku["b"], "skip"))
 
     def test_sho_is_cheap(self):
-        # flat costs: every spell without a chant (1-90) is 2% of max reiatsu, the chanted ones (91+) are 8%
+        # flat costs: spells 1-90 are 2% of max reiatsu, the top ones (91+) are 8%
         for br in ("had", "bak"):
             for n in (1, 31, 61, 89, 90):
                 self.assertEqual(KD.cost(br, n, 1000), 20)
@@ -154,8 +155,8 @@ class SpellEffects(unittest.TestCase):
             f = st["a"]; f["level"] = lvl; f["max_re"] = mx; f["re"] = mx
             f["kido"] = {"had": list(range(1, 100)), "bak": list(range(1, 100))}
             f["x"] = {"chant": 0}
-            self.assertEqual(E.kido_list(f, "had")[0], 90)
-            self.assertEqual(E.kido_list(f, "bak")[0], 90)
+            self.assertEqual(E.kido_list(f, "had")[0], 99)
+            self.assertEqual(E.kido_list(f, "bak")[0], 99)
 
     def test_spell_without_enough_reiatsu_is_not_castable(self):
         st = battle()
@@ -183,13 +184,13 @@ class SpellMenu(unittest.TestCase):
     def test_menu_lists_every_castable_spell_highest_first(self):
         st = battle()
         menu = E.kido_menu(st["a"], "had")
-        self.assertEqual([n for n, _ in menu], [90, 88, 63, 31, 4, 1])      # 96 waits for the chant
+        self.assertEqual([n for n, _ in menu], [96, 90, 88, 63, 31, 4, 1])
         self.assertEqual([n for n, _ in E.kido_menu(st["a"], "bak")], [81, 63, 61, 1])
         self.assertEqual(dict(menu)[31], KD.cost_pct("had", 31))
 
     def test_chant_locked_hint_and_chanted_menu(self):
         st = battle()
-        self.assertTrue(E.kido_chant_locked(st["a"], "had"))
+        self.assertFalse(E.kido_chant_locked(st["a"], "had"))   # nothing is locked behind the chant any more
         self.assertFalse(E.kido_chant_locked(st["a"], "bak"))
         cast(st, "ch")
         self.assertFalse(E.kido_chant_locked(st["a"], "had"))
@@ -211,3 +212,21 @@ class SpellMenu(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TopTier(unittest.TestCase):
+    """Nov 25: a 91-99 card is never worse than Kurohitsugi (90), bare or chanted."""
+    def test_99_beats_90_bare_and_chanted(self):
+        self.assertGreater(KD.hado_params(99)["mult"], KD.hado_params(90)["mult"])
+        for n in range(91, 100):
+            self.assertGreater(KD.hado_params(n)["mult"], KD.hado_params(90)["mult"], n)
+            self.assertGreaterEqual(KD.hado_params(n + 1)["mult"] if n < 99 else 9, KD.hado_params(n)["mult"] - 1e-9)
+        def dmg(n, chant):
+            st = battle()
+            st["a"]["kido"]["had"] = [n]
+            if chant:
+                cast(st, "ch")
+            return [e for e in cast(st, f"kd:{n}") if e.get("num")][0]["n"]
+        self.assertGreater(dmg(99, False), dmg(90, False))
+        self.assertGreater(dmg(99, True), dmg(90, True))
+        self.assertGreater(dmg(99, True), dmg(99, False))

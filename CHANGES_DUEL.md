@@ -21,3 +21,9 @@ Files: engine.py, data_misc.py, engine_tournament.py, service_combat.py, test_du
 - First missed turn = automatic Guard (shield). The second missed turn in a row loses the duel (`DUEL["afk_limit"]` = 2, was 3). The panel shows the clock as m:ss.
 - Bakudo in duels: the barrier is at most 90% of one ordinary blow the foe lands on the caster (`DUEL["bak_hit_share"]` = 0.9), after the old x0.5 share. Measured at level 300, 37K HP: barrier 18,500 vs a 1,863 blow before, 1,677 now. No more immortal Shinigami.
 - Files: data_misc.py, config.py, engine.py, service_combat.py, duel_ui.py, test_duel_rules.py (+4 tests).
+
+# Kidō cards 91-99 (Nov 25, from a player report)
+- No spell needs the chant any more (`CHANT_REQUIRED` 100): Hadō/Bakudō 1-99 can be cast bare (x0.75 from number 60 up) or after 📿 Chant (full power), so a 99 card is no longer dead weight.
+- Hadō 91-99 now always out-hit Kurohitsugi (90, x1.6): x1.7 at 91 up to ~x1.94 at 99 (`hado_params`, `HADO_TOP_FROM`). Costs unchanged (8% for 91+, 2% below).
+- The 📿 Chant button also shows for Bakudō-only casters (engine.can "ch").
+- Files: data_kido.py, engine.py, test_kido_system.py, test_boss_kido_call.py, test_fix_winter_chant_join.py, CHANGES_DUEL.md.

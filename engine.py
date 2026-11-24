@@ -811,7 +811,7 @@ def can(f, action, state=None):
     if action == "gt":  # release the gathered reiatsu as one wave
         return _x(f)["slash"] > 0 and f["re"] >= f["max_re"] * GETSUGA_COST
     if action == "ch":
-        return (best_kido(f, "had") is not None or chant_wanted(f)) and not _x(f)["chant"]
+        return (best_kido(f, "had") is not None or best_kido(f, "bak") is not None or chant_wanted(f)) and not _x(f)["chant"]  # a Bakudō-only caster chants too
     if action in ("f1", "f2"):
         # Shikai / Bankai, Resurrección / Full Resurrección and every race's forms are no longer free buttons at the
         # start of a fight: they come only with the full spirit gauge, as part of the 👑 release ("gx" in do_action).

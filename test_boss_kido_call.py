@@ -48,7 +48,10 @@ class PickedSpellNotCastable(unittest.TestCase):
         return a
 
     def test_uncastable_pick_falls_back_to_best_castable_hado(self):
-        a = self._player(96)                       # 96 needs the chant: not castable on a one-click boss hit
+        a = self._player(96)                       # 96 is castable bare now (Nov 25) ...
+        self.assertTrue(E.can(a, "kd"))
+        self.assertEqual(E.best_kido(a, "had"), 96)
+        a["re"] = int(a["max_re"] * 0.05)          # ... but with too little reiatsu for the 8% spell the pick is not castable
         self.assertFalse(E.can(a, "kd"))
         self.assertTrue(E.ready_hado(a))
         self.assertEqual(E.best_kido(a, "had"), 31)

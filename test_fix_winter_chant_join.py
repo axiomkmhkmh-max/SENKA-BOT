@@ -15,8 +15,8 @@ class WinterChantJoin(unittest.TestCase):
                           {"attack": 10, "element": "fire", "skills": [], "weapon_type": "melee"}, armor=0, race="shinigami")
         f["kido"] = {"had": [], "bak": [98, 82, 79]}
         f["re"] = f["max_re"] = 5000
-        self.assertFalse(E.kido_castable(f, "bak", 98))   # needs the incantation first
-        self.assertTrue(E.can(f, "ch"))                   # ... and the button is there now
+        self.assertTrue(E.kido_castable(f, "bak", 98))    # Nov 25: 98 is castable bare ...
+        self.assertTrue(E.can(f, "ch"))                   # ... and the chant button is still there for full power
         E._x(f)["chant"] = 1
         self.assertTrue(E.kido_castable(f, "bak", 98))
         self.assertEqual(E.best_kido(f, "bak"), 98)

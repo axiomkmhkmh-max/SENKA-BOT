@@ -5,7 +5,7 @@ Pure data and rules, no database, so the engine, the panel and the tests all rea
 What the anime shows, and what the fight does with it:
   * You pick the spell you cast (Shō is a quick jab, Shakkahō a fireball, Kurohitsugi the black coffin), not "the best one".
   * The incantation (📿 chant) is the real power of a spell. Low spells are fine without it; from number 60 up an
-    unchanted spell is weaker (UNCHANTED_MULT); from number 91 up it cannot be cast at all.
+    unchanted spell is weaker (UNCHANTED_MULT). Nov 25: every spell 1-99 can be cast bare or after a chant.
   * Each spell does its own thing: Byakurai pierces, Shakkahō burns, Raikōhō stuns; Sai and Hainawa bind, Rikujōkōrō
     holds fast, Sajō Sabaku holds longer, Enkōsen and Danku are walls.
   * No cooldown: any spell can be cast again right away (spell_cd is always 0; the only limit is reiatsu).
@@ -15,8 +15,8 @@ What the anime shows, and what the fight does with it:
 All of it is tuned here; spells that are not in the tables behave as the old plain Hadō / Bakudō did.
 """
 
-CHANT_REQUIRED = {"had": 91, "bak": 91}   # from this number up, a spell cannot be cast without the incantation: every spell up to 90
-                                           # can be cast bare (weaker from 60 up), only 91-99 need the chant
+CHANT_REQUIRED = {"had": 100, "bak": 100}  # Nov 25: no spell NEEDS the incantation any more (was 91). Every spell 1-99 can be cast bare
+                                            # (weaker from UNCHANTED_FROM up) or after a chant (full power), so a 99 card is never dead weight
 UNCHANTED_FROM = 60          # from this number up, an unchanted spell is weaker ...
 UNCHANTED_MULT = 0.75        # ... by this factor (Hadō damage, Bakudō shield)
 HADO_COST_PCT, BAK_COST_PCT = 0.0025, 0.002   # share of max reiatsu per spell number (Hadō 89 = 22.2%, Bakudō 89 = 17.8%)
@@ -30,6 +30,7 @@ HIGH_SPELL_PCT = 0.08        # ... 8% (was 22.5% for Kurohitsugi and more above 
 # other attack (a plain blow, Hollow Claw, Mask Strike) hit for about 1K, so nothing else was worth pressing. Now the first
 # HADO_KNEE numbers keep the old slope and the numbers above it grow at HADO_SLOPE_HIGH per number (Kurohitsugi about x10).
 HADO_KNEE = 20
+HADO_TOP_FROM = 90  # spells above this number are the top tier (see hado_params)
 HADO_SLOPE_HIGH = 0.05
 
 
@@ -56,8 +57,8 @@ HADO = {
     78: {"pierce": 0.4, "mult": 1.1},                                  # Zangeki
     88: {"mult": 1.5, "stun": 0.4},                                    # Hiryūgekizoku Shinten Raihō: bare = weaker
     90: {"mult": 1.6, "weaken": True},                                 # Kurohitsugi: the black coffin, bare = weaker
-    91: {"mult": 1.2, "burn": True},                                   # Senju Kōtenkan
-    96: {"mult": 1.35, "burn": True},                                  # Ittō Kasō: a pillar of flame
+    91: {"mult": 1.7, "burn": True},                                   # Senju Kōtenkan
+    96: {"mult": 1.85, "burn": True},                                  # Ittō Kasō: a pillar of flame
 }
 
 # Bakudō: shield = factor on the shield, bind = chance to take the target's next turn (None = the old formula,
@@ -94,6 +95,8 @@ def card_min_level(n: int) -> int:
 
 def hado_params(n: int) -> dict:
     p = {"mult": 1.0, "pierce": 0.0, "burn": False, "weaken": False, "stun": 0.0, "cost_k": 1.0}
+    if int(n) > HADO_TOP_FROM:  # 91-99 always out-hit Kurohitsugi (90, x1.6): x1.7 at 91 up to x1.94 at 99, unless the spell has its own entry
+        p["mult"] = 1.7 + 0.03 * (int(n) - HADO_TOP_FROM - 1)
     p.update(HADO.get(int(n), {}))
     return p
 
