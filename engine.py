@@ -352,7 +352,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if dfn.get("foe") == "world_boss" and WORLD_BOSS_FLOOR > 0 and kind not in ("counter", "echo"):  # world-boss floor: armour never eats more than (1 - floor) of a blow
         dmg *= max(1.0, nodef * WORLD_BOSS_FLOOR)
     if dfn.get("fj") and not att.get("ai") and kind not in ("counter", "echo"):  # Final Judgment bosses: armour never eats more than (1 - floor) of a blow
-        dmg *= max(1.0, nodef * FJ_BOSS_FLOOR)
+        dmg *= max(1.0, nodef * float(dfn.get("fj_floor") or FJ_BOSS_FLOOR))
     tm = _take_mult(dfn)
     if tmp.get("ng") and dfn["guard"]:  # Cero Oculto: the Guard does not soften it
         tm /= 0.5
@@ -419,7 +419,7 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     att, dfn = state[side], state["b" if side == "a" else "a"]
     absorbed = 0
     if att.get("foe") in BOSS_FOES and not dfn.get("foe"):  # a boss never takes more than BOSS_HIT_CAP of a player's max HP in one blow
-        dmg = min(dmg, max(1, int(dfn["max_hp"] * BOSS_HIT_CAP)))
+        dmg = min(dmg, max(1, int(dfn["max_hp"] * float(att.get("hit_cap") or BOSS_HIT_CAP))))
     if state.get("duel"):  # duel rules: a share of the normal damage, and never more than hit_cap of the target's HP
         if kind not in ("reflect", "dot"):
             dmg = max(1, int(dmg * DUEL["dmg_share"]))

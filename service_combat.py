@@ -464,7 +464,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     if dungeon and dungeon.get("final_judgment"):
         player["fj_stage"] = int(dungeon.get("stage", 1))
         player["fj_no_potions"] = int(dungeon.get("stage", 1)) == 9
-        player["fj_limited"] = int(dungeon.get("stage", 1)) == 3
+        player["fj_limited"] = False  # stage 3 is no longer sealed: players kept being unable to hurt its boss
         if carry and "artifact_lives" in carry:
             player["mods"]["artifact_lives"] = int(carry["artifact_lives"])
     if float(ch.get("almighty_until", 0) or 0) > time.time():  # Yhwach's Eye: one fatal blow is survived
@@ -506,7 +506,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         foe["name"] = f"⚖️ {name}"
         # Multi-encounter stages are genuinely separate fights; HP/Reiatsu are carried forward by the event service.
         hp_k, dmg_k = {
-            1: (1.20, 1.00), 2: (2.40, 1.15), 3: (1.50, 1.00), 4: (5.00, 1.45),
+            1: (1.20, 1.00), 2: (2.40, 1.15), 3: (1.00, 0.70), 4: (5.00, 1.45),
             5: (6.00, 1.65), 6: (1.35, 1.12), 7: (1.00, 1.00), 8: (8.00, 1.75),
             9: (3.20, 1.45), 10: (12.0, 2.10),
         }.get(fj_stage, (2.0, 1.0))
@@ -527,6 +527,8 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     if dungeon and dungeon.get("final_judgment"):
         foe["foe"] = "boss"
         foe["fj"] = True
+        if int(dungeon.get("stage", 1)) == 3:  # the Silent Zone: a fair fight, no instant kills, armour barely matters
+            foe["hit_cap"], foe["fj_floor"] = 0.12, 0.45
     elif sig == "cero":  # hollow foe: tells the human passive who it is
         foe["foe"] = "hollow"
     elif _is_boss_stage(dungeon, tower):  # dungeon final stage or Soul Tower Warden: race balance by fight type
