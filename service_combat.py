@@ -167,6 +167,15 @@ async def build_player(ch: dict, name: str = None):
         mods["artifact_revive_hp"] = float(artifact_effect.get("hp", 0.50))
     elif artifact_effect.get("kind") == "shadow_echo":
         mods["artifact_shadow_echo"] = float(artifact_effect.get("value", 0.10))
+    if ch.get("hogyoku"):
+        # The true Hōgyoku is not just a Reiatsu item: +25% max HP, +20% defence, base regeneration, one revival,
+        # and an in-fight evolution (engine HOG_*) that makes it harder to kill the longer the battle lasts.
+        hp = int(hp * 1.25)
+        mods["def"] = mods.get("def", 1.0) * 1.20
+        mods["regen"] = mods.get("regen", 0.0) + 0.04
+        mods["artifact_lives"] = int(mods.get("artifact_lives", 0)) + 1
+        mods["artifact_revive_hp"] = max(float(mods.get("artifact_revive_hp", 0.0)), 0.60)
+        mods["hogyoku_true"] = True
     # Kyōka's release bonuses are applied by the actual Shikai/Bankai combat actions, not merely
     # because the character has unlocked those forms in the profile.
     # Release stages feed the existing weapon-skill multiplier; no parallel combat engine.

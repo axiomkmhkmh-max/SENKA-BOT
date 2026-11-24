@@ -182,8 +182,8 @@ class KyokaDebuffs(unittest.TestCase):
             st, a, b = self._pair(seed)
             ev = E.do_action(st, "ks3", random.Random(seed))
             e = [x for x in ev if x["k"] == "ks_distort"][0]
-            self.assertEqual((e["p"], e["t"]), (40, 3))
-            self.assertAlmostEqual(E.bsum(b, "miss"), 0.40)
+            self.assertEqual((e["p"], e["t"]), (45, 3))  # Nov 25b: 40 -> 45
+            self.assertAlmostEqual(E.bsum(b, "miss"), 0.45)
 
     def test_foe_blows_really_miss(self):
         st, a, b = self._pair()

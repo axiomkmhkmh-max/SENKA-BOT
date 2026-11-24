@@ -25,6 +25,14 @@ DOT_TURNS = {"burn": 3, "poison": 3, "bleed": 4}
 TURN_RE_REGEN = 0.10   # share of max reiatsu recovered at the end of each of a fighter's turns (was 5%)
 GUARD_RE_GAIN = 0.10   # share of max reiatsu a Guard turn gives back (was 5%)
 GUARD_HP_GAIN = 0.05   # share of the old-scale HP (_hb) a Guard turn gives back
+# Hōgyoku (the one true orb, ch["hogyoku"]): evolves while the fight drags on, like Aizen's chrysalis.
+HOG_MAX_STAGE = 10      # one stage per own turn, so the orb is fully evolved on turn 10
+HOG_DMG_STAGE = 0.03    # +3% damage per stage (+30% at the top)
+HOG_TAKE_STAGE = 0.025  # -2.5% damage taken per stage (-25% at the top)
+HOG_REGEN_STAGE = 0.008  # +0.8% HP regen per turn per stage (on top of the holder's base)
+HOG_REBIRTH_STAGES = 3  # a revival makes the orb jump three stages at once
+HOG_HIT_CAP_FROM = 4    # from this stage on no single blow takes more than the cap below
+HOG_HIT_CAP0, HOG_HIT_CAP_STEP = 0.50, 0.03  # cap = 50% - 3% per stage of max HP (20% at stage 10)
 TURN_HP_REGEN = 0.03   # share of the old-scale HP (_hb) recovered at the end of each turn (natural recovery)
 MAX_TURNS = 200        # turn cap of a fight (was 30): HP is x6 now, so fights are long and epic
 CRIT_ZAN = 0.004       # crit damage: 1.5 + 0.4% per effective Zanjutsu point (was 0.3%)
@@ -95,7 +103,7 @@ def _new_x():
             # anti stun-lock: set right after a fighter loses a turn to a stun, cleared when they act again
             "stun_im": 0,
             # Kyōka Suigetsu: separate cooldowns and short-lived control effects.
-            "ks_cd": {}, "ks_mirror": 0, "ks_dom": 0, "ks_dodge": 0, "ks_def_down": 0,
+            "ks_cd": {}, "ks_mirror": 0, "ks_dom": 0, "ks_dodge": 0, "ks_def_down": 0, "ks_decoy": 0, "hog_stage": 0,
             "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0}
 
 
@@ -165,6 +173,8 @@ def _dmg_mult(att):
     x = att.get("x")
     if x and x.get("buff_t", 0) > 0:
         m *= x.get("buff_m", 1.0)
+    if x and x.get("ks_dom", 0) > 0:  # Five Senses Domination: the controlled fighter's OWN blows are halved
+        m *= 0.50  # (it used to sit in _take_mult, which halved the damage the dominated fighter TOOK)
     if x and x.get("awake", 0) > 0:  # released (Bankai / Resurrección)
         m *= GAUGE["dmg"]
     if x and (x.get("bf") or x.get("perm")):  # ability buffs (dmg +/-) and lasting bonuses (Shikai, Adjuchas, Full Mask)
@@ -190,8 +200,8 @@ def _take_mult(dfn):
     if fx and fx[0] == "guard":
         m *= 1 - fx[1]
     dx = dfn.get("x") or {}
-    if dx.get("ks_dom", 0) > 0:
-        m *= 0.50  # Five Senses Domination: halve the controlled fighter's outgoing damage.
+    if dx.get("hog_stage", 0) > 0:  # Hōgyoku evolution: the longer the fight, the less every blow hurts
+        m *= max(0.5, 1.0 - HOG_TAKE_STAGE * int(dx["hog_stage"]))
     if dx.get("gd_t", 0) > 0:  # Hierro and other guard techniques
         m *= dx.get("gd_m", 1.0)
     return m
@@ -265,6 +275,11 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         dfn["x"]["flash"] = 0
         ev.append({"k": "flash", "a": dfn["name"], "d": att["name"]})
         _deal(state, "b" if side == "a" else "a", SHUNPO_COUNTER, rng, ev, "counter", allow_procs=False)
+        return 0
+    if (dfn.get("x") or {}).get("ks_decoy") and kind not in ("counter", "dot", "reflect"):  # False Reality: the blow hits a decoy
+        dfn["x"]["ks_decoy"] = 0
+        ev.append({"k": "ks_decoy_hit", "a": dfn["name"], "d": att["name"]})
+        _deal(state, "b" if side == "a" else "a", 1.50, rng, ev, "counter", allow_procs=False)
         return 0
     if kind != "bala" and _ab_defend(state, side, kind, rng, ev):  # Utsusemi, Schatten, Cero Doble...
         return 0
@@ -416,6 +431,9 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
         dmg = min(dmg, cap)
         if left is not None and kind not in ("reflect", "dot"):
             state["cap_left"] = int(left) - dmg
+    hs = int((dfn.get("x") or {}).get("hog_stage", 0))
+    if hs >= HOG_HIT_CAP_FROM and kind not in ("dot", "reflect"):  # Hōgyoku: no blow takes more than the stage cap
+        dmg = min(dmg, max(1, int(dfn["max_hp"] * max(0.15, HOG_HIT_CAP0 - HOG_HIT_CAP_STEP * hs))))
     if dfn["shield"] > 0:
         absorbed = min(dfn["shield"], dmg)
         dfn["shield"] -= absorbed
@@ -891,7 +909,7 @@ def start_turn(state, rng):
                 else:
                     ev.append({"k": "fj_phase", "a": f["name"], "n": next_phase, "t": total})
     # Tick Kyōka's short-lived effects and cooldowns only on the owner's turn.
-    for key in ("ks_mirror", "ks_dom", "ks_dodge", "ks_def_down"):
+    for key in ("ks_mirror", "ks_dom", "ks_dodge", "ks_def_down", "ks_decoy"):
         if fs.get(key, 0) > 0:
             fs[key] -= 1
     if fs.get("kyoka_shikai_t", 0) > 0:
@@ -905,7 +923,19 @@ def start_turn(state, rng):
         fs["ks_cd"][key] = max(0, int(fs["ks_cd"][key]) - 1)
         if fs["ks_cd"][key] <= 0:
             del fs["ks_cd"][key]
-    if f.get("mods", {}).get("artifact_hogyoku"):
+    if f.get("mods", {}).get("hogyoku_true"):
+        # The real Hōgyoku: damage, toughness and regeneration all grow with every turn of the fight.
+        if "hogyoku_base_dmg" not in fs:
+            fs["hogyoku_base_dmg"] = float(f["mods"].get("dmg", 1.0))
+            fs["hogyoku_base_regen"] = float(f["mods"].get("regen", 0.0))
+        st_ = min(HOG_MAX_STAGE, int(fs.get("hog_stage", 0)) + 1)
+        if st_ != fs.get("hog_stage", 0):
+            fs["hog_stage"] = st_
+            if st_ in (3, 6, HOG_MAX_STAGE):
+                ev.append({"k": "hog_evo", "a": f["name"], "n": st_})
+        f["mods"]["dmg"] = float(fs["hogyoku_base_dmg"]) * (1.0 + HOG_DMG_STAGE * fs["hog_stage"])
+        f["mods"]["regen"] = float(fs["hogyoku_base_regen"]) + HOG_REGEN_STAGE * fs["hog_stage"]
+    elif f.get("mods", {}).get("artifact_hogyoku"):
         # Track the un-evolved base once. Multiplying by another 4% each turn compounded
         # to +26.5% after six turns despite the advertised +24% evolution ceiling.
         if "hogyoku_base_dmg" not in fs:
@@ -1017,6 +1047,11 @@ def _check_end(state, ev=None):
             f["fx"] = [e for e in f["fx"] if e["k"] not in DOT and e["k"] not in ("fear", "weaken", "shock")]
             if ev is not None:
                 ev.append({"k": "konpaku", "a": f["name"]})
+            if f.get("mods", {}).get("hogyoku_true"):  # the orb answers death with a metamorphosis
+                fx_ = _x(f)
+                fx_["hog_stage"] = min(HOG_MAX_STAGE, int(fx_.get("hog_stage", 0)) + HOG_REBIRTH_STAGES)
+                if ev is not None:
+                    ev.append({"k": "hog_rebirth", "a": f["name"], "n": fx_["hog_stage"]})
     for f in (a, b):  # Konpaku (SENKA+): duels only; the soul is pulled back once
         if f["hp"] <= 0 and (state.get("pvp") or f.get("almighty")) and f.get("lives", 0) > 0:
             f["lives"] -= 1
@@ -1164,9 +1199,9 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         costs = {"ks1": 0.08, "ks2": 0.10, "ks3": 0.12, "ks4": 0.16, "ks5": 0.30}
         f["re"] -= int(f["max_re"] * costs[action])
         if action == "ks1":  # Illusion Strike / Absolute Illusion
-            _deal(state, side, 1.20 if not shikai else 2.50, rng, ev, "tech", allow_procs=True)
+            _deal(state, side, 2.20 if not shikai else 2.50, rng, ev, "tech", allow_procs=True)  # sealed was 1.20: barely a basic attack
             if foe["hp"] > 0:
-                chance, miss_p, turns = (0.60, 0.30, 2) if not shikai else (0.80, 0.35, 2)  # Nov 25: was 25%/40% to land a 25%-miss for 1 turn (invisible)
+                chance, miss_p, turns = (0.70, 0.35, 2) if not shikai else (0.80, 0.35, 2)  # Nov 25: was 25%/40% to land a 25%-miss for 1 turn (invisible)
                 if rng.random() < chance:
                     add_bf(foe, {"miss": miss_p, "t": turns}, side)
                     ev.append({"k": "ks_illusion", "a": f["name"], "d": foe["name"], "p": int(miss_p * 100), "t": turns})
@@ -1177,10 +1212,10 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             if shikai:
                 x["ks_mirror"] = 2
                 ev.append({"k": "ks_mirror", "a": f["name"]})
-            else:
+            else:  # False Reality: the next blow hits a decoy (always), and the decoy is answered at once
+                x["ks_decoy"] = 1
                 x["ks_dodge"] = 1
-                if rng.random() < 0.35:
-                    add_bf(foe, {"miss": 0.35, "t": 1}, side)
+                add_bf(foe, {"miss": 0.30, "t": 2}, side)
                 ev.append({"k": "ks_decoy", "a": f["name"]})
             x["ks_cd"][action] = 3
         elif action == "ks3":  # Mind Distortion / Five Senses Domination
@@ -1190,8 +1225,12 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                 add_bf(foe, {"miss": 0.50, "t": 3}, side)
                 ev.append({"k": "ks_dom", "a": f["name"], "d": foe["name"], "p": 50, "t": 3})
             else:  # Nov 25: was a 25% miss for 2 turns, and a foe's Hadō ignored it altogether
-                add_bf(foe, {"miss": 0.40, "t": 3}, side)
-                ev.append({"k": "ks_distort", "a": f["name"], "d": foe["name"], "p": 40, "t": 3})
+                _deal(state, side, 0.80, rng, ev, "tech", allow_procs=False)  # it used to deal nothing at all
+                if foe["hp"] > 0:
+                    xfoe = _x(foe)
+                    xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 2)  # the foe's own blows are halved for two turns
+                add_bf(foe, {"miss": 0.45, "t": 3}, side)
+                ev.append({"k": "ks_distort", "a": f["name"], "d": foe["name"], "p": 45, "t": 3})
             x["ks_cd"][action] = 4
         elif action == "ks4":  # Phantom Step / Illusionary Execution
             if shikai:
@@ -1203,9 +1242,9 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                     f["mods"]["crit"] = old_crit
                 if foe["hp"] > 0 and rng.random() < 0.30:
                     add_fx(foe, "skip", 1)
-            else:
-                x["ks_dodge"] = 1
-                _deal(state, side, 1.20, rng, ev, "tech", allow_procs=True)
+            else:  # sealed Phantom Step: a real strike (was 1.20, a basic attack for 16% Reiatsu) plus a 2-turn evasion
+                x["ks_dodge"] = 2
+                _deal(state, side, 2.60, rng, ev, "tech", allow_procs=True, extra_pierce=0.20)
             x["ks_cd"][action] = 5
         else:  # Kanzen Saimin: Infinite Mirage
             _deal(state, side, 5.00, rng, ev, "tech", allow_procs=True, extra_pierce=0.30)

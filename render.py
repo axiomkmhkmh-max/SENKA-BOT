@@ -177,6 +177,12 @@ def events_text(lang: str, events: list) -> str:
             out.append((f"🌫️ توهم {a} روی {d} اثر نکرد." if lang == "fa" else f"🌫️ {a}'s illusion failed to take hold of {d}."))
         elif k == "ks_mirror":
             out.append((f"🪞 {a} دنیای آینه‌ای را فعال کرد." if lang == "fa" else f"🪞 {a} activated Mirror World."))
+        elif k == "ks_decoy_hit":
+            out.append((f"🌫️ ضربه‌ی {d} به بدل خیالی {a} خورد و بلافاصله پاسخ گرفت!" if lang == "fa" else f"🌫️ {d} struck {a}'s decoy and was answered at once!"))
+        elif k == "hog_evo":
+            out.append((f"🔮 هوگیوکوی {a} تکامل یافت (مرحله‌ی {n}) — قوی‌تر و سخت‌جان‌تر." if lang == "fa" else f"🔮 {a}'s Hōgyoku evolves (stage {n}) — stronger and harder to kill."))
+        elif k == "hog_rebirth":
+            out.append((f"🔮 هوگیوکو مرگ را پس زد و {a} دگرگون شد (مرحله‌ی {n})!" if lang == "fa" else f"🔮 The Hōgyoku refused death; {a} metamorphosed (stage {n})!"))
         elif k == "ks_decoy":
             out.append((f"🌫️ بدل توهمی {a} آماده‌ی فریب حمله‌ی بعدی است." if lang == "fa" else f"🌫️ {a}'s illusionary decoy is ready to evade the next strike."))
         elif k in ("ks_dom", "ks_distort"):
