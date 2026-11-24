@@ -35,12 +35,11 @@ T = {  # key -> (fa, en)
     "noreg": ("اول در ربات ثبت‌نام کن.", "Register with the bot first."),
     "gone": ("جایگاه همین الان دست‌به‌دست شد؛ دوباره امتحان کن.", "The seat just changed hands; try again."),
     "hog_win": ("🔮 {a} هوگیوکو را از دست {b} ربود!\n👁 حالا نام او در لیست تحت‌تعقیب است.", "🔮 {a} snatched the Hōgyoku from {b}!\n👁 Their name is now on the wanted list."),
-    "hog_fail": ("💢 {a} در نبرد هوگیوکو شکست خورد و {h} ساعت نصف ریاتسوی خود را از دست داد!", "💢 {a} lost the Hōgyoku duel and loses half their Reiatsu for {h}h!"),
     "hog_fail0": ("💢 {a} در نبرد هوگیوکو شکست خورد.", "💢 {a} lost the Hōgyoku duel."),
     "hog_weak": ("⚖️ قدرتت ({pa}) برای این چالش کافی نیست؛ دست‌کم {need} لازم است (دارنده: {pb}). قوی‌تر شو و برگرد.", "⚖️ Your power ({pa}) is too low for this challenge; you need at least {need} (holder: {pb}). Grow stronger and come back."),
     "hog_busy": ("⚔️ دارنده همین الان درگیر یک دوئل است؛ چند لحظه‌ی دیگر دوباره امتحان کن.", "⚔️ The holder is in the middle of a duel; try again in a moment."),
-    "hog_infight": ("⚔️ اول نبرد باز خودت را تمام کن (یا «تسلیم» بزن)، بعد به هوگیوکو حمله کن.", "⚔️ Finish your open fight first (or forfeit it), then go for the Hōgyoku."),
-    "infight": ("⚔️ اول نبرد باز خودت را تمام کن (یا «تسلیم» بزن)، بعد به هوگیوکو حمله کن.", "⚔️ Finish your open fight first (or forfeit it), then go for the Hōgyoku."),
+    "hog_infight": ("⚔️ یک نبرد باز داری؛ اول آن را تمام کن (یا از آن خارج شو)، بعد به هوگیوکو حمله کن.", "⚔️ You have a fight open; finish it (or leave it) first, then go for the Hōgyoku."),
+    "infight": ("⚔️ یک نبرد باز داری؛ اول آن را تمام کن (یا از آن خارج شو)، بعد به هوگیوکو حمله کن.", "⚔️ You have a fight open; finish it (or leave it) first, then go for the Hōgyoku."),
     "hog_gone": ("🔮 هوگیوکو وسط دوئل دست‌به‌دست شد؛ این دوئل بی‌نتیجه ماند.", "🔮 The Hōgyoku changed hands during the duel; this duel is void."),
     "hog_forfeit": ("🏳️ دوئل را رها کردی؛ هوگیوکو دست دارنده ماند. تلاش بعدی بعد از کولداون ممکن است.", "🏳️ You gave up the duel; the holder keeps the Hōgyoku. You can try again after the cooldown."),
     "hog_nofight": ("دوئل بازی نداری.", "You have no open duel."),
@@ -259,7 +258,7 @@ def _hog_report(L: str, rep: dict, a: str, b: str, won: bool) -> str:
     if won:
         lines.append(_t(L, "hog_win", a=a, b=b))
     else:
-        lines.append(_t(L, "hog_fail", a=a, h=rep["hours"]) if rep.get("hours") else _t(L, "hog_fail0", a=a))
+        lines.append(_t(L, "hog_fail0", a=a))
     return "\n".join(lines)
 
 
@@ -433,14 +432,23 @@ async def bleach_status(ctx, arg):
     return Out(f"⚔️ <b>{esc(ch['name'])}</b> | Lv.{ch['level']}\n{SEP}\n" + "\n".join(lines), [nav(ctx)])
 
 
+async def _panel_throttled(ctx, name: str) -> bool:
+    """True = a group already got this panel a moment ago (anyone typing the word again is ignored instead of flooding the chat)."""
+    return ctx.chat_type != "private" and bool(await try_cooldown(f"hog:panel:{name}:{ctx.chat_id}", 20))
+
+
 @action("hgs")
 async def steal_hint(ctx, arg):
+    if await _panel_throttled(ctx, "hgs"):
+        return Out(alert=_t(ctx.lang, "cd"))
     return Out(await _hint(ctx.lang), await _hog_rows(ctx))
 
 
 @action("wnt")
 async def wanted_list(ctx, arg):
     """Targets under pursuit: the Hogyoku holder (and the Espada number 0)."""
+    if await _panel_throttled(ctx, "wnt"):
+        return Out(alert=_t(ctx.lang, "cd"))
     fa = ctx.lang == "fa"
     h = await hogyoku_holder()
     board = await espada_board()

@@ -21,12 +21,6 @@ class Rules(unittest.TestCase):
         self.assertFalse(DA.hog_too_weak(500, 1000, 0.5))
         self.assertFalse(DA.hog_too_weak(1, 0, 0.5))      # an empty holder never locks anyone out
 
-    def test_penalty_full_when_swept_half_when_close(self):
-        self.assertEqual(DA.hog_penalty_hours(0, 2, 3), 3)
-        self.assertEqual(DA.hog_penalty_hours(1, 2, 3), 1)   # half of 3, at least 1
-        self.assertEqual(DA.hog_penalty_hours(1, 2, 4), 2)
-        self.assertEqual(DA.hog_penalty_hours(0, 2, 0), 0)   # penalty switched off
-
     def test_duel_over_rules(self):
         self.assertEqual(DA.hog_duel_over(2, 0, 3), "win")
         self.assertEqual(DA.hog_duel_over(1, 1, 3), None)
@@ -43,8 +37,10 @@ class Rules(unittest.TestCase):
     def test_no_luck_setting_left(self):
         import config
         self.assertNotIn("hog_steal_chance", config.GAME_DEFAULTS)
-        for k in ("hog_rounds", "hog_min_power_ratio", "hog_target_lock"):
+        for k in ("hog_rounds", "hog_min_power_ratio"):
             self.assertIn(k, config.GAME_DEFAULTS)
+        for k in ("hog_pen_hours", "hog_target_lock"):   # settings nothing reads any more must not sit in the admin panel
+            self.assertNotIn(k, config.GAME_DEFAULTS)
 
 
 try:
@@ -170,7 +166,7 @@ class Flow(unittest.TestCase):
         self.db.t["hogyoku"] = [{"_id": "main", "holder": 2, "since": 0, "history": []}]
         self.db.t["characters"] = [self._char(1, "T", 400), self._char(2, "H", 60)]
         self.st = {"hog_min_level": 10, "hog_shield_minutes": 30, "hog_steal_cd_hours": 2,
-                   "hog_rounds": 3, "hog_min_power_ratio": 0.0, "hog_target_lock": 60}
+                   "hog_rounds": 3, "hog_min_power_ratio": 0.0}
         self.logs = []
         self.saved = [(m, n, getattr(m, n, _MISSING)) for m, n in (
             (SX, "col"), (SX, "get_char"), (SX, "game_settings"), (SX, "try_cooldown"), (SX, "hogyoku_state"),
@@ -328,6 +324,62 @@ class Flow(unittest.TestCase):
         self.assertTrue(out2["hog"]["done"])
         self.assertEqual(out2["hog"]["result"], "gone")
         self.assertEqual(self.holder(), 3)
+
+
+try:
+    import handlers_viral as HV
+except Exception:  # aiogram / motor are not installed here
+    HV = None
+
+
+@unittest.skipIf(HV is None, "app imports unavailable")
+class PanelThrottle(unittest.TestCase):
+    """The plain words «خیانت» / «تحت تعقیب» used to answer every message in a group with the long panel."""
+
+    def setUp(self):
+        self.armed = set()
+        self.saved = (HV.try_cooldown, HV._hint, HV._hog_rows)
+
+        async def tc(key, sec):
+            if key in self.armed:
+                return 7
+            self.armed.add(key)
+            return 0
+
+        async def hint(L):
+            return "hint"
+
+        async def rows(ctx):
+            return []
+
+        HV.try_cooldown, HV._hint, HV._hog_rows = tc, hint, rows
+
+    def tearDown(self):
+        HV.try_cooldown, HV._hint, HV._hog_rows = self.saved
+
+    @staticmethod
+    def ctx(chat_type, chat_id=-100):
+        from types import SimpleNamespace
+        return SimpleNamespace(lang="fa", chat_type=chat_type, chat_id=chat_id, uid=1)
+
+    def test_group_gets_the_panel_once_per_window(self):
+        first = asyncio.run(HV.steal_hint(self.ctx("supergroup"), ""))
+        again = asyncio.run(HV.steal_hint(self.ctx("supergroup"), ""))
+        self.assertEqual(first.text, "hint")
+        self.assertFalse(again.text)            # nothing is sent to the chat
+        self.assertTrue(again.alert)
+
+    def test_other_group_and_private_chat_are_not_affected(self):
+        asyncio.run(HV.steal_hint(self.ctx("supergroup"), ""))
+        self.assertEqual(asyncio.run(HV.steal_hint(self.ctx("supergroup", -200), "")).text, "hint")
+        for _ in range(3):
+            self.assertEqual(asyncio.run(HV.steal_hint(self.ctx("private", 5), "")).text, "hint")
+
+    def test_texts_have_no_dead_reiatsu_penalty_and_all_format(self):
+        self.assertNotIn("hog_fail", HV.T)
+        for key in HV.T:
+            for L in ("fa", "en"):
+                HV._t(L, key, a="A", b="B", r=1, n=1, m=1, h=1, pa=1, pb=2, need=3, who="W", dmg=1, hp=1, f="F", x=1, p=1, w=1, pct=1)
 
 
 if __name__ == "__main__":

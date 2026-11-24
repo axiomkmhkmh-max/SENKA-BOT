@@ -391,12 +391,6 @@ def hog_too_weak(power_thief: float, power_holder: float, min_ratio: float) -> b
     return power_thief < max(1.0, power_holder) * float(min_ratio)
 
 
-def hog_penalty_hours(wins_thief: int, wins_holder: int, base_hours: int) -> int:
-    """A thief who lost every round pays the full penalty; one who took a round pays half (a close fight is no disgrace)."""
-    base = max(0, int(base_hours))
-    return base if wins_thief <= 0 else max(1, base // 2) if base else 0
-
-
 # --- TIERS (Bleach power ladder) ----------------------------------------------------------------------------------
 # Every Soul Artifact now has several copies: `cap` is how many players can hold the same artifact at once.
 # Stronger tiers mirror the anime's ranks: the more powerful the owner in canon, the fewer copies exist.
