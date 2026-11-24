@@ -168,6 +168,34 @@ def events_text(lang: str, events: list) -> str:
             out.append(pick(lang, "lg_" + k, a=a, d=d, n=n))
         elif k == "tech":  # canon race technique (data_race_tech)
             out.append(pick(lang, "lg_tech_" + str(e.get("id")), a=a, d=d))
+        elif k == "shadow_echo":
+            out.append((f"🌑 سایه‌ی احضارشده‌ی {a} به {d} ضربه زد: {n}" if lang == "fa" else f"🌑 {a}'s summoned shadow struck {d}: {n}"))
+        elif k == "ks_illusion":
+            out.append((f"👁️ {a} واقعیت را برای {d} منحرف کرد." if lang == "fa" else f"👁️ {a} distorted reality for {d}."))
+        elif k == "ks_mirror":
+            out.append((f"🪞 {a} دنیای آینه‌ای را فعال کرد." if lang == "fa" else f"🪞 {a} activated Mirror World."))
+        elif k == "ks_decoy":
+            out.append((f"🌫️ بدل توهمی {a} آماده‌ی فریب حمله‌ی بعدی است." if lang == "fa" else f"🌫️ {a}'s illusionary decoy is ready to evade the next strike."))
+        elif k in ("ks_dom", "ks_distort"):
+            out.append((f"🌀 {a} حواس {d} را مختل کرد." if lang == "fa" else f"🌀 {a} distorted {d}'s senses."))
+        elif k == "ks_ultimate":
+            out.append((f"☠️ {a}: کانزن سایمین — تسلط کامل بر ادراک میدان نبرد!" if lang == "fa" else f"☠️ {a}: Kanzen Saimin — complete domination of the battlefield's perception!"))
+        elif k == "ks_shikai_end":
+            out.append((f"🌫️ توهم کیوکا سویگتسو فرو نشست؛ شیکای وارد کول‌داون شد." if lang == "fa" else "🌫️ Kyōka Suigetsu's illusion fades; Shikai enters cooldown."))
+        elif k == "fj_phase":
+            out.append((f"⚠️ فاز {n} از {e.get('t', '?')} — {a} وارد مرحله‌ی خشم تازه‌ای شد!" if lang == "fa" else f"⚠️ Phase {n}/{e.get('t', '?')} — {a} entered a new state of fury!"))
+        elif k == "fj_absolute":
+            out.append((f"☠️ ABSOLUTE AWAKENING — باس نهایی تمام قدرت واقعی خود را آزاد کرد!" if lang == "fa" else "☠️ ABSOLUTE AWAKENING — the final boss has released its true power!"))
+        elif k == "fj_speed":
+            out.append((f"💨 سرعت باس به شکل محسوسی افزایش یافت." if lang == "fa" else "💨 The boss's speed sharply increased."))
+        elif k == "fj_hazard":
+            out.append((f"🔥 {a} میدان را به منطقه‌ی سوختگی تبدیل کرد." if lang == "fa" else f"🔥 {a} turned the arena into a burning hazard."))
+        elif k == "fj_barrier":
+            out.append((f"🛡️ {a} سپر تازه‌ای ساخت و زرهش را تقویت کرد." if lang == "fa" else f"🛡️ {a} raised a new barrier and reinforced its armor."))
+        elif k == "fj_absolute_strike":
+            out.append((f"☠️ حمله‌ی زنجیره‌ای Absolute Awakening آغاز شد!" if lang == "fa" else "☠️ Absolute Awakening unleashes its chained assault!"))
+        elif k == "fj_triple":
+            out.append((f"⚔️ سه فرمانروای مرحله‌ی پنجم، حمله‌ی زنجیره‌ای خود را آغاز کردند!" if lang == "fa" else "⚔️ The three sovereigns unleash their chained assault!"))
         elif k == "shield_t":
             out.append(pick(lang, "lg_shield_t", a=a, n=n))
         elif k == "release_lost":  # a battered Bankai / Resurrección gets out of hand: each race has its own line

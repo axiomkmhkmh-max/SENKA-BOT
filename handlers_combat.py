@@ -132,6 +132,21 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
     if E.can(f, "bt"):  # the blade's own technique (after Shikai)
         bt = f["bt"]
         rows.append([mk(f"🗡 {bt['blade_fa' if L == 'fa' else 'blade_en']}: {bt['fa' if L == 'fa' else 'en']}", "bt")])
+    if f.get("blade") == "kyoka_suigetsu":
+        shikai = bool((f.get("x") or {}).get("kyoka_shikai_t", 0) > 0)
+        names = (["🌫️ توهم مطلق" if L == "fa" else "🌫️ Absolute Illusion",
+                  "🪞 دنیای آینه‌ای" if L == "fa" else "🪞 Mirror World",
+                  "👁️ تسلط حواس پنج‌گانه" if L == "fa" else "👁️ Five Senses Domination",
+                  "☠️ اعدام توهمی" if L == "fa" else "☠️ Illusionary Execution"] if shikai else
+                 ["🌫️ ضربه‌ی توهمی" if L == "fa" else "🌫️ Illusion Strike",
+                  "🪞 بدل خیالی" if L == "fa" else "🪞 False Reality",
+                  "🧠 اختلال ذهنی" if L == "fa" else "🧠 Mind Distortion",
+                  "💨 قدم شبح" if L == "fa" else "💨 Phantom Step"])
+        for idx, label in enumerate(names, 1):
+            if E.can(f, f"ks{idx}"):
+                rows.append([mk(label, f"ks{idx}")])
+        if shikai and E.can(f, "ks5"):
+            rows.append([mk("👑 کانزن سایمین: سراب بی‌نهایت" if L == "fa" else "👑 Kanzen Saimin: Infinite Mirage", "ks5")])
     if E.can(f, "gs"):  # general skill chosen in the profile (any race)
         gl_, ge_ = GEN_BUTTON[f["gen"]]
         rows.append([mk(gl_ if L == "fa" else ge_, "gs")])
@@ -141,7 +156,7 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
     if E.can(f, "f2"):
         r3.append(mk("🌟 " + form2[i], "f2"))
     rows.append(r3)
-    if pot:
+    if pot and not ((f.get("fj_stage") == 9) or f.get("fj_no_potions")):
         rows.append([mk(ctx.t("a_pot"), "pot")])
     return rows
 
@@ -227,6 +242,10 @@ async def battle_panel(ctx, doc, events=None):
     st = doc["state"]
     title = head(ctx, "ttl_bt")
     d = doc.get("dungeon")
+    if d and d.get("final_judgment"):
+        title += (f"⚖️ <b>THE FINAL JUDGMENT — مرحله {d['stage']}/10</b>\n" if ctx.lang == "fa"
+                  else f"⚖️ <b>THE FINAL JUDGMENT — Stage {d['stage']}/10</b>\n")
+        title += (f"{d.get('wave', 1)}/{d.get('wave_total', 1)} · " + __import__('service_final_judgment').stage_name(d['stage'], ctx.lang) + "\n")
     if d and d.get("tower"):
         title += ctx.t("tw_floor_boss" if d["stage"] % 5 == 0 else "tw_floor", n=fnum(d["stage"], ctx.lang)) + "\n"
     elif d and d.get("hog"):  # Hōgyoku duel: round counter and the rounds already decided
@@ -240,11 +259,19 @@ async def battle_panel(ctx, doc, events=None):
     elif d and d.get("gq"):
         from data_guildquest import title as gq_title
         title += ctx.t("gq_stage", title=gq_title(d, ctx.lang), n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang)) + "\n"
-    elif d:
+    elif d and not d.get("final_judgment"):
         title += ctx.t("dg_stage", n=fnum(d["stage"], ctx.lang), t=fnum(d["total"], ctx.lang), diff=ctx.t("diff_" + d["diff"])) + "\n"
         flavor = dungeon_line(d.get("id"), d["stage"], d["total"], ctx.lang)
         if flavor:
             title += f"<i>{flavor}</i>\n"
+    if (st["a"].get("blade") == "kyoka_suigetsu"):
+        kx = st["a"].get("x") or {}
+        if kx.get("kyoka_shikai_t", 0) > 0:
+            title += (f"👁️ شیکای فعال · {max(1, kx['kyoka_shikai_t'] - 1)} نوبت باقی‌مانده\n" if ctx.lang == "fa"
+                      else f"👁️ Shikai active · {max(1, kx['kyoka_shikai_t'] - 1)} turns remaining\n")
+        elif kx.get("kyoka_shikai_cd", 0) > 0:
+            title += (f"⏳ کول‌داون شیکای: {kx['kyoka_shikai_cd']}\n" if ctx.lang == "fa"
+                      else f"⏳ Shikai cooldown: {kx['kyoka_shikai_cd']}\n")
     from service_fightfx import challenge_line
     title += challenge_line(st, ctx.lang)
     text = battle_text(ctx.lang, st, events, title)
@@ -281,7 +308,8 @@ async def battle_menu(ctx, arg):
     doc = await active_pve(ctx.uid)
     if doc:
         return await battle_panel(ctx, doc, [])
-    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "")], nav(ctx)]
+    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "")],
+            [("⚖️ داوری نهایی" if ctx.lang == "fa" else "⚖️ The Final Judgment", "fjd", "")], nav(ctx)]
     return Out(head(ctx, "ttl_bt") + ctx.t("bt_body"), rows)
 
 
@@ -323,6 +351,30 @@ def _tower_result(ctx, doc, ev, o):
 async def _pve_result(ctx, doc, ev, o):
     L = ctx.lang
     log = events_text(L, ev)
+    if o.get("final_judgment"):
+        fj = o["final_judgment"]
+        body = battle_text(L, doc["state"], ev, head(ctx, "ttl_bt"))
+        if fj.get("next"):
+            next_doc = fj["next"]
+            nd = next_doc.get("dungeon") or {}
+            if int(nd.get("stage", 0)) == int(fj.get("stage", 0)):
+                intro = (f"\n\n⚖️ موج {fj['wave']} از {fj['wave_total']} پاک‌سازی شد؛ موج بعدی آغاز شد." if L == "fa"
+                         else f"\n\n⚖️ Wave {fj['wave']}/{fj['wave_total']} cleared; the next wave begins.")
+            else:
+                intro = (f"\n\n⚖️ مرحله‌ی {fj['stage']} پاک‌سازی شد. مرحله‌ی بعدی آغاز شد." if L == "fa"
+                         else f"\n\n⚖️ Stage {fj['stage']} cleared. The next stage begins.")
+            panel = await battle_panel(ctx, next_doc, [])
+            panel.text = body + intro + "\n\n" + panel.text
+            return panel
+        if fj.get("won"):
+            reward = fj.get("reward") or ""
+            msg = ("\n\n👑 <b>THE FINAL JUDGMENT CLEARED</b>\nتو از هر ده مرحله عبور کردی." if L == "fa"
+                   else "\n\n👑 <b>THE FINAL JUDGMENT CLEARED</b>\nYou survived all ten stages.")
+            if reward:
+                msg += "\n🏆 " + reward
+            return Out(body + msg, [[(ctx.t("b_home"), "home", "")]])
+        return Out(body + ("\n\n☠️ تلاش امروزت به پایان رسید. پیشرفت این تلاش از بین رفت." if L == "fa"
+                           else "\n\n☠️ Your attempt has ended. All progress from this run was lost."), [[(ctx.t("b_home"), "home", "")]])
     if o.get("tower"):
         return _tower_result(ctx, doc, ev, o)
     if o.get("hog"):  # Hōgyoku duel round / final card

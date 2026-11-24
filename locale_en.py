@@ -73,6 +73,7 @@ TEXT = {
  "pty_body": "Up to 3 companions fight beside you and grant passive bonuses. Every duplicate deepens your bond (level and stars).", "pty_empty": "No companions yet. Call upon the spirits.", "pty_e_notowned": "Not owned.", "pty_e_full": "Party is full (3).",
  # battle
  "bt_body": "Face an enemy of your own level. Elites (💀) give double rewards.", "bt_none": "No active battle.", "bt_gone": "This battle has ended.", "bt_notturn": "Not your turn.", "bt_stale": "Too fast — try again.",
+    "fj_clear_title": "👑 Judgment Conqueror", "bt_forbidden": "Healing items are forbidden in this stage.",
  "bt_turn": "🔁 Turn {n}", "bt_win": "🏆 Victory! Your blade still shines.\n+{xp} XP, +{coins} 🪙", "bt_lose": "💀 You fell. Recover your reiatsu and return stronger; defeat is part of the road.", "bt_levelup": "🎉 Your reiatsu surges! Level ×{n}. Spend the new points in Profile.", "bt_drop": "🎁 Drop: {item}", "bt_no_potion": "No healing potion in your bag.",
  "a_atk": "⚔️ Attack", "a_hvy": "💥 Heavy", "a_kd": "🔮 Hadō {n} {spell}", "a_bk": "🛡️ Bakudō {n} {spell}", "a_df": "🧱 Guard", "a_pot": "🧪 Potion",
  "dg_stage": "🕳️ Floor {n}/{t} — {diff}", "dg_next": "➡️ The next floor awaits; your wounds come with you.", "dg_done": "🏆 Dungeon conquered! The victors' share is yours.",

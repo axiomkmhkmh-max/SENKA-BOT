@@ -12,7 +12,7 @@ import uuid
 
 from pymongo import ReturnDocument
 
-from data_artifacts import ARTIFACTS, ART_BY_ID, art_cap, art_drop_weight
+from data_artifacts import ARTIFACTS, ART_BY_ID, art_cap, art_drop_weight, art_held_count
 from data_items import ALL, BY_RARITY, WEAPON_BY_RARITY
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from service_economy import inv_add, inv_get, inv_remove
@@ -41,7 +41,7 @@ async def art_reconcile():
         holders = await col("characters").count_documents({"artifact": aid})
         listed = await col("art_listings").count_documents({"art": aid, "status": "active"})
         st = d.get("state")
-        upd = {"held": min(holders + listed, art_cap(aid))}
+        upd = {"held": art_held_count(holders, listed)}
         unset = {"owner": "", "claimer": ""}
         if st == "dropped":
             live = await col("drops").find_one({"_id": d.get("drop_id"), "status": {"$in": ["active", "claiming"]}})
@@ -71,8 +71,14 @@ def _hist(uid: int, how: str, price: int = 0) -> dict:
     return {"history": {"$each": [{"uid": uid, "at": int(time.time()), "how": how, "price": price}], "$slice": -10}}
 
 
-async def _take_slot(aid: str) -> bool:
-    return bool(await col("artifacts").find_one_and_update({"_id": aid, "held": {"$lt": art_cap(aid)}}, {"$inc": {"held": 1}}))
+async def _take_slot(aid: str, from_state: str = "dropped") -> bool:
+    # Reserve both the world-state transition and the holder slot atomically. Free-pool artifacts
+    # can still be claimed concurrently up to their cap; a dropped copy is single-claim locked.
+    query = {"_id": aid, "state": from_state, "held": {"$lt": art_cap(aid)}}
+    update = {"$inc": {"held": 1}}
+    if from_state == "dropped":
+        update["$set"] = {"state": "claiming"}
+    return bool(await col("artifacts").find_one_and_update(query, update))
 
 
 async def _free_slot(aid: str):
@@ -85,13 +91,16 @@ async def art_claim(uid: int, aid: str, from_state: str = "dropped") -> str:
         return "noreg"
     if ch.get("artifact") or await _has_listing(uid):
         return "has"
-    if not await _take_slot(aid):
+    if not await _take_slot(aid, from_state=from_state):
         return "gone"
     r = await col("characters").update_one({"user_id": uid, "artifact": None}, {"$set": {"artifact": aid}})
     if not r.modified_count:
         await _free_slot(aid)
+        if from_state == "dropped":
+            await col("artifacts").update_one({"_id": aid, "state": "claiming"}, {"$set": {"state": "dropped"}})
         return "has"
-    await col("artifacts").update_one({"_id": aid, "state": from_state}, {"$set": {"state": "free"}, "$unset": {"drop_id": ""}, "$push": _hist(uid, "drop")})
+    reserved_state = "claiming" if from_state == "dropped" else from_state
+    await col("artifacts").update_one({"_id": aid, "state": reserved_state}, {"$set": {"state": "free"}, "$unset": {"drop_id": ""}, "$push": _hist(uid, "drop")})
     return "ok"
 
 

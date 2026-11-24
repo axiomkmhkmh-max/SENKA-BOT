@@ -126,7 +126,8 @@ async def main():
     from handlers_core import router
     from handlers_admincmd import router as admin_cmd_router  # admin slash commands + /redeem + /tokens (must come before the text router)
     import handlers_admincmd2  # noqa: F401  (admin slash commands, batch 2)
-    import handlers_grouplinks  # noqa: F401  (/groups: links of the groups the bot is in + join/leave tracking)
+    import handlers_grouplinks  # noqa: F401
+    import handlers_final_judgment  # noqa: F401  (The Final Judgment solo gauntlet)  (/groups: links of the groups the bot is in + join/leave tracking)
     import scheduler
     dp = Dispatcher()
     dp.include_router(admin_cmd_router)

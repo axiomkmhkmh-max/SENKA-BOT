@@ -9,7 +9,7 @@ class SignatureArtifacts(unittest.TestCase):
             self.assertIn(aid, D.ART_BY_ID)
 
     def test_signature_are_rarest_and_strongest(self):
-        normal = [a for a in D.ARTIFACTS if a["_id"] not in D.SIGNATURE]
+        normal = [a for a in D.ARTIFACTS if a["_id"] not in D.SIGNATURE and a["tier"] < 5]
         best_normal = max(sum(a["bonus"].values()) for a in normal)
         min_normal_cap = min(a["cap"] for a in normal)
         for aid in D.SIGNATURE:
@@ -22,9 +22,12 @@ class SignatureArtifacts(unittest.TestCase):
 
     def test_normal_artifacts_unchanged_low_power(self):
         for a in D.ARTIFACTS:
-            if a["_id"] not in D.SIGNATURE:
+            if a["_id"] not in D.SIGNATURE and a["tier"] < 5:
                 self.assertTrue(all(0.03 <= v <= D.MAX_STAT for v in a["bonus"].values()), a["_id"])
                 self.assertEqual(D.art_drop_weight(a["_id"]), 1.0)
+        self.assertLess(D.art_drop_weight("art_lifesteal_crown"), 1.0)
+        self.assertLess(D.art_drop_weight("art_shadow_monarch"), D.art_drop_weight("art_lifesteal_crown"))
+        self.assertLess(D.art_drop_weight("art_transcendent_armor"), D.art_drop_weight("art_shadow_monarch"))
 
 
 if __name__ == "__main__":

@@ -143,14 +143,40 @@ async def build_player(ch: dict, name: str = None):
         zstate = dict(zstate, blade_id=None)
     from data_zanpakuto import bond_value
     bond = bond_value(ch)  # per blade: the bond belongs to the chosen blade, not to the weapon in hand
+    # Artifact signature effects are real engine modifiers, not display-only bonuses.
+    artifact_id = ch.get("artifact") or ""
+    from data_artifacts import ART_BY_ID
+    artifact_effect = (ART_BY_ID.get(artifact_id) or {}).get("effect") or {}
+    if artifact_effect.get("kind") == "hogyoku_evolution":
+        mods["artifact_hogyoku"] = True
+    if artifact_effect.get("kind") == "soulking":
+        hp = int(hp * float(artifact_effect.get("hp_mult", 1.20)))
+        mods["regen"] += float(artifact_effect.get("regen", 0.12))
+        mods["dmg"] *= 1.0 + float(artifact_effect.get("dmg", 0.08))
+        mods["artifact_lives"] = int(artifact_effect.get("uses", 1))
+        mods["artifact_revive_hp"] = float(artifact_effect.get("hp", 0.50))
+    if ch.get("hogyoku"):
+        mods["artifact_hogyoku"] = True
+    if artifact_effect.get("kind") == "lifesteal":
+        mods["artifact_lifesteal"] = float(artifact_effect.get("value", 0.08))
+    elif artifact_effect.get("kind") == "precognition":
+        mods["dodge"] = mods.get("dodge", 0.0) + float(artifact_effect.get("dodge", 0.10))
+    elif artifact_effect.get("kind") == "revive":
+        mods["artifact_lives"] = int(artifact_effect.get("uses", 1))
+        mods["artifact_revive_hp"] = float(artifact_effect.get("hp", 0.50))
+    elif artifact_effect.get("kind") == "shadow_echo":
+        mods["artifact_shadow_echo"] = float(artifact_effect.get("value", 0.10))
+    # Kyōka's release bonuses are applied by the actual Shikai/Bankai combat actions, not merely
+    # because the character has unlocked those forms in the profile.
     # Release stages feed the existing weapon-skill multiplier; no parallel combat engine.
     stage = BLADE_STAGES.get(zstate.get("blade_id"), {})
-    release_bonus = (0.10 + stage.get("shikai_bonus", 0.0)) if zstate.get("shikai") else 0.0
-    if zstate.get("bankai"):
+    # Kyoka's bonuses are stateful: an unlocked Shikai/Bankai does not grant its combat multiplier until released.
+    release_bonus = 0.0 if zstate.get("blade_id") == "kyoka_suigetsu" else ((0.10 + stage.get("shikai_bonus", 0.0)) if zstate.get("shikai") else 0.0)
+    if zstate.get("bankai") and zstate.get("blade_id") != "kyoka_suigetsu":
         release_bonus += 0.12 + min(0.08, int(zstate.get("mastery", 0)) / 500) + stage.get("bankai_bonus", 0.0)
     zmult = 1 + min(1.0, bond / 500) + release_bonus  # bond adds up to +100% (500 bond); no 30 ceiling
     # Distinct release identities alter battle style rather than granting identical flat power.
-    blade_style = BLADE_STYLE.get(zstate.get("blade_id"), {})
+    blade_style = {} if zstate.get("blade_id") == "kyoka_suigetsu" else BLADE_STYLE.get(zstate.get("blade_id"), {})
     if zstate.get("shikai") or zstate.get("bankai"):
         for stat, value in blade_style.items():
             if stat in ("dmg", "def", "kido"):
@@ -258,10 +284,10 @@ async def abandon_tower(uid: int) -> bool:
     return bool(r.modified_count)
 
 
-DG_XP_MULT = 1.2        # Nov 24: 1.0 -> 1.2 (a one-tap open-world fight paid more than an abyss stage); dungeon stages pay this much of a normal fight's XP (was 2.0; they pay no coins or items)
-DG_SCALE_XP_EXP = 0.75  # Nov 24: was 0.5 (abyss paid x2.8 for x8 power, less than a one-tap open-world fight)
+DG_XP_MULT = 4.0        # Dungeon clears are the core progression loop; raise stage XP after the severe drop reported by players.
+DG_SCALE_XP_EXP = 0.80  # Higher difficulty now contributes more of its actual challenge to XP.
 FAST_KILL_XP = {1: 0.5, 2: 0.7}  # plain open-world fights won in 1 / 2 turns pay this share (one-tap farming paid 500K)
-DG_FINAL_XP_MULT = 2    # the last stage pays this much more again (was x3)
+DG_FINAL_XP_MULT = 3.0  # The final stage pays a substantial completion bonus on top of the higher stage XP.
 DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
 
@@ -425,6 +451,12 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         scale *= wm["enemy"]  # Hollow Threat + active world event strengthen every enemy
     player = await build_player(ch)
     player["x"]["bstack"] = int((ch.get("bount") or {}).get("stacks", 0))  # soul stacks: PvE only, settled in pve_settle
+    if dungeon and dungeon.get("final_judgment"):
+        player["fj_stage"] = int(dungeon.get("stage", 1))
+        player["fj_no_potions"] = int(dungeon.get("stage", 1)) == 9
+        player["fj_limited"] = int(dungeon.get("stage", 1)) == 3
+        if carry and "artifact_lives" in carry:
+            player["mods"]["artifact_lives"] = int(carry["artifact_lives"])
     if float(ch.get("almighty_until", 0) or 0) > time.time():  # Yhwach's Eye: one fatal blow is survived
         player["almighty"] = True
         player["lives"] = 1
@@ -433,12 +465,58 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         player["re"] = max(0, int(player["max_re"] * carry["re"]))
         if "gauge" in carry:  # the spirit gauge is the same fighter's courage: it does not reset between stages
             player["x"]["gauge"] = max(0, int(carry["gauge"]))
-        if carry.get("shield", 0) > 0:  # the barrier was dropped between stages, so the enemy's opening hit landed on bare HP
+        if "artifact_lives" in carry:
+            player["mods"]["artifact_lives"] = max(0, int(carry["artifact_lives"]))
+        if carry.get("shield", 0) > 0:  # preserve any remaining barrier across encounters
             player["shield"] = int(carry["shield"])
     from data_bleachfx import enemy_sig
+    if dungeon and dungeon.get("final_judgment"):
+        fj_stage = int(dungeon.get("stage", 1))
+        fj_wave = int(dungeon.get("wave", 1))
+        if lang == "fa":
+            name = {
+                1: f"قاضی شماره {fj_wave}", 2: f"فرمانروای افسانه‌ای {fj_wave}",
+                3: "نگهبان منطقه خاموش", 4: "غول ورطه", 5: "سه‌گانه ویرانگر",
+                6: f"نگهبان موج {fj_wave}", 7: "بازتاب تاریک", 8: "هیولای پنج‌چهره",
+                9: f"جلاد نهایی {fj_wave}", 10: "THE FINAL JUDGE",
+            }.get(fj_stage, "داور نهایی")
+        else:
+            name = {
+                1: f"Judgment Executioner {fj_wave}", 2: f"Legendary Sovereign {fj_wave}",
+                3: "Warden of the Silent Zone", 4: "Abyssal Colossus", 5: "The Triune Cataclysm",
+                6: f"Wave Warden {fj_wave}", 7: "Dark Reflection", 8: "The Fivefold Abomination",
+                9: f"Final Executioner {fj_wave}", 10: "THE FINAL JUDGE",
+            }.get(fj_stage, "The Final Judge")
     sig = enemy_sig(sig_race, pick)
     foe = make_enemy(lvl, scale, name, rng, sig=sig)
-    if sig == "cero":  # hollow foe: tells the human passive who it is
+    if dungeon and dungeon.get("final_judgment"):
+        fj_stage = int(dungeon.get("stage", 1))
+        fj_wave = int(dungeon.get("wave", 1))
+        foe["foe"] = "boss"
+        foe["name"] = f"⚖️ {name}"
+        # Multi-encounter stages are genuinely separate fights; HP/Reiatsu are carried forward by the event service.
+        hp_k, dmg_k = {
+            1: (1.20, 1.00), 2: (2.40, 1.15), 3: (3.00, 1.10), 4: (5.00, 1.45),
+            5: (6.00, 1.65), 6: (1.35, 1.12), 7: (1.00, 1.00), 8: (8.00, 1.75),
+            9: (3.20, 1.45), 10: (12.0, 2.10),
+        }.get(fj_stage, (2.0, 1.0))
+        # Later encounters in boss gauntlets gain a small escalation; it is bounded and deterministic.
+        if fj_stage in (2, 9):
+            hp_k *= 1.0 + 0.12 * (fj_wave - 1)
+            dmg_k *= 1.0 + 0.05 * (fj_wave - 1)
+        foe["max_hp"] = foe["hp"] = max(1, int(foe["max_hp"] * hp_k))
+        foe["mods"]["dmg"] = float(foe["mods"].get("dmg", 1.0)) * dmg_k
+        if fj_stage == 7:
+            # The Dark Reflection copies the player's current build, including artifact procs and emergency lives.
+            foe = await build_player(ch, name="🪞 Dark Reflection")
+            # It is an AI-controlled boss, not a generic wild NPC: retain the complete player build and artifact effects.
+            foe["ai"], foe["wild"], foe["foe"] = True, False, "boss"
+            foe["mods"]["dmg"] *= 1.25
+        if fj_stage in (2, 8, 10):
+            foe["mods"]["dmg"] *= 1.10
+    if dungeon and dungeon.get("final_judgment"):
+        foe["foe"] = "boss"
+    elif sig == "cero":  # hollow foe: tells the human passive who it is
         foe["foe"] = "hollow"
     elif _is_boss_stage(dungeon, tower):  # dungeon final stage or Soul Tower Warden: race balance by fight type
         foe["foe"] = "boss"
@@ -447,11 +525,13 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
     if foe["foe"] == "boss":  # a boss hits with its old power but has far more HP (damage is x2 for everyone else)
         from data_misc import BOSS_HP_MULT
         foe["max_hp"] = foe["hp"] = int(foe["max_hp"] * BOSS_HP_MULT)
-    if dungeon and not war and not tower and dungeon.get("diff") == "legendary" and int(dungeon.get("stage", 1)) == 1:
+    if (dungeon and not war and not tower and not dungeon.get("final_judgment")
+            and dungeon.get("diff") == "legendary" and int(dungeon.get("stage", 1)) == 1):
         from data_misc import LEGEND_S1_HP, LEGEND_S1_DMG  # legendary dungeon, stage 1: more HP, weaker blows
         foe["max_hp"] = foe["hp"] = int(foe["max_hp"] * LEGEND_S1_HP)
         foe["mods"]["dmg"] = foe["mods"].get("dmg", 1.0) * LEGEND_S1_DMG
-    if fixed_dg or (dungeon and not war and not tower and not dungeon.get("gq") and not dungeon.get("lboss")):
+    if fixed_dg or (dungeon and not war and not tower and not dungeon.get("gq") and not dungeon.get("lboss")
+                    and not (dungeon.get("final_judgment") and int(dungeon.get("stage", 1)) == 7)):
         # dungeon foes are slow (Nov 21): the boss of the last stage has 60% less Hohō, its guards 30% less, so a
         # high-level dungeon is not a wall of dodged blows and fast counter-hits
         foe["stats"]["hoho"] = foe["stats"]["hoho"] * (DG_BOSS_HOHO if dungeon["stage"] == dungeon["total"] else DG_FOE_HOHO)
@@ -470,6 +550,10 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
                 shadow = True
     # a shadow is a real player's copy, so the fight follows duel rules (race balance of duels, Konpaku lives on both sides)
     state = E.new_state(player, foe, rng, pvp=shadow)
+    if dungeon and dungeon.get("final_judgment"):
+        stage = int(dungeon.get("stage", 1))
+        state["final_judgment"] = {"stage": stage, "phases": 5 if stage in (8, 10) else 1, "phase": 1}
+        state["cur"] = state["first"] = "a"  # Judgment encounters always begin with the challenger.
     from service_fightfx import start as fx_start  # the narrator's opening line, and a challenge for a normal fight
     fx_start(state, rng, challenge=not dungeon and not trial)
     if carry:  # next dungeon stage: the player always opens, so no free enemy hit lands on carried HP / the Bakudō barrier
@@ -501,6 +585,9 @@ async def pve_act(uid: int, sid: str, action: str, potion: dict = None):
     if st["cur"] != "a" or not st.get("awaiting"):
         return "notturn", None, None
     rng = random.Random()
+    fj = doc.get("dungeon") or {}
+    if action == "pot" and fj.get("final_judgment") and int(fj.get("stage", 0)) == 9:
+        return "forbidden", doc, None
     if action == "pot" and potion:
         ev = E.do_potion(st, potion["type"], potion["pct"])
     else:
@@ -526,6 +613,9 @@ async def pve_settle(doc: dict):
     win = st["winner"] == "a"
     out = {"win": win, "xp": 0, "coins": 0, "drop": None, "levels": 0, "next": None, "dungeon_done": False}
     now = int(time.time())
+    if (doc.get("dungeon") or {}).get("final_judgment"):
+        from service_final_judgment import settle as settle_final_judgment
+        return await settle_final_judgment(doc, win)
     from service_gangs_hook import bount_settle  # soul stacks left after the fight, +1 for a mansion win
     out["bstacks"] = await bount_settle(uid, doc, st)
     if (doc.get("dungeon") or {}).get("tower"):

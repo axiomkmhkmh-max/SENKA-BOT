@@ -46,7 +46,7 @@ async def art_panel(ctx, arg):
     rows = []
     if aid:
         a, d = ART_BY_ID[aid], await art_doc(aid)
-        body = ctx.t("art_body", name=art_name(aid, L), lore=_lore(a, L), bonus=art_bonus_text(aid, float(st["art_k"])), n=fnum(len(d.get("history") or []), L))
+        body = ctx.t("art_body", name=art_name(aid, L), lore=_lore(a, L), bonus=art_bonus_text(aid, float(st["art_k"]), L), n=fnum(len(d.get("history") or []), L))
         rows.append([(ctx.t("b_art_sell"), "axl", ""), (ctx.t("b_art_release"), "axr", "")])
     else:
         lst = await col("art_listings").find_one({"seller": ctx.uid, "status": "active"})
@@ -81,7 +81,7 @@ async def art_registry_panel(ctx, arg):
             who = ctx.t("arr_dropped")
         elif state == "full" and holders:
             who += " · " + ctx.t("arr_listed")
-        lines.append(f"{art_name(a['_id'], L)}  {art_bonus_text(a['_id'], float(st['art_k']))}\n   {who}")
+        lines.append(f"{art_name(a['_id'], L)}  {art_bonus_text(a['_id'], float(st['art_k']), L)}\n   {who}")
     lines.append("")
     lines.append(ctx.t("ax_page", p=fnum(page + 1, L), n=fnum(pages, L)))
     rows = []
@@ -128,7 +128,7 @@ async def exchange_view(ctx, arg):
         return Out(alert=ctx.t("art_e_gone"))
     a = ART_BY_ID[d["art"]]
     seller = await get_char(d["seller"])
-    body = ctx.t("axv_body", name=art_name(d["art"], L), lore=_lore(a, L), bonus=art_bonus_text(d["art"], float(st["art_k"])),
+    body = ctx.t("axv_body", name=art_name(d["art"], L), lore=_lore(a, L), bonus=art_bonus_text(d["art"], float(st["art_k"]), L),
                  price=fnum(d["price"], L), seller=esc((seller or {}).get("name", "?")), h=fnum(_hours_left(d["end_at"]), L))
     act = [(ctx.t("b_abuy"), "axy", arg)] if d["seller"] != ctx.uid else [(ctx.t("b_cancel"), "axc", arg)]
     return Out(head(ctx, "ttl_axm") + body, [act, nav(ctx, ("axm", "0"))])
@@ -228,7 +228,7 @@ def _top(L: str, doc: dict) -> str:
     parts = [t(L, "dr_head_art" if art else "dr_head_item")]
     if art:
         a = ART_BY_ID[doc["ref"]]
-        parts.append(t(L, "dr_art", name=art_name(doc["ref"], L), bonus=art_bonus_text(doc["ref"]), lore=_lore(a, L)))
+        parts.append(t(L, "dr_art", name=art_name(doc["ref"], L), bonus=art_bonus_text(doc["ref"], lang=L), lore=_lore(a, L)))
     else:
         parts.append(t(L, "dr_item", name=nm(doc["ref"], L), rar=rarity_name(ALL[doc["ref"]]["rarity"], L)))
     who = esc(doc["dropper_name"]) if doc.get("dropper") and doc.get("dropper_name") else t(L, "dr_gate")

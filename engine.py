@@ -93,7 +93,10 @@ def _new_x():
             # kidō (data_kido): per-spell cooldowns {"h31": turns} and the spell picked this turn ["kd"|"bk", number]
             "kcd": {}, "pick": None,
             # anti stun-lock: set right after a fighter loses a turn to a stun, cleared when they act again
-            "stun_im": 0}
+            "stun_im": 0,
+            # Kyōka Suigetsu: separate cooldowns and short-lived control effects.
+            "ks_cd": {}, "ks_mirror": 0, "ks_dom": 0, "ks_dodge": 0, "ks_def_down": 0,
+            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0}
 
 
 def _x(f):
@@ -120,7 +123,10 @@ def add_fx(f, k, turns, stacks=1):
 
 def total_def(f):
     d = (eff(f, "hakuda") * HAKUDA_DEF + f["armor"]) * f["mods"].get("def", 1.0) * max(0.1, 1 + bsum(f, "def"))
-    return d * (0.85 if has_fx(f, "weaken") else 1.0)
+    d *= (0.85 if has_fx(f, "weaken") else 1.0)
+    if (f.get("x") or {}).get("ks_def_down", 0) > 0:
+        d *= 0.60
+    return d
 
 
 def skill_p(f, sid):
@@ -163,6 +169,10 @@ def _dmg_mult(att):
         m *= GAUGE["dmg"]
     if x and (x.get("bf") or x.get("perm")):  # ability buffs (dmg +/-) and lasting bonuses (Shikai, Adjuchas, Full Mask)
         m *= max(0.1, 1 + bsum(att, "dmg") + float(x.get("perm", 0.0)))
+    if att.get("blade") == "kyoka_suigetsu" and x and x.get("kyoka_shikai_t", 0) > 0:
+        m *= 1.20 * (1.35 if x.get("kyoka_hogyoku") else 1.0)
+        if att.get("form", {}).get("on") == 2:
+            m *= 1.12
     if att.get("duel"):  # duel: stacked bonuses stop at mult_cap (penalties above still apply)
         m = min(m, DUEL["mult_cap"])
     return base * m
@@ -180,6 +190,8 @@ def _take_mult(dfn):
     if fx and fx[0] == "guard":
         m *= 1 - fx[1]
     dx = dfn.get("x") or {}
+    if dx.get("ks_dom", 0) > 0:
+        m *= 0.50  # Five Senses Domination: halve the controlled fighter's outgoing damage.
     if dx.get("gd_t", 0) > 0:  # Hierro and other guard techniques
         m *= dx.get("gd_m", 1.0)
     return m
@@ -257,9 +269,19 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if kind != "bala" and _ab_defend(state, side, kind, rng, ev):  # Utsusemi, Schatten, Cero Doble...
         return 0
     tmp = (att.get("x") or {}).get("tmp") or {}
-    dodge = dodge_chance(state, side) + bsum(dfn, "dodge")
+    dodge = dodge_chance(state, side) + bsum(dfn, "dodge") + float(dfn.get("mods", {}).get("dodge", 0.0))
     if has_fx(dfn, "hiren"):  # Hirenkyaku: a blur of speed
         dodge += SIG["hiren"]["dodge"]
+    dfx_state = dfn.get("x") or {}
+    if dfx_state.get("ks_dodge", 0) > 0:
+        dodge += 0.30
+    if dfn.get("blade") == "kyoka_suigetsu":
+        if dfx_state.get("kyoka_shikai_t", 0) > 0:
+            dodge += 0.25 + (0.05 if dfx_state.get("kyoka_hogyoku") else 0.0)
+            if dfn.get("form", {}).get("on") == 2:
+                dodge += 0.06
+        else:
+            dodge += 0.10  # Absolute Manipulator's sealed-state precognition.
     dodge = min(DODGE_CAP_ALL, dodge)
     if bhas(dfn, "nododge"):
         dodge = 0.0
@@ -288,6 +310,8 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if _x(att)["cb_t"] > 0:  # Pesquisa and other focus techniques
         crit_p += _x(att)["cb_v"]
     crit_p += bsum(att, "crit") + tmp.get("crit", 0.0)
+    if att.get("blade") == "kyoka_suigetsu" and (att.get("x") or {}).get("kyoka_shikai_t", 0) > 0:
+        crit_p += 0.08
     crit = rng.random() < crit_p
     cm = 1.5 + eff(att, "zanjutsu") * CRIT_ZAN + skill_p(att, "surge") / 100 + bsum(att, "cdmg") + tmp.get("cdmg", 0.0)
     if tmp.get("any"):
@@ -314,6 +338,11 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if tmp.get("ng") and dfn["guard"]:  # Cero Oculto: the Guard does not soften it
         tm /= 0.5
     dmg *= tm
+    # Shadow Monarch is part of the original hit, not a second unmitigated damage packet.
+    # Keeping it here ensures boss caps, duel hit caps, shields, and mitigation all apply.
+    shadow_echo = float(att.get("mods", {}).get("artifact_shadow_echo", 0.0))
+    if shadow_echo > 0 and kind not in ("dot", "reflect", "counter", "echo"):
+        dmg *= 1.0 + min(0.50, max(0.0, shadow_echo))
     return _apply(state, side, int(max(1, dmg)), crit, rng, ev, kind, allow_procs)
 
 
@@ -391,7 +420,23 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
         absorbed = min(dfn["shield"], dmg)
         dfn["shield"] -= absorbed
         dmg -= absorbed
+    hp_before = int(dfn["hp"])
     dfn["hp"] = max(0, dfn["hp"] - dmg)
+    # Kyōka Suigetsu Mirror World reflects half of a real, post-mitigation hit.
+    mirror = int((dfn.get("x") or {}).get("ks_mirror", 0))
+    if mirror > 0 and dmg > 0 and kind not in ("dot", "reflect", "counter", "echo"):
+        reflected = min(max(0, att["hp"] - 1), int(dmg * 0.50))
+        if reflected:
+            att["hp"] -= reflected
+            ev.append({"k": "reflect", "a": dfn["name"], "d": att["name"], "n": reflected})
+    # Signature artifact procs: measured from post-mitigation damage, never from overkill.
+    dealt = min(max(0, int(dmg)), hp_before)
+    steal = float(att.get("mods", {}).get("artifact_lifesteal", 0.0))
+    if steal > 0 and dealt > 0 and att.get("hp", 0) > 0 and kind not in ("dot", "reflect", "counter", "echo"):
+        healed = min(att["max_hp"] - att["hp"], max(1, int(dealt * steal)))
+        if healed > 0:
+            att["hp"] += healed
+            ev.append({"k": "heal", "a": att["name"], "n": healed})
     ev.append({"k": "hit", "a": att["name"], "d": dfn["name"], "n": dmg, "c": crit, "kind": kind, "abs": absorbed,
                "em": elem_mult(att, dfn)})
     if dmg > 0:  # every blow fills both spirits: the attacker's by striking, the target's by bleeding
@@ -529,12 +574,16 @@ def chant_wanted(f) -> bool:
 
 
 def best_kido(f, branch):
-    """The spell that is cast: the one picked this turn (see do_action), else the highest castable number."""
+    """The spell cast: a valid explicit turn pick, else a valid profile pick, else the highest ready spell.
+
+    An invalid explicit turn pick returns None rather than silently casting a different spell. An invalid persistent
+    profile pick is handled by ready_hado(), which clears that preference before falling back.
+    """
     pick = _x(f).get("pick")
     if pick and pick[0] == ("kd" if branch == "had" else "bk"):
-        if kido_castable(f, branch, pick[1]):
-            return pick[1]
-        # a menu pick that cannot be cast any more falls through to the strongest castable spell (never a dead button)
+        # An explicit in-fight selection must never silently cast a different spell.
+        # The profile's persistent kpick is handled separately and can be cleared by ready_hado().
+        return pick[1] if kido_castable(f, branch, pick[1]) else None
     kp = (f.get("kpick") or {}).get(branch)
     if kp and kp in f["kido"][branch] and kido_castable(f, branch, kp):  # the spell the player put on this button (ability panel)
         return kp
@@ -650,6 +699,20 @@ def _range_move(state, side, action):
 def can(f, action, state=None):
     if action in ("atk", "df"):
         return True
+    if f.get("fj_limited") and action not in ("atk", "df", "mvs", "mvn", "rt", "sd"):
+        return False
+    if action in ("ks1", "ks2", "ks3", "ks4", "ks5"):
+        if f.get("blade") != "kyoka_suigetsu":
+            return False
+        x = _x(f)
+        if action == "ks5" and x.get("kyoka_shikai_t", 0) <= 0:
+            return False
+        if action != "ks5" and x.get("ks_cd", {}).get(action, 0) > 0:
+            return False
+        if action == "ks5" and x.get("ks_cd", {}).get(action, 0) > 0:
+            return False
+        cost = {"ks1": 0.08, "ks2": 0.10, "ks3": 0.12, "ks4": 0.16, "ks5": 0.30}[action]
+        return f["re"] >= f["max_re"] * cost
     if not race_allows(f.get("race"), action):  # e.g. Arrancar cannot cast Kidō or release Bankai
         return False
     if f.get("duel") and action in DUEL_RELEASE_LOCK and _x(f)["awake"] > 0:
@@ -685,8 +748,17 @@ def can(f, action, state=None):
     if action == "hvy":
         return f["re"] >= f["max_re"] * 0.10 and not _x(f).get("hv_last")
     if action == "kd":
+        # A configured button pick is an explicit choice. If it is not currently castable
+        # (e.g. Hadō 96 without its chant), report the button as unavailable; ready_hado()
+        # can then clear that stale pick and deliberately fall back to the strongest ready spell.
+        picked = (f.get("kpick") or {}).get("had")
+        if picked and not kido_castable(f, "had", picked):
+            return False
         return best_kido(f, "had") is not None
     if action == "bk":
+        picked = (f.get("kpick") or {}).get("bak")
+        if picked and not kido_castable(f, "bak", picked):
+            return False
         return best_kido(f, "bak") is not None
     if action == "sg":
         sg = f.get("sig")
@@ -790,6 +862,57 @@ def start_turn(state, rng):
     ev = []
     f["guard"] = False
     fs = _x(f)
+    # The Final Judgment bosses awaken at fixed HP thresholds; phase state is persisted in the battle document.
+    fj = state.get("final_judgment") or {}
+    if side == "b" and fj.get("phases", 1) > 1 and f.get("foe") == "boss":
+        total = int(fj["phases"])
+        phase = min(total, max(1, int((1 - f["hp"] / max(1, f["max_hp"])) * total) + 1))
+        old_phase = int(fj.get("phase", 1))
+        if phase > old_phase:
+            for next_phase in range(old_phase + 1, phase + 1):
+                fj["phase"] = next_phase
+                f["mods"]["dmg"] = float(f["mods"].get("dmg", 1.0)) * 1.12
+                f["stats"]["hoho"] = float(f["stats"].get("hoho", 1)) * 1.08
+                if next_phase == 2:
+                    f["mods"]["dodge"] = float(f["mods"].get("dodge", 0.0)) + 0.08
+                    ev.append({"k": "fj_speed", "a": f["name"]})
+                elif next_phase == 3:
+                    add_fx(state["a"], "burn", 2)
+                    ev.append({"k": "fj_hazard", "a": f["name"], "d": state["a"]["name"]})
+                elif next_phase == 4:
+                    f["shield"] += max(1, int(f["max_hp"] * 0.08))
+                    f["mods"]["pierce"] = float(f["mods"].get("pierce", 0.0)) + 0.20
+                    ev.append({"k": "fj_barrier", "a": f["name"]})
+                elif next_phase == 5:
+                    f["mods"]["dmg"] *= 1.35
+                    f["mods"]["dodge"] = float(f["mods"].get("dodge", 0.0)) + 0.15
+                    ev.append({"k": "fj_absolute" if int(fj.get("stage", 0)) == 10 else "fj_phase",
+                               "a": f["name"], "n": next_phase, "t": total})
+                else:
+                    ev.append({"k": "fj_phase", "a": f["name"], "n": next_phase, "t": total})
+    # Tick Kyōka's short-lived effects and cooldowns only on the owner's turn.
+    for key in ("ks_mirror", "ks_dom", "ks_dodge", "ks_def_down"):
+        if fs.get(key, 0) > 0:
+            fs[key] -= 1
+    if fs.get("kyoka_shikai_t", 0) > 0:
+        fs["kyoka_shikai_t"] -= 1
+        if fs["kyoka_shikai_t"] <= 0:
+            fs["kyoka_hogyoku"] = 0
+            ev.append({"k": "ks_shikai_end", "a": f["name"]})
+    if fs.get("kyoka_shikai_cd", 0) > 0:
+        fs["kyoka_shikai_cd"] -= 1
+    for key in list((fs.get("ks_cd") or {})):
+        fs["ks_cd"][key] = max(0, int(fs["ks_cd"][key]) - 1)
+        if fs["ks_cd"][key] <= 0:
+            del fs["ks_cd"][key]
+    if f.get("mods", {}).get("artifact_hogyoku"):
+        # Track the un-evolved base once. Multiplying by another 4% each turn compounded
+        # to +26.5% after six turns despite the advertised +24% evolution ceiling.
+        if "hogyoku_base_dmg" not in fs:
+            fs["hogyoku_base_dmg"] = float(f["mods"].get("dmg", 1.0))
+        stacks = min(6, int(fs.get("hogyoku_evo", 0)) + 1)
+        fs["hogyoku_evo"] = stacks
+        f["mods"]["dmg"] = float(fs["hogyoku_base_dmg"]) * (1.0 + 0.04 * stacks)
     fs["flash"] = fs["open"] = 0
     bf_tick(state, side)  # ability buffs and debuffs this side cast lose a turn
     if fs.get("ifcd", 0) > 0:
@@ -824,6 +947,18 @@ def start_turn(state, rng):
         fs["nat_h"] = h
     else:
         fs["nat_h"] = 0
+    # Shadow Monarch summons a shade that performs one mitigated echo strike each owner turn.
+    shadow = float(f.get("mods", {}).get("artifact_shadow_echo", 0.0))
+    foe = state["b" if side == "a" else "a"]
+    if shadow > 0 and foe.get("hp", 0) > 0 and not state.get("done"):
+        echo = _deal(state, side, min(0.18, shadow), rng, ev, "echo", allow_procs=False)
+        if echo > 0:
+            ev.append({"k": "shadow_echo", "a": f["name"], "d": foe["name"], "n": echo})
+            _check_end(state, ev)
+    if f.get("blade") == "kyoka_suigetsu" and fs.get("kyoka_shikai_t", 0) > 0 and 0 < f["hp"] < f["max_hp"]:
+        heal = min(f["max_hp"] - f["hp"], max(1, int(f["max_hp"] * 0.10)))
+        f["hp"] += heal
+        ev.append({"k": "heal", "a": f["name"], "n": heal})
     rg = f["mods"].get("regen", 0)
     if rg and 0 < f["hp"] < f["max_hp"]:  # companion healing (pet role)
         h = max(1, int(_hb(f) * rg))
@@ -875,6 +1010,13 @@ def start_turn(state, rng):
 
 def _check_end(state, ev=None):
     a, b = state["a"], state["b"]
+    for f in (a, b):
+        if f["hp"] <= 0 and int(f.get("mods", {}).get("artifact_lives", 0)) > 0:
+            f["mods"]["artifact_lives"] -= 1
+            f["hp"] = max(1, int(f["max_hp"] * float(f["mods"].get("artifact_revive_hp", 0.50))))
+            f["fx"] = [e for e in f["fx"] if e["k"] not in DOT and e["k"] not in ("fear", "weaken", "shock")]
+            if ev is not None:
+                ev.append({"k": "konpaku", "a": f["name"]})
     for f in (a, b):  # Konpaku (SENKA+): duels only; the soul is pulled back once
         if f["hp"] <= 0 and (state.get("pvp") or f.get("almighty")) and f.get("lives", 0) > 0:
             f["lives"] -= 1
@@ -1015,6 +1157,62 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
     acd = _x(f).setdefault("acd", {}) if fab else {}
     if action == "atk":
         _deal(state, side, 1.0, rng, ev, "atk")
+    elif action in ("ks1", "ks2", "ks3", "ks4", "ks5"):
+        x = _x(f)
+        foe = state["b" if side == "a" else "a"]
+        shikai = bool(x.get("kyoka_shikai_t", 0) > 0)
+        costs = {"ks1": 0.08, "ks2": 0.10, "ks3": 0.12, "ks4": 0.16, "ks5": 0.30}
+        f["re"] -= int(f["max_re"] * costs[action])
+        if action == "ks1":  # Illusion Strike / Absolute Illusion
+            _deal(state, side, 1.20 if not shikai else 2.50, rng, ev, "tech", allow_procs=True)
+            if foe["hp"] > 0 and rng.random() < (0.25 if not shikai else 0.40):
+                add_bf(foe, {"miss": 0.25, "t": 1}, side)
+                ev.append({"k": "ks_illusion", "a": f["name"], "d": foe["name"]})
+            x["ks_cd"][action] = 2 if not shikai else 3
+        elif action == "ks2":  # Decoy in sealed state; Mirror World after release
+            if shikai:
+                x["ks_mirror"] = 2
+                ev.append({"k": "ks_mirror", "a": f["name"]})
+            else:
+                x["ks_dodge"] = 1
+                if rng.random() < 0.35:
+                    add_bf(foe, {"miss": 0.35, "t": 1}, side)
+                ev.append({"k": "ks_decoy", "a": f["name"]})
+            x["ks_cd"][action] = 3
+        elif action == "ks3":  # Mind Distortion / Five Senses Domination
+            if shikai:
+                xfoe = _x(foe)
+                xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 3)
+                add_bf(foe, {"miss": 0.50, "t": 2}, side)
+                ev.append({"k": "ks_dom", "a": f["name"], "d": foe["name"]})
+            else:
+                add_bf(foe, {"miss": 0.25, "t": 2}, side)
+                ev.append({"k": "ks_distort", "a": f["name"], "d": foe["name"]})
+            x["ks_cd"][action] = 4
+        elif action == "ks4":  # Phantom Step / Illusionary Execution
+            if shikai:
+                old_crit = float(f["mods"].get("crit", 0.0))
+                f["mods"]["crit"] = old_crit + 0.30
+                try:
+                    _deal(state, side, 3.50, rng, ev, "tech", allow_procs=True, extra_pierce=0.30)
+                finally:
+                    f["mods"]["crit"] = old_crit
+                if foe["hp"] > 0 and rng.random() < 0.30:
+                    add_fx(foe, "skip", 1)
+            else:
+                x["ks_dodge"] = 1
+                _deal(state, side, 1.20, rng, ev, "tech", allow_procs=True)
+            x["ks_cd"][action] = 5
+        else:  # Kanzen Saimin: Infinite Mirage
+            _deal(state, side, 5.00, rng, ev, "tech", allow_procs=True, extra_pierce=0.30)
+            if foe["hp"] > 0:
+                xfoe = _x(foe)
+                xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 3)
+                xfoe["ks_def_down"] = max(xfoe.get("ks_def_down", 0), 3)
+                add_bf(foe, {"miss": 0.40, "t": 2}, side)
+            x["buff_t"], x["buff_m"] = 4, 1.50
+            x["ks_cd"][action] = 5
+            ev.append({"k": "ks_ultimate", "a": f["name"], "d": foe["name"]})
     elif fab and action in fab and action in ("sg", "t1", "t2", "t3", "gt"):  # the picked type of this family (data_abilities)
         if action == "gt":
             _x(f)["slash"] = 0
@@ -1228,6 +1426,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         if n:
             f["form"]["used"][n - 1] = 1
             ev.append({"k": "form", "a": f["name"], "n": n, "r": f["race"]})
+        # Kyoka Bankai's extra multiplier is applied dynamically while the form is active.
         _deal(state, side, GAUGE["strike"] * fixed_k(f, "rel"), rng, ev, "hvy", src="abl")  # arrives with the release: Bankai is an attack, not a pause
         if f.get("mv") and ev and ev[-1].get("k") == "hit":
             ev[-1]["mv"] = f["mv"]
@@ -1296,6 +1495,20 @@ def do_action(state, action, rng, max_turns=MAX_TURNS):
     hp0 = o["hp"]
     # hv_last is read by can(f, "hvy") inside _do_action, so it must only be set after the strike
     ev = _do_action(state, action, rng, max_turns)
+    # Stage five's three sovereigns share one turn: the primary action plus two capped follow-up strikes.
+    fj = state.get("final_judgment") or {}
+    stage = int(fj.get("stage", 0))
+    triple = stage == 5
+    absolute = stage == 10 and int(fj.get("phase", 1)) >= 5
+    if side == "b" and (triple or absolute) and not state.get("done") and eff not in MOVE_ACTIONS and eff not in ("df", "gc", "ch"):
+        ev.append({"k": "fj_absolute_strike" if absolute else "fj_triple", "a": f["name"]})
+        for power in (0.72, 0.72) if absolute else (0.62, 0.62):
+            if state["a"]["hp"] <= 0 or state["b"]["hp"] <= 0:
+                break
+            _deal(state, "b", power, rng, ev, "tech", allow_procs=False)
+            if _check_end(state, ev):
+                state["awaiting"] = False
+                break
     _x(f)["pick"] = None
     _x(f)["hv_last"] = (eff == "hvy")
     dmg = hp0 - o["hp"]
@@ -1364,6 +1577,12 @@ def _ai_ab(state, side, rng):
     x = _x(f)
     if can(f, "sk", state) and r < 0.8:
         return "sk"
+    if f.get("blade") == "kyoka_suigetsu":
+        if can(f, "ks5", state) and rng.random() < 0.45:
+            return "ks5"
+        ready_kyoka = [act for act in ("ks4", "ks3", "ks1", "ks2") if can(f, act, state)]
+        if ready_kyoka and rng.random() < 0.85:
+            return rng.choice(ready_kyoka)
     for act, on in (x.get("chg") or {}).items():
         if on and r < 0.9:
             return act
@@ -1593,6 +1812,8 @@ def gate_ok(state, side, gate) -> bool:
         return True
     x = _x(f)
     if gate == "shikai":
+        if f.get("blade") == "kyoka_suigetsu":
+            return x.get("kyoka_shikai_t", 0) > 0 or f["form"]["on"] == 2
         return bool(x.get("sk")) or f["form"]["on"] == 2
     if gate == "mask":
         return bool(x.get("sk")) or bool(f["form"]["on"])
@@ -1937,7 +2158,11 @@ SHIKAI_EVENTS = {"shinigami": "shikai", "visored": "mask_on"}
 def sk_can(f) -> bool:
     if f.get("race") not in ("shinigami", "visored") or f.get("wild") or not f.get("ab"):
         return False
-    return f["level"] >= AB.SHIKAI_LEVEL and not _x(f).get("sk") and f["re"] >= f["max_re"] * AB.SHIKAI_COST
+    x = _x(f)
+    if f.get("blade") == "kyoka_suigetsu":
+        return (f["level"] >= AB.SHIKAI_LEVEL and x.get("kyoka_shikai_t", 0) <= 0
+                and x.get("kyoka_shikai_cd", 0) <= 0 and f["re"] >= f["max_re"] * AB.SHIKAI_COST)
+    return f["level"] >= AB.SHIKAI_LEVEL and not x.get("sk") and f["re"] >= f["max_re"] * AB.SHIKAI_COST
 
 
 def sk_run(state, side, ev):
@@ -1946,7 +2171,12 @@ def sk_run(state, side, ev):
     x = _x(f)
     x["sk"] = 1
     lv = int((f.get("abx") or {}).get("sk_shikai" if f["race"] == "shinigami" else "sk_mask", 1))
-    x["perm"] = x.get("perm", 0.0) + AB.SHIKAI_DMG * AB.lv_k(lv)
+    if f.get("blade") == "kyoka_suigetsu":
+        x["kyoka_shikai_t"] = 5  # four full player actions after the release turn
+        x["kyoka_shikai_cd"] = 9  # four full turns of downtime after the active window
+        x["kyoka_hogyoku"] = int(bool(f["mods"].get("artifact_hogyoku")))
+    else:
+        x["perm"] = x.get("perm", 0.0) + AB.SHIKAI_DMG * AB.lv_k(lv)
     ev.append({"k": SHIKAI_EVENTS[f["race"]], "a": f["name"], "mv": f.get("mv"), "bl": f.get("blade")})
 
 

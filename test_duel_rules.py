@@ -123,6 +123,9 @@ class ShieldCap(unittest.TestCase):
         self.assertEqual(a["shield"], int(a["max_hp"] * DUEL["shield_cap"]))
         E._shield_add(a, 5000)
         self.assertEqual(a["shield"], int(a["max_hp"] * DUEL["shield_cap"]))
+        # new_state may have given the non-opening fighter its one-time second-guard shield.
+        # Turning duel rules off does not erase an already-created shield.
+        initial = b["shield"]
         b["duel"] = False
         E._shield_add(b, 10 ** 7)
-        self.assertEqual(b["shield"], 10 ** 7)
+        self.assertEqual(b["shield"], initial + 10 ** 7)

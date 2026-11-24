@@ -119,6 +119,8 @@ async def profile(ctx, arg):
     if ch.get("artifact"):
         from data_artifacts import art_name
         lines.append("🔱 " + art_name(ch["artifact"], L))
+    if ch.get("final_judgment_cleared"):
+        lines.append(ctx.t("fj_clear_title"))
     if ch.get("kenpachi_art"):
         from data_battlerank import KENPACHI_ART
         lines.append("👁 " + KENPACHI_ART["name"][0 if L == "fa" else 1])

@@ -331,6 +331,30 @@ ARTIFACTS = [
      "lore_en": "The braid of the first Kenpachi, worn over her chest. Whoever is healed by it is also being measured.",
      "lore_fa": "بافته‌ی نخستین کنپاچی که روی سینه‌اش می‌افتد؛ هر که با آن شفا یابد، هم‌زمان سنجیده می‌شود."},
 ]
+# ---- Transcendent combat relics: these effects are consumed by service_combat + engine ----
+ARTIFACTS.extend([
+    {"_id": "art_lifesteal_crown", "icon": "🩸", "name_en": "Crimson Devourer", "name_fa": "تاج بلعنده‌ی سرخ",
+     "bonus": {"dmg": 0.10, "regen": 0.08}, "rarity": "Mythic", "tier": 5,
+     "effect": {"kind": "lifesteal", "value": 0.10},
+     "lore_en": "Every clean strike returns a fraction of the enemy's vitality.",
+     "lore_fa": "هر ضربه‌ی موفق بخشی از نیروی حیاتی دشمن را به صاحبش بازمی‌گرداند."},
+    {"_id": "art_shadow_monarch", "icon": "🌑", "name_en": "Shadow Monarch Core", "name_fa": "هسته‌ی پادشاه سایه‌ها",
+     "bonus": {"dmg": 0.12, "def": 0.08}, "rarity": "Divine", "tier": 6,
+     "effect": {"kind": "shadow_echo", "value": 0.12},
+     "lore_en": "A sovereign core that lets its bearer command a fragment of the shadow realm.",
+     "lore_fa": "هسته‌ای فرمانروا که به صاحبش اجازه می‌دهد بخشی از قلمرو سایه‌ها را به خدمت بگیرد."},
+    {"_id": "art_almighty", "icon": "👁️", "name_en": "The Almighty", "name_fa": "آل‌مایتی",
+     "bonus": {"crit": 0.10, "def": 0.10}, "rarity": "Divine", "tier": 6,
+     "effect": {"kind": "precognition", "dodge": 0.12},
+     "lore_en": "A future-sight relic that reads an opening before it becomes an attack.",
+     "lore_fa": "یادگاری از دیدن آینده که شکاف دفاعی را پیش از تبدیل‌شدن به حمله تشخیص می‌دهد."},
+    {"_id": "art_transcendent_armor", "icon": "🛡️", "name_en": "Armor of the Undying King", "name_fa": "زره پادشاه نامیرا",
+     "bonus": {"def": 0.18, "regen": 0.12}, "rarity": "Transcendent", "tier": 7,
+     "effect": {"kind": "revive", "uses": 1, "hp": 0.50},
+     "lore_en": "Once per battle, the armor rejects a fatal blow and restores half its bearer's vitality.",
+     "lore_fa": "این زره در هر نبرد یک بار مرگ را رد می‌کند و صاحبش را با نیمی از جان زنده نگه می‌دارد."},
+])
+
 ART_BY_ID = {a["_id"]: a for a in ARTIFACTS}
 BONUS_ICON = (("dmg", "⚔️"), ("def", "🛡️"), ("crit", "🎯"), ("xp", "⭐"), ("drop", "🎁"), ("coin", "🪙"), ("hunt", "🧭"), ("regen", "💚"))
 
@@ -340,11 +364,27 @@ def art_name(aid: str, lang: str) -> str:
     return aid if not a else f"{a['icon']} {a['name_fa' if lang == 'fa' else 'name_en']}"
 
 
-def art_bonus_text(aid: str, k: float = 1.0) -> str:
+ARTIFACT_EFFECT_TEXT = {
+    "art_hogyoku": ("در هر نوبت تا ۲۴٪ قدرت آسیب را تکامل می‌دهد", "Evolves up to +24% damage over six turns"),
+    "art_soulking": ("۲۰٪ HP بیشتر، ۱۲٪ ریجن، ۸٪ قدرت و یک احیای ۵۰٪", "+20% HP, +12% regeneration, +8% damage and one 50% revive"),
+    "art_lifesteal_crown": ("۱۰٪ آسیب واردشده را به جان تبدیل می‌کند", "Converts 10% of damage dealt into HP"),
+    "art_shadow_monarch": ("۱۲٪ آسیب اضافه از پژواک سایه وارد می‌کند", "Adds a 12% shadow-damage echo"),
+    "art_almighty": ("۱۲٪ شانس جاخالی با پیش‌بینی حرکت دشمن", "12% additional dodge from precognition"),
+    "art_transcendent_armor": ("یک بار در نبرد با ۵۰٪ جان احیا می‌کند", "Revives once per battle with 50% HP"),
+}
+
+
+def art_bonus_text(aid: str, k: float = 1.0, lang: str = "en") -> str:
     a = ART_BY_ID.get(aid)
     if not a:
         return ""
-    return " ".join(f"{ic} +{a['bonus'][key] * k * 100:.0f}%" for key, ic in BONUS_ICON if key in a["bonus"])
+    stats = " ".join(f"{ic} +{a['bonus'][key] * k * 100:.0f}%" for key, ic in BONUS_ICON if key in a["bonus"])
+    effect = ARTIFACT_EFFECT_TEXT.get(aid)
+    if effect:
+        stats += " · " + effect[0 if lang == "fa" else 1]
+    tier = TIERS.get(int(a.get("tier", 1)), {})
+    tier_name = tier.get("name_fa" if lang == "fa" else "name_en")
+    return (tier_name + " · " + stats) if tier_name else stats
 
 # --- NEW BLEACH VIRAL SYSTEM: the true Hogyoku (one copy in the whole database), typing verses, Reiatsu modifiers ---
 import time as _time
@@ -400,10 +440,11 @@ TIERS = {
     1: {"name_en": "Gotei Rank & File", "name_fa": "سرباز گوتی ۱۳", "cap": 10 * COPY_MULT},
     2: {"name_en": "Lieutenant / Captain", "name_fa": "ستوان / کاپیتان", "cap": 5 * COPY_MULT},
     3: {"name_en": "Captain-Commander / Espada", "name_fa": "فرمانده‌ی کل / اسپادا", "cap": 3 * COPY_MULT},
-    4: {"name_en": "Soul King / Central 46", "name_fa": "پادشاه ارواح / سنترال ۴۶", "cap": 2 * COPY_MULT},
-    # Signature relics of Aizen, Tōshirō and Ichigo: far stronger than everything else and almost unobtainable.
-    # `cap` is fixed (NOT scaled by COPY_MULT): at most ONE player in the whole world can hold each one.
-    5: {"name_en": "Legendary Signature Relic", "name_fa": "یادگار امضایی افسانه‌ای", "cap": 1},
+    4: {"name_en": "Legendary", "name_fa": "افسانه‌ای", "cap": 2 * COPY_MULT},
+    # High-tier relics are deliberately scarce and have fixed world copy caps.
+    5: {"name_en": "Mythic", "name_fa": "میتیک", "cap": 1},
+    6: {"name_en": "Divine", "name_fa": "دیواین", "cap": 2},
+    7: {"name_en": "Transcendent", "name_fa": "ترنسندنت", "cap": 2},
 }
 TIER_OF = {
     "art_gikongan": 1, "art_kon_pill": 1, "art_hat": 1, "art_straw_hat": 1, "art_hellbutterfly": 1,
@@ -428,6 +469,7 @@ TIER_OF = {
     "art_sternritter_cloak": 2, "art_schrift": 2,
     "art_pantera": 3, "art_murcielago": 3, "art_los_lobos": 3, "art_tiburon": 3, "art_santa_teresa": 3,
     "art_ryujin_cane": 3, "art_aizen_coat": 3, "art_unohana_braid": 3,
+    "art_lifesteal_crown": 5, "art_shadow_monarch": 6, "art_almighty": 6, "art_transcendent_armor": 7,
 }
 MAX_STAT = 0.06  # low power on purpose: every single bonus is capped here (the old 0.10 values were too strong)
 for _a in ARTIFACTS:
@@ -462,6 +504,7 @@ SIGNATURE = {
     # Ichigo Kurosaki
     "art_zangetsu_frag":   {"dmg": 0.35, "crit": 0.18, "def": 0.14},
     "art_badge":           {"dmg": 0.28, "xp": 0.25, "def": 0.14},
+    "art_soulking":        {"dmg": 0.22, "def": 0.22, "regen": 0.20, "xp": 0.20},
     "art_visored_mask":    {"dmg": 0.28, "def": 0.22, "crit": 0.12},
 }
 SIGNATURE_TIER = 5
@@ -472,9 +515,18 @@ for _a in ARTIFACTS:
         _a["cap"] = TIERS[SIGNATURE_TIER]["cap"]
         _a["bonus"] = dict(SIGNATURE[_a["_id"]])
 
+# Hōgyoku and Soul King are evolving relics with one emergency safeguard per battle.
+ART_BY_ID["art_hogyoku"]["effect"] = {"kind": "hogyoku_evolution"}
+ART_BY_ID["art_soulking"]["effect"] = {"kind": "soulking", "uses": 1, "hp": 0.50, "hp_mult": 1.20, "regen": 0.12, "dmg": 0.08}
+
 
 def art_drop_weight(aid: str) -> float:
-    return SIGNATURE_DROP_WEIGHT if aid in SIGNATURE else 1.0
+    """Relative selection weight: Mythic/Divine/Transcendent copies are genuinely rare, not just capped."""
+    if aid in SIGNATURE:
+        return SIGNATURE_DROP_WEIGHT
+    a = ART_BY_ID.get(aid)
+    tier = int(a.get("tier", 1)) if a else 1
+    return {5: 0.05, 6: 0.02, 7: 0.005}.get(tier, 1.0)
 
 
 def art_due(chance: float, now: float, last_art_at: float, pity_seconds: float, roll: float) -> bool:
@@ -491,3 +543,8 @@ def art_due(chance: float, now: float, last_art_at: float, pity_seconds: float, 
 def art_cap(aid: str) -> int:
     a = ART_BY_ID.get(aid)
     return int(a["cap"]) if a else 1
+
+
+def art_held_count(holders: int, active_listings: int) -> int:
+    """Reconciled occupied copies. Never clamp to cap: an over-cap legacy state must block new drops."""
+    return max(0, int(holders)) + max(0, int(active_listings))

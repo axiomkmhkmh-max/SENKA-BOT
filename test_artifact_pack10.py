@@ -16,7 +16,7 @@ NEW = [a for a in D.ARTIFACTS if a["_id"] in {
 class Pack10(unittest.TestCase):
     def test_thirty_two_added_and_all_unique(self):
         self.assertEqual(len(NEW), 32)
-        self.assertEqual(len(D.ARTIFACTS), 80)
+        self.assertEqual(len(D.ARTIFACTS), 84)
         for key in ("_id", "name_en", "name_fa"):
             vals = [a[key] for a in D.ARTIFACTS]
             self.assertEqual(len(vals), len(set(vals)), key)

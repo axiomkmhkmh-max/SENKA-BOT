@@ -1,7 +1,7 @@
-"""Zanpakutō release stages: each named blade gets its own Shikai and Bankai names and an extra power bonus.
+"""Zanpakutō release stages and blade-specific combat identities.
 
 The bonus is added on top of the generic release bonus in service_combat.build_player (Shikai +10%,
-Bankai +12% plus mastery), so a blade listed here only changes how its release feels, never the base rules.
+Bankai +12% plus mastery). Selected signature blades can also receive bespoke combat modifiers there.
 Blades not listed keep the generic release. Pure data, no I/O.
 """
 
@@ -14,7 +14,7 @@ BLADE_STAGES = {
     "hyorinmaru": {"shikai": ("هیورین‌مارو", "Hyōrinmaru"), "bankai": ("دایگورن هیورین‌مارو", "Daiguren Hyōrinmaru"),
                    "shikai_bonus": 0.08, "bankai_bonus": 0.12},  # Daiguren: among the strongest Bankai
     "kyoka_suigetsu": {"shikai": ("کیوکا سویگتسو", "Kyōka Suigetsu"), "bankai": ("کیوکا سویگتسو (بانکای)", "Kyōka Suigetsu (Bankai)"),
-                       "shikai_bonus": 0.03, "bankai_bonus": 0.05},
+                       "shikai_bonus": 0.22, "bankai_bonus": 0.35},
     "zanka_no_tachi": {"shikai": ("ریوجین جاکا", "Ryūjin Jakka"), "bankai": ("زانکا نو تاچی", "Zanka no Tachi"),
                        "shikai_bonus": 0.02, "bankai_bonus": 0.06},
     "sode_no_shirayuki": {"shikai": ("سوده نو شیرایوکی", "Sode no Shirayuki"),

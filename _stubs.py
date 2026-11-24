@@ -14,7 +14,8 @@ _STUBS = {
     "pymongo": {"ReturnDocument": types.SimpleNamespace(AFTER=1, BEFORE=0)},
     "database": {"col": lambda n: None, "game_settings": _noop, "try_cooldown": _noop, "bump_counter": _noop, "counter_get": _noop},
     "service_log": {"log_event": _noop},
-    "service_player": {"add_coins": _noop, "add_xp": _noop, "bump_quest": _noop, "get_char": _noop},
+    "service_player": {"add_coins": _noop, "add_xp": _noop, "bump_quest": _noop, "get_char": _noop,
+                       "max_hp": lambda *a, **k: 1, "max_reiatsu": lambda *a, **k: 1},
     "service_worldcore": {"mods_for": _noop},
 }
 
