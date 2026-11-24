@@ -506,7 +506,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
         foe["name"] = f"⚖️ {name}"
         # Multi-encounter stages are genuinely separate fights; HP/Reiatsu are carried forward by the event service.
         hp_k, dmg_k = {
-            1: (1.20, 1.00), 2: (2.40, 1.15), 3: (3.00, 1.10), 4: (5.00, 1.45),
+            1: (1.20, 1.00), 2: (2.40, 1.15), 3: (1.50, 1.00), 4: (5.00, 1.45),
             5: (6.00, 1.65), 6: (1.35, 1.12), 7: (1.00, 1.00), 8: (8.00, 1.75),
             9: (3.20, 1.45), 10: (12.0, 2.10),
         }.get(fj_stage, (2.0, 1.0))
@@ -526,6 +526,7 @@ async def pve_start(uid: int, lang: str, scale: float = 1.0, dungeon: dict = Non
             foe["mods"]["dmg"] *= 1.10
     if dungeon and dungeon.get("final_judgment"):
         foe["foe"] = "boss"
+        foe["fj"] = True
     elif sig == "cero":  # hollow foe: tells the human passive who it is
         foe["foe"] = "hollow"
     elif _is_boss_stage(dungeon, tower):  # dungeon final stage or Soul Tower Warden: race balance by fight type

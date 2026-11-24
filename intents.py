@@ -95,7 +95,6 @@ RAW.update({
     "shikai_word": ("bkw", "s", ["شایکای", "shikai"]),
     "mask_word": ("mkw", "", ["ماسک", "mask"]),
     "bleach_status": ("bst", "", ["وضعیت", "ریاتسو", "reiatsu", "status"]),
-    "steal_hogyoku": ("hgs", "", ["دزدی", "خیانت", "betray"]),
     "wanted_list": ("wnt", "", ["لیست تحت تعقیب", "تحت تعقیب", "wanted list"]),
     "espada_board": ("esp", "", ["جدول اسپادا", "اسپادا ۰ تا ۹", "espada board"]),
 })
@@ -108,7 +107,7 @@ RAW.update({
     "mnt": ("mnt", "", ["استاد", "شاگرد", "استاد و شاگرد", "استاد شاگرد", "mentor", "mentorship", "master", "apprentice"]),
 })
 GROUP_OK = {"soul", "duel", "duel_friendly", "boss", "battle", "kido", "help", "home", "chronicle", "commands", "event",
-            "bankai_word", "shikai_word", "mask_word", "bleach_status", "steal_hogyoku", "wanted_list", "espada_board"}
+            "bankai_word", "shikai_word", "mask_word", "bleach_status", "wanted_list", "espada_board"}
 _map: dict = {}
 _extra_at = 0.0
 

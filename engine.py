@@ -34,6 +34,8 @@ HOG_REBIRTH_STAGES = 3  # a revival makes the orb jump three stages at once
 HOG_HIT_CAP_FROM = 4    # from this stage on no single blow takes more than the cap below
 HOG_HIT_CAP0, HOG_HIT_CAP_STEP = 0.50, 0.03  # cap = 50% - 3% per stage of max HP (20% at stage 10)
 TURN_HP_REGEN = 0.03   # share of the old-scale HP (_hb) recovered at the end of each turn (natural recovery)
+FJ_BOSS_FLOOR = 0.25   # Final Judgment bosses: a player's hit deals at least this share of its armour-free damage
+FJ_REGEN_K = 0.4       # Final Judgment bosses recover only this share of the (already reduced) boss regen
 MAX_TURNS = 200        # turn cap of a fight (was 30): HP is x6 now, so fights are long and epic
 CRIT_ZAN = 0.004       # crit damage: 1.5 + 0.4% per effective Zanjutsu point (was 0.3%)
 HAKUDA_DEF = 0.6       # defence per effective Hakuda point (was 0.5)
@@ -349,6 +351,8 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         dmg *= max(1.0, nodef * DUEL["floor_share"])  # so a much weaker fighter still hurts, in proportion to their OWN power
     if dfn.get("foe") == "world_boss" and WORLD_BOSS_FLOOR > 0 and kind not in ("counter", "echo"):  # world-boss floor: armour never eats more than (1 - floor) of a blow
         dmg *= max(1.0, nodef * WORLD_BOSS_FLOOR)
+    if dfn.get("fj") and not att.get("ai") and kind not in ("counter", "echo"):  # Final Judgment bosses: armour never eats more than (1 - floor) of a blow
+        dmg *= max(1.0, nodef * FJ_BOSS_FLOOR)
     tm = _take_mult(dfn)
     if tmp.get("ng") and dfn["guard"]:  # Cero Oculto: the Guard does not soften it
         tm /= 0.5
@@ -717,7 +721,7 @@ def _range_move(state, side, action):
 def can(f, action, state=None):
     if action in ("atk", "df"):
         return True
-    if f.get("fj_limited") and action not in ("atk", "df", "mvs", "mvn", "rt", "sd"):
+    if f.get("fj_limited") and action not in ("atk", "df", "mvs", "mvn", "rt", "sd", "kd", "bk"):  # Silent Zone seals blades/race skills, not Hadō/Bakudō
         return False
     if action in ("ks1", "ks2", "ks3", "ks4", "ks5"):
         if f.get("blade") != "kyoka_suigetsu":
@@ -971,7 +975,7 @@ def start_turn(state, rng):
             ev.append({"k": "unleash_end", "a": f["name"]})
     f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * TURN_RE_REGEN)))
     if 0 < f["hp"] < f["max_hp"] and not bhas(f, "noregen"):  # natural recovery every turn (tunable: TURN_HP_REGEN)
-        h = max(1, int(_hb(f) * TURN_HP_REGEN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0)))
+        h = max(1, int(_hb(f) * TURN_HP_REGEN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0) * (FJ_REGEN_K if f.get("fj") else 1.0)))
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})
         fs["nat_h"] = h
@@ -1431,7 +1435,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         f["re"] = min(f["max_re"], f["re"] + int(f["max_re"] * GUARD_RE_GAIN))
         ev.append({"k": "guard", "a": f["name"]})
         if 0 < f["hp"] < f["max_hp"]:  # guarding also recovers HP, but replaces the natural recovery instead of stacking on it
-            h = max(0, int(_hb(f) * GUARD_HP_GAIN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0)) - int(_x(f).get("nat_h", 0)))
+            h = max(0, int(_hb(f) * GUARD_HP_GAIN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0) * (FJ_REGEN_K if f.get("fj") else 1.0)) - int(_x(f).get("nat_h", 0)))
             if h > 0:
                 f["hp"] = min(f["max_hp"], f["hp"] + h)
                 ev.append({"k": "heal", "a": f["name"], "n": h})

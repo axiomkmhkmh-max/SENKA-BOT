@@ -437,13 +437,6 @@ async def _panel_throttled(ctx, name: str) -> bool:
     return ctx.chat_type != "private" and bool(await try_cooldown(f"hog:panel:{name}:{ctx.chat_id}", 20))
 
 
-@action("hgs")
-async def steal_hint(ctx, arg):
-    if await _panel_throttled(ctx, "hgs"):
-        return Out(alert=_t(ctx.lang, "cd"))
-    return Out(await _hint(ctx.lang), await _hog_rows(ctx))
-
-
 @action("wnt")
 async def wanted_list(ctx, arg):
     """Targets under pursuit: the Hogyoku holder (and the Espada number 0)."""

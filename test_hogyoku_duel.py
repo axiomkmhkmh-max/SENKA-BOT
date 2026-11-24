@@ -362,18 +362,10 @@ class PanelThrottle(unittest.TestCase):
         from types import SimpleNamespace
         return SimpleNamespace(lang="fa", chat_type=chat_type, chat_id=chat_id, uid=1)
 
-    def test_group_gets_the_panel_once_per_window(self):
-        first = asyncio.run(HV.steal_hint(self.ctx("supergroup"), ""))
-        again = asyncio.run(HV.steal_hint(self.ctx("supergroup"), ""))
-        self.assertEqual(first.text, "hint")
-        self.assertFalse(again.text)            # nothing is sent to the chat
-        self.assertTrue(again.alert)
-
-    def test_other_group_and_private_chat_are_not_affected(self):
-        asyncio.run(HV.steal_hint(self.ctx("supergroup"), ""))
-        self.assertEqual(asyncio.run(HV.steal_hint(self.ctx("supergroup", -200), "")).text, "hint")
-        for _ in range(3):
-            self.assertEqual(asyncio.run(HV.steal_hint(self.ctx("private", 5), "")).text, "hint")
+    def test_betrayal_panel_is_removed(self):
+        self.assertFalse(hasattr(HV, "steal_hint"))
+        import ui
+        self.assertNotIn("hgs", ui.REGISTRY)
 
     def test_texts_have_no_dead_reiatsu_penalty_and_all_format(self):
         self.assertNotIn("hog_fail", HV.T)
