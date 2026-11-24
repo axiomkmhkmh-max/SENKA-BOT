@@ -49,6 +49,12 @@ DUEL = {
     "second_guard": 0.06,  # the side that moves second starts with a barrier of this share of its max HP (the "answer" stance)
     "stun_guard": 2,       # after a stun/freeze skip, the fighter cannot be stunned again for this many of their own turns
     "pressure_fear": 1,    # spiritual-pressure fear at the start of a duel lasts this many turns (3 outside duels)
+    # ---- turn clock (Nov 25) ----
+    "turn_seconds": 300,   # every duel turn lasts 5 minutes (used instead of the live pvp_turn_seconds setting, which stored 30 s)
+    "afk_limit": 2,        # first missed turn = automatic Guard (shield), the second missed turn in a row = the duel is lost
+    # ---- Bakudo in duels (Nov 25): no immortal shield-spammers ----
+    "bak_hit_share": 0.9,  # a Bakudo barrier is at most this share of one ordinary blow of the foe on the caster
+                           # (10% thinner than the hit it answers: 2000 incoming -> at most 1800 barrier)
 }
 # Legendary dungeon, stage 1 (feedback: far too strong): its enemy gets more HP and hits for less. Not a wall, a longer, fairer fight.
 LEGEND_S1_HP = 1.4

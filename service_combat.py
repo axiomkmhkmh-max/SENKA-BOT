@@ -17,6 +17,7 @@ RATED_LEVEL_GAP = 50  # ranked duel: a winner more than this many levels above t
 from data_weapons import ELEMENTS
 from data_zanpakuto import BLADE_STAGES, BLADE_STYLE
 import engine as E
+from data_misc import DUEL
 from database import col, game_settings
 from service_log import log_event
 from service_economy import gacha_doc, inv_remove, party_bonus, roll_drop, inv_add
@@ -809,6 +810,11 @@ def _pair(a: int, b: int) -> str:
     return f"{min(a, b)}:{max(a, b)}"
 
 
+def _turn_secs() -> int:
+    """Seconds one duel turn lasts: DUEL turn_seconds (5 minutes). The old live setting pvp_turn_seconds is no longer used here."""
+    return int(DUEL["turn_seconds"])
+
+
 async def duel_busy(uid: int) -> bool:
     return bool(await col("battles").find_one({"mode": "pvp", "status": {"$in": ["pending", "active"]}, "$or": [{"a_uid": uid}, {"b_uid": uid}]}))
 
@@ -848,7 +854,7 @@ async def duel_accept(sid: str, uid: int):
             f["lives"] = f.get("lives", 0) + 1
     E.run_ai(state, rng, ai_sides=())
     r = await col("battles").update_one({"sid": sid, "status": "pending"}, {"$set": {
-        "status": "active", "state": state, "rev": 1, "deadline": int(time.time()) + int(gs["pvp_turn_seconds"]),
+        "status": "active", "state": state, "rev": 1, "deadline": int(time.time()) + _turn_secs(),
         "expire_at": _exp(), "started_at": int(time.time())}})
     return await col("battles").find_one({"sid": sid}) if r.modified_count else None
 
@@ -881,7 +887,7 @@ async def pvp_act(uid: int, sid: str, action: str, forced: str = None):
     ev += after_turn(st, action, ev, rng, side=side)
     from duel_ui import tally
     tally(st, ev)  # the battle report on the final card (damage, biggest hit, crits per side)
-    upd = {"deadline": int(time.time()) + int(gs["pvp_turn_seconds"]), f"timeouts.{side}": 0 if forced is None else doc["timeouts"][side] + 1}
+    upd = {"deadline": int(time.time()) + _turn_secs(), f"timeouts.{side}": 0 if forced is None else doc["timeouts"][side] + 1}
     if not await _save(doc, st, upd):
         return "stale", None, None
     doc["state"], doc["rev"] = st, doc["rev"] + 1
@@ -909,13 +915,13 @@ async def pvp_forfeit(uid: int, sid: str):
 
 
 async def pvp_timeouts():
-    """Called by the scheduler: auto-guard stalled turns, forfeit after 3 in a row."""
+    """Called by the scheduler: the first stalled turn is an automatic Guard, the second one in a row loses the duel."""
     now = int(time.time())
     out = []
     async for d in col("battles").find({"mode": "pvp", "status": "active", "deadline": {"$lte": now}}).limit(50):
         side = d["state"]["cur"]
         uid = d["a_uid"] if side == "a" else d["b_uid"]
-        if d["timeouts"][side] + 1 >= 3:
+        if d["timeouts"][side] + 1 >= int(DUEL["afk_limit"]):
             st = d["state"]
             st[side]["hp"] = 0
             st["done"], st["winner"], st["end"] = True, "b" if side == "a" else "a", "afk"

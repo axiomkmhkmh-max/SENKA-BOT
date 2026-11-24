@@ -1363,6 +1363,9 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             gain *= KD.unchanted_mult(n)
         if f.get("duel"):
             gain *= DUEL["bak_share"]
+            # no immortal shield-spammers: the barrier is at most bak_hit_share (90%) of one ordinary blow the foe lands on the caster
+            foe_hit = min(_atk_reference(state, "b" if side == "a" else "a"), duel_cap_hp(state) * DUEL["hit_cap"])
+            gain = min(gain, DUEL["bak_hit_share"] * foe_hit)
         _shield_add(f, int(gain))
         ev.append({"k": "shield", "a": f["name"], "n": f["shield"], "num": n, "spell": KIDO_NAMES.get(("bak", n), "")})
         # the bind is the spell's own: Sai / Hainawa often, Rikujōkōrō always, Sajō Sabaku for two turns; the walls

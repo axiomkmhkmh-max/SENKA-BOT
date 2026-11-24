@@ -129,3 +129,37 @@ class ShieldCap(unittest.TestCase):
         b["duel"] = False
         E._shield_add(b, 10 ** 7)
         self.assertEqual(b["shield"], initial + 10 ** 7)
+
+
+class BakudoCap(unittest.TestCase):
+    """Nov 25: in a duel a Bakudo barrier never exceeds 90% of one ordinary blow of the foe on the caster."""
+
+    def _cast(self, kido_stat, duel=True):
+        import copy
+        a = E.new_fighter("A", 100, {"zanjutsu": 300, "kido": kido_stat, "hakuda": 100, "hoho": 20, "reiatsu": 20}, 20000, 20000, W,
+                          race="shinigami", kido={"had": [1], "bak": [81]})
+        b = fighter("B", 100, 900, 100, 20000)
+        st = E.new_state(a, b, random.Random(5), pvp=duel)
+        st["cur"] = "a"
+        a["shield"] = 0
+        a["x"]["chant"] = 1
+        return st, a, b
+
+    def test_barrier_capped_by_foe_blow(self):
+        st, a, b = self._cast(2000)
+        ref = min(E._atk_reference(st, "b"), E.duel_cap_hp(st) * DUEL["hit_cap"])
+        E.do_action(st, "bk", random.Random(5))
+        self.assertLessEqual(a["shield"], int(ref * DUEL["bak_hit_share"]) + 1)
+        self.assertGreater(a["shield"], 0)
+
+    def test_cap_not_applied_outside_duels(self):
+        st, a, b = self._cast(2000, duel=False)
+        ref = E._atk_reference(st, "b")
+        E.do_action(st, "bk", random.Random(5))
+        self.assertGreater(a["shield"], ref * DUEL["bak_hit_share"])
+
+
+class TurnClock(unittest.TestCase):
+    def test_five_minutes_two_strikes(self):
+        self.assertEqual(DUEL["turn_seconds"], 300)
+        self.assertEqual(DUEL["afk_limit"], 2)

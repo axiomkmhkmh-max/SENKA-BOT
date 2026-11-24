@@ -15,3 +15,9 @@ Files: engine.py, data_misc.py, engine_tournament.py, service_combat.py, test_du
 - Hado damage factor: was 0.7 + 0.3 * n (Hado 90 = x27.7). Now the same slope up to Hado 20, then +0.08 per number (Hado 90 = x12.3). Tune HADO_KNEE / HADO_SLOPE_HIGH in data_kido.py (fmt.py shows the new factor in the spell text).
 - Hollow Claw m 0.8 -> 1.3 (3 hits), Mask Strike m 2.2 -> 3.0 (data_abilities.py).
 - Files added to this update: data_kido.py, fmt.py, data_abilities.py (engine.py changed again).
+
+# Turn clock and Bakudo cap (Nov 25, from a player report)
+- Every duel turn is 5 minutes (`DUEL["turn_seconds"]` = 300; the old live `pvp_turn_seconds` setting stored 30 s and is no longer used by duels).
+- First missed turn = automatic Guard (shield). The second missed turn in a row loses the duel (`DUEL["afk_limit"]` = 2, was 3). The panel shows the clock as m:ss.
+- Bakudo in duels: the barrier is at most 90% of one ordinary blow the foe lands on the caster (`DUEL["bak_hit_share"]` = 0.9), after the old x0.5 share. Measured at level 300, 37K HP: barrier 18,500 vs a 1,863 blow before, 1,677 now. No more immortal Shinigami.
+- Files: data_misc.py, config.py, engine.py, service_combat.py, duel_ui.py, test_duel_rules.py (+4 tests).

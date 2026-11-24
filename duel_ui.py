@@ -175,10 +175,12 @@ def turn_footer(lang, doc, now=None):
     left = max(0, int(doc.get("deadline", 0) or 0) - int(now or time.time()))
     line = (f"🎯 نوبت {SIDE[cur]} <b>{esc(st[cur]['name'])}</b>" if fa else f"🎯 {SIDE[cur]} <b>{esc(st[cur]['name'])}</b>'s move")
     if left:
-        line += f" · ⏳ {fnum(left, lang)} " + ("ثانیه" if fa else "s")
+        mm, ss = divmod(left, 60)
+        line += f" · ⏳ {fnum(mm, lang)}:{fnum(ss // 10, lang)}{fnum(ss % 10, lang)}"
     afk = (doc.get("timeouts") or {}).get(cur, 0)
     if afk:
-        line += "\n" + (f"💤 غیبت: {fnum(afk, lang)}/۳ — نوبت سوم = باخت" if fa else f"💤 AFK: {afk}/3 — the third one loses the duel")
+        line += "\n" + ("💤 یک نوبت را از دست دادی (سپر خودکار) — نوبت بعدی هم از دست بروی = باخت" if fa
+                        else "💤 You missed a turn (auto-guard) — miss the next one and you lose the duel")
     return line
 
 
@@ -266,7 +268,7 @@ def winner_banner(lang, doc, rng=random):
     if end == "ff":
         lines.append(f"🏳️ {esc(st[loser]['name'])} " + ("تسلیم شد." if fa else "yielded."))
     elif end == "afk":
-        lines.append(f"💤 {esc(st[loser]['name'])} " + ("سه نوبت پشت‌سرهم غایب بود." if fa else "missed three turns in a row."))
+        lines.append(f"💤 {esc(st[loser]['name'])} " + ("دو نوبت پشت‌سرهم غایب بود." if fa else "missed two turns in a row."))
     else:
         p = _pct(wf["hp"], wf["max_hp"])
         lines.append((f"❤️ با {fnum(p, lang)}٪ جان باقی‌مانده" if fa else f"❤️ Finished with {p}% HP left")
