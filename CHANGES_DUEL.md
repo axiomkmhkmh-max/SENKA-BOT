@@ -27,3 +27,9 @@ Files: engine.py, data_misc.py, engine_tournament.py, service_combat.py, test_du
 - Hadō 91-99 now always out-hit Kurohitsugi (90, x1.6): x1.7 at 91 up to ~x1.94 at 99 (`hado_params`, `HADO_TOP_FROM`). Costs unchanged (8% for 91+, 2% below).
 - The 📿 Chant button also shows for Bakudō-only casters (engine.can "ch").
 - Files: data_kido.py, engine.py, test_kido_system.py, test_boss_kido_call.py, test_fix_winter_chant_join.py, CHANGES_DUEL.md.
+
+# Kyōka Suigetsu: Illusion Strike / Mind Distortion did nothing (Nov 25, player report: "used 20 times, no effect")
+- Mind Distortion (Sealed) was a 25% miss debuff for 2 turns with no numbers on screen, and a foe's Hadō never checked it at all. Now: 40% miss for 3 turns (Five Senses Domination: 50% for 3 turns), always lands, and the log shows "(40% miss, 3 turns)".
+- Illusion Strike: chance to land raised 25% -> 60% (Shikai 40% -> 80%), miss 30%/35% for 2 turns; a failed illusion now says so ("the illusion failed to take hold") instead of staying silent.
+- A Hadō cast by a debuffed fighter can miss (engine kd branch).
+- Files: engine.py, render.py, test_duel_rules.py (+4 tests), CHANGES_DUEL.md.

@@ -1165,9 +1165,13 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         f["re"] -= int(f["max_re"] * costs[action])
         if action == "ks1":  # Illusion Strike / Absolute Illusion
             _deal(state, side, 1.20 if not shikai else 2.50, rng, ev, "tech", allow_procs=True)
-            if foe["hp"] > 0 and rng.random() < (0.25 if not shikai else 0.40):
-                add_bf(foe, {"miss": 0.25, "t": 1}, side)
-                ev.append({"k": "ks_illusion", "a": f["name"], "d": foe["name"]})
+            if foe["hp"] > 0:
+                chance, miss_p, turns = (0.60, 0.30, 2) if not shikai else (0.80, 0.35, 2)  # Nov 25: was 25%/40% to land a 25%-miss for 1 turn (invisible)
+                if rng.random() < chance:
+                    add_bf(foe, {"miss": miss_p, "t": turns}, side)
+                    ev.append({"k": "ks_illusion", "a": f["name"], "d": foe["name"], "p": int(miss_p * 100), "t": turns})
+                else:
+                    ev.append({"k": "ks_illusion_fail", "a": f["name"], "d": foe["name"]})
             x["ks_cd"][action] = 2 if not shikai else 3
         elif action == "ks2":  # Decoy in sealed state; Mirror World after release
             if shikai:
@@ -1183,11 +1187,11 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             if shikai:
                 xfoe = _x(foe)
                 xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 3)
-                add_bf(foe, {"miss": 0.50, "t": 2}, side)
-                ev.append({"k": "ks_dom", "a": f["name"], "d": foe["name"]})
-            else:
-                add_bf(foe, {"miss": 0.25, "t": 2}, side)
-                ev.append({"k": "ks_distort", "a": f["name"], "d": foe["name"]})
+                add_bf(foe, {"miss": 0.50, "t": 3}, side)
+                ev.append({"k": "ks_dom", "a": f["name"], "d": foe["name"], "p": 50, "t": 3})
+            else:  # Nov 25: was a 25% miss for 2 turns, and a foe's Hadō ignored it altogether
+                add_bf(foe, {"miss": 0.40, "t": 3}, side)
+                ev.append({"k": "ks_distort", "a": f["name"], "d": foe["name"], "p": 40, "t": 3})
             x["ks_cd"][action] = 4
         elif action == "ks4":  # Phantom Step / Illusionary Execution
             if shikai:
@@ -1323,31 +1327,36 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         if KD.spell_cd(n):
             _kcd(f)[KD.key("had", n)] = KD.spell_cd(n)
         o = state["b" if side == "a" else "a"]
-        # hadō power: kidō stat and level set the base, the spell number scales it, the spell's own factor shapes it
-        raw = (eff(f, "kido") * 1.1 + f["level"] * 1.0) * KD.hado_factor(n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
-        chanted = bool(_x(f)["chant"])
-        if chanted:  # the incantation is spent: full-power spell
-            raw *= CHANT_HADO
+        amiss_h = bsum(f, "miss")  # Nov 25: Mind Distortion / Illusion make a Hadō go astray too (it used to ignore the debuff)
+        if amiss_h > 0 and rng.random() < min(0.75, amiss_h):
             _x(f)["chant"] = 0
-        else:        # no incantation: the high spells lose strength (and from 80 up cannot be cast at all, see kido_castable)
-            raw *= KD.unchanted_mult(n)
-        dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.6 * (1 - P["pierce"])))  # pierce: part of the armour is ignored
-        if HADO_FLOOR > 0:  # armour comes off AFTER the multipliers, so a low spell (Shō) or a low Kidō stat hit weaker than a plain
-            # attack even with the chant. Now a Hadō is never worse than an attack, and the chant keeps its x1.6 on top of that
-            dmg = max(dmg, int(_atk_reference(state, side) * HADO_FLOOR * (CHANT_HADO if chanted else 1.0)))
-        _apply(state, side, dmg, False, rng, ev, "hado", False)
-        ev[-1]["chant"] = chanted
-        ev[-1]["num"] = n
-        ev[-1]["spell"] = KIDO_NAMES.get(("had", n), "")
-        ev[-1]["short"] = (not chanted) and KD.unchanted_mult(n) < 1.0
-        if o["hp"] > 0 and not state["done"]:
-            if P["burn"]:
-                add_fx(o, "burn", 3)
-            if P["weaken"]:
-                add_fx(o, "weaken", 3)
-            if P["stun"] and rng.random() < P["stun"] * (0.5 if o.get("foe") == "boss" else 1.0):  # bosses shrug it off half as often
-                add_fx(o, "skip", 1)
-                ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
+            ev.append({"k": "miss", "a": f["name"], "d": o["name"]})
+        else:
+            # hadō power: kidō stat and level set the base, the spell number scales it, the spell's own factor shapes it
+            raw = (eff(f, "kido") * 1.1 + f["level"] * 1.0) * KD.hado_factor(n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
+            chanted = bool(_x(f)["chant"])
+            if chanted:  # the incantation is spent: full-power spell
+                raw *= CHANT_HADO
+                _x(f)["chant"] = 0
+            else:        # no incantation: the high spells lose strength (and from 80 up cannot be cast at all, see kido_castable)
+                raw *= KD.unchanted_mult(n)
+            dmg = int(max(1, raw * _dmg_mult(f) * _zone(state, side) * _take_mult(o) - total_def(o) * 0.6 * (1 - P["pierce"])))  # pierce: part of the armour is ignored
+            if HADO_FLOOR > 0:  # armour comes off AFTER the multipliers, so a low spell (Shō) or a low Kidō stat hit weaker than a plain
+                # attack even with the chant. Now a Hadō is never worse than an attack, and the chant keeps its x1.6 on top of that
+                dmg = max(dmg, int(_atk_reference(state, side) * HADO_FLOOR * (CHANT_HADO if chanted else 1.0)))
+            _apply(state, side, dmg, False, rng, ev, "hado", False)
+            ev[-1]["chant"] = chanted
+            ev[-1]["num"] = n
+            ev[-1]["spell"] = KIDO_NAMES.get(("had", n), "")
+            ev[-1]["short"] = (not chanted) and KD.unchanted_mult(n) < 1.0
+            if o["hp"] > 0 and not state["done"]:
+                if P["burn"]:
+                    add_fx(o, "burn", 3)
+                if P["weaken"]:
+                    add_fx(o, "weaken", 3)
+                if P["stun"] and rng.random() < P["stun"] * (0.5 if o.get("foe") == "boss" else 1.0):  # bosses shrug it off half as often
+                    add_fx(o, "skip", 1)
+                    ev.append({"k": "fx", "a": f["name"], "d": o["name"], "fx": "stun"})
     elif action == "bk":
         n = best_kido(f, "bak")
         P = KD.bakudo_params(n)

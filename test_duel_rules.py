@@ -163,3 +163,53 @@ class TurnClock(unittest.TestCase):
     def test_five_minutes_two_strikes(self):
         self.assertEqual(DUEL["turn_seconds"], 300)
         self.assertEqual(DUEL["afk_limit"], 2)
+
+
+class KyokaDebuffs(unittest.TestCase):
+    """Nov 25: Mind Distortion / Illusion Strike must visibly work, and a foe's Hadō must respect the miss debuff."""
+
+    def _pair(self, seed=1):
+        a = fighter("A", 60, 200, 100, 80000)
+        a["blade"] = "kyoka_suigetsu"
+        b = fighter("B", 60, 200, 100, 80000)
+        st = E.new_state(a, b, random.Random(seed), pvp=True)
+        st["cur"], st["awaiting"] = "a", True
+        a["re"] = a["max_re"]
+        return st, a, b
+
+    def test_mind_distortion_always_lands_and_reports_numbers(self):
+        for seed in range(20):
+            st, a, b = self._pair(seed)
+            ev = E.do_action(st, "ks3", random.Random(seed))
+            e = [x for x in ev if x["k"] == "ks_distort"][0]
+            self.assertEqual((e["p"], e["t"]), (40, 3))
+            self.assertAlmostEqual(E.bsum(b, "miss"), 0.40)
+
+    def test_foe_blows_really_miss(self):
+        st, a, b = self._pair()
+        E.do_action(st, "ks3", random.Random(1))
+        misses = 0
+        for seed in range(400):
+            ev = []
+            E._deal(st, "b", 1.0, random.Random(seed), ev, "atk")
+            misses += any(x["k"] == "miss" for x in ev)
+        self.assertGreater(misses, 400 * 0.30)
+
+    def test_foe_hado_misses_too(self):
+        misses = 0
+        for seed in range(300):
+            st, a, b = self._pair(seed)
+            E.do_action(st, "ks3", random.Random(seed))
+            b["kido"]["had"] = [1]
+            st["cur"] = "b"; st["awaiting"] = True
+            ev = E.do_action(st, "kd", random.Random(seed))
+            misses += any(x["k"] == "miss" for x in ev)
+        self.assertGreater(misses, 300 * 0.30)
+
+    def test_illusion_strike_reports_success_or_failure(self):
+        seen = set()
+        for seed in range(60):
+            st, a, b = self._pair(seed)
+            ev = E.do_action(st, "ks1", random.Random(seed))
+            seen |= {x["k"] for x in ev if x["k"].startswith("ks_ill")}
+        self.assertEqual(seen, {"ks_illusion", "ks_illusion_fail"})

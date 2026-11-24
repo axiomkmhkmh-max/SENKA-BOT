@@ -171,13 +171,17 @@ def events_text(lang: str, events: list) -> str:
         elif k == "shadow_echo":
             out.append((f"🌑 سایه‌ی احضارشده‌ی {a} به {d} ضربه زد: {n}" if lang == "fa" else f"🌑 {a}'s summoned shadow struck {d}: {n}"))
         elif k == "ks_illusion":
-            out.append((f"👁️ {a} واقعیت را برای {d} منحرف کرد." if lang == "fa" else f"👁️ {a} distorted reality for {d}."))
+            pt = f" ({e.get('p')}٪ خطا، {e.get('t')} نوبت)" if lang == "fa" else f" ({e.get('p')}% miss, {e.get('t')} turns)"
+            out.append((f"👁️ {a} واقعیت را برای {d} منحرف کرد{pt}." if lang == "fa" else f"👁️ {a} distorted reality for {d}{pt}."))
+        elif k == "ks_illusion_fail":
+            out.append((f"🌫️ توهم {a} روی {d} اثر نکرد." if lang == "fa" else f"🌫️ {a}'s illusion failed to take hold of {d}."))
         elif k == "ks_mirror":
             out.append((f"🪞 {a} دنیای آینه‌ای را فعال کرد." if lang == "fa" else f"🪞 {a} activated Mirror World."))
         elif k == "ks_decoy":
             out.append((f"🌫️ بدل توهمی {a} آماده‌ی فریب حمله‌ی بعدی است." if lang == "fa" else f"🌫️ {a}'s illusionary decoy is ready to evade the next strike."))
         elif k in ("ks_dom", "ks_distort"):
-            out.append((f"🌀 {a} حواس {d} را مختل کرد." if lang == "fa" else f"🌀 {a} distorted {d}'s senses."))
+            pt = f" ({e.get('p')}٪ خطا، {e.get('t')} نوبت)" if e.get("p") and lang == "fa" else (f" ({e.get('p')}% miss, {e.get('t')} turns)" if e.get("p") else "")
+            out.append((f"🌀 {a} حواس {d} را مختل کرد{pt}." if lang == "fa" else f"🌀 {a} distorted {d}'s senses{pt}."))
         elif k == "ks_ultimate":
             out.append((f"☠️ {a}: کانزن سایمین — تسلط کامل بر ادراک میدان نبرد!" if lang == "fa" else f"☠️ {a}: Kanzen Saimin — complete domination of the battlefield's perception!"))
         elif k == "ks_shikai_end":
