@@ -279,7 +279,7 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if (dfn.get("x") or {}).get("ks_decoy") and kind not in ("counter", "dot", "reflect"):  # False Reality: the blow hits a decoy
         dfn["x"]["ks_decoy"] = 0
         ev.append({"k": "ks_decoy_hit", "a": dfn["name"], "d": att["name"]})
-        _deal(state, "b" if side == "a" else "a", 1.50, rng, ev, "counter", allow_procs=False)
+        _deal(state, "b" if side == "a" else "a", 3.00, rng, ev, "counter", allow_procs=False)
         return 0
     if kind != "bala" and _ab_defend(state, side, kind, rng, ev):  # Utsusemi, Schatten, Cero Doble...
         return 0
@@ -1199,7 +1199,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         costs = {"ks1": 0.08, "ks2": 0.10, "ks3": 0.12, "ks4": 0.16, "ks5": 0.30}
         f["re"] -= int(f["max_re"] * costs[action])
         if action == "ks1":  # Illusion Strike / Absolute Illusion
-            _deal(state, side, 2.20 if not shikai else 2.50, rng, ev, "tech", allow_procs=True)  # sealed was 1.20: barely a basic attack
+            _deal(state, side, 3.60 if not shikai else 4.50, rng, ev, "tech", allow_procs=True)  # sealed was 1.20: barely a basic attack
             if foe["hp"] > 0:
                 chance, miss_p, turns = (0.70, 0.35, 2) if not shikai else (0.80, 0.35, 2)  # Nov 25: was 25%/40% to land a 25%-miss for 1 turn (invisible)
                 if rng.random() < chance:
@@ -1220,12 +1220,13 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             x["ks_cd"][action] = 3
         elif action == "ks3":  # Mind Distortion / Five Senses Domination
             if shikai:
+                _deal(state, side, 2.50, rng, ev, "tech", allow_procs=False)
                 xfoe = _x(foe)
                 xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 3)
                 add_bf(foe, {"miss": 0.50, "t": 3}, side)
                 ev.append({"k": "ks_dom", "a": f["name"], "d": foe["name"], "p": 50, "t": 3})
             else:  # Nov 25: was a 25% miss for 2 turns, and a foe's Hadō ignored it altogether
-                _deal(state, side, 0.80, rng, ev, "tech", allow_procs=False)  # it used to deal nothing at all
+                _deal(state, side, 2.00, rng, ev, "tech", allow_procs=False)  # it used to deal nothing at all
                 if foe["hp"] > 0:
                     xfoe = _x(foe)
                     xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 2)  # the foe's own blows are halved for two turns
@@ -1237,17 +1238,17 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                 old_crit = float(f["mods"].get("crit", 0.0))
                 f["mods"]["crit"] = old_crit + 0.30
                 try:
-                    _deal(state, side, 3.50, rng, ev, "tech", allow_procs=True, extra_pierce=0.30)
+                    _deal(state, side, 6.00, rng, ev, "tech", allow_procs=True, extra_pierce=0.30)
                 finally:
                     f["mods"]["crit"] = old_crit
                 if foe["hp"] > 0 and rng.random() < 0.30:
                     add_fx(foe, "skip", 1)
             else:  # sealed Phantom Step: a real strike (was 1.20, a basic attack for 16% Reiatsu) plus a 2-turn evasion
                 x["ks_dodge"] = 2
-                _deal(state, side, 2.60, rng, ev, "tech", allow_procs=True, extra_pierce=0.20)
+                _deal(state, side, 4.60, rng, ev, "tech", allow_procs=True, extra_pierce=0.25)
             x["ks_cd"][action] = 5
         else:  # Kanzen Saimin: Infinite Mirage
-            _deal(state, side, 5.00, rng, ev, "tech", allow_procs=True, extra_pierce=0.30)
+            _deal(state, side, 8.50, rng, ev, "tech", allow_procs=True, extra_pierce=0.35)
             if foe["hp"] > 0:
                 xfoe = _x(foe)
                 xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 3)

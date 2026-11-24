@@ -40,8 +40,8 @@ def avg_dmg(action, shikai=False, n=300):
 class SealedKyokaPanels(unittest.TestCase):
     def test_sealed_strikes_are_real_strikes(self):
         base = avg_dmg("atk")
-        self.assertGreater(avg_dmg("ks1"), base * 2.0)
-        self.assertGreater(avg_dmg("ks4"), base * 2.3)
+        self.assertGreater(avg_dmg("ks1"), base * 3.2)
+        self.assertGreater(avg_dmg("ks4"), base * 4.0)
         self.assertGreater(avg_dmg("ks3"), 0)  # Mind Distortion used to deal nothing
 
     def test_domination_halves_the_victims_own_damage_not_damage_taken(self):
