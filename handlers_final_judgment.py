@@ -1,6 +1,6 @@
 """Telegram entry point for The Final Judgment."""
 from ui import Out, action, head, nav
-from service_final_judgment import start
+from service_final_judgment import start, abandon
 
 @action("fjd")
 async def final_judgment_info(ctx, arg):
@@ -29,3 +29,24 @@ async def final_judgment_start(ctx, arg):
         return Out(alert=messages["fa" if ctx.lang == "fa" else "en"].get(status, "Unavailable"))
     from handlers_combat import battle_panel
     return await battle_panel(ctx, doc, [])
+
+
+@action("fjq")
+async def final_judgment_leave_ask(ctx, arg):
+    """«🚪 خروج» on a Final Judgment fight screen: ask once before giving up the run."""
+    fa = ctx.lang == "fa"
+    text = ("🚪 <b>خروج از داوری نهایی؟</b>\nنبرد بسته می‌شود و پیشرفت امروزت از دست می‌رود. "
+            "فرصت امروز دوباره برنمی‌گردد." if fa else
+            "🚪 <b>Leave the Final Judgment?</b>\nThe fight closes and today's progress is lost. "
+            "Today's attempt is not refunded.")
+    return Out(text, [[("✅ " + ("بله، خارج شو" if fa else "Yes, leave"), "fjl", arg)],
+                      [("⬅️ " + ("برگشت به نبرد" if fa else "Back to battle"), "bn", arg)]])
+
+
+@action("fjl")
+async def final_judgment_leave(ctx, arg):
+    fa = ctx.lang == "fa"
+    if not await abandon(ctx.uid, arg):
+        return Out(alert=("نبردی برای خروج پیدا نشد." if fa else "No Final Judgment battle to leave."), )
+    return Out(("🚪 از داوری نهایی خارج شدی. فرصت امروز مصرف‌شده باقی می‌ماند." if fa
+                else "🚪 You left the Final Judgment. Today's attempt stays spent."), [nav(ctx)])

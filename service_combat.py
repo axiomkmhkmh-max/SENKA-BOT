@@ -592,9 +592,17 @@ async def pve_act(uid: int, sid: str, action: str, potion: dict = None):
         # The fight already ended without being settled (e.g. the enemy's opening move killed a fighter who entered
         # the next dungeon stage with 1 HP). Settle it now so the result shows and the player is not stuck in it.
         return "ok", doc, ([], await pve_settle(doc))
-    if st["cur"] != "a" or not st.get("awaiting"):
-        return "notturn", None, None
     rng = random.Random()
+    if st["cur"] != "a" or not st.get("awaiting"):
+        # A saved fight that is not waiting for the player (e.g. the AI loop was cut off by its safety limit) used to
+        # answer "not your turn" to every button forever. Let the AI play on until the player must act, then save.
+        ev = E.run_ai(st, rng)
+        if st["cur"] != "a" or not (st.get("awaiting") or st.get("done")):
+            return "notturn", None, None
+        if not await _save(doc, st):
+            return "stale", None, None
+        doc["state"], doc["rev"] = st, doc["rev"] + 1
+        return "ok", doc, (ev, await pve_settle(doc) if st["done"] else None)
     fj = doc.get("dungeon") or {}
     if action == "pot" and fj.get("final_judgment") and int(fj.get("stage", 0)) == 9:
         return "forbidden", doc, None

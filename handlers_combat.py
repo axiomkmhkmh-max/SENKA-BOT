@@ -283,6 +283,8 @@ async def battle_panel(ctx, doc, events=None):
     rows = _act_rows(ctx, st["a"], doc["sid"], pot=bool(pot), dist=E.dist_of(st), side_on=E.in_side(st, "a")) + [tail]
     if d and d.get("tower") and not st.get("done"):  # a tower climb can always be left from the fight screen itself
         rows.append(_tower_leave_row(ctx))
+    if d and d.get("final_judgment") and not st.get("done"):  # the Judgment can always be left from the fight screen
+        rows.append([("🚪 " + ("خروج از داوری" if ctx.lang == "fa" else "Leave the Judgment"), "fjq", doc["sid"])])
     if d and d.get("hog") and not st.get("done"):  # a Hōgyoku duel can be given up (no penalty, the try stays spent)
         rows.append([("🏳️ " + ("تسلیم" if ctx.lang == "fa" else "Forfeit"), "vrf", doc["sid"])])
     return Out(text, rows)

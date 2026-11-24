@@ -134,3 +134,22 @@ async def settle(doc, won: bool):
     await col("final_judgment_attempts").update_one({"_id": key, "status": "running"}, {"$unset": {"resume": ""}})
     return {"final_judgment": {"won": True, "stage": stage, "wave": wave,
                                "wave_total": wave_total, "next": next_doc}}
+
+
+async def abandon(uid: int, sid: str):
+    """Leave the Final Judgment from the fight screen. The battle is closed, the run is marked abandoned and
+    today's entry stays spent (no second try). Returns True when an active Final Judgment battle was closed."""
+    doc = await col("battles").find_one({"sid": sid, "user_id": int(uid), "mode": "pve", "status": "active"})
+    d = (doc or {}).get("dungeon") or {}
+    if not doc or not d.get("final_judgment"):
+        return False
+    closed = await col("battles").find_one_and_update({"sid": sid, "status": "active"}, {"$set": {"status": "fled"}})
+    if not closed:
+        return False
+    day = d.get("attempt_day") or today()
+    await col("final_judgment_attempts").update_one(
+        {"_id": _attempt_id(uid, day), "status": "running"},
+        {"$set": {"status": "abandoned", "failed_stage": int(d.get("stage", 1)),
+                  "failed_wave": int(d.get("wave", 1)), "updated_at": int(time.time())},
+         "$unset": {"resume": ""}})
+    return True
