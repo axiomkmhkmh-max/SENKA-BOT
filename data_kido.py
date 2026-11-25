@@ -18,11 +18,13 @@ All of it is tuned here; spells that are not in the tables behave as the old pla
 CHANT_REQUIRED = {"had": 100, "bak": 100}  # Nov 25: no spell NEEDS the incantation any more (was 91). Every spell 1-99 can be cast bare
                                             # (weaker from UNCHANTED_FROM up) or after a chant (full power), so a 99 card is never dead weight
 UNCHANTED_FROM = 60          # from this number up, an unchanted spell is weaker ...
-UNCHANTED_MULT = 0.75        # ... by this factor (Hadō damage, Bakudō shield)
+UNCHANTED_MULT = 0.85        # ... by this factor (Hadō damage, Bakudō shield). Nov 26: 0.75 -> 0.85, a chant is a bonus, not a tax
 HADO_COST_PCT, BAK_COST_PCT = 0.0025, 0.002   # share of max reiatsu per spell number (Hadō 89 = 22.2%, Bakudō 89 = 17.8%)
-NORMAL_SPELL_PCT = 0.02      # every spell without a chant (1-90) costs a flat 2% of max reiatsu
-HIGH_SPELL_FROM = 91         # from this number up (Hadō and Bakudō alike) the cost is a flat share of max reiatsu ...
-HIGH_SPELL_PCT = 0.08        # ... 8% (was 22.5% for Kurohitsugi and more above it; the top spells were unaffordable)
+# Nov 26: four clear cost tiers (the same for Hadō and Bakudō), so the cheap spell and the big spell are a real choice
+COST_TIERS = ((91, 0.08), (70, 0.05), (40, 0.035), (0, 0.02))   # (from number, share of max reiatsu)
+NORMAL_SPELL_PCT = 0.02
+HIGH_SPELL_FROM = 91
+HIGH_SPELL_PCT = 0.08
 
 # Hadō: mult = damage factor, pierce = share of the target's armour ignored, burn / weaken = status for 3 turns,
 # stun = chance the target loses its next turn, cost_k = reiatsu factor.
@@ -35,10 +37,11 @@ HADO_SLOPE_HIGH = 0.05
 
 
 def hado_factor(n: int) -> float:
-    n = int(n)
-    if n <= HADO_KNEE:
-        return 0.7 + 0.3 * n
-    return 0.7 + 0.3 * HADO_KNEE + HADO_SLOPE_HIGH * (n - HADO_KNEE)
+    """Nov 26: one smooth curve (was a steep 0.3/number up to 20, then a kink). Shō ~1.4, Shakkahō ~4.5, Raikōhō ~6.3,
+    Kurohitsugi ~7.6, 99 ~8.0: low spells stay close to before, the 30-90 range is about a quarter lower, the top keeps its
+    own multiplier on top (hado_params), so the ladder 'higher number = stronger' still holds without 20x gaps."""
+    n = max(1, min(99, int(n)))
+    return 1.0 + 7.0 * (n / 99) ** 0.6
 
 
 HADO = {
@@ -109,18 +112,21 @@ def bakudo_params(n: int) -> dict:
     return p
 
 
+def cost_share(n: int) -> float:
+    for start, share in COST_TIERS:
+        if int(n) >= start:
+            return share
+    return NORMAL_SPELL_PCT
+
+
 def cost(branch: str, n: int, max_re: int) -> int:
     """Reiatsu a spell costs: a share of the caster's max reiatsu, so it scales with the pool."""
-    if int(n) >= HIGH_SPELL_FROM:
-        return max(1, int(int(max_re) * HIGH_SPELL_PCT))
-    return max(1, int(int(max_re) * NORMAL_SPELL_PCT))
+    return max(1, int(int(max_re) * cost_share(n)))
 
 
 def cost_pct(branch: str, n: int) -> float:
     """The same cost as a percentage of max reiatsu (for texts)."""
-    if int(n) >= HIGH_SPELL_FROM:
-        return round(HIGH_SPELL_PCT * 100, 1)
-    return round(NORMAL_SPELL_PCT * 100, 1)
+    return round(cost_share(n) * 100, 1)
 
 
 def needs_chant(n: int, branch: str = "had") -> bool:
@@ -151,3 +157,43 @@ def icons(branch: str, n: int) -> str:
         p = bakudo_params(n)
         out += ("🔗" if p["bind"] and (n in BAKUDO or p["bind"] >= 0.3) else "") + ("🔻" if p["weaken"] else "") + ("🧱" if p["shield"] >= 1.5 else "")
     return out + ("📿" if needs_chant(n, branch) else "")
+
+
+# ---- quick picks (Nov 26) ----------------------------------------------------------------------------------------------
+# The spell menu used to be 99 numbers in pages. Now the fighter sees a handful of ROLES and the best spell they own for each
+# (highest number that does the job). Pure functions over the castable list the engine already builds (engine.kido_list).
+ROLES_HAD = (("best", "💥", "قوی‌ترین", "Strongest"), ("burn", "🔥", "سوزاننده", "Burn"), ("stun", "⚡", "شوک", "Stun"),
+             ("pierce", "🎯", "سوراخ‌کن زره", "Armour pierce"), ("weaken", "🔻", "تضعیف", "Weaken"), ("cheap", "🪶", "ارزان", "Cheap"))
+ROLES_BAK = (("bind", "🔗", "بند", "Bind"), ("shield", "🧱", "سپر", "Barrier"), ("weaken", "🔻", "تضعیف", "Weaken"),
+             ("cheap", "🪶", "ارزان", "Cheap"))
+
+
+def roles(branch: str) -> tuple:
+    return ROLES_HAD if branch == "had" else ROLES_BAK
+
+
+def _has_role(branch: str, role: str, n: int) -> bool:
+    if branch == "had":
+        p = hado_params(n)
+        return {"burn": p["burn"], "stun": p["stun"] > 0, "pierce": p["pierce"] > 0, "weaken": p["weaken"]}.get(role, False)
+    p = bakudo_params(n)
+    return {"bind": p["bind"] >= 0.5, "shield": p["shield"] >= 1.5, "weaken": p["weaken"]}.get(role, False)
+
+
+def quick_picks(branch: str, castable) -> list:
+    """[(role, icon, fa, en, number)] for every role the fighter can fill right now, without repeating a number twice in a row
+    of the list (a spell that is the best for two roles is shown once, under its first role)."""
+    nums = sorted({int(n) for n in castable}, reverse=True)
+    out, used = [], set()
+    for role, icon, fa, en in roles(branch):
+        if role == "best":
+            pick = nums[0] if nums else None
+        elif role == "cheap":
+            pick = nums[-1] if nums else None
+        else:
+            pick = next((n for n in nums if _has_role(branch, role, n)), None)
+        if pick is None or pick in used:
+            continue
+        used.add(pick)
+        out.append((role, icon, fa, en, pick))
+    return out

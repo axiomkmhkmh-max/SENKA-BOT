@@ -97,29 +97,10 @@ def _chips(lang, f):
 
 
 def fighter_card(lang, f, side, tag=""):
-    fa = lang == "fa"
-    x = f.get("x") or {}
-    hp, mhp = int(f["hp"]), int(f["max_hp"])
-    p = _pct(hp, mhp)
+    from panel_ui import card, edge_warning
     emblem = RACE_EMBLEM.get(f.get("race"), "⚔️")
-    lv = ("سطح " if fa else "Lv ") + fnum(f["level"], lang)
-    lines = [f"{SIDE[side]} <b>{esc(f['name'])}</b>{tag}",
-             f"{emblem} <i>{esc(race_name(lang, f.get('race')))}</i> · {lv}",
-             f"{_heart(p)} {gbar(hp, mhp)} <b>{fnum(p, lang)}٪</b>" if fa else f"{_heart(p)} {gbar(hp, mhp)} <b>{p}%</b>",
-             f"      <code>{fnum(hp, lang)} / {fnum(mhp, lang)}</code>",
-             f"🔮 {gbar(f['re'], f['max_re'])} <code>{fnum(int(f['re']), lang)}</code>"]
-    g = int(x.get("gauge", 0) or 0)
-    rel = release_name(lang, f.get("race"))
-    if x.get("awake", 0) > 0:
-        lines.append(f"👑 <b>{esc(rel)}</b> " + ("فعاله!" if fa else "is active!"))
-    elif g >= 100:
-        lines.append(f"🔥 <b>{esc(rel)}</b> " + ("آماده‌ست! ⚡" if fa else "is ready! ⚡"))
-    elif g > 0:
-        lines.append(f"🔥 {gbar(g, 100, 8, '▮', '▯')} {fnum(g, lang)}{'٪' if fa else '%'} <i>{esc(rel)}</i>")
-    chips = _chips(lang, f)
-    if chips:
-        lines.append(f"<i>{chips}</i>")
-    return "\n".join(lines)
+    chips = " · ".join(x for x in (_chips(lang, f), edge_warning(lang, f)) if x)
+    return card(lang, f, SIDE[side], tag=tag, chips=chips, subtitle=f"{emblem} {esc(race_name(lang, f.get('race')))}")
 
 
 def arena_line(lang, state):
@@ -173,7 +154,8 @@ def turn_footer(lang, doc, now=None):
     st = doc["state"]
     cur = st["cur"] if st.get("cur") in ("a", "b") else "a"
     left = max(0, int(doc.get("deadline", 0) or 0) - int(now or time.time()))
-    line = (f"🎯 نوبت {SIDE[cur]} <b>{esc(st[cur]['name'])}</b>" if fa else f"🎯 {SIDE[cur]} <b>{esc(st[cur]['name'])}</b>'s move")
+    line = (f"🎯 نوبت {SIDE[cur]} <b>{esc(st[cur]['name'])}</b> — دکمه‌ها زیر پیام" if fa
+            else f"🎯 {SIDE[cur]} <b>{esc(st[cur]['name'])}</b>'s move — buttons below")
     if left:
         mm, ss = divmod(left, 60)
         line += f" · ⏳ {fnum(mm, lang)}:{fnum(ss // 10, lang)}{fnum(ss % 10, lang)}"
@@ -199,9 +181,6 @@ def panel_text(lang, doc, events, final_text=None):
              fighter_card(lang, st["a"], "a", tags["a"]),
              arena_line(lang, st),
              fighter_card(lang, st["b"], "b", tags["b"])]
-    edge = _edge_lines(lang, st) if not done else []
-    if edge:
-        parts.append("\n".join(edge))
     log = _log(lang, st, events)
     if log:
         parts.append(log)

@@ -142,10 +142,10 @@ class SpellEffects(unittest.TestCase):
         self.assertFalse(E.has_fx(danku["b"], "skip"))
 
     def test_sho_is_cheap(self):
-        # flat costs: spells 1-90 are 2% of max reiatsu, the top ones (91+) are 8%
+        # cost tiers: 1-39 = 2%, 40-69 = 3.5%, 70-90 = 5%, 91+ = 8% of max reiatsu
         for br in ("had", "bak"):
-            for n in (1, 31, 61, 89, 90):
-                self.assertEqual(KD.cost(br, n, 1000), 20)
+            for n, c in ((1, 20), (31, 20), (61, 35), (89, 50), (90, 50)):
+                self.assertEqual(KD.cost(br, n, 1000), c)
             for n in (91, 95, 99):
                 self.assertEqual(KD.cost(br, n, 1000), 80)
 

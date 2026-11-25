@@ -251,26 +251,20 @@ def events_text(lang: str, events: list) -> str:
 
 
 def fighter_line(lang: str, f: dict, icon: str) -> str:
+    from panel_ui import card, edge_warning
     fx = "".join(FX_ICON.get(x["k"], "") for x in f["fx"] if x["t"] > 0)
     if f["shield"] > 0:
         fx += "🛡"
     if f["form"]["on"]:
         fx += "✨"
     x = f.get("x") or {}
-    if x.get("charge"):
-        fx += "⚠️"  # Cero gathering: answer it now
-    if x.get("flash"):
-        fx += "🌀"
-    if x.get("chant"):
-        fx += "📿"
+    for key, ic in (("charge", "⚠️"), ("flash", "🌀"), ("chant", "📿")):  # charge: Cero gathering, answer it now
+        if x.get(key):
+            fx += ic
     if x.get("buff_t", 0) > 0:
         fx += "💢"
-    if x.get("awake", 0) > 0:  # released: Bankai / Resurrección is active
-        fx += "👑"
-    gauge = f" 🔥{fnum(x['gauge'], lang)}%" if x.get("gauge", 0) > 0 else ""
-    return (f"{icon} <b>{esc(f['name'])}</b> {fnum(f['level'], lang)} {fx}\n"
-            f"❤️ {bar(f['hp'], f['max_hp'])} {fnum(f['hp'], lang)}/{fnum(f['max_hp'], lang)}\n"
-            f"🔮 {fnum(f['re'], lang)}/{fnum(f['max_re'], lang)}{gauge}")
+    warn = edge_warning(lang, f)
+    return card(lang, f, icon, chips=((fx + "  " if fx else "") + warn).strip())
 
 
 def battle_text(lang: str, state: dict, events: list = None, title: str = "") -> str:

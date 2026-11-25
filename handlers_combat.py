@@ -27,17 +27,23 @@ from service_world import active_boss, boss_hit, group_doc, settle_boss
 from ui import Out, action, chunk, head, markup, nav
 
 
-KIDO_MENU = False   # True brings back the Hadō/Bakudō spell menu and the kidō cooldown line
 
 
 def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
+    """The attack panel (Nov 26 rebuild). One screen, five bands, always in the same order:
+        1. STRIKE   ⚔️ attack · 💥 heavy
+        2. KIDŌ     🔮 best Hadō [▾ quick picks] · 🛡 best Bakudō [▾ quick picks]
+        3. SPECIAL  release / Shikai / techniques / signature / finishers (only what can be used right now)
+        4. MOVE     one row: Shunpo · Sonido · back · side
+        5. DEFEND   guard · forms · potion
+    Buttons that cannot be used are simply not drawn, so what you see is what you can press."""
     L = ctx.lang
+    fa = L == "fa"
     form1, form2 = FORMS[f["race"]]
-    i = 0 if L == "fa" else 1
+    i = 0 if fa else 1
 
     def reach_tag(label, act):
-        # an attack pressed outside its reach does not strike: the turn is spent closing in (➡️) or backing off (⬅️).
-        # Players read that as "my skill is locked", so say it on the button.
+        # an attack pressed outside its reach spends the turn closing in (➡️) or backing off (⬅️): say it on the button
         band = E._band(f, act) if dist is not None else None
         if band and dist > band[1]:
             return "➡️ " + label
@@ -46,7 +52,7 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
         return label
 
     def mk(label, act):
-        base = {"kdm": "kd", "bkm": "bk"}.get(act.split(":")[0], act.split(":")[0])  # "kd:31" / "kdm:0" press the kidō button
+        base = {"kdm": "kd", "bkm": "bk"}.get(act.split(":")[0], act.split(":")[0])  # "kd:31" / "kdm:q" press the kidō button
         return (reach_tag(label, base) if base in ("atk", "hvy", "kd", "gt", "gx", "sg", "t1", "t2", "t3") else label,
                 "pa" if pub else "ba", f"{sid}.{act}", pub)
     import data_abilities as AB
@@ -59,100 +65,88 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
             return None
         icon = AB.FAMILIES[a["fam"]]["icon"]
         chg = (f.get("x") or {}).get("chg") or {}
-        name = t["fa" if L == "fa" else "en"]
-        return f"{icon} {name}" + ((" 🔥" if L == "fa" else " 🔥") if chg.get(act) else "")
+        name = t["fa" if fa else "en"]
+        return f"{icon} {name}" + (" 🔥" if chg.get(act) else "")
     from engine_range import move_label
-    rows = [[mk(ctx.t("a_atk"), "atk")]]
-    rows.append([mk("🏃 " + move_label(f.get("race"), "shunpo")[i], "mvs"),
-                 mk("💨 " + move_label(f.get("race"), "sonido")[i], "mvn")])
-    rows.append([mk("↩️ عقب" if L == "fa" else "↩️ Back", "rt"),
-                 mk(("↔️ خروج از جانبی" if L == "fa" else "↔️ Leave side") if side_on
-                    else ("↔️ جانبی" if L == "fa" else "↔️ Side"), "sd")])  # side stance: a free toggle (no turn)
+
+    rows = []
+    # 1. STRIKE
+    strike = [mk(ctx.t("a_atk"), "atk")]
     if E.can(f, "hvy"):
-        rows[0].append(mk(ctx.t("a_hvy"), "hvy"))
-    r2 = []
-    if (fab or f.get("blade") == "kyoka_suigetsu") and E.can(f, "sk"):  # Shikai / Hollow Mask: the early state button (whole fight)
-        r2.append(mk(("🗡 شیکای!" if L == "fa" else "🗡 Shikai!") if f.get("race") == "shinigami" or f.get("blade") == "kyoka_suigetsu"
-                     else ("🎭 ماسک هالو!" if L == "fa" else "🎭 Hollow Mask!"), "sk"))
-    if E.can(f, "gc"):  # Getsuga: gather reiatsu into the blade (turn spent)
-        r2.append(mk((("🌙 جمع کردن: " if L == "fa" else "🌙 Gather: ") + (ab_label("gt") or "").split(" ", 1)[-1]) if fab.get("gt") else ctx.t("a_gc"), "gc"))
-    if E.can(f, "ch"):  # Kidō chanting: costs the turn, leaves you open, boosts the next spell
-        r2.append(mk(ctx.t("a_ch"), "ch"))
-    if KIDO_MENU:  # new spell menu (off by default: players preferred the old panel)
-        for branch, can_act, pre in (("had", "kd", "kd"), ("bak", "bk", "bk")):
-            if not E.can(f, can_act):
-                continue
-            spells = E.kido_list(f, branch)
-            if len(spells) > 1:  # several spells castable: the button opens the spell menu
-                r2.append(mk(("🔮 هادو ▾" if L == "fa" else "🔮 Hadō ▾") if branch == "had" else ("🛡️ باکودو ▾" if L == "fa" else "🛡️ Bakudō ▾"), f"{pre}m:0"))
-            else:  # only one: cast it directly
-                n = spells[0]
-                r2.append(mk(ctx.t("a_" + can_act, n=n, spell=KIDO_NAMES.get((branch, n), "")), f"{pre}:{n}"))
-    else:  # old panel: one Hadō and one Bakudō button, each casts the best spell you can cast now
-        if E.can(f, "kd"):
-            r2.append(mk(ctx.t("a_kd", n=E.best_kido(f, "had"), spell=KIDO_NAMES.get(("had", E.best_kido(f, "had")), "")), "kd"))
-        if E.can(f, "bk"):
-            r2.append(mk(ctx.t("a_bk", n=E.best_kido(f, "bak"), spell=KIDO_NAMES.get(("bak", E.best_kido(f, "bak")), "")), "bk"))
-    for k in range(0, len(r2), 2):  # at most two long labels per line, so they stay readable on a phone
-        rows.append(r2[k:k + 2])
-    if E.can(f, "gt"):  # gathered: release the wave
-        rows.append([mk(ab_label("gt") if fab.get("gt") else ctx.t("a_gt"), "gt")])
+        strike.append(mk(ctx.t("a_hvy"), "hvy"))
+    rows.append(strike)
+
+    # 2. KIDŌ: the big button casts the best spell now (one tap), the small ▾ opens the quick picks
+    for branch, can_act in (("had", "kd"), ("bak", "bk")):
+        if not E.can(f, can_act):
+            continue
+        n = E.best_kido(f, branch)
+        spells = E.kido_list(f, branch)
+        row = [mk(ctx.t("a_" + can_act, n=n, spell=KIDO_NAMES.get((branch, n), "")), can_act)]
+        if len(spells) > 1:
+            row.append(mk("▾", f"{can_act}m:q"))
+        rows.append(row)
+    if E.can(f, "ch"):  # chanting costs the turn and leaves you open, but the next spell hits at full power
+        rows.append([mk(ctx.t("a_ch"), "ch")])
+
+    # 3. SPECIAL
+    special = []
     if E.can(f, "gx"):  # spirit gauge full: the race's release, which also opens its form (Shikai/Bankai, Resurrección...)
         r = f.get("race")
         n = E.release_form(f)
-        if n:  # the form this release opens at the fighter's level
+        if n:
             label = f"👑 {(FORMS.get(r) or FORMS['human'])[n - 1][i]}!"
         else:
             label = ctx.t("a_gx_hollow" if r in RESURRECCION_RACES else f"a_gx_{r}" if r in ("quincy", "fullbringer", "human") else "a_gx")
-        rows.append([mk(label, "gx")])
-    canon_row = []
-    if E.can(f, "blv"):
-        canon_row.append(mk(ctx.t("a_blv"), "blv"))
-    if E.can(f, "bla"):
-        canon_row.append(mk(ctx.t("a_bla"), "bla"))
-    if E.can(f, "bal"):
-        canon_row.append(mk(ctx.t("a_bal"), "bal"))
+        rows.append([mk(label, "gx")])  # the payoff move gets its own full-width line
+    if (fab or f.get("blade") == "kyoka_suigetsu") and E.can(f, "sk"):  # Shikai / Hollow Mask: the early state button
+        special.append(mk(("🗡 شیکای!" if fa else "🗡 Shikai!") if f.get("race") == "shinigami" or f.get("blade") == "kyoka_suigetsu"
+                          else ("🎭 ماسک هالو!" if fa else "🎭 Hollow Mask!"), "sk"))
+    if E.can(f, "gc"):  # Getsuga: gather reiatsu into the blade (turn spent)
+        special.append(mk((("🌙 جمع کردن: " if fa else "🌙 Gather: ") + (ab_label("gt") or "").split(" ", 1)[-1]) if fab.get("gt") else ctx.t("a_gc"), "gc"))
+    if E.can(f, "gt"):  # gathered: release the wave
+        special.append(mk(ab_label("gt") if fab.get("gt") else ctx.t("a_gt"), "gt"))
+    for act, key in (("blv", "a_blv"), ("bla", "a_bla"), ("bal", "a_bal"), ("neg", "a_neg"), ("gar", "a_gar")):
+        if E.can(f, act):
+            special.append(mk(ctx.t(key), act))
     if E.can(f, "if"):  # Iron Fist: only while Hierro holds
-        canon_row.append(mk("🦾 ضربه‌ی آهنین" if L == "fa" else "🦾 Iron Fist", "if"))
-    if E.can(f, "neg"):
-        canon_row.append(mk(ctx.t("a_neg"), "neg"))
-    if E.can(f, "gar"):
-        canon_row.append(mk(ctx.t("a_gar"), "gar"))
-    if canon_row:
-        rows.append(canon_row[:2])
-        if canon_row[2:]:
-            rows.append(canon_row[2:])
+        special.append(mk("🦾 ضربه‌ی آهنین" if fa else "🦾 Iron Fist", "if"))
     from data_race_tech import TECH_SLOTS, tech_name, tech_of
-    tech_row = [mk(ab_label(s) or tech_name(tech_of(f["race"], s), L), s) for s in TECH_SLOTS if E.can(f, s)]
-    for k in range(0, len(tech_row), 2):  # canon race techniques (Licht Regen, Hierro, Santen Kesshun...)
-        rows.append(tech_row[k:k + 2])
+    for s_ in TECH_SLOTS:  # canon race techniques (Licht Regen, Hierro, Santen Kesshun...)
+        if E.can(f, s_):
+            special.append(mk(ab_label(s_) or tech_name(tech_of(f["race"], s_), L), s_))
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
-        rows.append([mk(ab_label("sg") or ctx.t(key), "sg")])
-    if E.can(f, "bu"):  # the blade's finisher (after Shikai)
-        bu = f["bu"]
-        rows.append([mk("👑 " + bu["fa" if L == "fa" else "en"], "bu")])
+        special.append(mk(ab_label("sg") or ctx.t(key), "sg"))
     if E.can(f, "bt"):  # the blade's own technique (after Shikai)
         bt = f["bt"]
-        rows.append([mk(f"🗡 {bt['blade_fa' if L == 'fa' else 'blade_en']}: {bt['fa' if L == 'fa' else 'en']}", "bt")])
+        special.append(mk(f"🗡 {bt['blade_fa' if fa else 'blade_en']}: {bt['fa' if fa else 'en']}", "bt"))
     if f.get("blade") == "kyoka_suigetsu":
         shikai = bool((f.get("x") or {}).get("kyoka_shikai_t", 0) > 0)
-        names = (["🌫️ توهم مطلق" if L == "fa" else "🌫️ Absolute Illusion",
-                  "🪞 دنیای آینه‌ای" if L == "fa" else "🪞 Mirror World",
-                  "👁️ تسلط حواس پنج‌گانه" if L == "fa" else "👁️ Five Senses Domination",
-                  "☠️ اعدام توهمی" if L == "fa" else "☠️ Illusionary Execution"] if shikai else
-                 ["🌫️ ضربه‌ی توهمی" if L == "fa" else "🌫️ Illusion Strike",
-                  "🪞 بدل خیالی" if L == "fa" else "🪞 False Reality",
-                  "🧠 اختلال ذهنی" if L == "fa" else "🧠 Mind Distortion",
-                  "💨 قدم شبح" if L == "fa" else "💨 Phantom Step"])
+        names = (["🌫️ توهم مطلق" if fa else "🌫️ Absolute Illusion", "🪞 دنیای آینه‌ای" if fa else "🪞 Mirror World",
+                  "👁️ تسلط حواس پنج‌گانه" if fa else "👁️ Five Senses Domination", "☠️ اعدام توهمی" if fa else "☠️ Illusionary Execution"] if shikai else
+                 ["🌫️ ضربه‌ی توهمی" if fa else "🌫️ Illusion Strike", "🪞 بدل خیالی" if fa else "🪞 False Reality",
+                  "🧠 اختلال ذهنی" if fa else "🧠 Mind Distortion", "💨 قدم شبح" if fa else "💨 Phantom Step"])
         for idx, label in enumerate(names, 1):
             if E.can(f, f"ks{idx}"):
-                rows.append([mk(label, f"ks{idx}")])
+                special.append(mk(label, f"ks{idx}"))
         if shikai and E.can(f, "ks5"):
-            rows.append([mk("👑 کانزن سایمین: سراب بی‌نهایت" if L == "fa" else "👑 Kanzen Saimin: Infinite Mirage", "ks5")])
+            special.append(mk("👑 کانزن سایمین: سراب بی‌نهایت" if fa else "👑 Kanzen Saimin: Infinite Mirage", "ks5"))
     if E.can(f, "gs"):  # general skill chosen in the profile (any race)
         gl_, ge_ = GEN_BUTTON[f["gen"]]
-        rows.append([mk(gl_ if L == "fa" else ge_, "gs")])
+        special.append(mk(gl_ if fa else ge_, "gs"))
+    rows.extend(chunk(special, 2))
+    if E.can(f, "bu"):  # the blade's finisher (after Shikai): full width, it is the big moment
+        bu = f["bu"]
+        rows.append([mk("👑 " + bu["fa" if fa else "en"], "bu")])
+
+    # 4. MOVE: one compact row
+    rows.append([mk("🏃 " + move_label(f.get("race"), "shunpo")[i], "mvs"),
+                 mk("💨 " + move_label(f.get("race"), "sonido")[i], "mvn"),
+                 mk("↩️", "rt"),
+                 mk("↔️✔" if side_on else "↔️", "sd")])  # side stance: a free toggle (no turn)
+
+    # 5. DEFEND
     r3 = [mk(ctx.t("a_df"), "df")]
     if E.can(f, "f1"):
         r3.append(mk("✨ " + form1[i], "f1"))
@@ -168,43 +162,50 @@ KIDO_PAGE = 10   # spells per menu page (two per row)
 
 
 def _kido_menu(ctx, f, sid, branch, page, pub):
-    """The spell menu: every spell the fighter can cast now, highest first, each with its effect icons and its reiatsu
-    cost (% of max reiatsu). A tap sends kd:<n> / bk:<n>. Returns (header text, rows)."""
+    """The spell menu. page == -1 is the QUICK view: one button per role (strongest / burn / stun / pierce / weaken / cheap
+    for Hadō; bind / barrier / weaken / cheap for Bakudō) with the best spell the fighter owns for it. page >= 0 is the full
+    list (highest first, 10 per page). A tap sends kd:<n> / bk:<n>. Returns (header text, rows)."""
     import data_kido as KD
     fa = ctx.lang == "fa"
     code, pre = ("pa" if pub else "ba"), ("kd" if branch == "had" else "bk")
     menu = E.kido_menu(f, branch)
-    pages = max(1, -(-len(menu) // KIDO_PAGE))
-    page = min(max(page, 0), pages - 1)
-    btns = []
-    for n, pct in menu[page * KIDO_PAGE:(page + 1) * KIDO_PAGE]:
-        name = KIDO_NAMES.get((branch, n), "")
-        tag = KD.icons(branch, n)
-        btns.append((" ".join(x for x in (tag, str(n), name) if x) + f" · {pct:g}%", code, f"{sid}.{pre}:{n}", pub))
-    rows = chunk(btns, 2)
-    if pages > 1:
-        nv = []
-        if page > 0:
-            nv.append(("◀️", code, f"{sid}.{pre}m:{page - 1}", pub))
-        if page < pages - 1:
-            nv.append(("▶️", code, f"{sid}.{pre}m:{page + 1}", pub))
-        rows.append(nv)
-    rows.append([("⬅️ برگشت" if fa else "⬅️ Back", code, f"{sid}.kdb", pub)])
-    title = (("🔮 کدام هادو را می‌خوانی؟" if fa else "🔮 Which Hadō do you cast?") if branch == "had"
-             else ("🛡️ کدام باکودو را می‌خوانی؟" if fa else "🛡️ Which Bakudō do you cast?"))
+    title = (("🔮 هادو" if fa else "🔮 Hadō") if branch == "had" else ("🛡️ باکودو" if fa else "🛡️ Bakudō"))
     text = f"{title}\n💠 {fnum(f['re'], ctx.lang)}/{fnum(f['max_re'], ctx.lang)}"
-    if pages > 1:
-        text += f" · {fnum(page + 1, ctx.lang)}/{fnum(pages, ctx.lang)}"
+    back = [("⬅️ برگشت" if fa else "⬅️ Back", code, f"{sid}.kdb", pub)]
+    if page < 0:
+        rows = []
+        for role, icon, rfa, ren, n in KD.quick_picks(branch, [n for n, _ in menu]):
+            name = KIDO_NAMES.get((branch, n), "")
+            rows.append([(f"{icon} {rfa if fa else ren} · {n} {name} · {KD.cost_pct(branch, n):g}%", code, f"{sid}.{pre}:{n}", pub)])
+        rows.append([("📚 " + ("همه‌ی اسپل‌ها" if fa else "All spells"), code, f"{sid}.{pre}m:0", pub)] + back)
+        text += "\n" + ("یکی را بزن؛ بهترین اسپل تو برای هر کار نشان داده شده." if fa else "Pick a job; your best spell for it is shown.")
+    else:
+        pages = max(1, -(-len(menu) // KIDO_PAGE))
+        page = min(max(page, 0), pages - 1)
+        btns = []
+        for n, pct in menu[page * KIDO_PAGE:(page + 1) * KIDO_PAGE]:
+            name = KIDO_NAMES.get((branch, n), "")
+            btns.append((" ".join(x for x in (KD.icons(branch, n), str(n), name) if x) + f" · {pct:g}%", code, f"{sid}.{pre}:{n}", pub))
+        rows = chunk(btns, 2)
+        if pages > 1:
+            nv = []
+            if page > 0:
+                nv.append(("◀️", code, f"{sid}.{pre}m:{page - 1}", pub))
+            if page < pages - 1:
+                nv.append(("▶️", code, f"{sid}.{pre}m:{page + 1}", pub))
+            rows.append(nv)
+            text += f" · {fnum(page + 1, ctx.lang)}/{fnum(pages, ctx.lang)}"
+        rows.append([("⚡ " + ("انتخاب سریع" if fa else "Quick picks"), code, f"{sid}.{pre}m:q", pub)] + back)
     if E._x(f)["chant"]:
         text += "\n" + ("📿 ورد خوانده شده؛ اولین کیدو با قدرت کامل زده می‌شه." if fa else "📿 Chant spoken: your next spell hits at full power.")
-    elif E.kido_chant_locked(f, branch):
-        text += "\n" + ("📿 اسپل‌های ۹۱ به بالا بعد از «ورد کیدو» باز می‌شن." if fa else "📿 Spells 91+ unlock after a Chant Kidō turn.")
     return text, rows
 
 
 def _kido_act(act):
     """\"kdm:2\" / \"bkm:0\" -> (branch, page), anything else -> None."""
     if act[:4] in ("kdm:", "bkm:"):
+        if act[4:] == "q":   # the quick-picks view
+            return ("had" if act[0] == "k" else "bak"), -1
         try:
             return ("had" if act[0] == "k" else "bak"), int(act[4:])
         except ValueError:
@@ -733,9 +734,10 @@ async def _pvp_panel(chat_lang, ctx, doc, events, final=None):
     sid = doc["sid"]
     if final is None:
         cur = st["cur"]
-        turn = (f"🎯 نوبت {DU.SIDE[cur]} {st[cur]['name']}" if L == "fa" else f"🎯 {DU.SIDE[cur]} {st[cur]['name']}'s turn")
+        me = st[cur]
+        turn = (f"{DU.SIDE[cur]} نوبت {me['name']}" if L == "fa" else f"{DU.SIDE[cur]} {me['name']}'s turn")
         rows = [[(turn[:60], "noop", "", True)]]
-        rows += _act_rows(gctx, st[cur], sid, pub=True, dist=E.dist_of(st), side_on=E.in_side(st, cur))
+        rows += _act_rows(gctx, me, sid, pub=True, dist=E.dist_of(st), side_on=E.in_side(st, cur))
         rows.append([("🏳️ " + ("تسلیم" if L == "fa" else "Yield"), "pff", sid, True)])
     else:
         rows = [[("🔁 " + ("دوئل دوباره" if L == "fa" else "Rematch"), "drm", sid, True)]] if not doc.get("tournament") else []

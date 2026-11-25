@@ -288,8 +288,18 @@ def race_factor(f) -> float:
     return max(0.5, min(2.0, (1 - ABILITY_SHARE) + ABILITY_SHARE * eff(f, rs) / mean))
 
 
+POWER_KNEE = 4.0     # Nov 26: a blow's power multiplier above this grows at POWER_SLOPE per point: ordinary skills (x1-x4) are untouched,
+POWER_SLOPE = 0.6    # the x5-x15 outliers (Kyōka finishers, Bankai strikes) lose their runaway edge but keep their rank
+
+
+def soft_power(power: float) -> float:
+    power = float(power)
+    return power if power <= POWER_KNEE else POWER_KNEE + (power - POWER_KNEE) * POWER_SLOPE
+
+
 def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierce=0.0, src=None):
     att, dfn = state[side], state["b" if side == "a" else "a"]
+    power = soft_power(power)
     fx = _f2fx(att)
     if (dfn.get("x") or {}).get("flash") and kind != "counter":  # Shunpo: the strike meets empty air, then is answered
         dfn["x"]["flash"] = 0
@@ -519,7 +529,7 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     if dmg > 0:  # every blow fills both spirits: the attacker's by striking, the target's by bleeding
         _gain(att, GAUGE["deal"], ev)
         _gain(dfn, GAUGE["take"] + min(GAUGE["take_cap"], int(dmg / max(1, _hb(dfn)) * GAUGE["take_share"])), ev)
-    _maybe_resolve(dfn, ev)
+    # Resolve / Resurrección surge removed (Nov 26): a heal + damage buff at low HP swung duels; _maybe_resolve stays unused
     if dmg > 0 and kind not in ("dot", "reflect", "counter", "echo"):
         _art_procs(state, att, dfn, dmg, rng, ev)
     dx = dfn.get("x")
