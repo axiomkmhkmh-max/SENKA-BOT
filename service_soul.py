@@ -53,7 +53,7 @@ def human_reward(level: int, members: int) -> tuple:
 
 def gikongan_reward(level: int) -> int:
     """The Mod Soul fights carefully: about two plain wins an hour."""
-    return int(plain_xp(level) * 2 * GIKONGAN_HOURS)
+    return int(plain_xp(level) * 7 * GIKONGAN_HOURS)  # was 2/hour: 8 hours paid less than a few minutes of hunting
 
 
 def urahara_reward(level: int) -> tuple:

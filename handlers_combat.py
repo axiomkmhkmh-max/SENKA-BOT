@@ -71,8 +71,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
     if E.can(f, "hvy"):
         rows[0].append(mk(ctx.t("a_hvy"), "hvy"))
     r2 = []
-    if fab and E.can(f, "sk"):  # Shikai / Hollow Mask: the early state button (whole fight)
-        r2.append(mk(("🗡 شیکای!" if L == "fa" else "🗡 Shikai!") if f.get("race") == "shinigami"
+    if (fab or f.get("blade") == "kyoka_suigetsu") and E.can(f, "sk"):  # Shikai / Hollow Mask: the early state button (whole fight)
+        r2.append(mk(("🗡 شیکای!" if L == "fa" else "🗡 Shikai!") if f.get("race") == "shinigami" or f.get("blade") == "kyoka_suigetsu"
                      else ("🎭 ماسک هالو!" if L == "fa" else "🎭 Hollow Mask!"), "sk"))
     if E.can(f, "gc"):  # Getsuga: gather reiatsu into the blade (turn spent)
         r2.append(mk((("🌙 جمع کردن: " if L == "fa" else "🌙 Gather: ") + (ab_label("gt") or "").split(" ", 1)[-1]) if fab.get("gt") else ctx.t("a_gc"), "gc"))

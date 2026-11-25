@@ -294,10 +294,11 @@ async def abandon_tower(uid: int) -> bool:
     return bool(r.modified_count)
 
 
-DG_XP_MULT = 1.50       # Keep dungeon progression rewarding without allowing runaway level farming.
-DG_SCALE_XP_EXP = 0.55  # Difficulty still matters, but high-tier multipliers are deliberately compressed.
+DG_XP_MULT = 1.00       # Keep dungeon progression rewarding without allowing runaway level farming.
+DG_SCALE_XP_EXP = 0.30  # Difficulty still matters, but high-tier multipliers are deliberately compressed.
 FAST_KILL_XP = {1: 0.5, 2: 0.7}  # plain open-world fights won in 1 / 2 turns pay this share (one-tap farming paid 500K)
-DG_FINAL_XP_MULT = 1.50  # Completion bonus without multiplying already inflated stage XP.
+DG_STAGE_XP_CAP, DG_FINAL_XP_CAP = 0.10, 0.20  # one stage / the last stage pay at most this share of the player's NEXT LEVEL (a legendary clear gave 2-4 levels)
+DG_FINAL_XP_MULT = 1.30  # Completion bonus without multiplying already inflated stage XP.
 DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
 
@@ -686,6 +687,8 @@ async def pve_settle(doc: dict):
             xp = int(xp / sc ** (1 - DG_SCALE_XP_EXP))  # the difficulty multiplier counts at sc ** DG_SCALE_XP_EXP (abyss x8 -> x4.8 XP)
             if d["stage"] == d["total"]:
                 xp *= DG_FINAL_XP_MULT
+            from service_player import xp_to_next
+            xp = min(int(xp), int(xp_to_next(int((ch0 or {}).get("level", doc["lvl"]))) * (DG_FINAL_XP_CAP if d["stage"] == d["total"] else DG_STAGE_XP_CAP)))
         if doc.get("mini"):
             xp, coins = int(xp * MINI_BOSS_REWARD * BOSS_XP_BONUS), int(coins * MINI_BOSS_REWARD)
         coins = int(coins * wm["coin"])

@@ -222,6 +222,7 @@ TEXT.update({
  # ---- item effect lines ----
  "ef_mat": "{grp}: used in crafting; forging counts it as {v} unit(s).", "ef_relic_xp_loc": "Attune: +{v}% XP while in {loc}.", "ef_relic_drop": "Attune: +{v}% drop rate.",
  "ef_relic_coin": "Attune: +{v}% coins.", "ef_relic_calm": "Attune: your victories calm the world {v}% more (less Hollow Threat).", "ef_relic_stab": "Attune: hunts steady Seireitei (+{v} stability each).",
+ "ef_relic_xp": "Attuned: +{v}% XP from every fight.", "ef_relic_dmg": "Attuned: +{v}% damage on every blow.", "ef_relic_def": "Attuned: +{v}% defence.", "ef_relic_crit": "Attuned: +{v}% critical chance.", "ef_relic_regen": "Attuned: restores {v}% max HP each turn.", "ef_relic_hunt": "Attuned: +{v}% hunt rewards.",
  "ef_cosmetic": "{icon} {slot} beside your name · Fame +{fame}", "ef_evo": "Spent when you win a race evolution trial.", "ef_egg": "Hatches a companion with a real role in battle or hunt.",
  "ef_key": "Opens dungeons, or offered to a world event: +{pts} points.", "ef_armor": "Can be tempered at the workshop for more defense.", "ef_luck": "Luck +{n}: better rare drops.", "ef_almighty": "Yhwach's Eye: for {m} minutes, the first fatal blow of each battle leaves you with a sliver of life.", "ef_konpaku": "Duel charm: one extra Konpaku life for {m} minutes.",
  # ---- admin ----
@@ -280,6 +281,7 @@ TEXT.update({
  "ssn_announce": "🏆 <b>Season {n} is sealed in the ledger.</b> Loudest names: {top}. The next one begins now.",
  "ef_mat": "{grp} · feeds crafting; the forge weighs it as {v}.", "ef_relic_xp_loc": "Attuned: +{v}% XP while you walk {loc}.", "ef_relic_drop": "Attuned: spoils fall {v}% kinder.",
  "ef_relic_coin": "Attuned: +{v}% coins from every victory.", "ef_relic_calm": "Attuned: your victories quiet the Hollow Tide {v}% more.", "ef_relic_stab": "Attuned: each hunt steadies the Gotei (+{v} resolve).",
+ "ef_relic_xp": "Attuned: +{v}% XP from every fight.", "ef_relic_dmg": "Attuned: +{v}% damage on every blow.", "ef_relic_def": "Attuned: +{v}% defence.", "ef_relic_crit": "Attuned: +{v}% critical chance.", "ef_relic_regen": "Attuned: restores {v}% max HP each turn.", "ef_relic_hunt": "Attuned: +{v}% hunt rewards.",
  "ef_cosmetic": "{icon} {slot} · worn beside your name · Fame +{fame}", "ef_evo": "A fragment of what you may become. Spent only when a trial is won.",
  "ef_egg": "Something inside is already listening. It will hatch with a true calling.", "ef_key": "Opens a dungeon seal — or feeds a world event: +{pts} points.",
  "pet_role_luck": "sniffs out spoils: +{v}% drops", "pet_role_regen": "mends your wounds: {v}% HP each turn", "pet_role_dmg": "lends its fangs: +{v}% damage",

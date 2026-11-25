@@ -96,7 +96,7 @@ def has_fx(f, k):
 
 # Kyōka Suigetsu techniques scale from the wielder's own spiritual power and sword skill.
 # Keep this explicit so these named techniques never silently depend on the character race's generic ability stat.
-KYOKA_DAMAGE_SRC = {"mix": {"reiatsu": 0.60, "zanjutsu": 0.40}}
+KYOKA_DAMAGE_SRC = {"mix": {"reiatsu": 0.60, "zanjutsu": 0.40}, "lvl": 1.5}  # "lvl": like Hadō, level feeds the blow
 
 
 def _new_x():
@@ -195,7 +195,7 @@ def _dmg_mult(att):
             if att.get("form", {}).get("on") == 2:
                 m *= 1.12
     if att.get("duel"):  # duel: stacked bonuses stop at mult_cap (penalties above still apply)
-        m = min(m, DUEL["mult_cap"])
+        m = min(m, DUEL["mult_cap"] * (1.6 if att.get("blade") == "kyoka_suigetsu" else 1.0))  # Kyōka's released power was being eaten by the cap
     return base * m
 
 
@@ -228,6 +228,11 @@ def gear_soft(attack: float) -> float:
     return a if a <= GEAR_KNEE else GEAR_KNEE + (a - GEAR_KNEE) * GEAR_SLOPE
 
 
+HADO_LEVEL_W = 0.35  # was 1.0: a caster with 0 Kidō points still hit for 57K
+HADO_HIT_CAP = 0.35
+ABILITY_LEVEL_W = 0.6  # level part of an ability blow (Hadō has always had one; Cero / Mask Strike / Getsuga did not)
+
+
 def strike_base(att, src="atk"):
     """Stat part + weapon of a blow. src: atk (plain attack: Zanjutsu), hvy (heavy: Zanjutsu and Reiatsu half and half),
     abl (ability: ABILITY_SHARE from the race's own stat, the rest from Zanjutsu; Fullbringer: the weapon counts more).
@@ -242,7 +247,7 @@ def strike_base(att, src="atk"):
             lowb, lowl = FULLBRING_LOW
             wk = FULLBRING_WEAPON * (2.0 if src.get("wpn2") else 1.0)
             return (zpart + wk * w) * (1 + lowb * max(0.0, 1 - float(att.get("level", 1)) / lowl))
-        part = 0.0
+        part = float(src.get("lvl", ABILITY_LEVEL_W)) * float(att.get("level", 1))
         for stat, wt in mix.items():
             if stat == "zanjutsu":
                 part += wt * zpart
@@ -265,7 +270,7 @@ def strike_base(att, src="atk"):
         lowb, lowl = FULLBRING_LOW
         return (zpart + FULLBRING_WEAPON * w) * (1 + lowb * max(0.0, 1 - float(att.get("level", 1)) / lowl))
     if rs:
-        return (1 - ABILITY_SHARE) * zpart + ABILITY_SHARE * power_of(rs) + w
+        return (1 - ABILITY_SHARE) * zpart + ABILITY_SHARE * power_of(rs) + w + ABILITY_LEVEL_W * float(att.get("level", 1))
     return zpart + w
 
 
@@ -327,6 +332,8 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         ev.append({"k": "dodge", "a": att["name"], "d": dfn["name"]})
         return 0
     pierce = att["mods"].get("pierce", 0) + skill_p(att, "pierce") / 100 + (fx[1] if fx and fx[0] == "pierce" else 0) + extra_pierce + bsum(att, "pierce")
+    if src is KYOKA_DAMAGE_SRC:
+        pierce += 0.35  # illusion strikes the mind: armour barely counts
     defense = total_def(dfn) * (1 - min(0.8, pierce))
     base = strike_base(att, src or ("hvy" if kind == "hvy" else "abl" if kind not in ("atk", "echo") else "atk"))
     raw = max(1.0, base - defense * 0.6) * power
@@ -744,6 +751,8 @@ def can(f, action, state=None):
             return False
         cost = {"ks1": 0.08, "ks2": 0.10, "ks3": 0.12, "ks4": 0.16, "ks5": 0.30}[action]
         return f["re"] >= f["max_re"] * cost
+    if action == "sk" and f.get("blade") == "kyoka_suigetsu":  # Kyōka's Shikai opens for any race, even after a duel release
+        return sk_can(f)
     if not race_allows(f.get("race"), action):  # e.g. Arrancar cannot cast Kidō or release Bankai
         return False
     if f.get("duel") and action in DUEL_RELEASE_LOCK and _x(f)["awake"] > 0:
@@ -1212,7 +1221,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         costs = {"ks1": 0.08, "ks2": 0.10, "ks3": 0.12, "ks4": 0.16, "ks5": 0.30}
         f["re"] -= int(f["max_re"] * costs[action])
         if action == "ks1":  # Illusion Strike / Absolute Illusion
-            _deal(state, side, 3.60 if not shikai else 4.50, rng, ev, "tech", allow_procs=True, src=KYOKA_DAMAGE_SRC)  # sealed was 1.20: barely a basic attack
+            _deal(state, side, 5.00 if not shikai else 6.50, rng, ev, "tech", allow_procs=True, src=KYOKA_DAMAGE_SRC)  # sealed was 1.20: barely a basic attack
             if foe["hp"] > 0:
                 chance, miss_p, turns = (0.70, 0.35, 2) if not shikai else (0.80, 0.35, 2)  # Nov 25: was 25%/40% to land a 25%-miss for 1 turn (invisible)
                 if rng.random() < chance:
@@ -1220,6 +1229,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                     ev.append({"k": "ks_illusion", "a": f["name"], "d": foe["name"], "p": int(miss_p * 100), "t": turns})
                 else:
                     ev.append({"k": "ks_illusion_fail", "a": f["name"], "d": foe["name"]})
+            if shikai and foe["hp"] > 0 and rng.random() < 0.40:  # Absolute Illusion: 40% the foe loses its turn
+                add_fx(foe, "skip", 1)
             x["ks_cd"][action] = 2 if not shikai else 3
         elif action == "ks2":  # Decoy in sealed state; Mirror World after release
             if shikai:
@@ -1233,13 +1244,13 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             x["ks_cd"][action] = 3
         elif action == "ks3":  # Mind Distortion / Five Senses Domination
             if shikai:
-                _deal(state, side, 2.50, rng, ev, "tech", allow_procs=False, src=KYOKA_DAMAGE_SRC)
+                _deal(state, side, 3.50, rng, ev, "tech", allow_procs=False, src=KYOKA_DAMAGE_SRC)
                 xfoe = _x(foe)
-                xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 3)
-                add_bf(foe, {"miss": 0.50, "t": 3}, side)
-                ev.append({"k": "ks_dom", "a": f["name"], "d": foe["name"], "p": 50, "t": 3})
+                xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 2)
+                add_bf(foe, {"miss": 0.50, "t": 2}, side)
+                ev.append({"k": "ks_dom", "a": f["name"], "d": foe["name"], "p": 50, "t": 2})
             else:  # Nov 25: was a 25% miss for 2 turns, and a foe's Hadō ignored it altogether
-                _deal(state, side, 2.00, rng, ev, "tech", allow_procs=False, src=KYOKA_DAMAGE_SRC)  # it used to deal nothing at all
+                _deal(state, side, 3.00, rng, ev, "tech", allow_procs=False, src=KYOKA_DAMAGE_SRC)  # it used to deal nothing at all
                 if foe["hp"] > 0:
                     xfoe = _x(foe)
                     xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 2)  # the foe's own blows are halved for two turns
@@ -1251,20 +1262,20 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                 old_crit = float(f["mods"].get("crit", 0.0))
                 f["mods"]["crit"] = old_crit + 0.30
                 try:
-                    _deal(state, side, 6.00, rng, ev, "tech", allow_procs=True, extra_pierce=0.30, src=KYOKA_DAMAGE_SRC)
+                    _deal(state, side, 9.00, rng, ev, "tech", allow_procs=True, extra_pierce=0.30, src=KYOKA_DAMAGE_SRC)
                 finally:
                     f["mods"]["crit"] = old_crit
                 if foe["hp"] > 0 and rng.random() < 0.30:
                     add_fx(foe, "skip", 1)
             else:  # sealed Phantom Step: a real strike (was 1.20, a basic attack for 16% Reiatsu) plus a 2-turn evasion
                 x["ks_dodge"] = 2
-                _deal(state, side, 4.60, rng, ev, "tech", allow_procs=True, extra_pierce=0.25, src=KYOKA_DAMAGE_SRC)
+                _deal(state, side, 6.50, rng, ev, "tech", allow_procs=True, extra_pierce=0.25, src=KYOKA_DAMAGE_SRC)
             x["ks_cd"][action] = 5
         else:  # Kanzen Saimin: Infinite Mirage
-            _deal(state, side, 8.50, rng, ev, "tech", allow_procs=True, extra_pierce=0.35, src=KYOKA_DAMAGE_SRC)
+            _deal(state, side, 15.0, rng, ev, "tech", allow_procs=True, extra_pierce=0.35, src=KYOKA_DAMAGE_SRC)
             if foe["hp"] > 0:
                 xfoe = _x(foe)
-                xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 3)
+                xfoe["ks_dom"] = max(xfoe.get("ks_dom", 0), 2)
                 xfoe["ks_def_down"] = max(xfoe.get("ks_def_down", 0), 3)
                 add_bf(foe, {"miss": 0.40, "t": 2}, side)
             x["buff_t"], x["buff_m"] = 4, 1.50
@@ -1386,7 +1397,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             ev.append({"k": "miss", "a": f["name"], "d": o["name"]})
         else:
             # hadō power: kidō stat and level set the base, the spell number scales it, the spell's own factor shapes it
-            raw = (eff(f, "kido") * 1.1 + f["level"] * 1.0) * KD.hado_factor(n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
+            raw = (eff(f, "kido") * 1.1 + f["level"] * HADO_LEVEL_W) * KD.hado_factor(n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
             chanted = bool(_x(f)["chant"])
             if chanted:  # the incantation is spent: full-power spell
                 raw *= CHANT_HADO
@@ -1397,6 +1408,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             if HADO_FLOOR > 0:  # armour comes off AFTER the multipliers, so a low spell (Shō) or a low Kidō stat hit weaker than a plain
                 # attack even with the chant. Now a Hadō is never worse than an attack, and the chant keeps its x1.6 on top of that
                 dmg = max(dmg, int(_atk_reference(state, side) * HADO_FLOOR * (CHANT_HADO if chanted else 1.0)))
+            if not o.get("wild"):  # one Hadō may never delete more than this share of a player-like foe (the 57K one-shot)
+                dmg = min(dmg, max(1, int(o["max_hp"] * HADO_HIT_CAP)))
             _apply(state, side, dmg, False, rng, ev, "hado", False)
             ev[-1]["chant"] = chanted
             ev[-1]["num"] = n
@@ -2221,12 +2234,12 @@ SHIKAI_EVENTS = {"shinigami": "shikai", "visored": "mask_on"}
 
 
 def sk_can(f) -> bool:
-    if f.get("race") not in ("shinigami", "visored") or f.get("wild") or not f.get("ab"):
-        return False
     x = _x(f)
-    if f.get("blade") == "kyoka_suigetsu":
+    if f.get("blade") == "kyoka_suigetsu" and not f.get("wild"):
         return (f["level"] >= AB.SHIKAI_LEVEL and x.get("kyoka_shikai_t", 0) <= 0
                 and x.get("kyoka_shikai_cd", 0) <= 0 and f["re"] >= f["max_re"] * AB.SHIKAI_COST)
+    if f.get("race") not in ("shinigami", "visored") or f.get("wild") or not f.get("ab"):
+        return False
     return f["level"] >= AB.SHIKAI_LEVEL and not x.get("sk") and f["re"] >= f["max_re"] * AB.SHIKAI_COST
 
 
@@ -2242,7 +2255,7 @@ def sk_run(state, side, ev):
         x["kyoka_hogyoku"] = int(bool(f["mods"].get("artifact_hogyoku")))
     else:
         x["perm"] = x.get("perm", 0.0) + AB.SHIKAI_DMG * AB.lv_k(lv)
-    ev.append({"k": SHIKAI_EVENTS[f["race"]], "a": f["name"], "mv": f.get("mv"), "bl": f.get("blade")})
+    ev.append({"k": SHIKAI_EVENTS.get(f["race"], "shikai"), "a": f["name"], "mv": f.get("mv"), "bl": f.get("blade")})
 
 
 def if_can(f) -> bool:

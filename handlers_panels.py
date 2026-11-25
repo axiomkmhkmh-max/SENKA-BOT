@@ -433,6 +433,15 @@ async def guilds(ctx, arg):
         g = await col("guilds").find_one({"_id": ch["guild_id"]})
         if g:
             body = ctx.t("gld_mine", name=esc(g["name_fa" if L == "fa" else "name_en"]), n=fnum(g["members"], L), bank=fnum(g["bank"], L), role=ctx.t("role_" + ch.get("guild_role", "member")))
+            mem = await col("characters").find({"guild_id": ch["guild_id"]}).sort("level", -1).limit(20).to_list(20)
+            order = {"leader": 0, "officer": 1}
+            mem.sort(key=lambda m: (order.get(m.get("guild_role"), 2), -int(m.get("level", 1))))
+            icon = {"leader": "👑", "officer": "⭐"}
+            lines = [f"{icon.get(m.get('guild_role'), '•')} {esc(m.get('name') or m.get('username') or str(m['user_id']))} · {ctx.t('lbl_level')} {fnum(int(m.get('level', 1)), L)}" for m in mem]
+            if lines:
+                body += "\n\n" + ("👥 <b>اعضا</b>\n" if L == "fa" else "👥 <b>Members</b>\n") + "\n".join(lines)
+                if int(g.get("members", 0)) > len(mem):
+                    body += f"\n… +{fnum(int(g['members']) - len(mem), L)}"
             rows = [[(ctx.t("b_deposit") + " 500", "gdp", "500"), (ctx.t("b_deposit") + " 5000", "gdp", "5000")], [(ctx.t("b_leave"), "gll", "")], nav(ctx)]
             return Out(head(ctx, "ttl_gld") + body, rows)
     page = int(arg) if arg.isdigit() else 0
