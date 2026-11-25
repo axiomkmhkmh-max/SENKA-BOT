@@ -44,14 +44,15 @@ def race_allows(race, action):
 # stat; balance_sim.allocation). Retuned again when every form (Shikai/Bankai, Resurrección...) moved behind the full
 # spirit gauge. PvP win rates: every race 48-51%. Against wild foes every race wins 77-96% (the strong
 # releases make players win far more often there than before the rework).
-RACE_CONTEXT_DMG = {  # Nov 21 retune (Hakuda HP x6, all HP x1.5, damage x2 except a boss's own, ability families): balance_sim 20/40/80
-    "shinigami": {"pvp": 2.2, "hollow": 1.183, "boss": 1.183, "pve": 1.183, "world_boss": 1.063},
-    "quincy": {"pvp": 0.937, "hollow": 0.832, "boss": 0.822, "pve": 0.833, "world_boss": 0.927},
-    "hollow": {"pvp": 0.81, "hollow": 1.586, "boss": 1.586, "pve": 1.586, "world_boss": 1.173},
-    "arrancar": {"pvp": 1.115, "hollow": 1.054, "boss": 1.06, "pve": 1.101, "world_boss": 1.073},
-    "fullbringer": {"pvp": 0.647, "hollow": 0.632, "boss": 0.632, "pve": 0.632, "world_boss": 0.878},
-    "human": {"pvp": 1.086, "hollow": 1.1, "boss": 1.25, "pve": 1.212, "world_boss": 1.026},
-    "visored": {"pvp": 1.841, "hollow": 1.056, "boss": 1.056, "pve": 1.056, "world_boss": 0.961},
+RACE_CONTEXT_DMG = {  # Nov 26: pvp column re-tuned with balance_sim after the Hadō cooldown and the Resolve/Konpaku removal (every race 41-52% in 5x120 duels)
+    # Nov 21 retune (Hakuda HP x6, all HP x1.5, damage x2 except a boss's own, ability families): balance_sim 20/40/80
+    "shinigami": {"pvp": 2.087, "hollow": 1.183, "boss": 1.183, "pve": 1.183, "world_boss": 1.063},
+    "quincy": {"pvp": 1.066, "hollow": 0.832, "boss": 0.822, "pve": 0.833, "world_boss": 0.927},
+    "hollow": {"pvp": 0.592, "hollow": 1.586, "boss": 1.586, "pve": 1.586, "world_boss": 1.173},
+    "arrancar": {"pvp": 1.234, "hollow": 1.054, "boss": 1.06, "pve": 1.101, "world_boss": 1.073},
+    "fullbringer": {"pvp": 0.903, "hollow": 0.632, "boss": 0.632, "pve": 0.632, "world_boss": 0.878},
+    "human": {"pvp": 1.098, "hollow": 1.1, "boss": 1.25, "pve": 1.212, "world_boss": 1.026},
+    "visored": {"pvp": 2.305, "hollow": 1.056, "boss": 1.056, "pve": 1.056, "world_boss": 0.961},
 }
 
 

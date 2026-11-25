@@ -11,7 +11,7 @@ from engine_range import ZONE_EN, ZONE_FA
 FX_ICON = {"burn": "🔥", "poison": "☠️", "bleed": "🩸", "shock": "⚡", "weaken": "🔻", "fear": "😨", "hiren": "🌪️"}
 
 
-KIDO_CD_LINE = False   # the "kidō cooldown" line under the fight text (off with the old panel)
+KIDO_CD_LINE = True    # the "kidō cooldown" line under the fight text (Nov 26: back on, Hadō has a cooldown again)
 
 
 def both(mode: str, fn) -> str:

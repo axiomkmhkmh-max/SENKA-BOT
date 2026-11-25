@@ -66,17 +66,14 @@ class KonpakuTests(unittest.TestCase):
         E._check_end(st, ev)
         return st, b, ev
 
-    def test_duel_revives_once(self):
+    def test_duel_has_no_revive(self):  # Nov 26: Konpaku was removed from duels
         st, b, ev = self._knock_out(pvp=True)
-        self.assertFalse(st["done"])
-        self.assertEqual(b["hp"], max(1, int(b["max_hp"] * KONPAKU["hp"])))
-        self.assertEqual(b["lives"], KONPAKU["lives"] - 1)
-        self.assertTrue(any(e.get("k") == "konpaku" for e in ev))
+        self.assertTrue(st["done"])
+        self.assertEqual(st["winner"], "a")
+        self.assertFalse(any(e.get("k") == "konpaku" for e in ev))
 
     def test_second_death_ends_the_duel(self):
         st, b, _ = self._knock_out(pvp=True)
-        b["hp"] = 0
-        E._check_end(st, [])
         self.assertTrue(st["done"])
         self.assertEqual(st["winner"], "a")
 

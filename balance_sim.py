@@ -21,7 +21,7 @@ def max_reiatsu(level, reiatsu):
     return int(50 + level * 15 + reiatsu * 15)
 
 # Standard Hadō list of a level-40 Shinigami / Visored. Balance of the kidō races depends heavily on this choice.
-STD_HADO = (1, 4)
+STD_HADO = (1, 4, 31, 33, 61)   # Nov 26: a few spells, because Hadō now has a cooldown (two spells would be locked most turns)
 KD_CHANCE = 0.4   # a human player casts a Hadō on roughly this share of turns when one is available
 
 

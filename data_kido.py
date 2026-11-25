@@ -8,7 +8,7 @@ What the anime shows, and what the fight does with it:
     unchanted spell is weaker (UNCHANTED_MULT). Nov 25: every spell 1-99 can be cast bare or after a chant.
   * Each spell does its own thing: Byakurai pierces, Shakkahō burns, Raikōhō stuns; Sai and Hainawa bind, Rikujōkōrō
     holds fast, Sajō Sabaku holds longer, Enkōsen and Danku are walls.
-  * No cooldown: any spell can be cast again right away (spell_cd is always 0; the only limit is reiatsu).
+  * Hadō has a cooldown by tier (HADO_CD_TIERS, Nov 26): swords are the main weapon, Hadō is the occasional big moment. Bakudō has none.
   * No level gate in the fight: every spell the fighter knows (Hadō and Bakudō alike) is castable at any level.
   * Reiatsu cost is a share of the caster's MAX reiatsu (HADO_COST_PCT / BAK_COST_PCT per spell number), so the
     same spell costs the same fraction of the pool at every level and the best known spell does not drop out as the pool shrinks.
@@ -137,9 +137,17 @@ def unchanted_mult(n: int) -> float:
     return UNCHANTED_MULT if int(n) >= UNCHANTED_FROM else 1.0
 
 
-def spell_cd(n: int) -> int:
-    """Turns before the same spell can be cast again (counted in the caster's own turns)."""
-    return 0   # cooldowns removed: only reiatsu limits how often a spell is cast
+# Nov 26 (canon): the anime is a sword show. Aizen cast Hadō 90 once, Hadō 99 almost never; a spell is an event, not a button to mash.
+# So a Hadō goes on cooldown after it is cast (the bigger the number, the longer), but it hits much harder (engine.HADO_DMG_K).
+HADO_CD_TIERS = ((90, 10), (70, 7), (40, 5), (0, 3))   # (from number, own turns before the SAME spell is cast again)
+
+
+def spell_cd(n: int, branch: str = "had") -> int:
+    """Turns before the same spell can be cast again (counted in the caster's own turns). Bakudō has none."""
+    if branch != "had":
+        return 0
+    n = int(n)
+    return next(cd for lo, cd in HADO_CD_TIERS if n >= lo)
 
 
 def key(branch: str, n: int) -> str:

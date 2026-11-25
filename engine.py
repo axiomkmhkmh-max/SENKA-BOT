@@ -232,7 +232,7 @@ def gear_soft(attack: float) -> float:
 
 
 HADO_LEVEL_W = 0.35  # was 1.0: a caster with 0 Kidō points still hit for 57K
-HADO_DMG_K = 0.75   # Hadō outclassed every blade technique: chanted Hadō 50 hit 4-5x a blade technique
+HADO_DMG_K = 1.25   # Hadō outclassed every blade technique: chanted Hadō 50 hit 4-5x a blade technique
 HADO_HIT_CAP = 0.30
 ABILITY_LEVEL_W = 0.6  # level part of an ability blow (Hadō has always had one; Cero / Mask Strike / Getsuga did not)
 
@@ -299,7 +299,8 @@ def soft_power(power: float) -> float:
 
 def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierce=0.0, src=None):
     att, dfn = state[side], state["b" if side == "a" else "a"]
-    power = soft_power(power)
+    if src is not KYOKA_DAMAGE_SRC and kind != "bt":  # Nov 26: the sword is the star: Kyōka and Bankai techniques keep their full power
+        power = soft_power(power)
     fx = _f2fx(att)
     if (dfn.get("x") or {}).get("flash") and kind != "counter":  # Shunpo: the strike meets empty air, then is answered
         dfn["x"]["flash"] = 0
@@ -1119,7 +1120,7 @@ def start_turn(state, rng):
 def _check_end(state, ev=None):
     a, b = state["a"], state["b"]
     for f in (a, b):
-        if f["hp"] <= 0 and int(f.get("mods", {}).get("artifact_lives", 0)) > 0:
+        if f["hp"] <= 0 and int(f.get("mods", {}).get("artifact_lives", 0)) > 0 and not (state.get("pvp") or state.get("duel")):  # Nov 26: no Konpaku revive in duels
             f["mods"]["artifact_lives"] -= 1
             f["hp"] = max(1, int(f["max_hp"] * float(f["mods"].get("artifact_revive_hp", 0.50))))
             f["fx"] = [e for e in f["fx"] if e["k"] not in DOT and e["k"] not in ("fear", "weaken", "shock")]
@@ -1131,7 +1132,7 @@ def _check_end(state, ev=None):
                 if ev is not None:
                     ev.append({"k": "hog_rebirth", "a": f["name"], "n": fx_["hog_stage"]})
     for f in (a, b):  # Konpaku (SENKA+): duels only; the soul is pulled back once
-        if f["hp"] <= 0 and (state.get("pvp") or f.get("almighty")) and f.get("lives", 0) > 0:
+        if f["hp"] <= 0 and f.get("almighty") and f.get("lives", 0) > 0:
             f["lives"] -= 1
             f["hp"] = max(1, int(f["max_hp"] * KONPAKU["hp"]))
             f["fx"] = [e for e in f["fx"] if e["k"] not in DOT and e["k"] not in ("fear", "weaken", "shock")]
@@ -1463,8 +1464,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         n = best_kido(f, "had")
         P = KD.hado_params(n)
         f["re"] -= KD.cost("had", n, f["max_re"])
-        if KD.spell_cd(n):
-            _kcd(f)[KD.key("had", n)] = KD.spell_cd(n)
+        if KD.spell_cd(n, "had"):
+            _kcd(f)[KD.key("had", n)] = KD.spell_cd(n, "had")
         o = state["b" if side == "a" else "a"]
         amiss_h = bsum(f, "miss")  # Nov 25: Mind Distortion / Illusion make a Hadō go astray too (it used to ignore the debuff)
         if amiss_h > 0 and rng.random() < min(0.75, amiss_h):
@@ -1801,11 +1802,13 @@ def _ai_core(state, side, rng):
         on, low = in_side(state, side), f["hp"] < f["max_hp"] * 0.45
         if (not on and low and r < 0.25) or (on and (not low or r < 0.15)):
             return "sd"
+    if can(f, "kd") and r < 0.14:  # Nov 26: a Hadō now and then (it is on cooldown after each cast), the sword does the rest
+        return "kd"
     if r < 0.70:
         return "atk"
     if r < 0.85:
         return "df"
-    for a in ("f2", "kd", "hvy"):
+    for a in ("f2", "hvy"):
         if can(f, a) and (a != "f2" or f["hp"] < f["max_hp"] * 0.6):
             return a
     return "atk"

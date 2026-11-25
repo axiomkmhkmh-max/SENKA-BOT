@@ -84,13 +84,14 @@ class PickAndChant(unittest.TestCase):
 
 
 class Cooldowns(unittest.TestCase):
-    def test_no_spell_has_a_cooldown(self):
-        self.assertEqual({KD.spell_cd(n) for n in range(1, 100)}, {0})
+    def test_hado_cooldown_grows_with_the_number_and_bakudo_has_none(self):
+        self.assertEqual([KD.spell_cd(n) for n in (1, 39, 40, 69, 70, 89, 90, 99)], [3, 3, 5, 5, 7, 7, 10, 10])
+        self.assertEqual({KD.spell_cd(n, "bak") for n in range(1, 100)}, {0})
         st = battle()
         cast(st, "kd:63")
-        self.assertTrue(E.kido_castable(st["a"], "had", 63))   # can be cast again right away
-        cast(st, "kd:1")
-        self.assertTrue(E.kido_castable(st["a"], "had", 1))
+        self.assertFalse(E.kido_castable(st["a"], "had", 63))   # cooling down
+        self.assertTrue(E.kido_castable(st["a"], "had", 31))    # another spell is still free
+        self.assertEqual(E.kido_cooling(st["a"])[0][:2], ("had", 63))
 
     def test_old_saved_fighter_without_kcd_still_works(self):
         st = battle()
