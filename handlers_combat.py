@@ -272,6 +272,8 @@ async def battle_panel(ctx, doc, events=None):
         elif kx.get("kyoka_shikai_cd", 0) > 0:
             title += (f"⏳ کول‌داون شیکای: {kx['kyoka_shikai_cd']}\n" if ctx.lang == "fa"
                       else f"⏳ Shikai cooldown: {kx['kyoka_shikai_cd']}\n")
+        title += ctx.t("kyoka_stat_scaling", re=fnum(E.eff(st["a"], "reiatsu"), ctx.lang),
+                       zan=fnum(E.eff(st["a"], "zanjutsu"), ctx.lang)) + "\n"
     from service_fightfx import challenge_line
     title += challenge_line(st, ctx.lang)
     text = battle_text(ctx.lang, st, events, title)

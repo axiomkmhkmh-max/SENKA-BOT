@@ -40,6 +40,7 @@ TEXT = {
  "reg_done": "🌸 <b>{name}</b> the {race} steps into the world of souls.\nFirst blade: {weapon}\n3 healing tonics wait in your bag.\nTap Home and start hunting.",
  "race_p_shinigami": "Guardian of souls · +5% damage, balanced fighter", "race_p_quincy": "Hollow hunter · arrows break 15% of defense", "race_p_hollow": "The hungry soul · +10% max HP, raw power",
  "race_p_arrancar": "The unmasked Hollow · +8% defense, heavy hitter", "race_p_fullbringer": "Soul of objects · +5% crit chance", "race_p_human": "Weak, but unbreakable · +10% XP", "race_p_visored": "The border between two worlds · (unlocks later)",
+ "kyoka_stat_scaling": "📈 Skill damage scaling: Reiatsu 60% + Zanjutsu 40% · Effective values: {re} / {zan}",
  "stat_zanjutsu": "Zanjutsu", "stat_kido": "Kidō", "stat_hakuda": "Hakuda", "stat_hoho": "Hohō", "stat_reiatsu": "Reiatsu",
  # home & profile
  "home_body": "👤 <b>{name}</b> | {race} — {title}\n⭐ Lv {lvl} {xpbar}\nXP {xp}/{need}\n💪 Power {power}\n❤️ HP {hp} | 🔮 Reiatsu {re}\n📍 {loc}\n⚡ Energy {en}/{enmax}\n🪙 {coins}   🎯 Points {pts}",

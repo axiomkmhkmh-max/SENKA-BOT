@@ -38,6 +38,7 @@ TEXT = {
  "reg_done": "🌸 <b>{name}</b> ({race}) پا به جهان ارواح گذاشت.\nنخستین تیغه‌ات: {weapon}\n۳ معجون دفاع در کوله‌ات است.\n«خانه» را بزن و شکار را شروع کن.",
  "race_p_shinigami": "نگهبان ارواح · +۵٪ آسیب، جنگجوی متعادل", "race_p_quincy": "شکارچی هالو · تیرها ۱۵٪ دفاع را می‌شکنند", "race_p_hollow": "روحِ گرسنه · +۱۰٪ جان، قدرت خام",
  "race_p_arrancar": "هالوی بی‌ماسک · +۸٪ دفاع، ضربه‌ی سنگین", "race_p_fullbringer": "روحِ اشیا · +۵٪ شانس کریتیکال", "race_p_human": "ضعیف، اما نشکن · +۱۰٪ تجربه", "race_p_visored": "مرز میان دو جهان · (بعداً باز می‌شود)",
+ "kyoka_stat_scaling": "📈 مقیاس آسیب مهارت‌ها: ریاتسو ۶۰٪ + زنجوتسو ۴۰٪ · مقدار مؤثر: {re} / {zan}",
  "stat_zanjutsu": "زنجوتسو", "stat_kido": "کیدو", "stat_hakuda": "هاکودا", "stat_hoho": "هوهو", "stat_reiatsu": "ریاتسو",
  "home_body": "👤 <b>{name}</b> | {race} — {title}\n⭐ سطح {lvl} {xpbar}\nتجربه {xp}/{need}\n💪 قدرت {power}\n❤️ جان {hp} | 🔮 ریاتسو {re}\n📍 {loc}\n⚡ انرژی {en}/{enmax}\n🪙 {coins}   🎯 امتیاز {pts}",
  "menu_body": "هرچه جهان ارائه می‌کند:", "prof_body": "<b>{name}</b> | {race} — {title}\n⭐ سطح {lvl} | 💪 {power}\n🏅 رنک {rank} ({rating})\n⚔️ هیولا {w} برد/{l} باخت | 🥊 دوئل {pw} برد/{pl} باخت\n🔗 پیوند زانپاکتو {bond}٪ | 🔨 فورج +{plus}",
