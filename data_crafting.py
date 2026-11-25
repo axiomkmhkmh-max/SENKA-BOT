@@ -175,8 +175,8 @@ def build_recipes(catalog: dict) -> list:
                          and x["effect"]["dungeon"] == d and x["effect"]["diff"] == diff)
             if oid:
                 out.append({"id": f"key_{d}_{idx}", "type": "key", "out": oid, "dungeon": d, "diff": diff,
-                            "coins": 150 * idx * _KEY_COST_K.get(d, d_i + 1),
-                            "in": [{"g": "hard", "n": 2 * idx, "t": 0}, {"g": "any", "n": idx, "t": idx}]})
+                            "coins": 300 * idx * _KEY_COST_K.get(d, d_i + 1),
+                            "in": [{"g": "hard", "n": 3 * idx, "t": 0}, {"g": "any", "n": 2 * idx, "t": idx}]})
     return out
 
 
@@ -232,7 +232,8 @@ def player_bonus(ch: dict, catalog: dict, st: dict, now: float = None) -> dict:
     if pets:
         role, per = PET_ROLES.get(pets[0]["sp"] % len(PET_ROLES), ("dmg", 0.01))
         b[{"luck": "drop"}.get(role, role)] += per * (pets[0]["tier"] + 1) * k_p
-    for rid in list(dict.fromkeys(ch.get("relics") or []))[: int(st["relic_slots"])]:  # distinct; levels scale
+    from effects import relic_slots
+    for rid in list(dict.fromkeys(ch.get("relics") or []))[: relic_slots(int(ch.get("level", 1)), st)]:  # distinct; levels scale
         e = (catalog.get(rid) or {}).get("effect") or {}
         if e.get("type") != "relic":
             continue

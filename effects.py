@@ -8,7 +8,7 @@ from i18n import t
 
 # ---- tunables (defaults mirrored in config.GAME_DEFAULTS) ------------------------------------
 DEFAULTS = {
-    "relic_slot2_level": 50, "relic_slot1_level": 20, "relic_effect_mult": 1.0,
+    "relic_slot2_level": 35, "relic_slot1_level": 1, "relic_slot3_level": 60, "relic_slot4_level": 85, "relic_effect_mult": 1.0,
     "pet_fang_pct": 1.0, "pet_heal_pct": 0.5, "pet_luck_pct": 1.0, "egg_hatch_explores": 0,  # 0 = an egg hatches the moment you use it; N > 0 = it incubates for N explores first
     "book_buff_minutes": 30, "evo_item_required": 1, "evo_coin_cost": 5000,
 }
@@ -61,7 +61,9 @@ def gear_bonus(ch: dict, items: dict):
 
 # ---- relics / cosmetics / buffs -> modifiers ---------------------------------------------------
 def relic_slots(level: int, st=None) -> int:
-    return (1 if level >= int(_g(st, "relic_slot1_level")) else 0) + (1 if level >= int(_g(st, "relic_slot2_level")) else 0)
+    """Four progressive relic slots; thresholds remain admin-configurable."""
+    return sum(1 for key in ("relic_slot1_level", "relic_slot2_level", "relic_slot3_level", "relic_slot4_level")
+               if level >= int(_g(st, key)))
 
 
 def active_buffs(ch: dict, now: int = None) -> dict:

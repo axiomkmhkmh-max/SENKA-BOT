@@ -176,15 +176,19 @@ def _dmg_mult(att):
     if x and x.get("buff_t", 0) > 0:
         m *= x.get("buff_m", 1.0)
     if x and x.get("ks_dom", 0) > 0:  # Five Senses Domination: the controlled fighter's OWN blows are halved
-        m *= 0.50  # (it used to sit in _take_mult, which halved the damage the dominated fighter TOOK)
+        m *= 0.50  # Five Senses Domination halves the controlled fighter’s outgoing blows.
     if x and x.get("awake", 0) > 0:  # released (Bankai / Resurrección)
         m *= GAUGE["dmg"]
     if x and (x.get("bf") or x.get("perm")):  # ability buffs (dmg +/-) and lasting bonuses (Shikai, Adjuchas, Full Mask)
         m *= max(0.1, 1 + bsum(att, "dmg") + float(x.get("perm", 0.0)))
-    if att.get("blade") == "kyoka_suigetsu" and x and x.get("kyoka_shikai_t", 0) > 0:
-        m *= 1.20 * (1.35 if x.get("kyoka_hogyoku") else 1.0)
-        if att.get("form", {}).get("on") == 2:
-            m *= 1.12
+    if att.get("blade") == "kyoka_suigetsu":
+        # build_player intentionally omits generic release/style bonuses for this blade;
+        # restore a meaningful sealed-state baseline while preserving its tested release scaling.
+        m *= 1.30
+        if x and x.get("kyoka_shikai_t", 0) > 0:
+            m *= 1.20 * (1.35 if x.get("kyoka_hogyoku") else 1.0)
+            if att.get("form", {}).get("on") == 2:
+                m *= 1.12
     if att.get("duel"):  # duel: stacked bonuses stop at mult_cap (penalties above still apply)
         m = min(m, DUEL["mult_cap"])
     return base * m

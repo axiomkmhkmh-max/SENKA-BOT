@@ -99,7 +99,7 @@ GAME_DEFAULTS = {
     "event_reward_xp": 400, "event_reward_coins": 600,
     "event_threat_trigger": 70, "event_stab_trigger": 28, "event_random_chance": 0.10,
     # ---- item roles -----------------------------------------------------------------
-    "relic_slots": 2, "relic_k": 1.0, "pet_k": 1.0, "evo_bonus_pct": 0.02, "evo_trial_scale": 1.3,
+    "relic_slots": 4, "relic_slot1_level": 1, "relic_slot2_level": 35, "relic_slot3_level": 60, "relic_slot4_level": 85, "relic_k": 1.0, "pet_k": 1.0, "evo_bonus_pct": 0.02, "evo_trial_scale": 1.3,
     "cosmetic_fame_xp": 0.0025, "cosmetic_fame_cap": 0.05, "craft_cost_k": 1.0,
     "temper_max": 5, "temper_def_pct": 0.05, "buff_max_minutes": 180,
     # ---- territories ------------------------------------------------------------------

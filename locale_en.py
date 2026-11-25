@@ -1,4 +1,7 @@
 TEXT = {
+    "cr_dailycap": "⏳ Daily {name} key-crafting limit reached; maximum {cap} per day.",
+    "rel_body_v2": "🗿 Relics: {used}/{slots} active slots · unlock levels: {lv1}, {lv2}, {lv3}, {lv4}",
+
     "rlc_e_relic_max": "This relic has reached its maximum level.",
     "ttl_trade": "🤝 Trade",
  # navigation / generic

@@ -5,7 +5,7 @@ import random
 from data_crafting import (EVO_REQ, RELIC_KINDS, build_recipes, evo_next, evo_stage, plan_inputs, temper_recipe)
 from data_items import ALL
 from data_races import DUNGEONS, RACES
-from database import col, game_settings, try_cooldown
+from database import col, game_settings, try_cooldown, bump_counter, counter_get
 from service_economy import inv_add, inv_get, inv_remove
 from service_player import add_coins, get_char
 from service_worldcore import chronicle, world_adjust
@@ -62,6 +62,11 @@ async def craft(uid: int, rid: str):
     ch = await get_char(uid)
     if r["type"] == "key" and ch["level"] < DUNGEONS[r["dungeon"]]["level"]:
         return "level", DUNGEONS[r["dungeon"]]["level"]
+    # Per-player daily craft limits for the three highest key tiers.
+    daily_cap = {"legendary": 1, "abyss": 2, "nightmare": 4}.get(r.get("diff")) if r["type"] == "key" else None
+    daily_key = f"dungeon_key_craft:{uid}:{__import__('datetime').datetime.now(__import__('datetime').timezone.utc).strftime('%Y%m%d')}:{r.get('diff')}"
+    if daily_cap is not None and await counter_get(daily_key) >= daily_cap:
+        return "dailycap", {"diff": r.get("diff"), "cap": daily_cap}
     st = await game_settings()
     inv = await inv_get(uid)
     res, data = await _pay_and_consume(uid, r, st, inv)
@@ -74,6 +79,14 @@ async def craft(uid: int, rid: str):
         if coins:
             await add_coins(uid, coins, "craft_refund")
         return "full", None
+    if daily_cap is not None:
+        if not await bump_counter(daily_key, 1, daily_cap, ttl_hours=48):
+            await inv_remove(uid, r["out"], 1)
+            for iid, q in plan.items():
+                await inv_add(uid, iid, q, force=True)
+            if coins:
+                await add_coins(uid, coins, "craft_refund")
+            return "dailycap", {"diff": r.get("diff"), "cap": daily_cap}
     await world_adjust(reishi_loc=ch["location"], reishi=float(st["world_reishi_craft"]))
     from service_worldstate import on_action_bg
     on_action_bg(uid, "craft", ch["location"])

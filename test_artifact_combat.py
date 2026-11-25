@@ -91,16 +91,16 @@ class ArtifactCombatContracts(unittest.TestCase):
         self.assertEqual(b["hp"], before_hp)
         self.assertLess(b["shield"], before_shield)
 
-    def test_dungeon_xp_is_materially_higher_than_the_previous_patch(self):
+    def test_dungeon_xp_is_capped_to_prevent_runaway_level_farming(self):
         tree = ast.parse(Path(__file__).with_name("service_combat.py").read_text(encoding="utf-8"))
         values = {}
         for node in tree.body:
             if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
                 if node.targets[0].id in {"DG_XP_MULT", "DG_SCALE_XP_EXP", "DG_FINAL_XP_MULT"}:
                     values[node.targets[0].id] = ast.literal_eval(node.value)
-        self.assertGreaterEqual(values["DG_XP_MULT"], 1.8)
-        self.assertGreaterEqual(values["DG_SCALE_XP_EXP"], 0.80)
-        self.assertGreaterEqual(values["DG_FINAL_XP_MULT"], 2.5)
+        self.assertLessEqual(values["DG_XP_MULT"], 1.6)
+        self.assertLessEqual(values["DG_SCALE_XP_EXP"], 0.60)
+        self.assertLessEqual(values["DG_FINAL_XP_MULT"], 1.6)
 
 
 if __name__ == "__main__":

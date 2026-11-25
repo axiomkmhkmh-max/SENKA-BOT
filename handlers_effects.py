@@ -100,6 +100,11 @@ async def craft_do(ctx, arg):
     r, extra = await craft(ctx.uid, arg)
     if r == "ok":
         return await craft_detail(ctx, arg, alert=ctx.t("cr_ok", item=_plain(nm(extra, ctx.lang))))
+    if r == "dailycap":
+        diff, cap = (extra or {}).get("diff", ""), int((extra or {}).get("cap", 0))
+        name = (({"legendary": "افسانه‌ای", "abyss": "ورطه", "nightmare": "کابوس"} if ctx.lang == "fa"
+                 else {"legendary": "Legendary", "abyss": "Abyss", "nightmare": "Nightmare"}).get(diff, diff))
+        return Out(alert=ctx.t("cr_dailycap", name=name, cap=cap))
     return Out(alert=ctx.t("cr_" + r, n=fnum(extra or 0, ctx.lang)))
 
 
@@ -155,8 +160,9 @@ async def relics_panel(ctx, arg):
     L, ch, st = ctx.lang, await get_char(ctx.uid), await game_settings()
     slots = relic_slots(ch["level"], st)
     rel = ch.get("relics") or []
-    rows, lines = [], [ctx.t("rel_body", used=fnum(min(len(rel), slots), L), slots=fnum(slots, L),
-                             lv=fnum(int(st["relic_slot1_level"]), L), lv2=fnum(int(st["relic_slot2_level"]), L))]
+    rows, lines = [], [ctx.t("rel_body_v2", used=fnum(min(len(rel), slots), L), slots=fnum(slots, L),
+                             lv1=fnum(int(st["relic_slot1_level"]), L), lv2=fnum(int(st["relic_slot2_level"]), L),
+                             lv3=fnum(int(st["relic_slot3_level"]), L), lv4=fnum(int(st["relic_slot4_level"]), L))]
     for iid in rel[:slots]:
         rows.append([("➖ " + _plain(nm(iid, L)), "urel", iid, False, "danger")])
     cs = ch.get("cosmetic") or {}

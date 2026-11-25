@@ -371,6 +371,13 @@ ARTIFACT_EFFECT_TEXT = {
     "art_shadow_monarch": ("۱۲٪ آسیب اضافه از پژواک سایه وارد می‌کند", "Adds a 12% shadow-damage echo"),
     "art_almighty": ("۱۲٪ شانس جاخالی با پیش‌بینی حرکت دشمن", "12% additional dodge from precognition"),
     "art_transcendent_armor": ("یک بار در نبرد با ۵۰٪ جان احیا می‌کند", "Revives once per battle with 50% HP"),
+    "art_kyoka": ("۸٪ آسیب اضافه از پژواک توهم وارد می‌کند", "Adds an 8% illusion-damage echo"),
+    "art_glasses": ("۸٪ شانس جاخالی با پیش‌بینی حرکت دشمن", "8% additional dodge from precognition"),
+    "art_restraint_chair": ("یک بار در نبرد با ۳۵٪ جان احیا می‌کند", "Revives once per battle with 35% HP"),
+    "art_ice": ("۱۰٪ شانس جاخالی با پیش‌بینی مسیر ضربه", "10% additional dodge from frozen foresight"),
+    "art_zangetsu_frag": ("۱۰٪ آسیب اضافه از پژواک گتسوگا", "Adds a 10% Getsuga damage echo"),
+    "art_badge": ("۷٪ آسیب واردشده را به جان تبدیل می‌کند", "Converts 7% of damage dealt into HP"),
+    "art_visored_mask": ("۸٪ آسیب واردشده را به جان تبدیل می‌کند", "Converts 8% of damage dealt into HP"),
 }
 
 
@@ -518,6 +525,15 @@ for _a in ARTIFACTS:
 # Hōgyoku and Soul King are evolving relics with one emergency safeguard per battle.
 ART_BY_ID["art_hogyoku"]["effect"] = {"kind": "hogyoku_evolution"}
 ART_BY_ID["art_soulking"]["effect"] = {"kind": "soulking", "uses": 1, "hp": 0.50, "hp_mult": 1.20, "regen": 0.12, "dmg": 0.08}
+# Signature/Mythic artifacts must have a real combat passive, not just panel stats.
+# These use the same validated combat hooks as the Divine/Transcendent artifacts.
+ART_BY_ID["art_kyoka"]["effect"] = {"kind": "shadow_echo", "value": 0.08}
+ART_BY_ID["art_glasses"]["effect"] = {"kind": "precognition", "dodge": 0.08}
+ART_BY_ID["art_restraint_chair"]["effect"] = {"kind": "revive", "uses": 1, "hp": 0.35}
+ART_BY_ID["art_ice"]["effect"] = {"kind": "precognition", "dodge": 0.10}
+ART_BY_ID["art_zangetsu_frag"]["effect"] = {"kind": "shadow_echo", "value": 0.10}
+ART_BY_ID["art_badge"]["effect"] = {"kind": "lifesteal", "value": 0.07}
+ART_BY_ID["art_visored_mask"]["effect"] = {"kind": "lifesteal", "value": 0.08}
 
 
 def art_drop_weight(aid: str) -> float:

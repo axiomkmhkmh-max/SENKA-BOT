@@ -294,10 +294,10 @@ async def abandon_tower(uid: int) -> bool:
     return bool(r.modified_count)
 
 
-DG_XP_MULT = 4.0        # Dungeon clears are the core progression loop; raise stage XP after the severe drop reported by players.
-DG_SCALE_XP_EXP = 0.80  # Higher difficulty now contributes more of its actual challenge to XP.
+DG_XP_MULT = 1.50       # Keep dungeon progression rewarding without allowing runaway level farming.
+DG_SCALE_XP_EXP = 0.55  # Difficulty still matters, but high-tier multipliers are deliberately compressed.
 FAST_KILL_XP = {1: 0.5, 2: 0.7}  # plain open-world fights won in 1 / 2 turns pay this share (one-tap farming paid 500K)
-DG_FINAL_XP_MULT = 3.0  # The final stage pays a substantial completion bonus on top of the higher stage XP.
+DG_FINAL_XP_MULT = 1.50  # Completion bonus without multiplying already inflated stage XP.
 DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
 
