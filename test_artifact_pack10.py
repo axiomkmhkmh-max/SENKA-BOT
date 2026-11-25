@@ -36,7 +36,7 @@ class Pack10(unittest.TestCase):
             self.assertEqual(D.art_drop_weight(a["_id"]), 1.0)
 
     def test_signature_relics_still_the_strongest(self):
-        best_normal = max(sum(a["bonus"].values()) for a in D.ARTIFACTS if a["_id"] not in D.SIGNATURE)
+        best_normal = max(sum(a["bonus"].values()) for a in D.ARTIFACTS if a["_id"] not in D.SIGNATURE and int(a.get("tier", 1)) < 6 and a["_id"] not in D.POWER_BONUS)  # tier 6/7 relics outrank the signature ones
         for aid in D.SIGNATURE:
             self.assertGreater(sum(D.ART_BY_ID[aid]["bonus"].values()), best_normal)
 

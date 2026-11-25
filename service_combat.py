@@ -167,6 +167,26 @@ async def build_player(ch: dict, name: str = None):
         mods["artifact_revive_hp"] = float(artifact_effect.get("hp", 0.50))
     elif artifact_effect.get("kind") == "shadow_echo":
         mods["artifact_shadow_echo"] = float(artifact_effect.get("value", 0.10))
+    ex = artifact_effect.get("extra") or {}  # anime powers (data_artifacts.ANIME_EXTRA)
+    if ex:
+        mods["dodge"] = mods.get("dodge", 0.0) + float(ex.get("dodge", 0.0)) - (float(artifact_effect.get("dodge", 0.0)) if artifact_effect.get("kind") == "precognition" else 0.0)
+        mods["artifact_lifesteal"] = max(float(mods.get("artifact_lifesteal", 0.0)), float(ex.get("lifesteal", 0.0)))
+        mods["artifact_shadow_echo"] = max(float(mods.get("artifact_shadow_echo", 0.0)), float(ex.get("echo", 0.0)))
+        mods["pierce"] = mods.get("pierce", 0) + float(ex.get("pierce", 0.0))
+        for k in ("stun_p", "burn_p", "bleed_p", "thorns"):
+            if ex.get(k):
+                mods["art_" + k] = float(ex[k])
+        if ex.get("foresight"):
+            mods["art_foresight"] = int(ex["foresight"])
+        if ex.get("no_crit"):
+            mods["art_no_crit"] = True
+        if ex.get("hit_cap"):
+            mods["art_hit_cap"] = float(ex["hit_cap"])
+        if ex.get("low_hp"):
+            mods["art_low_hp"] = [float(ex["low_hp"][0]), float(ex["low_hp"][1])]
+        if ex.get("revive"):
+            mods["artifact_lives"] = max(int(mods.get("artifact_lives", 0)), int(ex["revive"][0]))
+            mods["artifact_revive_hp"] = max(float(mods.get("artifact_revive_hp", 0.0)), float(ex["revive"][1]))
     if ch.get("hogyoku"):
         # The true Hōgyoku is not just a Reiatsu item: +25% max HP, +20% defence, base regeneration, one revival,
         # and an in-fight evolution (engine HOG_*) that makes it harder to kill the longer the battle lasts.

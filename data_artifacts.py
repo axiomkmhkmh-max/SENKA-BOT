@@ -564,3 +564,84 @@ def art_cap(aid: str) -> int:
 def art_held_count(holders: int, active_listings: int) -> int:
     """Reconciled occupied copies. Never clamp to cap: an over-cap legacy state must block new drops."""
     return max(0, int(holders)) + max(0, int(active_listings))
+
+
+# ---- Anime-accurate artifact powers (Nov 25) --------------------------------------------------------------------
+# Tier 6/7 relics (Almighty, Shadow Monarch, Undying King) had tier-1 sized stats; lift them to the Mythic level.
+POWER_BONUS = {
+    "art_almighty": {"dmg": 0.40, "crit": 0.22, "def": 0.25, "xp": 0.30},
+    "art_shadow_monarch": {"dmg": 0.42, "def": 0.22, "regen": 0.15, "crit": 0.15},
+    "art_transcendent_armor": {"def": 0.45, "regen": 0.28, "dmg": 0.25},
+    "art_lifesteal_crown": {"dmg": 0.30, "regen": 0.15, "def": 0.12},
+    "art_ice": {"def": 0.38, "dmg": 0.36, "regen": 0.16},
+}
+for _id, _b in POWER_BONUS.items():
+    ART_BY_ID[_id]["bonus"] = dict(_b)
+
+# extra: dodge, lifesteal, echo (extra damage share), stun_p (on-hit chance the foe loses its next turn, once per 3 turns),
+# burn_p / bleed_p (on-hit status chance), thorns (share of damage taken sent back), pierce (armour ignored),
+# low_hp [hp share, damage bonus] (the anime "never give up" surge), revive [uses, hp share].
+ANIME_EXTRA = {
+    # Ichigo
+    "art_zangetsu_frag": {"echo": 0.20, "low_hp": [0.50, 0.25], "pierce": 0.08},
+    "art_badge": {"lifesteal": 0.12, "low_hp": [0.35, 0.35]},
+    "art_visored_mask": {"lifesteal": 0.14, "low_hp": [0.50, 0.20], "burn_p": 0.10},
+    # Aizen
+    "art_glasses": {"foresight": 4, "dodge": 0.10, "stun_p": 0.15},
+    "art_restraint_chair": {"revive": [1, 0.55], "thorns": 0.20},
+    "art_kyoka": {"echo": 0.18, "dodge": 0.08, "stun_p": 0.10},
+    "art_aizen_coat": {"dodge": 0.08, "stun_p": 0.08},
+    # Toshiro (Hyorinmaru)
+    "art_ice": {"dodge": 0.12, "stun_p": 0.25, "pierce": 0.15, "thorns": 0.12},
+    # Yhwach
+    "art_almighty": {"foresight": 3, "no_crit": True, "dodge": 0.10, "stun_p": 0.12, "revive": [1, 0.60], "pierce": 0.15},
+    "art_transcendent_armor": {"revive": [1, 0.60], "thorns": 0.15, "hit_cap": 0.30},
+    "art_shadow_monarch": {"echo": 0.22, "lifesteal": 0.08},
+    # captains and arrancar relics
+    "art_ryujin_cane": {"burn_p": 0.30, "echo": 0.06},
+    "art_sokyoku": {"burn_p": 0.25, "echo": 0.10},
+    "art_unohana_braid": {"lifesteal": 0.10},
+    "art_shihoin_shield": {"thorns": 0.12, "dodge": 0.08},
+    "art_pantera": {"bleed_p": 0.25},
+    "art_murcielago": {"dodge": 0.06, "bleed_p": 0.15},
+    "art_los_lobos": {"pierce": 0.12},
+    "art_tiburon": {"lifesteal": 0.05, "bleed_p": 0.20},
+    "art_santa_teresa": {"echo": 0.08, "bleed_p": 0.15},
+    "art_senbon": {"echo": 0.06},
+    "art_benihime": {"pierce": 0.08},
+    "art_seele": {"pierce": 0.10},
+    "art_eyepatch": {"low_hp": [0.50, 0.15]},
+    "art_mask": {"low_hp": [0.50, 0.12]},
+}
+for _id, _ex in ANIME_EXTRA.items():
+    _eff = ART_BY_ID[_id].get("effect") or {"kind": "extra"}
+    _eff["extra"] = dict(_ex)
+    if _id == "art_ice":
+        _eff = {"kind": "extra", "extra": dict(_ex)}
+    ART_BY_ID[_id]["effect"] = _eff
+
+
+def _extra_text(ex: dict):
+    fa, en = [], []
+    def add(a, b):
+        fa.append(a); en.append(b)
+    p = lambda v: f"{round(v * 100):g}"
+    if ex.get("dodge"): add(f"+{p(ex['dodge'])}٪ جاخالی", f"+{p(ex['dodge'])}% dodge")
+    if ex.get("lifesteal"): add(f"{p(ex['lifesteal'])}٪ دمیج به جان تبدیل می‌شود", f"{p(ex['lifesteal'])}% of damage becomes HP")
+    if ex.get("echo"): add(f"+{p(ex['echo'])}٪ دمیج پژواک", f"+{p(ex['echo'])}% echo damage")
+    if ex.get("stun_p"): add(f"{p(ex['stun_p'])}٪ شانس از دست رفتن نوبت دشمن", f"{p(ex['stun_p'])}% chance the foe loses its turn")
+    if ex.get("burn_p"): add(f"{p(ex['burn_p'])}٪ شانس سوزاندن", f"{p(ex['burn_p'])}% chance to burn")
+    if ex.get("bleed_p"): add(f"{p(ex['bleed_p'])}٪ شانس خون‌ریزی", f"{p(ex['bleed_p'])}% chance to bleed")
+    if ex.get("thorns"): add(f"{p(ex['thorns'])}٪ دمیج دریافتی بازتاب می‌شود", f"{p(ex['thorns'])}% of damage taken is reflected")
+    if ex.get("pierce"): add(f"{p(ex['pierce'])}٪ نفوذ از دفاع", f"{p(ex['pierce'])}% armour ignored")
+    if ex.get("foresight"): add(f"آینده را می‌بیند: از هر {ex['foresight']} ضربه‌ی دشمن، یکی حتماً جاخالی می‌شود", f"sees the future: one of every {ex['foresight']} blows against you is always dodged")
+    if ex.get("no_crit"): add("ضربه‌ی کریتیکال دشمن بی‌اثر می‌شود", "enemy critical hits are erased")
+    if ex.get("hit_cap"): add(f"هیچ ضربه‌ای بیشتر از {p(ex['hit_cap'])}٪ جان را نمی‌گیرد", f"no blow takes more than {p(ex['hit_cap'])}% of your HP")
+    if ex.get("low_hp"): add(f"زیر {p(ex['low_hp'][0])}٪ جان: +{p(ex['low_hp'][1])}٪ دمیج", f"below {p(ex['low_hp'][0])}% HP: +{p(ex['low_hp'][1])}% damage")
+    if ex.get("revive"): add(f"یک احیا با {p(ex['revive'][1])}٪ جان", f"one revive at {p(ex['revive'][1])}% HP")
+    return "، ".join(fa), "; ".join(en)
+
+
+for _id, _ex in ANIME_EXTRA.items():
+    _fa, _en = _extra_text(_ex)
+    ARTIFACT_EFFECT_TEXT[_id] = (_fa, _en)

@@ -8,3 +8,8 @@
 - service_combat.py: dungeon XP was 40-390% of a level per clear (legendary = several levels). DG_XP_MULT 1.0, DG_SCALE_XP_EXP 0.30, DG_FINAL_XP_MULT 1.3, and a per-stage cap of 10% (last stage 20%) of the next level.
 - engine.py / test_senka_plus.py: duels no longer give EVERY fighter a free Konpaku revive (it brought each kill back at half HP). Lives now come only from the Konpaku charm / Yhwach's Eye.
 - NEW blade ultimates: data_zanpakuto.BLADE_ULT / blade_ultimate(), engine action 'bu' (needs Shikai, 25% reiatsu, cooldown 4-5), button in handlers_combat, fighter['bu'] in service_combat, tests in test_blade_ultimate.py.
+- Blade ultimate: Bankai x1.35, own narration (render 'bu'); service_world.py: boss MVP (top damage) +15% XP/coins.
+- Artifacts (data_artifacts.py ANIME_EXTRA / POWER_BONUS, service_combat.py, engine.py _art_procs): anime powers - stun (Hyorinmaru / Aizen / Almighty), burn, bleed, thorns, low-HP surge (Ichigo), pierce, lifesteal, echo, revive. Tier 6/7 relics (Almighty, Shadow Monarch, Undying King) lifted to Mythic stats; Toshiro's Sleeping Ice Dragon Seal stronger.
+- Hado nerfed against blades (HADO_DMG_K 0.75, hit cap 30%); blade techniques x1.5 (data_zanpakuto.py).
+- tests: test_artifact_anime.py (new), test_artifact_pack10.py updated.
+- Artifact thematic mechanics: foresight (Almighty 1/3, Aizen glasses 1/4 blows auto-dodged), no_crit (Almighty), hit_cap (Undying King 30% max HP per blow).

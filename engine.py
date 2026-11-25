@@ -194,6 +194,9 @@ def _dmg_mult(att):
             m *= 1.20 * (1.35 if x.get("kyoka_hogyoku") else 1.0)
             if att.get("form", {}).get("on") == 2:
                 m *= 1.12
+    lh = (att.get("mods") or {}).get("art_low_hp")
+    if lh and att.get("max_hp") and att["hp"] < att["max_hp"] * lh[0]:
+        m *= 1.0 + lh[1]  # the anime surge: Ichigo and the Zaraki-type relics hit harder when cornered
     if att.get("duel"):  # duel: stacked bonuses stop at mult_cap (penalties above still apply)
         m = min(m, DUEL["mult_cap"] * (1.6 if att.get("blade") == "kyoka_suigetsu" else 1.0))  # Kyōka's released power was being eaten by the cap
     return base * m
@@ -229,7 +232,8 @@ def gear_soft(attack: float) -> float:
 
 
 HADO_LEVEL_W = 0.35  # was 1.0: a caster with 0 Kidō points still hit for 57K
-HADO_HIT_CAP = 0.35
+HADO_DMG_K = 0.75   # Hadō outclassed every blade technique: chanted Hadō 50 hit 4-5x a blade technique
+HADO_HIT_CAP = 0.30
 ABILITY_LEVEL_W = 0.6  # level part of an ability blow (Hadō has always had one; Cero / Mask Strike / Getsuga did not)
 
 
@@ -328,6 +332,13 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if dfx and dfx[0] == "miss" and kind != "bala" and rng.random() < dfx[1]:
         ev.append({"k": "miss", "a": att["name"], "d": dfn["name"]})
         return 0
+    fsn = int((dfn.get("mods") or {}).get("art_foresight", 0))
+    if fsn and kind not in ("dot", "reflect"):  # Almighty / Aizen's spectacles: the wearer has already seen every Nth blow coming
+        dxs = _x(dfn)
+        dxs["fs_c"] = int(dxs.get("fs_c", 0)) + 1
+        if dxs["fs_c"] % fsn == 0:
+            ev.append({"k": "dodge", "a": att["name"], "d": dfn["name"]})
+            return 0
     if rng.random() < dodge:
         ev.append({"k": "dodge", "a": att["name"], "d": dfn["name"]})
         return 0
@@ -346,6 +357,8 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if att.get("blade") == "kyoka_suigetsu" and (att.get("x") or {}).get("kyoka_shikai_t", 0) > 0:
         crit_p += 0.08
     crit = rng.random() < crit_p
+    if crit and (dfn.get("mods") or {}).get("art_no_crit"):  # the Almighty erases the futures in which it is struck critically
+        crit = False
     cm = 1.5 + eff(att, "zanjutsu") * CRIT_ZAN + skill_p(att, "surge") / 100 + bsum(att, "cdmg") + tmp.get("cdmg", 0.0)
     if tmp.get("any"):
         zone = SIDE_DMG if in_side(state, side) else 1.0
@@ -431,6 +444,29 @@ def duel_cap_hp(state):
     return max(1, min(int(state["a"]["max_hp"]), int(state["b"]["max_hp"])))
 
 
+def _art_procs(state, att, dfn, dmg, rng, ev):
+    """Artifact powers that fire on a landed blow: stun (Hyōrinmaru / Kyōka / Almighty), burn, bleed, and thorns."""
+    am = att.get("mods") or {}
+    if dfn["hp"] > 0:
+        sp = float(am.get("art_stun_p", 0.0))
+        ax = _x(att)
+        turn = int(state.get("turn", 0))
+        if sp and turn - int(ax.get("art_stun_at", -9)) >= 3 and rng.random() < sp:
+            ax["art_stun_at"] = turn
+            add_fx(dfn, "skip", 1)
+            ev.append({"k": "fx", "a": att["name"], "d": dfn["name"], "fx": "freeze"})
+        for key, fx in (("art_burn_p", "burn"), ("art_bleed_p", "bleed")):
+            if am.get(key) and rng.random() < float(am[key]):
+                add_fx(dfn, fx, DOT_TURNS[fx])
+                ev.append({"k": "fx", "a": att["name"], "d": dfn["name"], "fx": fx})
+    th = float((dfn.get("mods") or {}).get("art_thorns", 0.0))
+    if th and att["hp"] > 0:
+        back = min(max(0, att["hp"] - 1), int(dmg * th))
+        if back:
+            att["hp"] -= back
+            ev.append({"k": "reflect", "a": dfn["name"], "d": att["name"], "n": back})
+
+
 def _apply(state, side, dmg, crit, rng, ev, kind, procs):
     att, dfn = state[side], state["b" if side == "a" else "a"]
     absorbed = 0
@@ -451,6 +487,9 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
         dmg = min(dmg, cap)
         if left is not None and kind not in ("reflect", "dot"):
             state["cap_left"] = int(left) - dmg
+    hc = float((dfn.get("mods") or {}).get("art_hit_cap", 0.0))
+    if hc and kind not in ("dot", "reflect"):  # Armor of the Undying King: no single blow takes more than this share of max HP
+        dmg = min(dmg, max(1, int(dfn["max_hp"] * hc)))
     hs = int((dfn.get("x") or {}).get("hog_stage", 0))
     if hs >= HOG_HIT_CAP_FROM and kind not in ("dot", "reflect"):  # Hōgyoku: no blow takes more than the stage cap
         dmg = min(dmg, max(1, int(dfn["max_hp"] * max(0.15, HOG_HIT_CAP0 - HOG_HIT_CAP_STEP * hs))))
@@ -481,6 +520,8 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
         _gain(att, GAUGE["deal"], ev)
         _gain(dfn, GAUGE["take"] + min(GAUGE["take_cap"], int(dmg / max(1, _hb(dfn)) * GAUGE["take_share"])), ev)
     _maybe_resolve(dfn, ev)
+    if dmg > 0 and kind not in ("dot", "reflect", "counter", "echo"):
+        _art_procs(state, att, dfn, dmg, rng, ev)
     dx = dfn.get("x")
     if dx and dmg > 0 and dfn["hp"] > 0 and kind not in ("reflect", "counter", "dot"):
         th = bsum(dfn, "thorns") if kind in PHYS_KINDS else 0.0
@@ -1353,10 +1394,11 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         u, foe = f["bu"], state["b" if side == "a" else "a"]
         f["re"] -= int(f["max_re"] * u["cost"])
         _x(f)["bu_cd"] = u["cd"]
-        ev.append({"k": "bt", "a": f["name"], "kind": "heavy"})
+        ev.append({"k": "bu", "a": f["name"], "fa": u["fa"], "en": u["en"]})
+        power = u["mult"] * (1.35 if f["form"]["on"] == 2 else 1.0)  # a Bankai form makes the finisher hit harder
         for _ in range(int(u.get("hits", 1))):
             if foe["hp"] > 0:
-                _deal(state, side, u["mult"], rng, ev, "tech", allow_procs=True, extra_pierce=u.get("pierce", 0.0), src={"mix": {"zanjutsu": 0.5, "reiatsu": 0.5}})
+                _deal(state, side, power, rng, ev, "tech", allow_procs=True, extra_pierce=u.get("pierce", 0.0), src={"mix": {"zanjutsu": 0.5, "reiatsu": 0.5}})
         if foe["hp"] > 0 and u.get("fx"):
             if u["fx"] == "skip":
                 if rng.random() < u.get("skip_p", 0.5):
@@ -1420,7 +1462,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             ev.append({"k": "miss", "a": f["name"], "d": o["name"]})
         else:
             # hadō power: kidō stat and level set the base, the spell number scales it, the spell's own factor shapes it
-            raw = (eff(f, "kido") * 1.1 + f["level"] * HADO_LEVEL_W) * KD.hado_factor(n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"]
+            raw = (eff(f, "kido") * 1.1 + f["level"] * HADO_LEVEL_W) * KD.hado_factor(n) * AB.lv_k(int((f.get("klv") or {}).get("had", 1))) * f["mods"].get("kido", 1.0) * rng.uniform(0.9, 1.1) * P["mult"] * HADO_DMG_K
             chanted = bool(_x(f)["chant"])
             if chanted:  # the incantation is spent: full-power spell
                 raw *= CHANT_HADO

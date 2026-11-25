@@ -232,6 +232,8 @@ def events_text(lang: str, events: list) -> str:
                        else f"🛡 {a} stands ready to answer: a {n} guard — the opener's first blow lands at half power.")
         elif k in ("move", "retreat", "outrange", "knock", "side", "side_off", "side_no"):  # distance (فاصله) events
             out.append(dist_event_text(lang, e))
+        elif k == "bu":  # blade ultimate
+            out.append(f"👑 {a}: <b>{e.get('fa' if lang == 'fa' else 'en')}</b>!")
         elif k == "bt":  # blade technique
             out.append(pick(lang, "lg_bt_" + str(e.get("kind")), a=a))
         elif k == "gen":  # general skill (any race)

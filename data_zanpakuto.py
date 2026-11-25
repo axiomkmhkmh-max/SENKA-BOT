@@ -131,10 +131,10 @@ def bond_value(ch: dict) -> int:
 # kind: pierce (ignores part of the armour), bleed (wound that keeps hurting), twin (two quick cuts),
 # heavy (a single heavier cut). The kind per blade is a design choice, not canon.
 BLADE_TECH_KINDS = {
-    "pierce": {"fa": "ضربه‌ی نفوذی", "en": "Piercing cut", "mult": 1.15, "pierce": 0.35},
-    "bleed": {"fa": "ضربه‌ی خون‌ریز", "en": "Bleeding cut", "mult": 1.00, "bleed": True},
-    "twin": {"fa": "ضربه‌ی دوگانه", "en": "Twin cut", "mult": 0.65, "twice": True},
-    "heavy": {"fa": "ضربه‌ی سنگین", "en": "Heavy cut", "mult": 1.25},
+    "pierce": {"fa": "ضربه‌ی نفوذی", "en": "Piercing cut", "mult": 1.70, "pierce": 0.35},
+    "bleed": {"fa": "ضربه‌ی خون‌ریز", "en": "Bleeding cut", "mult": 1.50, "bleed": True},
+    "twin": {"fa": "ضربه‌ی دوگانه", "en": "Twin cut", "mult": 1.00, "twice": True},
+    "heavy": {"fa": "ضربه‌ی سنگین", "en": "Heavy cut", "mult": 1.90},
 }
 BLADE_TECH = {
     "zangetsu": "twin", "senbonzakura": "heavy", "hyorinmaru": "pierce", "kyoka_suigetsu": "heavy",
@@ -147,7 +147,7 @@ BLADE_TECH_COST = {"cost": 0.09, "cd": 3}
 
 
 # Owner blades can be stronger than the common ones. Hyōrinmaru: a stronger technique (see znp_lock for the lock).
-BLADE_TECH_OVERRIDE = {"hyorinmaru": {"mult": 1.40, "pierce": 0.50, "cd": 2}}
+BLADE_TECH_OVERRIDE = {"hyorinmaru": {"mult": 2.10, "pierce": 0.50, "cd": 2}}
 
 
 def blade_technique(blade_id: str):

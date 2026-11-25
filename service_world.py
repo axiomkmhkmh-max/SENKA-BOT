@@ -264,6 +264,9 @@ async def _pay(doc: dict, killed: bool):
         xp = (xp_pool * share if main else xp_pool * 0.01) if paid else 0
         coins = (coin_pool * share if main else 0) if paid else 0
         last = killed and uid == doc.get("last_hitter")
+        if killed and paid and rank == 0 and len(ranked) > 1:  # MVP: the top damage dealer earns a 15% bonus
+            xp *= 1.15
+            coins *= 1.15
         if last and paid:
             xp += xp_pool * 0.10
             coins += coin_pool * 0.10
