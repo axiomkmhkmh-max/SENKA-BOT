@@ -221,6 +221,8 @@ async def build_player(ch: dict, name: str = None):
                             bt=(__import__("data_zanpakuto").blade_technique(zstate.get("blade_id"))
                                 if released and zstate.get("blade_id") and zstate.get("shikai") else None))
     fighter["evo"] = {k: v for k, v in evb.items() if k not in ("dmg", "def", "hp", "kido", "crit", "pierce", "regen")}
+    fighter["bu"] = (__import__("data_zanpakuto").blade_ultimate(zstate.get("blade_id"))
+                     if released and zstate.get("blade_id") and zstate.get("shikai") else None)  # the blade's finisher
     fighter["blade"] = zstate.get("blade_id")  # Pack 1: the in-battle Shikai line speaks this blade's release command
     fighter["evs"] = evo_stage(ch)  # evolution stage: opens the canon race techniques (data_race_tech)
     fighter["tm"] = {k: int(v) for k, v in (ch.get("tech_lvl") or {}).items()}  # technique mastery (race technique cards)

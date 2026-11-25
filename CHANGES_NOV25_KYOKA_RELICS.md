@@ -6,3 +6,5 @@
 - service_soul.py: Gikongan (Mod Soul) 8h XP reward x3.5.
 - engine.py / handlers_combat.py: Kyoka's Shikai button now opens for ANY race and stays usable after a duel release (it was locked, so Ultimate was unreachable in duels/dungeons).
 - service_combat.py: dungeon XP was 40-390% of a level per clear (legendary = several levels). DG_XP_MULT 1.0, DG_SCALE_XP_EXP 0.30, DG_FINAL_XP_MULT 1.3, and a per-stage cap of 10% (last stage 20%) of the next level.
+- engine.py / test_senka_plus.py: duels no longer give EVERY fighter a free Konpaku revive (it brought each kill back at half HP). Lives now come only from the Konpaku charm / Yhwach's Eye.
+- NEW blade ultimates: data_zanpakuto.BLADE_ULT / blade_ultimate(), engine action 'bu' (needs Shikai, 25% reiatsu, cooldown 4-5), button in handlers_combat, fighter['bu'] in service_combat, tests in test_blade_ultimate.py.

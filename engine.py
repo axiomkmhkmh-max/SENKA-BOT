@@ -111,7 +111,7 @@ def _new_x():
             "stun_im": 0,
             # Kyōka Suigetsu: separate cooldowns and short-lived control effects.
             "ks_cd": {}, "ks_mirror": 0, "ks_dom": 0, "ks_dodge": 0, "ks_def_down": 0, "ks_decoy": 0, "hog_stage": 0,
-            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0}
+            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0, "bu_cd": 0}
 
 
 def _x(f):
@@ -779,7 +779,7 @@ def can(f, action, state=None):
             if t["spec"].get("gather"):
                 return _x(f)["slash"] > 0 and ab_can(state, f, "gt")
             return ab_can(state, f, "gt")
-        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "gs", "ch") and bhas(f, "seal"):
+        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "bu", "gs", "ch") and bhas(f, "seal"):
             return False
         if action == "bt" and not gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"):
             return False  # the blade's own technique comes with Shikai
@@ -815,6 +815,9 @@ def can(f, action, state=None):
             cost = c["cost"] * (1 - 0.02 * (int((f.get("abx") or {}).get("garg" if action == "gar" else "neg", 1)) - 1))
             return (_x(f).get("acd") or {}).get(action, 0) <= 0 and f["re"] >= f["max_re"] * cost
         return _x(f)["cd"] <= 0 and f["re"] >= f["max_re"] * c["cost"]
+    if action == "bu":  # the blade's finishing technique: needs Shikai, a big Reiatsu price and a long cooldown
+        return (bool(f.get("bu")) and _x(f).get("bu_cd", 0) <= 0 and f["re"] >= f["max_re"] * f["bu"]["cost"]
+                and gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"))
     if action == "bt":  # the blade's own technique (after Shikai): its own cost and cooldown
         return bool(f.get("bt")) and _x(f)["tcd"] <= 0 and f["re"] >= f["max_re"] * f["bt"]["cost"]
     if action == "gs":  # general skill chosen in the profile: any race, own cost and cooldown
@@ -941,6 +944,8 @@ def start_turn(state, rng):
             ev.append({"k": "ks_shikai_end", "a": f["name"]})
     if fs.get("kyoka_shikai_cd", 0) > 0:
         fs["kyoka_shikai_cd"] -= 1
+    if fs.get("bu_cd", 0) > 0:
+        fs["bu_cd"] -= 1
     for key in list((fs.get("ks_cd") or {})):
         fs["ks_cd"][key] = max(0, int(fs["ks_cd"][key]) - 1)
         if fs["ks_cd"][key] <= 0:
@@ -1344,6 +1349,24 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             if t.get("bleed") and foe["hp"] > 0:
                 add_fx(foe, "bleed", DOT_TURNS["bleed"])
                 ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
+    elif action == "bu":  # blade ultimate (data_zanpakuto.BLADE_ULT)
+        u, foe = f["bu"], state["b" if side == "a" else "a"]
+        f["re"] -= int(f["max_re"] * u["cost"])
+        _x(f)["bu_cd"] = u["cd"]
+        ev.append({"k": "bt", "a": f["name"], "kind": "heavy"})
+        for _ in range(int(u.get("hits", 1))):
+            if foe["hp"] > 0:
+                _deal(state, side, u["mult"], rng, ev, "tech", allow_procs=True, extra_pierce=u.get("pierce", 0.0), src={"mix": {"zanjutsu": 0.5, "reiatsu": 0.5}})
+        if foe["hp"] > 0 and u.get("fx"):
+            if u["fx"] == "skip":
+                if rng.random() < u.get("skip_p", 0.5):
+                    add_fx(foe, "skip", 1)
+                    ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "freeze"})
+            else:
+                add_fx(foe, u["fx"], DOT_TURNS.get(u["fx"], 3))
+                ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": u["fx"]})
+        if u.get("buff"):
+            _x(f)["buff_t"], _x(f)["buff_m"] = int(u["buff"][0]) + 1, float(u["buff"][1])
     elif action == "gs":  # general skill: guard (shield), strike (a blow) or focus (a damage buff)
         key = f["gen"]
         spec, pw = GENERAL_SKILLS[key], gen_power(f.get("race"), key) * fixed_k(f, "gen")
@@ -1675,7 +1698,7 @@ def _ai_ab(state, side, rng):
     if can(f, "if", state) and r < 0.4:
         return "if"
     ready = []
-    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bt", "gs"):
+    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bu", "bt", "gs"):
         if not can(f, act, state):
             continue
         a, t = _ab(f, act)
@@ -1745,8 +1768,8 @@ def new_state(a, b, rng, pvp=False, duel_rules=None):
         x["dmgx"] = BOSS_DMG_MULT if x.get("foe") in BOSS_FOES else DMG_MULT * ((PLAYER_VS_BOSS_DMG if y.get("foe") in BOSS_FOES else PLAYER_VS_PVE_DMG if y.get("foe") else 1.0) if not x.get("foe") else 1.0)
         x["duel"] = bool(duel and not x.get("wild") and x.get("foe") not in BOSS_FOES)
         x["dl_rel"] = 0
-    if pvp:  # duels give both fighters their Konpaku lives (SENKA+)
-        a["lives"] = b["lives"] = KONPAKU["lives"]
+    if pvp:  # no free revive for everyone any more (bug: every duel kill came back at half HP); Konpaku lives only come from the charm / Yhwach's Eye
+        a["lives"], b["lives"] = int(a.get("lives", 0) or 0), int(b.get("lives", 0) or 0)
     for x, y in ((a, b), (b, a)):  # spiritual pressure
         if x["max_re"] >= 2 * y["max_re"]:
             add_fx(y, "fear", int(DUEL.get("pressure_fear", 1)) if duel else 3)

@@ -158,3 +158,39 @@ def blade_technique(blade_id: str):
     stage = BLADE_STAGES.get(blade_id, {}).get("shikai") or (blade_id, blade_id)
     return {"kind": kind, **BLADE_TECH_KINDS[kind], **BLADE_TECH_COST, **BLADE_TECH_OVERRIDE.get(blade_id, {}),
             "blade_fa": stage[0], "blade_en": stage[1]}
+
+
+# ---- Blade ultimates: every blade's finishing technique (after Shikai), one per blade, own cost / cooldown. ----
+# mult: power of the blow (x the ability formula), hits: number of cuts, pierce: share of armour ignored,
+# fx: status on the foe (bleed / burn / weaken / skip = loses its next turn, with `skip_p` chance),
+# buff: (turns, dmg multiplier) on the wielder. Kyōka Suigetsu keeps its own five-ability kit (engine ks1..ks5).
+BLADE_ULT = {
+    "zangetsu": {"fa": "گتسوگا تنشو", "en": "Getsuga Tenshō", "mult": 5.2, "pierce": 0.30, "buff": (2, 1.25), "cd": 5},
+    "senbonzakura": {"fa": "کاگیوشی سنبونزاکورا", "en": "Senkei Senbonzakura", "mult": 4.6, "pierce": 0.45, "fx": "bleed", "cd": 5},
+    "hyorinmaru": {"fa": "ریوسنکا", "en": "Ryūsenka", "mult": 5.0, "pierce": 0.45, "fx": "skip", "skip_p": 0.55, "cd": 5},
+    "zanka_no_tachi": {"fa": "ریوجین جاکا: ملتهب", "en": "Ryūjin Jakka: Scorch", "mult": 5.6, "pierce": 0.25, "fx": "burn", "cd": 5},
+    "sode_no_shirayuki": {"fa": "تسوگی نو مای: هاکورن", "en": "Tsugi no Mai: Hakuren", "mult": 4.2, "pierce": 0.35, "fx": "skip", "skip_p": 0.5, "cd": 5},
+    "zabimaru": {"fa": "هیهیو زابیمارو", "en": "Hihiō Zabimaru", "mult": 5.0, "pierce": 0.30, "fx": "bleed", "cd": 5},
+    "wabisuke": {"fa": "وابیسوکه: وزن دوچندان", "en": "Wabisuke: Doubled Weight", "mult": 3.6, "pierce": 0.30, "fx": "weaken", "cd": 4},
+    "haineko": {"fa": "هاینکو: خاکستر خفه‌کننده", "en": "Haineko: Choking Ash", "mult": 4.4, "pierce": 0.40, "fx": "weaken", "cd": 5},
+    "minazuki": {"fa": "مینازوکی: تیغه‌ی شفابخش", "en": "Minazuki: Bleeding Moon", "mult": 4.8, "pierce": 0.30, "fx": "bleed", "cd": 5},
+}
+BLADE_ULT_KIND = {  # a blade without its own entry gets a finisher from its technique kind
+    "pierce": {"mult": 4.4, "pierce": 0.50, "cd": 5}, "bleed": {"mult": 4.6, "pierce": 0.30, "fx": "bleed", "cd": 5},
+    "twin": {"mult": 2.6, "hits": 2, "pierce": 0.25, "cd": 5}, "heavy": {"mult": 5.4, "pierce": 0.30, "cd": 5},
+}
+BLADE_ULT_COST = 0.25
+
+
+def blade_ultimate(blade_id: str):
+    """The blade's finishing technique, or None (no blade, or Kyōka Suigetsu which has its own kit)."""
+    if not blade_id or blade_id == "kyoka_suigetsu":
+        return None
+    spec = BLADE_ULT.get(blade_id)
+    if spec is None:
+        kind = BLADE_TECH.get(blade_id)
+        if not kind:
+            return None
+        stage = BLADE_STAGES.get(blade_id, {}).get("shikai") or (blade_id, blade_id)
+        spec = dict(BLADE_ULT_KIND[kind], fa=f"رهایی نهایی {stage[0]}", en=f"Final Release: {stage[1]}")
+    return {"hits": 1, "cost": BLADE_ULT_COST, **spec}

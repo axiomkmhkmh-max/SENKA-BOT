@@ -129,6 +129,9 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
         rows.append([mk(ab_label("sg") or ctx.t(key), "sg")])
+    if E.can(f, "bu"):  # the blade's finisher (after Shikai)
+        bu = f["bu"]
+        rows.append([mk("👑 " + bu["fa" if L == "fa" else "en"], "bu")])
     if E.can(f, "bt"):  # the blade's own technique (after Shikai)
         bt = f["bt"]
         rows.append([mk(f"🗡 {bt['blade_fa' if L == 'fa' else 'blade_en']}: {bt['fa' if L == 'fa' else 'en']}", "bt")])

@@ -12,7 +12,7 @@ NAR_CHANCE = 0.55          # share of turns that get a narrator line (the first 
 CHL_BONUS = 0.25           # a completed challenge pays +25% XP and coins ...
 CHL_CARD_CHANCE = 0.20     # ... and has this chance of an ability card of the player's race
 
-ABILITY_ACTS = ("sg", "t1", "t2", "t3", "gt", "kd", "bk", "bal", "blv", "bla", "neg", "gar", "if", "bt", "gs", "sk")
+ABILITY_ACTS = ("sg", "t1", "t2", "t3", "gt", "kd", "bk", "bal", "blv", "bla", "neg", "gar", "if", "bt", "bu", "gs", "sk")
 CHALLENGES = [
     {"id": "noguard", "kind": "forbid", "acts": ("df",), "fa": "بدون گارد (دفاع) ببر", "en": "Win without Guard"},
     {"id": "nopot", "kind": "forbid", "acts": ("pot",), "fa": "بدون معجون ببر", "en": "Win without a potion"},

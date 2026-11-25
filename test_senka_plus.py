@@ -59,6 +59,8 @@ class KonpakuTests(unittest.TestCase):
     def _knock_out(self, pvp):
         a, b = fighter("A", "shinigami"), fighter("B", "human", hp=400)
         st = E.new_state(a, b, random.Random(1), pvp=pvp)
+        if pvp:  # the life now comes only from the Konpaku charm
+            a["lives"] = b["lives"] = KONPAKU["lives"]
         b["hp"] = 0
         ev = []
         E._check_end(st, ev)
