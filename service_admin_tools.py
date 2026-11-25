@@ -91,9 +91,9 @@ def find_items(q: str, limit: int = 10):
 
 # ---- artifacts -------------------------------------------------------------------------------------------------
 async def artifact_give(aid: str, uid: int, replace: bool = True):
-    """-> (status, None). status: ok | noreg | noart | already | has | full | busy.
-    A player keeps one copy at a time; if the artifact has no free copy left, the admin gets 'full'."""
-    from service_drops import _free_slot, _take_slot, art_release
+    """-> (status, previous_artifact). Reconciles stale counts and reserves the new copy
+    before replacing the player's current artifact, so a failed grant never destroys the old one."""
+    from service_drops import _free_slot, _take_slot, art_reconcile
     if aid not in ART_BY_ID:
         return "noart", None
     ch = await get_char(uid)
@@ -104,19 +104,29 @@ async def artifact_give(aid: str, uid: int, replace: bool = True):
         return "already", None
     if cur and not replace:
         return "has", None
-    if cur:
-        await art_release(uid)
-    if not await _take_slot(aid):
-        return "full", None
-    r = await col("characters").update_one({"user_id": uid, "artifact": None}, {"$set": {"artifact": aid}})
+
+    # `held` is a denormalized counter. Repair it from actual character ownership and active
+    # market escrow before checking capacity; old crashes/admin edits could leave it inflated.
+    await art_reconcile()
+    # Admin grants draw from the free pool. A pending group drop does not consume a held slot.
+    if not await _take_slot(aid, from_state="free"):
+        doc = await col("artifacts").find_one({"_id": aid}) or {}
+        return ("busy" if doc.get("state") == "claiming" else "full"), None
+
+    # Conditional update protects against a concurrent player action. Keep the old copy until
+    # the new slot is safely reserved and the character update succeeds.
+    query = {"user_id": uid, "artifact": cur} if cur else {"user_id": uid, "artifact": None}
+    r = await col("characters").update_one(query, {"$set": {"artifact": aid}})
     if not r.modified_count:
         await _free_slot(aid)
         return "has", None
+    if cur:
+        await _free_slot(cur)
     now = int(time.time())
     await col("artifacts").update_one({"_id": aid}, {"$set": {"since": now},
         "$push": {"history": {"$each": [{"uid": uid, "at": now, "how": "admin", "price": 0}], "$slice": -10}}})
     log_event("art", uid, f"«{ART_BY_ID[aid]['name_fa']}» را از دست یک ادمین گرفت", art=aid)
-    return "ok", None
+    return "ok", cur
 
 
 async def artifact_take(uid: int) -> str:

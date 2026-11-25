@@ -216,8 +216,8 @@ async def event_pick_go(ctx, arg):
 async def event_pick_end(ctx, arg):
     if not await _need(ctx, 60):
         return _deny(ctx)
-    from service_worldstate import event_end
-    res = await event_end()  # success when the goal was reached
+    from service_worldstate import admin_event_end
+    res = await admin_event_end()
     await alog(ctx.uid, "world_event_end", None, None, None, "panel picker")
     out = await event_pick_list(ctx, "")
     out.alert = T(ctx, "پایان یافت ✅", "Ended ✅") if res else T(ctx, "رویدادی فعال نبود.", "No active event.")

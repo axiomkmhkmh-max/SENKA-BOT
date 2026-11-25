@@ -1,4 +1,10 @@
 TEXT = {
+    "adm_world_event_end_usage": "📌 طرز استفاده: <code>/aworld event end</code>",
+    "adm_world_event_none": "ℹ️ رویداد فعالی یا وضعیت گیرکرده‌ای پیدا نشد.",
+    "adm_world_event_recovered": "✅ وضعیت قدیمی رویداد پاک‌سازی شد؛ قفل دنیا آزاد شد.",
+    "adm_world_event_done": "✅ رویداد پایان یافت ({status}). مشارکت‌کنندگان: {n}",
+    "adm_world_event_success": "پیروزی",
+    "adm_world_event_failure": "شکست",
     "cr_dailycap": "⏳ سقف روزانه‌ی ساخت کلید {name} پر شده؛ حداکثر {cap} عدد.",
     "rel_body_v2": "🗿 یادگارها: {used}/{slots} جایگاه فعال · بازشدن جایگاه‌ها: سطح‌های {lv1}، {lv2}، {lv3}، {lv4}",
 

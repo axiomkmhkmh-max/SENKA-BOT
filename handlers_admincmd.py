@@ -12,13 +12,13 @@ from aiogram import Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
-from admin_fa import ROLE_ALIAS
+from admin_fa import ARG_ALIAS, ROLE_ALIAS
 from config import settings
 from data_artifacts import ARTIFACTS, ART_BY_ID
 from data_items import ALL, iname
 from database import col, game_settings
 from handlers_admin import ROLES, admin_level, alog
-from i18n import esc, fnum
+from i18n import esc, fnum, t
 from security import allow
 from service_admin_tools import (MAX_COINS, MAX_QTY, _DIG, add_tokens, artifact_free, artifact_give, artifact_take, auto_code,
                                  code_state, create_code, delete_code, find_artifacts, find_items, get_code, gift_all,
@@ -456,6 +456,23 @@ async def c_take_item(e: Env):
         return await e.say(e.t("❌ این تعداد در کوله‌ی بازیکن نیست.", "❌ The player does not have that many."))
     await alog(e.uid, "take_item", tid, None, {"item": iid, "n": n}, "cmd")
     await e.say(f"➖ {esc(iname(iid, e.lang))} ×{n} ← " + await _name(tid))
+
+
+# ---- shared world admin slash command -------------------------------------------------------------------------------
+@acmd("aworld", 60, "/aworld event end", "پایان‌دادن یا بازیابی رویداد گیرکرده‌ی دنیا", "End or recover a stuck world event")
+async def c_aworld(e: Env):
+    args = [ARG_ALIAS.get(x.lower(), x.lower()) for x in e.args]
+    if len(args) != 2 or args[0] != "event" or args[1] != "end":
+        return await e.say(t(e.lang, "adm_world_event_end_usage"))
+    from service_worldstate import admin_event_end
+    res = await admin_event_end()
+    if not res:
+        return await e.say(t(e.lang, "adm_world_event_none"))
+    doc = res.get("doc") or {}
+    await alog(e.uid, "world_event_end", doc.get("_id"), None, {"recovered": bool(res.get("recovered"))}, "slash command")
+    if res.get("recovered"):
+        return await e.say(t(e.lang, "adm_world_event_recovered"))
+    await e.say(t(e.lang, "adm_world_event_done", status=t(e.lang, "adm_world_event_success" if res.get("ok") else "adm_world_event_failure"), n=res.get("n", 0)))
 
 
 # ---- artifacts & Hogyoku ----------------------------------------------------------------------------------------------

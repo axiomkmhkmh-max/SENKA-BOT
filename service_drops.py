@@ -72,12 +72,14 @@ def _hist(uid: int, how: str, price: int = 0) -> dict:
 
 
 async def _take_slot(aid: str, from_state: str = "dropped") -> bool:
-    # Reserve both the world-state transition and the holder slot atomically. Free-pool artifacts
-    # can still be claimed concurrently up to their cap; a dropped copy is single-claim locked.
-    query = {"_id": aid, "state": from_state, "held": {"$lt": art_cap(aid)}}
-    update = {"$inc": {"held": 1}}
-    if from_state == "dropped":
-        update["$set"] = {"state": "claiming"}
+    # Reserve a holder slot atomically. Admin grants and market/free-pool acquisitions may
+    # coexist with a pending group drop: the drop reserves a future claim, not a held copy.
+    if from_state == "free":
+        query = {"_id": aid, "state": {"$in": ["free", "dropped"]}, "held": {"$lt": art_cap(aid)}}
+        update = {"$inc": {"held": 1}}
+    else:
+        query = {"_id": aid, "state": from_state, "held": {"$lt": art_cap(aid)}}
+        update = {"$inc": {"held": 1}, "$set": {"state": "claiming"}}
     return bool(await col("artifacts").find_one_and_update(query, update))
 
 
@@ -202,7 +204,8 @@ async def art_settle():
 
 
 async def art_registry() -> list:
-    """[(artifact, state, holders)] where holders is a list of {name, level} for every player holding a copy."""
+    """[(artifact, state, holders)]; repair cached counts before reporting availability."""
+    await art_reconcile()
     docs = {d["_id"]: d async for d in col("artifacts").find({})}
     out = []
     for a in ARTIFACTS:

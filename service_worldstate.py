@@ -295,6 +295,58 @@ async def event_end(eid: str = None, force_success: bool = None):
     return {"doc": doc, "ok": ok, "rows": rows, "n": n, "war": war}
 
 
+async def admin_event_end():
+    """Admin recovery/close path. Finds orphaned active events even when world_state.event_id
+    was lost, and clears stale pointers left by interrupted event settlement.
+
+    A `settling` event is never paid a second time: it is marked recovered/done and detached.
+    """
+    ws = await col("world_state").find_one({"_id": WS_ID}) or {}
+    eid = ws.get("event_id")
+    pointed = await col("world_events").find_one({"_id": eid}) if eid else None
+
+    # The canonical pointer can be missing or stale while an active event document remains.
+    active = None
+    if pointed and pointed.get("status") == "active":
+        active = pointed
+    else:
+        active = await col("world_events").find_one({"status": "active"}, sort=[("start_at", -1)])
+
+    if active:
+        await col("world_state").update_one({"_id": WS_ID}, {"$set": {"event_id": active["_id"]}})
+        invalidate()
+        result = await event_end(active["_id"])
+        if result:
+            return result
+        # A concurrent scheduler/admin may have completed it between lookup and settlement.
+        latest = await col("world_events").find_one({"_id": active["_id"]}) or {}
+        if latest.get("status") == "done":
+            await col("world_state").update_one({"_id": WS_ID, "event_id": active["_id"]}, {"$set": {"event_id": None}})
+            invalidate()
+            return {"doc": latest, "ok": bool(latest.get("success")), "rows": [], "n": 0, "war": None, "recovered": True}
+        return None
+
+    # If the pointer references a settlement interrupted by a process restart, do not replay
+    # rewards (some may already have been delivered). Close it safely and release the world lock.
+    if pointed and pointed.get("status") == "settling":
+        now = int(time.time())
+        await col("world_events").update_one({"_id": eid, "status": "settling"},
+            {"$set": {"status": "done", "success": False, "ended_at": now, "admin_recovered": True,
+                      "expire_at": datetime.now(timezone.utc) + timedelta(days=14)}})
+        await col("world_state").update_one({"_id": WS_ID, "event_id": eid}, {"$set": {"event_id": None,
+            "next_event_at": now + int((await game_settings())["event_min_gap_minutes"]) * 60}})
+        invalidate()
+        return {"doc": pointed, "ok": False, "rows": [], "n": 0, "war": None, "recovered": True}
+
+    # A pointer to a missing/already-finished event makes the world panel look empty but can
+    # block new starts. Remove only that stale pointer; never touch historical event records.
+    if eid:
+        await col("world_state").update_one({"_id": WS_ID, "event_id": eid}, {"$set": {"event_id": None}})
+        invalidate()
+        return {"doc": pointed or {"_id": eid}, "ok": False, "rows": [], "n": 0, "war": None, "recovered": True}
+    return None
+
+
 async def event_contribute_key(uid: int, item_id: str):
     """Spend one dungeon key as an offering to the active event."""
     from data_world import KEY_PTS

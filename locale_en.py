@@ -1,4 +1,10 @@
 TEXT = {
+    "adm_world_event_end_usage": "📌 Usage: <code>/aworld event end</code>",
+    "adm_world_event_none": "ℹ️ No active event or stuck state was found.",
+    "adm_world_event_recovered": "✅ Stale event state was repaired; the world lock was released.",
+    "adm_world_event_done": "✅ Event ended ({status}). Participants: {n}",
+    "adm_world_event_success": "success",
+    "adm_world_event_failure": "failure",
     "cr_dailycap": "⏳ Daily {name} key-crafting limit reached; maximum {cap} per day.",
     "rel_body_v2": "🗿 Relics: {used}/{slots} active slots · unlock levels: {lv1}, {lv2}, {lv3}, {lv4}",
 

@@ -274,7 +274,7 @@ async def admin_world(ctx, args, lvl: int) -> str:
     from data_races import LOCATIONS
     from data_world import EVENTS, VAR_START
     from service_worldcore import get_world, invalidate, world_set
-    from service_worldstate import event_end, event_start, season_force_end
+    from service_worldstate import admin_event_end, event_start, season_force_end
     L = ctx.lang
     ws, ev = await get_world(force=True)
     sub = args[0].lower() if args else ""
@@ -307,8 +307,8 @@ async def admin_world(ctx, args, lvl: int) -> str:
         return ctx.t("adm_done")
     if sub == "event" and len(args) >= 2:
         if args[1].lower() == "end":
-            res = await event_end()  # success when the goal was reached
-            await alog(ctx.uid, "world_event_end")
+            res = await admin_event_end()
+            await alog(ctx.uid, "world_event_end", (res or {}).get("doc", {}).get("_id"))
             return ctx.t("adm_done" if res else "adm_fail")
         if args[1] in EVENTS:
             res = await event_start(args[1])
