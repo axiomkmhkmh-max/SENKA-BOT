@@ -2,7 +2,7 @@ import random
 import unittest
 
 import engine as E
-from data_misc import BOSS_REGEN_SHARE
+from data_misc import BOSS_REGEN_SHARE, PVE_REGEN_SHARE
 
 
 def _regen(foe):
@@ -23,8 +23,12 @@ class BossRegen(unittest.TestCase):
         self.assertAlmostEqual(boss / normal, BOSS_REGEN_SHARE, delta=0.01)
         self.assertEqual(_regen("world_boss"), boss)
 
-    def test_other_foes_keep_normal_regen(self):
-        self.assertEqual(_regen("pve"), _regen(None))
+    def test_wild_foes_regen_a_reduced_share(self):
+        # Nov 26: a war commander healed 2,204 a turn against a 2,108 heavy strike. Wild foes now get PVE_REGEN_SHARE of it.
+        normal = _regen(None)
+        self.assertAlmostEqual(_regen("pve") / normal, PVE_REGEN_SHARE, delta=0.01)
+        self.assertAlmostEqual(_regen("hollow") / normal, PVE_REGEN_SHARE, delta=0.01)
+        self.assertGreater(_regen("pve"), _regen("boss"))  # still more than a boss
 
 
 if __name__ == "__main__":

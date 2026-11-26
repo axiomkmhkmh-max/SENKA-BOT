@@ -103,6 +103,10 @@ class FinalJudgmentServiceTests(unittest.TestCase):
 
     def setUp(self):
         self.collections.clear()
+        # Nov 26: the event is closed in production (FJ_OPEN = False). These tests cover the open event's rules.
+        self._fj_open = self.svc.FJ_OPEN
+        self.svc.FJ_OPEN = True
+        self.addCleanup(setattr, self.svc, "FJ_OPEN", self._fj_open)
 
     def _combat_stub(self, pve_start=None):
         m = types.ModuleType("service_combat")

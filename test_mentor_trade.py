@@ -446,16 +446,16 @@ class MentorTests(Base):
 
     def test_xp_cut_is_extra_and_small(self):
         async def go():
-            self.char(1, 10)
-            self.char(2, 30)
+            self.char(1, 10)   # apprentice
+            self.char(2, 30)   # master: the one who earned the XP
             await M.request_master(1, 2)
             await M.accept(2, 1)
-            res = await M.share_xp(1, 2, 200)
-            self.assertEqual(res, {"xp": 6, "graduated": False})   # 3% of 200
-            self.add_xp.assert_awaited_once_with(2, 6, "mentor", apply_rate=False)
+            res = await M.share_to_apprentices(2, 200)
+            self.assertEqual(res, {"xp": 6, "n": 1, "graduated": []})   # 3% of 200, paid to the apprentice
+            self.add_xp.assert_awaited_once_with(1, 6, "mentor", apply_rate=False)
             self.assertEqual((await M.mentorship_of(1))["xp_total"], 6)
             self.add_xp.reset_mock()
-            res = await M.share_xp(1, 2, 20)                        # 3% of 20 rounds to nothing: no free XP
+            res = await M.share_to_apprentices(2, 20)                   # 3% of 20 rounds to nothing: no free XP
             self.assertEqual(res["xp"], 0)
             self.add_xp.assert_not_awaited()
         run(go())
@@ -467,9 +467,9 @@ class MentorTests(Base):
             await M.request_master(1, 2)
             await M.accept(2, 1)
             with mock.patch.dict(SETTINGS, {"mentor_xp_pct": 10}):
-                self.assertEqual((await M.share_xp(1, 2, 200))["xp"], 20)
+                self.assertEqual((await M.share_to_apprentices(2, 200))["xp"], 20)
             with mock.patch.dict(SETTINGS, {"mentor_xp_pct": 0}):
-                self.assertEqual((await M.share_xp(1, 2, 200))["xp"], 0)
+                self.assertEqual((await M.share_to_apprentices(2, 200))["xp"], 0)
         run(go())
 
     def test_graduation_when_the_apprentice_catches_up(self):
@@ -479,8 +479,8 @@ class MentorTests(Base):
             await M.request_master(1, 2)
             await M.accept(2, 1)
             self.db("characters").docs[0]["level"] = 30
-            res = await M.share_xp(1, 2, 100)
-            self.assertTrue(res["graduated"])
+            res = await M.share_to_apprentices(2, 100)
+            self.assertEqual(res["graduated"], [1])
             self.assertIsNone(await M.mentorship_of(1))
             self.assertNotIn("mentor", await SP.get_char(1))
         run(go())
@@ -489,10 +489,10 @@ class MentorTests(Base):
         async def go():
             self.char(1, 10)
             self.char(2, 30)
-            self.db("characters").docs[0]["mentor"] = 2           # a marker with no bond behind it
-            res = await M.share_xp(1, 2, 100)
+            self.db("characters").docs[1]["apps"] = 1               # the master's marker says "has apprentices" but no bond exists
+            res = await M.share_to_apprentices(2, 100)
             self.assertEqual(res["xp"], 0)
-            self.assertNotIn("mentor", await SP.get_char(1))
+            self.assertNotIn("apps", await SP.get_char(2))
             self.add_xp.assert_not_awaited()
         run(go())
 

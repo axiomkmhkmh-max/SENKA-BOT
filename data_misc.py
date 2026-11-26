@@ -62,6 +62,14 @@ DUEL = {
 # Legendary dungeon, stage 1 (feedback: far too strong): its enemy gets more HP and hits for less. Not a wall, a longer, fairer fight.
 LEGEND_S1_HP = 1.4
 LEGEND_S1_DMG = 0.5
+# Nov 26 fix (player report: plain attack / heavy strike / Kyoka did 0-7K in hard+ dungeons while Hado stayed fixed):
+# armour is SUBTRACTED from the attack before the power multiplier, so on a x1.5+ dungeon enemy a plain blow fell to 1 damage.
+# Hado already had a floor; blows through _deal had none for PvE. A player blow on a wild enemy / dungeon boss now deals at
+# least this share of what it would deal with the target's armour ignored (0 = off). The world boss keeps WORLD_BOSS_FLOOR.
+PVE_ARMOR_FLOOR = 0.30
+# Wild enemies (not bosses, which have BOSS_REGEN_SHARE) recover only this share of the normal per-turn regen. The Nov 26
+# raise of natural regen to 5% healed a war commander 2,204 a turn while a heavy strike did 2,108: nobody could win.
+PVE_REGEN_SHARE = 0.35
 BOSS_HIT_CAP = 0.30      # a single boss blow (crit included) can take at most this share of the target's max HP: no two-crit kills
 POTION_DEF_BOOST = 4.0   # a defence potion drunk mid-fight is worth this many times its stored % (5-10% was not felt)
 WORLD_BOSS_HP_MULT = 3

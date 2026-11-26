@@ -188,7 +188,8 @@ class SpinService(unittest.IsolatedAsyncioTestCase):
         status, res = await sw.spin(5, "w_yamamoto", OWNER)  # 11th: x2
         self.assertEqual(status, "ok")
         self.assertEqual(res["n"], 11)
-        self.assertEqual(res["cost"], 14 * 2)
+        from data_wheels import COST_OVERRIDE  # Yamamoto has its own base price (75); the 11th spin is the x2 tier of that price
+        self.assertEqual(res["cost"], COST_OVERRIDE["w_yamamoto"] * 2)
 
     async def test_free_spin_costs_nothing(self):
         FAKE_STATE["settings"]["wheel_free_daily"] = 1

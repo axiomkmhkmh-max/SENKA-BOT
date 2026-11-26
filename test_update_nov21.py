@@ -30,7 +30,8 @@ class Numbers(unittest.TestCase):
     def test_hakuda_hp_x6(self):
         from service_player import max_hp
         self.assertEqual(HAKUDA_HP, 60)
-        self.assertEqual(max_hp(10, 10), int((100 + 200 + 600) * HP_MULT))  # Hakuda's share is x6, then all HP x HP_MULT
+        from data_balance import PLAYER_HP_K  # Nov 26: players have x1.35 HP (heals stay on the old pool, engine._hb)
+        self.assertEqual(max_hp(10, 10), int((100 + 200 + 600) * HP_MULT * PLAYER_HP_K))  # Hakuda's share is x6, then all HP x HP_MULT
         self.assertEqual(E._hb(_f("A")), 6000 / HP_MULT)
 
     def test_damage_x2_except_a_boss_own_blows(self):
@@ -40,7 +41,9 @@ class Numbers(unittest.TestCase):
         p, boss = _f("P"), _f("Boss")
         boss["foe"] = "boss"
         E.new_state(p, boss, random.Random(1))
-        self.assertEqual((p["dmgx"], boss["dmgx"]), (DMG_MULT, 1.0))  # the player still hits x2, the boss does not
+        # Nov 23: players hit a boss PLAYER_VS_BOSS_DMG harder, and a boss's own blows are BOSS_DMG_MULT (was 1.0)
+        from data_misc import PLAYER_VS_BOSS_DMG, BOSS_DMG_MULT
+        self.assertEqual((p["dmgx"], boss["dmgx"]), (DMG_MULT * PLAYER_VS_BOSS_DMG, BOSS_DMG_MULT))
 
     def test_ratio_dodge(self):
         a, b = _f("A", hoho=50), _f("B", hoho=100)

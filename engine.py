@@ -5,7 +5,7 @@ Fighters are 'a' and 'b'. Events are small dicts rendered later by battle_text.
 import math
 import random
 
-from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP, DUEL, WORLD_BOSS_FLOOR, PLAYER_VS_BOSS_DMG, PLAYER_VS_PVE_DMG, BOSS_REGEN_SHARE
+from data_misc import FORM1, FORM2, FORM2_EFFECT, FORM1_LEVEL, FORM2_LEVEL, KIDO_NAMES, MASK_RAGE, HP_MULT, DMG_MULT, BOSS_FOES, BOSS_DMG_MULT, BOSS_HIT_CAP, DUEL, WORLD_BOSS_FLOOR, PLAYER_VS_BOSS_DMG, PLAYER_VS_PVE_DMG, BOSS_REGEN_SHARE, PVE_ARMOR_FLOOR, PVE_REGEN_SHARE
 from data_races import soft_stat
 from data_race_rules import race_allows, fight_context, ctx_dmg_mult, GENERAL_SKILLS, gen_power
 from data_race_tech import ABILITY_SHARE, ABILITY_STAT, FULLBRING_WEAPON, FULLBRING_LOW, HEAVY_REIATSU, TECH_SLOTS, tech_of
@@ -415,6 +415,9 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
         dmg *= max(1.0, nodef * DUEL["floor_share"])  # so a much weaker fighter still hurts, in proportion to their OWN power
     if dfn.get("foe") == "world_boss" and WORLD_BOSS_FLOOR > 0 and kind not in ("counter", "echo"):  # world-boss floor: armour never eats more than (1 - floor) of a blow
         dmg *= max(1.0, nodef * WORLD_BOSS_FLOOR)
+    if (dfn.get("foe") in ("pve", "hollow", "boss") and not dfn.get("fj") and not att.get("ai") and PVE_ARMOR_FLOOR > 0\
+            and kind not in ("counter", "echo", "dot", "reflect")):  # Nov 26: armour never eats more than (1 - floor) of a player's blow on a wild enemy
+        dmg *= max(1.0, nodef * PVE_ARMOR_FLOOR)
     if dfn.get("fj") and not att.get("ai") and kind not in ("counter", "echo"):  # Final Judgment bosses: armour never eats more than (1 - floor) of a blow
         dmg *= max(1.0, nodef * float(dfn.get("fj_floor") or FJ_BOSS_FLOOR))
     tm = _take_mult(dfn)
@@ -1091,7 +1094,7 @@ def start_turn(state, rng):
     f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * TURN_RE_REGEN)))
     regen_budget = int(f["max_hp"] * BAL.passive_regen_cap(bool(state.get("duel"))))  # Nov 26: natural + companion regen share one per-turn budget
     if 0 < f["hp"] < f["max_hp"] and not bhas(f, "noregen"):  # natural recovery every turn (tunable: TURN_HP_REGEN)
-        h = max(1, int(_hb(f) * TURN_HP_REGEN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0) * (FJ_REGEN_K if f.get("fj") else 1.0)))
+        h = max(1, int(_hb(f) * TURN_HP_REGEN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else PVE_REGEN_SHARE if f.get("foe") in ("pve", "hollow") else 1.0) * (FJ_REGEN_K if f.get("fj") else 1.0)))
         h = max(1, min(h, regen_budget))
         regen_budget -= h
         f["hp"] = min(f["max_hp"], f["hp"] + h)
