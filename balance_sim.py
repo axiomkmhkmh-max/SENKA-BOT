@@ -11,6 +11,7 @@ LEVEL, ALLOC = 40, 25
 WEAPON = {"attack": 107, "crit": 0.05, "element": "light", "skills": [], "weapon_type": "melee"}
 ARMOR = 20
 RACE_LIST = ["shinigami", "quincy", "hollow", "arrancar", "fullbringer", "human", "visored"]
+ENEMY_HOHO_CAP = 100
 ENEMY_K = {"s": 1.6, "d": 1.2, "h0": 60, "h1": 30, "a": 2.6, "ar": 0.9}
 
 def max_hp(level, hakuda, mult=1.0):  # same as service_player.max_hp (HP x6 since Nov 21)
@@ -111,7 +112,7 @@ def player(race):
 def foe(scale, hollow):
     k, lvl = ENEMY_K, LEVEL
     s = (4 + lvl * k["s"]) * scale
-    stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + lvl * k["d"]) * scale, "hoho": 6 + lvl * 0.5, "reiatsu": 5 + lvl}
+    stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + lvl * k["d"]) * scale, "hoho": min(ENEMY_HOHO_CAP, 6 + lvl * 0.5), "reiatsu": 5 + lvl}
     w = {"attack": (3 + lvl * k["a"]) * scale, "crit": 0.03, "element": "light", "skills": [], "weapon_type": "melee"}
     from data_misc import ENEMY_HAKUDA_HP, HP_MULT
     hp = (k["h0"] + lvl * k["h1"] + stats["hakuda"] / max(0.01, scale) * ENEMY_HAKUDA_HP) * scale * HP_MULT  # as service_combat.make_enemy

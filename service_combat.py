@@ -39,6 +39,9 @@ def _bg(coro):
     task.add_done_callback(_done)
 
 
+# Enemy Hohō stops growing with level here (it is soft-capped like a player's, so uncapped growth made high-level foes "equal" in speed
+# to a player with 300 Hohō and removed the dodge advantage everywhere).
+ENEMY_HOHO_CAP = 100
 ENEMY_K = {"s": 1.6, "d": 1.2, "h0": 60, "h1": 30, "a": 2.6, "ar": 0.9}
 RANKS = [(0, "E"), (1100, "D"), (1250, "C"), (1400, "B"), (1600, "A"), (1850, "S"), (2150, "SS"), (2500, "SSS")]
 
@@ -264,7 +267,7 @@ DG_BOSS_HOHO, DG_FOE_HOHO = 0.40, 0.70   # dungeon boss Hohō -60%, other dungeo
 def make_enemy(level: int, scale: float, name: str, rng=random, sig=None):
     k = ENEMY_K
     s = (4 + level * k["s"]) * scale
-    stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + level * k["d"]) * scale, "hoho": 6 + level * 0.5, "reiatsu": 5 + level}
+    stats = {"zanjutsu": s, "kido": s * 0.6, "hakuda": (4 + level * k["d"]) * scale, "hoho": min(ENEMY_HOHO_CAP, 6 + level * 0.5), "reiatsu": 5 + level}
     w = {"attack": (3 + level * k["a"]) * scale, "crit": 0.03, "element": rng.choice(ELEMENTS), "skills": [], "weapon_type": "melee"}
     from data_misc import ENEMY_HAKUDA_HP, HP_MULT
     # their Hakuda gives them HP too (Nov 21: Hakuda's effect on HP is x6 for players; enemies carry about twice the Hakuda)
