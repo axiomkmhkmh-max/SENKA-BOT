@@ -1035,13 +1035,18 @@ async def pvp_settle(doc: dict):
         await col("characters").update_one({"user_id": w_uid}, {"$inc": {"rating": gain, "pvp_w": 1}})
         await col("characters").update_one({"user_id": l_uid}, {"$set": {"rating": new_l}, "$inc": {"pvp_l": 1}})
         res["rating"] = {w_uid: (cw["rating"] + gain, gain), l_uid: (new_l, -(cl["rating"] - new_l))}
-        # Battle Rank from ranked duels (skill, not level): only the first few duels of the same pair each day count
-        from data_battlerank import DUEL_PAIR_DAILY
+    # Battle Rank from ranked duels (skill, not level). Nov 26: it no longer waits for the classic rating or the level gap: the
+    # rank-point gap (data_battlerank.duel_gain) already stops farming, so a high level beating a low level gets 0 only when
+    # the rank gap says so, and a loss no longer costs rank while a win pays nothing. Only the first few duels of a pair a day count.
+    if doc["ranked"] and note in (None, "level_gap"):
+        from data_battlerank import DUEL_PAIR_DAILY, duel_gain
         from data_world import day_id
         from database import bump_counter
-        if await bump_counter(f"brpair:{pair}:{day_id()}", 1, DUEL_PAIR_DAILY):
-            from service_battlerank import apply as br_apply, current as br_current
-            rw, rl = br_current(cw)[0], br_current(cl)[0]
+        from service_battlerank import apply as br_apply, current as br_current
+        rw, rl = br_current(cw)[0], br_current(cl)[0]
+        if duel_gain(rw, rl) <= 0:  # the winner is far above the loser in rank points: nobody gains, nobody loses
+            res["br_note"] = "gap"
+        elif await bump_counter(f"brpair:{pair}:{day_id()}", 1, DUEL_PAIR_DAILY):
             bw = await br_apply(w_uid, "duel_win", opp_rp=rl)
             if bw and bw.get("delta", 0) > 0:
                 bl = await br_apply(l_uid, "duel_loss", opp_rp=rw)

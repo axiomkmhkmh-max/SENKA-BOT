@@ -67,12 +67,31 @@ class RulesTests(unittest.TestCase):
         for rp in (0, 300, B.THRESHOLDS[-1]):
             self.assertGreater(B.flee_cost(rp), B.loss_cost(rp))
 
-    def test_duel_is_elo_like(self):
+    def test_duel_is_cup_style(self):
         self.assertGreater(B.duel_gain(0, 5000), B.duel_gain(0, 0))      # beating a higher rank pays more
-        self.assertLess(B.duel_gain(5000, 0), B.duel_gain(0, 0))         # farming a lower rank pays little
-        self.assertEqual(B.duel_gain(0, 99999), B.DUEL_MAX)
-        self.assertEqual(B.duel_gain(99999, 0), B.DUEL_MIN)
+        self.assertEqual(B.duel_gain(0, 99999), B.DUEL_MAX)              # ... up to the cap
+        self.assertEqual(B.duel_gain(500, 500), B.DUEL_BASE)             # equals: the base
         self.assertLess(B.duel_loss(0, 0), B.duel_gain(0, 0))
+
+    def test_big_upset_pays_a_lot(self):
+        # 900 beats 1800: far more than a duel between equals (the player's own example)
+        self.assertGreaterEqual(B.duel_gain(900, 1800), 4 * B.DUEL_BASE)
+        self.assertLessEqual(B.duel_gain(900, 1800), B.DUEL_MAX)
+
+    def test_beating_someone_300_below_pays_nothing_and_costs_them_nothing(self):
+        self.assertEqual(B.duel_gain(1000, 1000 - B.DUEL_NO_GAIN_GAP), 0)
+        self.assertEqual(B.duel_gain(99999, 0), 0)
+        self.assertEqual(B.duel_loss(1000, 1000 - B.DUEL_NO_GAIN_GAP), 0)   # the loser is not punished for it either
+        self.assertEqual(B.duel_loss(99999, 0), 0)
+
+    def test_gain_fades_out_without_a_cliff(self):
+        gains = [B.duel_gain(1000, 1000 - d) for d in range(0, B.DUEL_NO_GAIN_GAP + 1, 50)]
+        self.assertEqual(gains, sorted(gains, reverse=True))              # never rises as the gap grows
+        self.assertGreater(gains[0], gains[-2])
+        self.assertEqual(gains[-1], 0)
+
+    def test_losing_to_a_lower_rank_costs_more_than_to_an_equal(self):
+        self.assertGreater(B.duel_loss(0, 900), B.duel_loss(900, 900))   # the higher-ranked loser pays for the upset
 
     def test_rewards_follow_sub_tiers(self):
         self.assertEqual(B.reward_of(3), ("consumable", 1))   # Shoden 1: green consumable chest

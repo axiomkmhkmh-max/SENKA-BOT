@@ -802,7 +802,11 @@ def _final(ctx, doc, outcome):
         bn = outcome.get("br_note")
         if bn:
             from data_battlerank import DUEL_DAILY_CAP, DUEL_PAIR_DAILY
-            if bn == "pair":
+            if bn == "gap":
+                from data_battlerank import DUEL_NO_GAIN_GAP
+                lines.append(f"⚖️ برنده بیشتر از {fnum(DUEL_NO_GAIN_GAP, L)} امتیاز رنک بالاتر از حریف بود؛ رنک هیچ‌کدام تغییر نکرد." if L == "fa"
+                             else f"⚖️ The winner was {DUEL_NO_GAIN_GAP}+ rank points above the loser; nobody's rank changed.")
+            elif bn == "pair":
                 lines.append(f"⏳ با این حریف فقط {fnum(DUEL_PAIR_DAILY, L)} دوئل اول هر روز رنک دارد." if L == "fa"
                              else f"⏳ Only the first {DUEL_PAIR_DAILY} duels a day against the same opponent change Battle Rank.")
             else:

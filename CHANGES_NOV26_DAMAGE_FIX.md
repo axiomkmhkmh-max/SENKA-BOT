@@ -19,3 +19,13 @@
   `test_mentor_trade` (`share_to_apprentices` replaced `share_xp`: the master earns, apprentices get the bonus).
 - Known open item: `test_gotei_trial.TrainingDuelKit` fails on purpose. `service_combat.duel_accept` / `pvp_settle` no longer use the
   tournament standard kit or call `service_tournament.record_training`, so Gotei Trial training points are never recorded.
+
+## Battle Rank: cup style (player report: "I lose and it takes rank, I win and it gives nothing")
+Cause: a ranked duel won by a player more than 50 levels above the loser was `level_gap` ("unrated") and that skipped Battle
+Rank too, while the same duel lost by that player still cost rank (the winner was the lower level, so it counted).
+- `data_battlerank.duel_gain`: beating someone ranked ABOVE you pays `DUEL_SLOPE` (0.15) per point of gap, up to `DUEL_MAX` (150)
+  (900 beats 1800 = +150). Beating someone below you fades to 0 at `DUEL_NO_GAIN_GAP` (300) points; at 0 the loser loses 0 too.
+- `service_combat.pvp_settle`: Battle Rank no longer depends on the level gap or the classic rating (rank-point gap replaces it).
+  New note `gap` (handlers_combat) when nobody gains because the winner is 300+ above. Pair limit (3 a day) and daily cap unchanged.
+- The level-gap note text now says only the classic rating is skipped.
+- Tests: `test_battlerank` (cup rules), new `test_rank_cup_settle.py`.

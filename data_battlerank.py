@@ -4,7 +4,7 @@ Call of Duty style: winning raises it, losing lowers it, the rank shows a title.
 Fair on purpose (rework 2): rank points are flat and the same for every level. A level 120 player and a level 10
 player get exactly the same points for a normal win, so a strong account can no longer race up the ladder. Normal
 battles add at most PVE_DAILY_CAP points a day; above that only duels raise the rank. Ranked duels are where skill
-shows: points move like Elo (beating a higher-ranked player pays more, losing to a lower-ranked one costs more), with
+shows: points move like cups (beating a higher-ranked player pays a lot, beating one 300+ points below you pays nothing), with
 a cap per opponent per day so two friends cannot farm each other. Divisions are wide: a sub-tier takes days and the
 top of the ladder takes most of the 30-day season.
 
@@ -76,8 +76,11 @@ LOSS_STEP = 1.5         # ... +1.5 per division above (about 35 at the top)
 FLEE_MIN = 40           # fleeing always costs more than losing (the win chain is kept)
 
 DUEL_BASE = 35          # a ranked duel between equals
-DUEL_SPREAD = 100       # every 100 points the loser is above the winner adds 1 (and below takes 1 away)
-DUEL_MIN, DUEL_MAX = 15, 80
+DUEL_SLOPE = 0.15       # Nov 26 (cup style): +0.15 rank point for every point the LOSER is above the winner
+                        # (900 vs 1800 -> +170, capped at DUEL_MAX), so beating a much higher rank pays a lot
+DUEL_NO_GAIN_GAP = 300  # a winner this many points (or more) ABOVE the loser gets nothing, and the loser loses nothing;
+                        # between 0 and this gap the gain fades out linearly (no cliff)
+DUEL_MIN, DUEL_MAX = 0, 150
 DUEL_LOSS_SHARE = 0.8   # the loser drops 80% of what the winner gains
 DUEL_PAIR_DAILY = 3     # the same two players move each other's rank only in their first 3 duels of the day
 DUEL_DAILY_CAP = 500    # rank points a day from duels
@@ -97,12 +100,21 @@ def flee_cost(rp: int) -> int:
 
 
 def duel_gain(rp_winner: int, rp_loser: int) -> int:
-    """Elo-like: beating someone ranked above you pays more, beating someone far below pays little."""
-    return max(DUEL_MIN, min(DUEL_MAX, int(round(DUEL_BASE + (int(rp_loser) - int(rp_winner)) / DUEL_SPREAD))))
+    """Cup style (Nov 26): the bigger the gap in the winner's favour, the less it pays, down to 0 at DUEL_NO_GAIN_GAP;
+    beating someone ranked ABOVE you pays DUEL_SLOPE per point of gap, up to DUEL_MAX."""
+    diff = int(rp_loser) - int(rp_winner)           # > 0: the loser was ranked higher (an upset)
+    if diff <= -DUEL_NO_GAIN_GAP:
+        return 0
+    if diff < 0:
+        gain = DUEL_BASE * (1.0 + diff / DUEL_NO_GAIN_GAP)
+    else:
+        gain = DUEL_BASE + diff * DUEL_SLOPE
+    return max(DUEL_MIN, min(DUEL_MAX, int(round(gain))))
 
 
 def duel_loss(rp_winner: int, rp_loser: int) -> int:
-    return max(1, int(round(duel_gain(rp_winner, rp_loser) * DUEL_LOSS_SHARE)))
+    g = duel_gain(rp_winner, rp_loser)
+    return 0 if g <= 0 else max(1, int(round(g * DUEL_LOSS_SHARE)))
 
 
 # ---- seasons -------------------------------------------------------------------------------------------------------------
