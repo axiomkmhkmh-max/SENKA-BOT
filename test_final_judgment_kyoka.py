@@ -36,7 +36,7 @@ class KyokaSuigetsuTests(unittest.TestCase):
         events = []
         base = E._dmg_mult(self.a)
         E.sk_run(self.state, "a", events)
-        self.assertAlmostEqual(E._dmg_mult(self.a) / base, 1.20 * 1.35)
+        self.assertAlmostEqual(E._dmg_mult(self.a) / base, 1.30 * 1.35)
         self.assertEqual(self.a["x"]["kyoka_shikai_t"], 5)
         self.assertEqual(self.a["x"]["kyoka_shikai_cd"], 9)
         self.assertEqual(self.a["x"]["kyoka_hogyoku"], 1)

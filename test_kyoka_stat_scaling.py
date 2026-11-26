@@ -52,7 +52,7 @@ class KyokaStatScalingTests(unittest.TestCase):
                 self.assertGreater(run_damage(action, 80, 160), run_damage(action, 80, 40))
 
     def test_kyoka_damage_source_has_explicit_stat_weights(self):
-        self.assertEqual(E.KYOKA_DAMAGE_SRC["mix"], {"reiatsu": 0.60, "zanjutsu": 0.40})
+        self.assertEqual(E.KYOKA_DAMAGE_SRC["mix"], {"reiatsu": 0.50, "zanjutsu": 0.50})
 
 
 if __name__ == "__main__":
