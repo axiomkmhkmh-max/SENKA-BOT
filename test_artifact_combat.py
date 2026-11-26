@@ -99,7 +99,7 @@ class ArtifactCombatContracts(unittest.TestCase):
                 if node.targets[0].id in {"DG_XP_MULT", "DG_SCALE_XP_EXP", "DG_FINAL_XP_MULT"}:
                     values[node.targets[0].id] = ast.literal_eval(node.value)
         self.assertLessEqual(values["DG_XP_MULT"], 1.6)
-        self.assertLessEqual(values["DG_SCALE_XP_EXP"], 0.60)
+        self.assertLessEqual(values["DG_SCALE_XP_EXP"], 0.85)  # Nov 26: raised from 0.60 so higher difficulties pay clearly more XP
         self.assertLessEqual(values["DG_FINAL_XP_MULT"], 1.6)
 
 

@@ -321,9 +321,13 @@ async def abandon_tower(uid: int) -> bool:
 
 
 DG_XP_MULT = 1.00       # Keep dungeon progression rewarding without allowing runaway level farming.
-DG_SCALE_XP_EXP = 0.30  # Difficulty still matters, but high-tier multipliers are deliberately compressed.
+DG_SCALE_XP_EXP = 0.80  # Nov 26: was 0.30, which made a Nightmare clear pay barely more than Normal. Difficulty now counts almost in full.
 FAST_KILL_XP = {1: 0.5, 2: 0.7}  # plain open-world fights won in 1 / 2 turns pay this share (one-tap farming paid 500K)
-DG_STAGE_XP_CAP, DG_FINAL_XP_CAP = 0.10, 0.20  # one stage / the last stage pay at most this share of the player's NEXT LEVEL (a legendary clear gave 2-4 levels)
+# One stage / the last stage pay at most this share of the player's NEXT LEVEL, per difficulty (a flat 20% hit every tier the same;
+# a legendary clear without any cap gave 2-4 levels). A single stage pays half of the final share.
+DG_FINAL_XP_CAP_BY_DIFF = {"normal": 0.20, "hard": 0.25, "nightmare": 0.40, "abyss": 0.55, "legendary": 0.70}
+DG_STAGE_CAP_SHARE = 0.5
+DG_STAGE_XP_CAP, DG_FINAL_XP_CAP = 0.10, 0.20  # fallback for a dungeon without a known difficulty
 DG_FINAL_XP_MULT = 1.30  # Completion bonus without multiplying already inflated stage XP.
 DG_STAGE3_HEAL_AT = 3   # the dungeon stage that starts with a breather
 DG_STAGE3_HEAL = 0.25   # share of max HP restored when entering it (capped at full)
@@ -710,11 +714,13 @@ async def pve_settle(doc: dict):
         elif d:  # dungeons pay no coins (and no items): XP and dungeon points instead, so the XP is doubled on every stage
             xp, coins = int(xp * DG_XP_MULT), 0
             sc = max(1.0, float(doc.get("scale") or 1.0))
-            xp = int(xp / sc ** (1 - DG_SCALE_XP_EXP))  # the difficulty multiplier counts at sc ** DG_SCALE_XP_EXP (abyss x8 -> x4.8 XP)
+            xp = int(xp / sc ** (1 - DG_SCALE_XP_EXP))  # the difficulty multiplier counts at sc ** DG_SCALE_XP_EXP (abyss x8 -> about x5.9 XP at 0.80)
             if d["stage"] == d["total"]:
                 xp *= DG_FINAL_XP_MULT
             from service_player import xp_to_next
-            xp = min(int(xp), int(xp_to_next(int((ch0 or {}).get("level", doc["lvl"]))) * (DG_FINAL_XP_CAP if d["stage"] == d["total"] else DG_STAGE_XP_CAP)))
+            fin_cap = DG_FINAL_XP_CAP_BY_DIFF.get(d.get("diff"), DG_FINAL_XP_CAP)
+            cap_share = fin_cap if d["stage"] == d["total"] else (fin_cap * DG_STAGE_CAP_SHARE if d.get("diff") in DG_FINAL_XP_CAP_BY_DIFF else DG_STAGE_XP_CAP)
+            xp = min(int(xp), int(xp_to_next(int((ch0 or {}).get("level", doc["lvl"]))) * cap_share))
         if doc.get("mini"):
             xp, coins = int(xp * MINI_BOSS_REWARD * BOSS_XP_BONUS), int(coins * MINI_BOSS_REWARD)
         coins = int(coins * wm["coin"])

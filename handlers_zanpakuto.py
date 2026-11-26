@@ -6,7 +6,7 @@ import time
 from service_butterfly import butterfly
 from data_items import ALL, iname
 from data_misc import FORMS
-from data_zanpakuto import BLADE_STAGES, blade_valid, stage_name, unlocked_blades
+from data_zanpakuto import BETA_BLADES, BLADE_STAGES, blade_valid, stage_name, tier_label, unlocked_blades
 from data_world import day_id
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from i18n import fnum
@@ -141,11 +141,12 @@ async def blade_choose(ctx, arg):
         return Out(ctx.t("not_registered"), [nav(ctx)])
     from znp_lock import blade_allowed
     picks = [b for b in unlocked_blades(ch["level"]) if await blade_allowed(ctx.uid, b)]
-    rows = [[(BLADE_STAGES[b]["shikai"][0 if ctx.lang == "fa" else 1], "znpc", b)] for b in picks]
+    rows = [[(f"{tier_label(b, ctx.lang)} · {BLADE_STAGES[b]['shikai'][0 if ctx.lang == 'fa' else 1]}"
+              + (" 🧪" if b in BETA_BLADES else ""), "znpc", b)] for b in picks]
     rows = [r for r in rows]
     rows.append(nav(ctx, ("znp", "")))
-    text = ("🗡 تیغه‌ای که می‌خوای بگیری را انتخاب کن. هر تیغه با رسیدن به لول خودش باز میشه." if ctx.lang == "fa"
-            else "🗡 Pick the blade you want to bind. Each blade opens at its own level.")
+    text = ("🗡 تیغه‌ای که می‌خوای بگیری را انتخاب کن. هر تیغه با رسیدن به لول خودش باز میشه.\n🧪 = بتا: برای همه بازه تا تست بشه؛ مشکلش را به ادمین بگو. بعد از فیکس ممکنه قفل بشه." if ctx.lang == "fa"
+            else "🗡 Pick the blade you want to bind. Each blade opens at its own level.\n🧪 = beta: open to everyone while it is tested; report problems to the admin. It may be locked once fixed.")
     return Out(text, rows)
 
 

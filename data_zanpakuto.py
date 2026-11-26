@@ -107,9 +107,38 @@ def release_call(blade_id, lang, stage="shikai"):
     return c[0 if lang == "fa" else 1] if c else None
 
 
+# ---- Beta blades (Nov 26) ----
+# New blades with real kits are open to EVERY player at any level while they are tested: players use them and report
+# problems. When a blade is stable, remove its id from BETA_BLADES (it falls back to its level gate above) or lock it to
+# the owner live with /znplock (znp_lock.py). Weak, plain blades are never locked.
+BETA_BLADES = {"benihime", "katen_kyokotsu"}
+
+# ---- Rarity tiers: shown in the blade picker (best first). 5 = mythic ... 1 = common. ----
+TIER_NAMES = {5: ("🔴", "اسطوره‌ای", "Mythic"), 4: ("🟠", "افسانه‌ای", "Legendary"), 3: ("🟣", "حماسی", "Epic"),
+              2: ("🔵", "کمیاب", "Rare"), 1: ("⚪", "معمولی", "Common")}
+BLADE_TIER = {
+    "kyoka_suigetsu": 5, "hyorinmaru": 5,
+    "zangetsu": 4, "zanka_no_tachi": 4, "kokujo_tengen_myoo": 4, "benihime": 4,
+    "senbonzakura": 3, "sode_no_shirayuki": 3, "zabimaru": 3, "katen_kyokotsu": 3, "minazuki": 3, "nejibana": 3,
+    "wabisuke": 2, "haineko": 2, "sakanade": 2, "kinshara": 2, "ruri_iro_kujaku": 2,
+    "kubikiri_orochi": 1, "tengumaru": 1, "tachikaze": 1, "haguro_tonbo": 1,
+}
+
+
+def blade_tier(blade_id: str) -> int:
+    return BLADE_TIER.get(blade_id, 1)
+
+
+def tier_label(blade_id: str, lang: str) -> str:
+    emoji, fa, en = TIER_NAMES[blade_tier(blade_id)]
+    return f"{emoji} {fa if lang == 'fa' else en}"
+
+
 def unlocked_blades(level: int):
-    """Blade ids a character of this level may choose."""
-    return [b for b, gate in BLADE_UNLOCK.items() if int(level) >= gate and b in BLADE_STAGES]
+    """Blade ids a character of this level may choose (beta blades are open to everyone), best tier first."""
+    ids = [b for b, gate in BLADE_UNLOCK.items()
+           if (int(level) >= gate or (b in BETA_BLADES and int(level) >= 1)) and b in BLADE_STAGES]
+    return sorted(ids, key=lambda b: -blade_tier(b))  # sorted() is stable: equal tiers keep the unlock order
 
 
 def blade_valid(blade_id, level: int) -> bool:
