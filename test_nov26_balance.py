@@ -37,7 +37,7 @@ class Rules(unittest.TestCase):
             a, b = fighter("A", regen=0.12), fighter("B", regen=0.12)
             st = E.new_state(a, b, random.Random(seed), pvp=True)
             E.run_ai(st, random.Random(seed), ai_sides=("a", "b"))
-            self.assertLess(st.get("turn", 0), 120, f"seed {seed} stalled")
+            self.assertLess(st.get("turn", 0), 200, f"seed {seed} stalled")  # Nov 26: regen raised on request (duel budget 5%), a fair duel still ends before the 200-turn cap
 
     def test_passive_regen_never_beats_the_budget(self):
         a = fighter("A", regen=0.5)

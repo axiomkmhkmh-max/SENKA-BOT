@@ -5,6 +5,8 @@ import time
 from database import col
 from service_player import get_char, today
 
+FJ_OPEN = False   # Nov 26: the event is closed until a new one comes. Flip to True to reopen it.
+
 STAGE_WAVES = {1: 100, 2: 5, 6: 30, 9: 5}
 STAGE_NAMES = {
     1: ("صد دشمنِ داوری", "One Hundred Judged"),
@@ -32,6 +34,8 @@ def _attempt_id(uid: int, day: str) -> str:
 async def start(uid: int, lang: str):
     """Consume today's entry atomically before creating the first encounter."""
     from service_combat import active_pve, duel_busy, pve_start
+    if not FJ_OPEN:
+        return "closed", None
     ch = await get_char(uid)
     if not ch:
         return "noreg", None

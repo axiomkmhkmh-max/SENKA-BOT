@@ -27,6 +27,9 @@ All numbers for the balance live in `data_balance.py` (one file to tune).
 ## 6. Forge mission (ماموریت ساخت)
 - `data_wish.py`, `service_wish.py`, `handlers_wish.py`: pick Rare+ gear for your level, collect final drops of 3 dungeons near your level, pay coins, one finished mission per week. Words: «ماموریت ساخت».
 
+## Nov 26 requests (later)
+- Hadō damage x2.4 (`HADO_DMG_K` 3.0, `HADO_HIT_CAP` 0.45, duel cap x1.5 for Hadō); regen up (`TURN_HP_REGEN` 5%, budget 6% / 5% in duels); Final Judgment closed (`FJ_OPEN = False`); Bakudō no longer gets the Hadō cooldown.
+
 ## Tests
 - New: test_nov26_balance, test_artswap, test_wish; test_dungeon_chests extended.
 - Updated to the new rules: test_final_judgment_kyoka, test_kido_system, test_heal_merge, test_duel_rules.

@@ -42,7 +42,7 @@ class HealMerge(unittest.TestCase):
         E.do_action(st, "df", random.Random(1))
         # total recovery of the turn is the Guard share (5%), not 3% + 5%
         self.assertEqual(a["hp"] - 500, int(1000 / E.HP_MULT * E.GUARD_HP_GAIN))
-        self.assertGreater(a["hp"], hp_after_tick)
+        self.assertGreaterEqual(a["hp"], hp_after_tick)  # Nov 26: natural regen is now 5% = the Guard share, so Guard adds nothing on top but never lowers it
 
     def test_ai_guard_turn_prints_a_single_heal(self):
         a, b = _f("A"), _f("B", ai=True)

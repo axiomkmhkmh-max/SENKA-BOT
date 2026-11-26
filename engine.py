@@ -34,7 +34,7 @@ HOG_REGEN_STAGE = 0.008  # +0.8% HP regen per turn per stage (on top of the hold
 HOG_REBIRTH_STAGES = 3  # a revival makes the orb jump three stages at once
 HOG_HIT_CAP_FROM = 4    # from this stage on no single blow takes more than the cap below
 HOG_HIT_CAP0, HOG_HIT_CAP_STEP = 0.50, 0.03  # cap = 50% - 3% per stage of max HP (20% at stage 10)
-TURN_HP_REGEN = 0.03   # share of the old-scale HP (_hb) recovered at the end of each turn (natural recovery)
+TURN_HP_REGEN = 0.05   # share of the old-scale HP (_hb) recovered at the end of each turn (natural recovery)
 FJ_BOSS_FLOOR = 0.25   # Final Judgment bosses: a player's hit deals at least this share of its armour-free damage
 FJ_REGEN_K = 0.4       # Final Judgment bosses recover only this share of the (already reduced) boss regen
 MAX_TURNS = 200        # turn cap of a fight (was 30): HP is x6 now, so fights are long and epic
@@ -241,8 +241,9 @@ def gear_soft(attack: float) -> float:
 
 
 HADO_LEVEL_W = 0.35  # was 1.0: a caster with 0 Kidō points still hit for 57K
-HADO_DMG_K = 1.25   # Hadō outclassed every blade technique: chanted Hadō 50 hit 4-5x a blade technique
-HADO_HIT_CAP = 0.30
+HADO_DMG_K = 3.0   # Hadō outclassed every blade technique: chanted Hadō 50 hit 4-5x a blade technique
+HADO_HIT_CAP = 0.45   # Nov 26: was 0.30 (Hadō damage x2.4)
+HADO_DUEL_CAP_K = 1.5  # Nov 26: in a duel a Hadō may pass the normal blow cap by this factor
 ABILITY_LEVEL_W = 0.6  # level part of an ability blow (Hadō has always had one; Cero / Mask Strike / Getsuga did not)
 
 
@@ -504,7 +505,7 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
         # the cap is measured on the SMALLER of the two HP pools: capping on the target's own HP meant the
         # tankier fighter lost more per blow (25% of 37K vs 25% of 10K), so high HP became a weakness
         scale = BAL.cap_scale(power_rating(att), power_rating(dfn))  # Nov 26: a stronger attacker hits harder, a weaker one softer
-        cap = max(1, int(duel_cap_hp(state) * DUEL["hit_cap"] * scale))
+        cap = max(1, int(duel_cap_hp(state) * DUEL["hit_cap"] * scale * (HADO_DUEL_CAP_K if kind == "hado" else 1.0)))
         left = state.get("cap_left")
         if left is not None and kind not in ("reflect", "dot"):
             # one ability press (Hollow Claw x3, Metralleta x6...) shares ONE hit_cap: multi-hit used to take 3x the cap
@@ -1538,8 +1539,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         n = best_kido(f, "bak")
         P = KD.bakudo_params(n)
         f["re"] -= KD.cost("bak", n, f["max_re"])
-        if KD.spell_cd(n):
-            _kcd(f)[KD.key("bak", n)] = KD.spell_cd(n)
+        # Nov 26: Bakudō has no cooldown (this used to call spell_cd(n) with the default branch "had" and gave it the Hadō cooldown)
         blv_ = int((f.get("klv") or {}).get("bak", 1))
         gain = (eff(f, "kido") * (n / 10) * 2.5 + 10 + _hb(f) * 0.05) * P["shield"] * BAKUDO_SHIELD * AB.lv_k(blv_)
         if _x(f)["chant"]:

@@ -17,8 +17,8 @@ PLAYER_HP_K = 1.35   # x on a player's max HP. Heals / shields / DoT are measure
 # ---- passive regen budget ----------------------------------------------------------------------------------------
 # Natural recovery + companion (pet / Hōgyoku / Soul King) regen together never heal more than this share of MAX HP per
 # own turn. Before: 3% of the old pool + the pet's share + Kyōka's 10% = often 10%+ a turn, more than a fair blow.
-PASSIVE_REGEN_CAP = 0.030        # outside duels (hunts, dungeons, bosses)
-PASSIVE_REGEN_CAP_DUEL = 0.018   # players against players
+PASSIVE_REGEN_CAP = 0.060        # outside duels (hunts, dungeons, bosses)
+PASSIVE_REGEN_CAP_DUEL = 0.050   # players against players
 KYOKA_HEAL_SHARE = 0.05          # Kyōka Suigetsu's Shikai heal per turn (was 10% of max HP)
 
 # ---- duel hit cap follows power ----------------------------------------------------------------------------------

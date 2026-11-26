@@ -316,8 +316,7 @@ async def battle_menu(ctx, arg):
     doc = await active_pve(ctx.uid)
     if doc:
         return await battle_panel(ctx, doc, [])
-    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "")],
-            [("⚖️ داوری نهایی" if ctx.lang == "fa" else "⚖️ The Final Judgment", "fjd", "")], nav(ctx)]
+    rows = [[(ctx.t("b_fight"), "bs", ""), (ctx.t("m_dgn"), "dgn", "")], nav(ctx)]  # Nov 26: the Final Judgment event is closed (service_final_judgment.FJ_OPEN)
     return Out(head(ctx, "ttl_bt") + ctx.t("bt_body"), rows)
 
 

@@ -1,10 +1,15 @@
 """Telegram entry point for The Final Judgment."""
 from ui import Out, action, head, nav
 from service_final_judgment import start, abandon
+import service_final_judgment as _fj
 
 @action("fjd")
 async def final_judgment_info(ctx, arg):
     fa = ctx.lang == "fa"
+    if not _fj.FJ_OPEN:
+        return Out(head(ctx, "ttl_bt") + ("⚖️ <b>داوری نهایی</b>\nاین ایونت تموم شده و فعلاً بسته است. ایونت بعدی به‌زودی میاد."
+                                          if fa else "⚖️ <b>The Final Judgment</b>\nThis event has ended and is closed for now. The next event is coming soon."),
+                   [nav(ctx)])
     text = ("⚖️ <b>THE FINAL JUDGMENT</b>\nده مرحله‌ی تک‌نفره؛ هر شکست، پایان تلاش همان روز است.\n\n"
             "مرحله ۱: صد دشمن · مرحله ۲: پنج باس پیاپی · مرحله ۳: مهر توانایی‌ها · مرحله ۴: غول‌ها\n"
             "مرحله ۵: سه‌گانه‌ی ویرانگر · مرحله ۶: سی موج · مرحله ۷: نسخه‌ی تاریک خودت\n"
@@ -23,8 +28,8 @@ async def final_judgment_start(ctx, arg):
     status, doc = await start(ctx.uid, ctx.lang)
     if status != "ok":
         messages = {
-            "fa": {"noreg": "ابتدا شخصیت بساز.", "busy": "اول نبرد فعلی را تمام کن.", "spent": "فرصت امروزت را قبلاً استفاده کرده‌ای."},
-            "en": {"noreg": "Create a character first.", "busy": "Finish your current battle first.", "spent": "You have already used today's attempt."},
+            "fa": {"noreg": "ابتدا شخصیت بساز.", "busy": "اول نبرد فعلی را تمام کن.", "spent": "فرصت امروزت را قبلاً استفاده کرده‌ای.", "closed": "این ایونت بسته شده."},
+            "en": {"noreg": "Create a character first.", "busy": "Finish your current battle first.", "spent": "You have already used today's attempt.", "closed": "This event is closed."},
         }
         return Out(alert=messages["fa" if ctx.lang == "fa" else "en"].get(status, "Unavailable"))
     from handlers_combat import battle_panel
