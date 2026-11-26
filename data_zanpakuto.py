@@ -40,7 +40,7 @@ BLADE_STAGES = {
     "kubikiri_orochi": {"shikai": ("کوبیکیری اوروچی", "Kubikiri Orochi"), "shikai_bonus": 0.02, "bankai_bonus": 0.0},
     # ---- Nov 26: blades with real kits. Benihime has TWO shikai uses (attack / defence), Katen Kyōkotsu is a pair of blades.
     "benihime": {"shikai": ("بنی‌هیمه", "Benihime"), "bankai": ("کانون‌بیراکی بنی‌هیمه آراتامه", "Kannonbiraki Benihime Aratame"),
-                 "shikai_bonus": 0.03, "bankai_bonus": 0.04},
+                 "shikai_bonus": 0.10, "bankai_bonus": 0.12},  # was 0.03 / 0.04: far below every other Legendary blade
     "katen_kyokotsu": {"shikai": ("کاتن کیوکوتسو", "Katen Kyōkotsu"), "bankai": ("کاتن کیوکوتسو: کاراماتسو شینجو", "Katen Kyōkotsu: Karamatsu Shinjū"),
                        "shikai_bonus": 0.04, "bankai_bonus": 0.05},
 }
@@ -74,7 +74,7 @@ BLADE_STYLE = {
     "nejibana": {"kido": 1.08}, "kokujo_tengen_myoo": {"dmg": 1.10}, "tachikaze": {"crit": 0.03},
     "tengumaru": {"dmg": 1.05}, "haguro_tonbo": {"crit": 0.05}, "kinshara": {"def": 1.06},
     "sakanade": {"dmg": 1.06, "kido": 1.05}, "kubikiri_orochi": {"dmg": 1.07},
-    "benihime": {"def": 1.08, "kido": 1.06}, "katen_kyokotsu": {"dmg": 1.08, "crit": 0.03},
+    "benihime": {"def": 1.10, "dmg": 1.08, "kido": 1.06}, "katen_kyokotsu": {"dmg": 1.08, "crit": 0.03},
 }
 
 
@@ -186,7 +186,12 @@ BLADE_TECH_COST = {"cost": 0.09, "cd": 3}
 
 
 # Owner blades can be stronger than the common ones. Hyōrinmaru: a stronger technique (see znp_lock for the lock).
-BLADE_TECH_OVERRIDE = {"hyorinmaru": {"mult": 2.10, "pierce": 0.50, "cd": 2}}
+BLADE_TECH_OVERRIDE = {
+    "hyorinmaru": {"mult": 2.10, "pierce": 0.50, "cd": 2},
+    # Benihime, mode 1 (attack): a red blast that bites through armour; in Bankai it hits 35% harder.
+    "benihime": {"mult": 2.30, "pierce": 0.45, "cd": 2, "cost": 0.10, "bk_mult": 1.35,
+                 "fa": "انفجار سرخ", "en": "Crimson Burst"},
+}
 
 
 def blade_technique(blade_id: str):
@@ -214,7 +219,10 @@ BLADE_ULT = {
     "haineko": {"fa": "هاینکو: خاکستر خفه‌کننده", "en": "Haineko: Choking Ash", "mult": 4.4, "pierce": 0.40, "fx": "weaken", "cd": 5},
     "minazuki": {"fa": "مینازوکی: تیغه‌ی شفابخش", "en": "Minazuki: Bleeding Moon", "mult": 4.8, "pierce": 0.30, "fx": "bleed", "cd": 5},
     # Nov 26: Benihime's second use is DEFENCE: a barrier and a mend instead of a big blow (shield / heal = share of the old HP pool).
-    "benihime": {"fa": "بنی‌هیمه: سد سرخ", "en": "Benihime: Crimson Ward", "mult": 1.8, "pierce": 0.20, "shield": 0.30, "heal": 0.10, "cd": 4, "cost": 0.20},
+    "benihime": {"fa": "بنی‌هیمه: سد سرخ", "en": "Benihime: Crimson Ward", "mult": 2.6, "pierce": 0.30, "shield": 0.45, "heal": 0.18, "cd": 4, "cost": 0.20,
+                 # Bankai: the same button becomes Kannonbiraki Benihime Aratame (bigger blow, barrier and mend, and it cleanses your wounds)
+                 "bk": {"fa": "کانون‌بیراکی بنی‌هیمه آراتامه", "en": "Kannonbiraki Benihime Aratame", "mult": 3.6, "pierce": 0.40,
+                        "shield": 0.65, "heal": 0.28, "cleanse": True}},
     "katen_kyokotsu": {"fa": "کاتن کیوکوتسو: دو شمشیر، یک بازی", "en": "Katen Kyōkotsu: Two Blades, One Game", "mult": 2.4, "hits": 3, "pierce": 0.25, "fx": "weaken", "cd": 5},
 }
 BLADE_ULT_KIND = {  # a blade without its own entry gets a finisher from its technique kind

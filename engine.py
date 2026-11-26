@@ -1433,7 +1433,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         f["re"] -= int(f["max_re"] * t["cost"])
         _x(f)["tcd"] = t["cd"]
         ev.append({"k": "bt", "a": f["name"], "kind": t["kind"]})
-        bk = fixed_k(f, "blade")
+        bk = fixed_k(f, "blade") * (float(t.get("bk_mult", 1.0)) if f["form"]["on"] == 2 else 1.0)  # Bankai can sharpen a blade technique
         if t["kind"] == "twin":
             _deal(state, side, t["mult"] * bk, rng, ev, "bt", allow_procs=True)
             if state["b" if side == "a" else "a"]["hp"] > 0:
@@ -1446,6 +1446,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                 ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
     elif action == "bu":  # blade ultimate (data_zanpakuto.BLADE_ULT)
         u, foe = f["bu"], state["b" if side == "a" else "a"]
+        if f["form"]["on"] == 2 and u.get("bk"):  # Bankai: the finisher turns into the blade's Bankai technique
+            u = {**u, **u["bk"]}
         f["re"] -= int(f["max_re"] * u["cost"])
         _x(f)["bu_cd"] = u["cd"]
         ev.append({"k": "bu", "a": f["name"], "fa": u["fa"], "en": u["en"]})
@@ -1469,6 +1471,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                 ev.append({"k": "heal", "a": f["name"], "n": h})
             if n:
                 ev.append({"k": "gen", "a": f["name"], "skill": "guard", "n": n})
+        if u.get("cleanse"):  # Aratame: the wielder's own wounds are undone
+            f["fx"] = [x for x in f["fx"] if x["k"] not in ("burn", "poison", "bleed", "skip", "weaken")]
         if u.get("buff"):
             _x(f)["buff_t"], _x(f)["buff_m"] = int(u["buff"][0]) + 1, float(u["buff"][1])
     elif action == "gs":  # general skill: guard (shield), strike (a blow) or focus (a damage buff)

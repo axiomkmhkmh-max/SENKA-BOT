@@ -138,6 +138,8 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
     rows.extend(chunk(special, 2))
     if E.can(f, "bu"):  # the blade's finisher (after Shikai): full width, it is the big moment
         bu = f["bu"]
+        if f["form"]["on"] == 2 and bu.get("bk"):
+            bu = {**bu, **bu["bk"]}
         rows.append([mk("👑 " + bu["fa" if fa else "en"], "bu")])
 
     # 4. MOVE: one compact row
