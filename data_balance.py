@@ -37,6 +37,20 @@ def rating(level, stats: dict) -> float:
     return max(1.0, LEVEL_W * float(level or 1) + STAT_W * (sum(vals) / len(vals)))
 
 
+# ---- control effects follow power (Nov 26) ----------------------------------------------------------------------
+# Stun / freeze / fear / daze / illusion cast on a foe in a DUEL work at full strength on an equal or weaker target and fade as the
+# target gets stronger: at EFFECT_ZERO x the target's rating (e.g. level 100 vs level 400) they do nothing at all.
+EFFECT_ZERO = 0.50
+CONTROL_FX = ("skip", "fear", "weaken", "shock")      # add_fx kinds that take away a turn or strength
+CONTROL_BF = ("miss", "seal", "root", "noregen")      # add_bf kinds that cripple the target
+
+
+def effect_potency(att_rating: float, dfn_rating: float) -> float:
+    """0..1: how much of a control effect survives. 1 at equal rating or weaker target, 0 when the caster is EFFECT_ZERO x or less."""
+    r = max(1.0, float(att_rating)) / max(1.0, float(dfn_rating))
+    return max(0.0, min(1.0, (r - EFFECT_ZERO) / (1.0 - EFFECT_ZERO)))
+
+
 def cap_scale(att_rating: float, dfn_rating: float) -> float:
     """Multiplier on the duel hit cap for this attacker against this defender."""
     r = max(1.0, float(att_rating)) / max(1.0, float(dfn_rating))

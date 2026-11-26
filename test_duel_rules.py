@@ -215,3 +215,49 @@ class KyokaDebuffs(unittest.TestCase):
             ev = E.do_action(st, "ks1", random.Random(seed))
             seen |= {x["k"] for x in ev if x["k"].startswith("ks_ill")}
         self.assertEqual(seen, {"ks_illusion", "ks_illusion_fail"})
+
+
+class ControlFollowsPower(unittest.TestCase):
+    """Nov 26: a much weaker fighter's illusion / stun does nothing in a duel; equal fighters keep full effect."""
+
+    def _ks(self, lv_a, lv_b, seed):
+        a = fighter("A", lv_a, lv_a * 3, 100, 80000)
+        a["blade"] = "kyoka_suigetsu"
+        b = fighter("B", lv_b, lv_b * 3, 100, 80000)
+        st = E.new_state(a, b, random.Random(seed), pvp=True)
+        st["cur"], st["awaiting"] = "a", True
+        a["re"] = a["max_re"]
+        return st, a, b
+
+    def test_weak_caster_cannot_daze_a_much_stronger_foe(self):
+        for seed in range(30):
+            st, a, b = self._ks(100, 400, seed)
+            E.do_action(st, "ks3", random.Random(seed))
+            self.assertEqual(E.bsum(b, "miss"), 0.0)
+
+    def test_equal_caster_still_lands(self):
+        for seed in range(10):
+            st, a, b = self._ks(300, 300, seed)
+            E.do_action(st, "ks3", random.Random(seed))
+            self.assertAlmostEqual(E.bsum(b, "miss"), 0.45)
+
+    def test_stronger_caster_lands(self):
+        st, a, b = self._ks(400, 100, 1)
+        E.do_action(st, "ks3", random.Random(1))
+        self.assertAlmostEqual(E.bsum(b, "miss"), 0.45)
+
+    def test_stun_gated_and_outside_duels_untouched(self):
+        import data_balance as BAL
+        self.assertEqual(BAL.effect_potency(100, 400), 0.0)
+        self.assertEqual(BAL.effect_potency(300, 300), 1.0)
+        self.assertEqual(BAL.effect_potency(500, 300), 1.0)
+        self.assertAlmostEqual(BAL.effect_potency(375, 500), 0.5)
+        a, b = fighter("A", 100, 300, 100), fighter("B", 400, 1200, 100)
+        st = E.new_state(a, b, random.Random(1), pvp=False)  # not a duel: no gate
+        st["cur"], st["awaiting"] = "a", True
+        E._ACTOR["f"], E._ACTOR["rng"] = a, random.Random(1)
+        try:
+            E.add_fx(b, "skip", 1)
+        finally:
+            E._ACTOR["f"] = E._ACTOR["rng"] = None
+        self.assertTrue(E.has_fx(b, "skip"))

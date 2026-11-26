@@ -33,3 +33,11 @@ Files: engine.py, data_misc.py, engine_tournament.py, service_combat.py, test_du
 - Illusion Strike: chance to land raised 25% -> 60% (Shikai 40% -> 80%), miss 30%/35% for 2 turns; a failed illusion now says so ("the illusion failed to take hold") instead of staying silent.
 - A Hadō cast by a debuffed fighter can miss (engine kd branch).
 - Files: engine.py, render.py, test_duel_rules.py (+4 tests), CHANGES_DUEL.md.
+
+# Duels follow stats and level (Nov 26)
+- A control effect (stun/freeze, fear, weaken, shock, daze/illusion "miss", seal, root) cast on a foe in a DUEL now scales with power:
+  full at equal rating or against a weaker foe, fading linearly, and gone at 0.5x the target's rating (level 100 vs level 400 = nothing).
+  Miss chances shrink by the same share; stuns/seals land by chance equal to the share. Tune `EFFECT_ZERO` in data_balance.py.
+  Implemented centrally (`add_fx` / `add_bf` via `_control_potency`, the acting fighter is set in `do_action`), so every technique is covered. Outside duels: unchanged.
+- Hadō floor in duels: `_atk_reference` now includes the duel floor a plain blow gets, so a low-Kidō Hadō against heavy armour is no longer ~1 damage.
+- Files: engine.py, data_balance.py, test_duel_rules.py (+4 tests), CHANGES_DUEL.md.

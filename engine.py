@@ -130,7 +130,21 @@ def _x(f):
     return x
 
 
+_ACTOR = {"f": None, "rng": None}  # the fighter whose action is being resolved (set by do_action): who a control effect comes FROM
+
+
+def _control_potency(target, k, kinds):
+    """Duel only: 0..1 share of a control effect that lands on `target` from the acting fighter (1 = full, outside duels or on self)."""
+    src = _ACTOR["f"]
+    if src is None or src is target or k not in kinds or not (src.get("duel") and target.get("duel")):
+        return 1.0
+    return BAL.effect_potency(power_rating(src), power_rating(target))
+
+
 def add_fx(f, k, turns, stacks=1):
+    pot = _control_potency(f, k, BAL.CONTROL_FX)
+    if pot < 1.0 and (_ACTOR["rng"] or random).random() >= pot:
+        return  # the stronger target shrugs it off
     if k == "skip" and (f.get("x") or {}).get("stun_im"):
         return  # just lost a turn: immune to being stunned again until they have acted (no chain-stun)
     for x in f["fx"]:
@@ -427,6 +441,9 @@ def _atk_reference(state, side) -> float:
     m = elem_mult(att, dfn) * _dmg_mult(att) * _zone(state, side) * _foe_mult(att, dfn)
     m *= RACE_KILLER.get(att.get("race"), {}).get(dfn.get("race"), 1.0)
     m *= ctx_dmg_mult(att.get("race"), fight_context(state, dfn))
+    if att.get("duel"):  # same duel floor as _deal: a plain blow gets it, so the Hadō floor must too (else Hadō 99 < one sword hit in duels)
+        nodef = max(1.0, strike_base(att, "atk")) / raw
+        m *= max(1.0, nodef * DUEL["floor_share"])
     return raw * m * _take_mult(dfn)
 
 
@@ -1655,6 +1672,16 @@ def _parse_kido(f, action):
 
 
 def do_action(state, action, rng, max_turns=MAX_TURNS):
+    """Resolve one action; control effects it causes are measured against the acting fighter (see _control_potency)."""
+    prev = dict(_ACTOR)
+    _ACTOR["f"], _ACTOR["rng"] = state[state["cur"]], rng
+    try:
+        return _do_action_dist(state, action, rng, max_turns)
+    finally:
+        _ACTOR.update(prev)
+
+
+def _do_action_dist(state, action, rng, max_turns=MAX_TURNS):
     """Distance-aware action: movement, reach checks, auto-approach/back-off, knockback and sidestep."""
     side = state["cur"]
     f = state[side]
@@ -1975,6 +2002,17 @@ def bred(f) -> float:
 
 def add_bf(f, d: dict, owner: str, tag: str = None):
     e = {k: v for k, v in d.items()}
+    for key in BAL.CONTROL_BF:
+        if key in e:
+            pot = _control_potency(f, key, BAL.CONTROL_BF)
+            if pot < 1.0:
+                if isinstance(e[key], bool) or float(e[key]) >= 1.0:  # seal / root: on-off, so it lands by chance
+                    if (_ACTOR["rng"] or random).random() >= pot:
+                        return
+                else:  # miss chance: weaker by the same share, gone when it falls under 3%
+                    e[key] = float(e[key]) * pot
+                    if e[key] < 0.03:
+                        return
     e["t"], e["o"] = int(d.get("t", 1)), owner
     if tag or d.get("tag"):
         e["tag"] = tag or d.get("tag")
