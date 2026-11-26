@@ -6,11 +6,12 @@ import time
 from service_butterfly import butterfly
 from data_items import ALL, iname
 from data_misc import FORMS
-from data_zanpakuto import BETA_BLADES, BLADE_STAGES, blade_valid, stage_name, tier_label, unlocked_blades
+from data_zanpakuto import (BETA_BLADES, BLADE_STAGES, PAID_BLADES, blade_price, blade_valid, reachable_blades, stage_name,
+                            tier_label, unlocked_blades)
 from data_world import day_id
 from database import bump_counter, col, counter_get, game_settings, try_cooldown
 from i18n import fnum
-from service_player import get_char, spend_energy
+from service_player import add_coins, get_char, spend_energy
 from ui import SEP, Out, action, nav
 
 T = {  # key -> (fa, en)
@@ -86,7 +87,7 @@ async def _state(uid):
     from znp_lock import blade_allowed
     if z.get("blade_id") and not await blade_allowed(uid, z["blade_id"]):  # owner-only blade: hidden from others
         z.pop("blade_id", None)
-    if z.get("blade_id") and not blade_valid(z["blade_id"], ch["level"]):
+    if z.get("blade_id") and not blade_valid(z["blade_id"], ch["level"], z.get("owned")):  # also drops a paid blade nobody bought
         z.pop("blade_id", None)
         await col("characters").update_one({"user_id": uid}, {"$unset": {"zanpakuto.blade_id": ""}})
     # Bond is per blade (data_zanpakuto.bond_key): taking the weapon out does not touch it.
@@ -117,7 +118,7 @@ async def zanpakuto_panel(ctx, arg):
               left=left, daily=int(gs["znp_train_daily"]), gain=int(gs["znp_train_gain"]), cost=int(gs["znp_train_energy"]))
     body += "\n" + _pressure(z["mastery"], ctx.lang)
     rows = [[(_t(ctx.lang, "b_train"), "ztrn", "")]]
-    if unlocked_blades(ch["level"]):  # the blade is chosen here, not by the weapon in hand
+    if reachable_blades(ch["level"]):  # the blade is chosen here, not by the weapon in hand
         rows.append([("🗡 تغییر تیغه" if ctx.lang == "fa" else "🗡 Choose blade", "znpb", "")])
     if not z.get("shikai") and lv >= n1[0] and bond >= n1[1]:
         rows.append([(_t(ctx.lang, "b_rel1", f=f1), "zrel", "1")])
@@ -140,14 +141,55 @@ async def blade_choose(ctx, arg):
     if not ch:
         return Out(ctx.t("not_registered"), [nav(ctx)])
     from znp_lock import blade_allowed
-    picks = [b for b in unlocked_blades(ch["level"]) if await blade_allowed(ctx.uid, b)]
+    owned = z.get("owned") or []
+    picks = [b for b in unlocked_blades(ch["level"], owned) if await blade_allowed(ctx.uid, b)]
     rows = [[(f"{tier_label(b, ctx.lang)} · {BLADE_STAGES[b]['shikai'][0 if ctx.lang == 'fa' else 1]}"
               + (" 🧪" if b in BETA_BLADES else ""), "znpc", b)] for b in picks]
-    rows = [r for r in rows]
+    # paid blades this level has reached but the player has not bought yet: a price button
+    for b in reachable_blades(ch["level"]):
+        if b in PAID_BLADES and b not in owned and await blade_allowed(ctx.uid, b):
+            rows.append([(f"💰 {tier_label(b, ctx.lang)} · {BLADE_STAGES[b]['shikai'][0 if ctx.lang == 'fa' else 1]} — "
+                          f"{fnum(blade_price(b), ctx.lang)}", "znpbuy", b)])
     rows.append(nav(ctx, ("znp", "")))
-    text = ("🗡 تیغه‌ای که می‌خوای بگیری را انتخاب کن. هر تیغه با رسیدن به لول خودش باز میشه.\n🧪 = بتا: برای همه بازه تا تست بشه؛ مشکلش را به ادمین بگو. بعد از فیکس ممکنه قفل بشه." if ctx.lang == "fa"
-            else "🗡 Pick the blade you want to bind. Each blade opens at its own level.\n🧪 = beta: open to everyone while it is tested; report problems to the admin. It may be locked once fixed.")
+    text = ("🗡 تیغه‌ای که می‌خوای بگیری را انتخاب کن. هر تیغه با رسیدن به لول خودش باز میشه.\n🧪 = بتا: برای همه بازه تا تست بشه؛ مشکلش را به ادمین بگو. بعد از فیکس ممکنه قفل بشه.\n💰 = تیغه‌ی پولی: یک‌بار با سکه می‌خری و برای همیشه مال توئه." if ctx.lang == "fa"
+            else "🗡 Pick the blade you want to bind. Each blade opens at its own level.\n🧪 = beta: open to everyone while it is tested; report problems to the admin. It may be locked once fixed.\n💰 = paid blade: buy it once with coins and it is yours for good.")
     return Out(text, rows)
+
+
+@action("znpbuy")
+async def blade_buy(ctx, arg):
+    """Buy a paid blade. First tap shows the price, the second tap (arg 'ok:<blade>') pays."""
+    confirm = arg.startswith("ok:")
+    bid = arg[3:] if confirm else arg
+    ch, z = await _state(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"), [nav(ctx)])
+    if ch.get("race") not in ("shinigami", "visored") or bid not in PAID_BLADES or bid not in reachable_blades(ch["level"]):
+        return Out(alert=("این تیغه هنوز باز نشده." if ctx.lang == "fa" else "That blade is still locked."))
+    from znp_lock import blade_allowed
+    if not await blade_allowed(ctx.uid, bid):
+        return Out(alert=("این تیغه فقط برای مالک بازی است." if ctx.lang == "fa" else "This blade is reserved for the owner."))
+    if bid in (z.get("owned") or []):
+        return Out(alert=("این تیغه را قبلاً خریده‌ای." if ctx.lang == "fa" else "You already own this blade."))
+    price = blade_price(bid)
+    name = BLADE_STAGES[bid]["shikai"][0 if ctx.lang == "fa" else 1]
+    if not confirm:
+        text = (f"💰 خرید تیغه <b>{name}</b> ({tier_label(bid, 'fa')})\nقیمت: <b>{fnum(price, 'fa')}</b> سکه — یک‌بار خرید، برای همیشه.\nسکه‌ی تو: {fnum(ch.get('coins', 0), 'fa')}" if ctx.lang == "fa"
+                else f"💰 Buy the blade <b>{name}</b> ({tier_label(bid, 'en')})\nPrice: <b>{fnum(price)}</b> coins, one time, yours for good.\nYour coins: {fnum(ch.get('coins', 0))}")
+        return Out(text, [[("✅ تأیید خرید" if ctx.lang == "fa" else "✅ Confirm", "znpbuy", f"ok:{bid}")],
+                          nav(ctx, ("znpb", ""))])
+    if await try_cooldown(f"znp:buy:cd:{ctx.uid}", 3):  # double tap
+        return Out(alert=_t(ctx.lang, "wait"))
+    if not await add_coins(ctx.uid, -price, f"blade_{bid}"):  # atomic: takes the coins only if the balance covers them
+        return Out(alert=("سکه‌ی کافی نداری." if ctx.lang == "fa" else "Not enough coins."))
+    r = await col("characters").update_one({"user_id": ctx.uid, "zanpakuto.owned": {"$ne": bid}},
+                                           {"$addToSet": {"zanpakuto.owned": bid}})
+    if not r.modified_count:  # bought in parallel: give the coins back
+        await add_coins(ctx.uid, price, f"blade_{bid}_refund")
+        return Out(alert=("این تیغه را قبلاً خریده‌ای." if ctx.lang == "fa" else "You already own this blade."))
+    out = await blade_choose(ctx, "")
+    out.text = (f"✅ تیغه‌ی <b>{name}</b> مال تو شد!\n" if ctx.lang == "fa" else f"✅ <b>{name}</b> is yours!\n") + out.text
+    return out
 
 
 @action("znpc")
@@ -155,7 +197,7 @@ async def blade_set(ctx, arg):
     ch, z = await _state(ctx.uid)
     if not ch:
         return Out(ctx.t("not_registered"), [nav(ctx)])
-    if not blade_valid(arg, ch["level"]):
+    if not blade_valid(arg, ch["level"], z.get("owned")):
         return Out(alert=("این تیغه هنوز باز نشده." if ctx.lang == "fa" else "That blade is still locked."))
     from znp_lock import blade_allowed
     if not await blade_allowed(ctx.uid, arg):

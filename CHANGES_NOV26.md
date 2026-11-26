@@ -34,3 +34,9 @@ All numbers for the balance live in `data_balance.py` (one file to tune).
 - New: test_nov26_balance, test_artswap, test_wish; test_dungeon_chests extended.
 - Updated to the new rules: test_final_judgment_kyoka, test_kido_system, test_heal_merge, test_duel_rules.
 - Full suite: no new failures (27 failing/erroring tests, all of them failed before too).
+
+## Benihime is a paid blade (admin request)
+- Benihime left the free beta (`BETA_BLADES`). It costs 20,000,000 coins, bought once (`PAID_BLADES` in `data_zanpakuto.py`, one number to change). The level 50 gate stays.
+- Bought blades are stored in `characters.zanpakuto.owned`. Blade picker shows a 💰 price button, then a confirm screen (`znpbuy`); coins are taken atomically (`add_coins`) and refunded if the grant fails.
+- Players who had picked Benihime during the beta lose it until they buy it (`_state` and `service_combat.build_player` check ownership); their bond is kept.
+- Test: `test_paid_blades.py`.

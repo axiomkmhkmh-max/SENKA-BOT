@@ -111,7 +111,17 @@ def release_call(blade_id, lang, stage="shikai"):
 # New blades with real kits are open to EVERY player at any level while they are tested: players use them and report
 # problems. When a blade is stable, remove its id from BETA_BLADES (it falls back to its level gate above) or lock it to
 # the owner live with /znplock (znp_lock.py). Weak, plain blades are never locked.
-BETA_BLADES = {"benihime", "katen_kyokotsu"}
+BETA_BLADES = {"katen_kyokotsu"}  # Benihime left the beta: it is a paid blade now (PAID_BLADES)
+
+# ---- Paid blades: a blade that is bought once with coins (admin decision: Benihime is not free, 20M). ----
+# The level gate in BLADE_UNLOCK still applies; on top of it the player must own the blade, i.e. its id is in
+# characters.zanpakuto.owned (written by handlers_zanpakuto.blade_buy). Change the price here.
+PAID_BLADES = {"benihime": 20_000_000}
+
+
+def blade_price(blade_id) -> int:
+    """Coins a paid blade costs; 0 for a free blade."""
+    return int(PAID_BLADES.get(blade_id, 0))
 
 # ---- Rarity tiers: shown in the blade picker (best first). 5 = mythic ... 1 = common. ----
 TIER_NAMES = {5: ("🔴", "اسطوره‌ای", "Mythic"), 4: ("🟠", "افسانه‌ای", "Legendary"), 3: ("🟣", "حماسی", "Epic"),
@@ -134,15 +144,21 @@ def tier_label(blade_id: str, lang: str) -> str:
     return f"{emoji} {fa if lang == 'fa' else en}"
 
 
-def unlocked_blades(level: int):
-    """Blade ids a character of this level may choose (beta blades are open to everyone), best tier first."""
+def reachable_blades(level: int):
+    """Blade ids this level has reached, owned or not (beta blades are open to everyone), best tier first."""
     ids = [b for b, gate in BLADE_UNLOCK.items()
            if (int(level) >= gate or (b in BETA_BLADES and int(level) >= 1)) and b in BLADE_STAGES]
     return sorted(ids, key=lambda b: -blade_tier(b))  # sorted() is stable: equal tiers keep the unlock order
 
 
-def blade_valid(blade_id, level: int) -> bool:
-    return blade_id in BLADE_STAGES and blade_id in unlocked_blades(level)
+def unlocked_blades(level: int, owned=()):
+    """Blade ids a character of this level may choose. A paid blade also needs to be in `owned`."""
+    own = set(owned or ())
+    return [b for b in reachable_blades(level) if b not in PAID_BLADES or b in own]
+
+
+def blade_valid(blade_id, level: int, owned=()) -> bool:
+    return blade_id in BLADE_STAGES and blade_id in unlocked_blades(level, owned)
 
 
 # ---- Bond key: the bond belongs to the blade. ----

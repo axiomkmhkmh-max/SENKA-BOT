@@ -93,7 +93,7 @@ class Artifacts(unittest.TestCase):
 class Blades(unittest.TestCase):
     def test_new_blades_have_kits(self):
         for bid in ("benihime", "katen_kyokotsu"):
-            self.assertIn(bid, Z.unlocked_blades(200))
+            self.assertIn(bid, Z.unlocked_blades(200, owned=Z.PAID_BLADES))
             self.assertIsNotNone(Z.blade_technique(bid))
             self.assertIsNotNone(Z.blade_ultimate(bid))
         self.assertTrue(Z.blade_ultimate("benihime").get("shield"))   # the defence mode

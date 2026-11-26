@@ -142,6 +142,9 @@ async def build_player(ch: dict, name: str = None):
     from znp_lock import blade_allowed  # owner-only blades give nothing to other players
     if zstate.get("blade_id") and not await blade_allowed(ch.get("user_id"), zstate["blade_id"]):
         zstate = dict(zstate, blade_id=None)
+    from data_zanpakuto import PAID_BLADES
+    if zstate.get("blade_id") in PAID_BLADES and zstate["blade_id"] not in (zstate.get("owned") or []):  # paid blade nobody bought
+        zstate = dict(zstate, blade_id=None)
     from data_zanpakuto import bond_value
     bond = bond_value(ch)  # per blade: the bond belongs to the chosen blade, not to the weapon in hand
     # Artifact signature effects are real engine modifiers, not display-only bonuses.
