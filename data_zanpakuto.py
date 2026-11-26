@@ -16,7 +16,7 @@ BLADE_STAGES = {
     "kyoka_suigetsu": {"shikai": ("کیوکا سویگتسو", "Kyōka Suigetsu"), "bankai": ("کیوکا سویگتسو (بانکای)", "Kyōka Suigetsu (Bankai)"),
                        "shikai_bonus": 0.22, "bankai_bonus": 0.35},
     "zanka_no_tachi": {"shikai": ("ریوجین جاکا", "Ryūjin Jakka"), "bankai": ("زانکا نو تاچی", "Zanka no Tachi"),
-                       "shikai_bonus": 0.02, "bankai_bonus": 0.06},
+                       "shikai_bonus": 0.10, "bankai_bonus": 0.40},  # Nov 27: the strongest Bankai in the game (was 0.02 / 0.06)
     "sode_no_shirayuki": {"shikai": ("سوده نو شیرایوکی", "Sode no Shirayuki"),
                           "bankai": ("هاکا نو توگامه", "Hakka no Togame"),
                           "shikai_bonus": 0.02, "bankai_bonus": 0.03},
@@ -42,7 +42,7 @@ BLADE_STAGES = {
     "benihime": {"shikai": ("بنی‌هیمه", "Benihime"), "bankai": ("کانون‌بیراکی بنی‌هیمه آراتامه", "Kannonbiraki Benihime Aratame"),
                  "shikai_bonus": 0.10, "bankai_bonus": 0.12},  # was 0.03 / 0.04: far below every other Legendary blade
     "katen_kyokotsu": {"shikai": ("کاتن کیوکوتسو", "Katen Kyōkotsu"), "bankai": ("کاتن کیوکوتسو: کاراماتسو شینجو", "Katen Kyōkotsu: Karamatsu Shinjū"),
-                       "shikai_bonus": 0.04, "bankai_bonus": 0.05},
+                       "shikai_bonus": 0.10, "bankai_bonus": 0.28},  # Nov 27: Mythic (was 0.04 / 0.05)
 }
 
 
@@ -68,13 +68,13 @@ BLADE_UNLOCK = {
 BLADE_STYLE = {
     "zangetsu": {"dmg": 1.08}, "senbonzakura": {"crit": 0.05},
     "hyorinmaru": {"def": 1.12, "dmg": 1.15}, "kyoka_suigetsu": {"crit": 0.04, "dmg": 1.03},
-    "zanka_no_tachi": {"dmg": 1.12}, "sode_no_shirayuki": {"def": 1.05, "kido": 1.08},
+    "zanka_no_tachi": {"dmg": 1.25, "crit": 0.05}, "sode_no_shirayuki": {"def": 1.05, "kido": 1.08},
     "zabimaru": {"dmg": 1.07}, "wabisuke": {"def": 1.10},
     "minazuki": {"def": 1.06}, "ruri_iro_kujaku": {"crit": 0.04}, "haineko": {"dmg": 1.06},
     "nejibana": {"kido": 1.08}, "kokujo_tengen_myoo": {"dmg": 1.10}, "tachikaze": {"crit": 0.03},
     "tengumaru": {"dmg": 1.05}, "haguro_tonbo": {"crit": 0.05}, "kinshara": {"def": 1.06},
     "sakanade": {"dmg": 1.06, "kido": 1.05}, "kubikiri_orochi": {"dmg": 1.07},
-    "benihime": {"def": 1.10, "dmg": 1.08, "kido": 1.06}, "katen_kyokotsu": {"dmg": 1.08, "crit": 0.03},
+    "benihime": {"def": 1.10, "dmg": 1.08, "kido": 1.06}, "katen_kyokotsu": {"dmg": 1.16, "crit": 0.05},
 }
 
 
@@ -107,6 +107,87 @@ def release_call(blade_id, lang, stage="shikai"):
     return c[0 if lang == "fa" else 1] if c else None
 
 
+# ---- Bankai activation scenes (Nov 27) ----
+# What the screen says when a Bankai is unleashed: the shout «Bankai!!! <name>» and a short epic line. {a} = the wielder,
+# {d} = the opponent. Every blade has its own line; a blade without one gets a generic scene (BANKAI_GENERIC).
+BANKAI_SCENE = {
+    "zanka_no_tachi": (
+        "🔥 آسمان و زمین شعله کشید؛ همه‌جا خاکستر شد و {d} زیر خورشید یاماموتو خشکش زد!\n⚠️ بانکای ممنوعه: اگه نیم‌ساعت بمونه، یه جهان رو نابود می‌کنه.",
+        "🔥 Heaven and earth ignite; everything is ash, and {d} freezes beneath Yamamoto's sun!\n⚠️ The forbidden Bankai: let it burn for half an hour and a whole world is gone."),
+    "katen_kyokotsu": (
+        "🎭 سایه‌ی غول‌آسای کاراماتسو بالای سر {d} سبز شد؛ بازی بچگونه تموم شد، حالا بازی بزرگ‌ها شروع میشه!",
+        "🎭 The towering shadow of Karamatsu rises over {d}; the children's game is over, the grown-ups' game begins!"),
+    "zangetsu": (
+        "⚫ همه‌ی قدرت یه شمشیر تو یه تیغه‌ی سیاه جمع شد؛ سرعت {a} از چشم {d} هم گذشت!",
+        "⚫ The power of a thousand blades folds into one black edge; {a} is faster than {d}'s eyes can follow!"),
+    "senbonzakura": (
+        "🌸 هزار تیغه‌ی صورتی بیدار شد؛ {d} وسط بهارِ مرگ گم شد!",
+        "🌸 A thousand pink blades wake; {d} is lost in a spring of death!"),
+    "hyorinmaru": (
+        "🐉 آسمون یخ بست؛ اژدهای یخی بالای سر {d} غرید و زمان همون‌جا ایستاد!",
+        "🐉 The sky freezes; the ice dragon roars over {d} and time itself stands still!"),
+    "kyoka_suigetsu": (
+        "🪞 هیچی اون‌جوری نیست که {d} می‌بینه؛ از همون لحظه‌ی اول فریب خورده بود!",
+        "🪞 Nothing is as {d} sees it; they were deceived from the very first moment!"),
+    "sode_no_shirayuki": (
+        "❄️ سفیدترین زمستونِ دنیا نازل شد؛ {d} تا بفهمه چی شده، یخ زده بود!",
+        "❄️ The whitest winter in the world descends; {d} was frozen before they understood!"),
+    "zabimaru": (
+        "🐍 مار و میمون یکی شدن؛ بدنِ غول‌آسای زابیمارو {d} رو زیر سایه‌اش بلعید!",
+        "🐍 Snake and baboon become one; Zabimaru's colossal body swallows {d} whole in its shadow!"),
+    "wabisuke": (
+        "⚖️ هر ضربه سنگین‌تر از قبلی؛ {d} زیر بار پشیمونی زانو زد!",
+        "⚖️ Every blow heavier than the last; {d} kneels beneath the weight of regret!"),
+    "minazuki": (
+        "🌙 ماهِ خونین بالا اومد؛ مرگبارترین تیغه‌ی شفابخش روی {d} باز شد!",
+        "🌙 The blood moon rises; the deadliest healing blade opens over {d}!"),
+    "kokujo_tengen_myoo": (
+        "🗿 غول زره‌پوش برخاست؛ {d} قبل از اولین ضربه، سایه‌ی پولادینش رو روی خودش دید!",
+        "🗿 The armoured giant rises; {d} sees its steel shadow fall before the first blow lands!"),
+    "kinshara": (
+        "🎶 رقص طلایی شروع شد؛ هر نُت یه ضربه‌ست و {d} باید همه‌شون رو بشنوه!",
+        "🎶 The golden dance begins; every note is a blow, and {d} must hear every one!"),
+    "sakanade": (
+        "🌀 دنیا وارونه شد؛ بالا و پایین برای {d} دیگه معنی نداره!",
+        "🌀 The world turns upside down; up and down no longer mean anything to {d}!"),
+    "benihime": (
+        "🩸 دروازه‌ی کانون باز شد؛ هر چی شکسته بود دوباره ساخته شد و {d} فقط تماشا کرد!",
+        "🩸 The gate of Kannon opens; everything broken is made anew while {d} can only watch!"),
+}
+BANKAI_GENERIC = [
+    ("⚡ ریاتسوی {a} از مرز گذشت؛ {name} به اوج رسید و {d} زیر فشارش زانو زد!",
+     "⚡ {a}'s reiatsu breaks every limit; {name} reaches its peak and {d} drops to one knee under the pressure!"),
+    ("🌩 زمین لرزید؛ شکل واقعیِ {name} آزاد شد و {d} فهمید با چی طرفه!",
+     "🌩 The ground shakes; the true form of {name} is loose and {d} finally knows what they face!"),
+]
+BANKAI_DEFAULT_FOE = ("حریف", "the foe")
+
+
+def bankai_shout(blade_id, lang):
+    """«Bankai!!! <name>»: the activation word, with the blade's Bankai name (its Shikai name when the source names no Bankai)."""
+    s = BLADE_STAGES.get(blade_id) or {}
+    pair = s.get("bankai") or s.get("shikai")
+    name = pair[0 if lang == "fa" else 1] if pair else ""
+    return ("بانکای!!! " if lang == "fa" else "Bankai!!! ") + name if name else ("بانکای!!!" if lang == "fa" else "Bankai!!!")
+
+
+def bankai_scene(blade_id, lang, a="", d=None):
+    """The full activation text: the shout and the epic line, for EVERY blade (own line, or a generic one). Plain text, no HTML.
+    `a` / `d` are the wielder's and the opponent's names (already escaped by the caller)."""
+    i = 0 if lang == "fa" else 1
+    d = d or BANKAI_DEFAULT_FOE[i]
+    a = a or ("تو" if lang == "fa" else "you")
+    shout = bankai_shout(blade_id, lang)
+    line = BANKAI_SCENE.get(blade_id)
+    if line:
+        body = line[i]
+    else:
+        pair = (BLADE_STAGES.get(blade_id) or {}).get("shikai")
+        name = pair[i] if pair else ("تیغه" if lang == "fa" else "the blade")
+        body = BANKAI_GENERIC[sum(map(ord, str(blade_id))) % len(BANKAI_GENERIC)][i].replace("{name}", name)
+    return f"«{shout}»\n" + body.replace("{a}", a).replace("{d}", d)
+
+
 # ---- Beta blades (Nov 26) ----
 # New blades with real kits are open to EVERY player at any level while they are tested: players use them and report
 # problems. When a blade is stable, remove its id from BETA_BLADES (it falls back to its level gate above) or lock it to
@@ -127,9 +208,9 @@ def blade_price(blade_id) -> int:
 TIER_NAMES = {5: ("🔴", "اسطوره‌ای", "Mythic"), 4: ("🟠", "افسانه‌ای", "Legendary"), 3: ("🟣", "حماسی", "Epic"),
               2: ("🔵", "کمیاب", "Rare"), 1: ("⚪", "معمولی", "Common")}
 BLADE_TIER = {
-    "kyoka_suigetsu": 5, "hyorinmaru": 5,
-    "zangetsu": 4, "zanka_no_tachi": 4, "kokujo_tengen_myoo": 4, "benihime": 4,
-    "senbonzakura": 3, "sode_no_shirayuki": 3, "zabimaru": 3, "katen_kyokotsu": 3, "minazuki": 3, "nejibana": 3,
+    "kyoka_suigetsu": 5, "hyorinmaru": 5, "zanka_no_tachi": 5, "katen_kyokotsu": 5,  # Nov 27: Yamamoto's and Kyoraku's blades are Mythic
+    "zangetsu": 4, "kokujo_tengen_myoo": 4, "benihime": 4,
+    "senbonzakura": 3, "sode_no_shirayuki": 3, "zabimaru": 3, "minazuki": 3, "nejibana": 3,
     "wabisuke": 2, "haineko": 2, "sakanade": 2, "kinshara": 2, "ruri_iro_kujaku": 2,
     "kubikiri_orochi": 1, "tengumaru": 1, "tachikaze": 1, "haguro_tonbo": 1,
 }
@@ -228,7 +309,10 @@ BLADE_ULT = {
     "zangetsu": {"fa": "گتسوگا تنشو", "en": "Getsuga Tenshō", "mult": 5.2, "pierce": 0.30, "buff": (2, 1.25), "cd": 5},
     "senbonzakura": {"fa": "کاگیوشی سنبونزاکورا", "en": "Senkei Senbonzakura", "mult": 4.6, "pierce": 0.45, "fx": "bleed", "cd": 5},
     "hyorinmaru": {"fa": "ریوسنکا", "en": "Ryūsenka", "mult": 5.0, "pierce": 0.45, "fx": "skip", "skip_p": 0.55, "cd": 5},
-    "zanka_no_tachi": {"fa": "ریوجین جاکا: ملتهب", "en": "Ryūjin Jakka: Scorch", "mult": 5.6, "pierce": 0.25, "fx": "burn", "cd": 5},
+    "zanka_no_tachi": {"fa": "ریوجین جاکا: ملتهب", "en": "Ryūjin Jakka: Scorch", "mult": 6.2, "pierce": 0.30, "fx": "burn", "cd": 5,
+                       # Nov 27: in Bankai the finisher becomes the forbidden Zanka no Tachi: all creation turned to ash
+                       "bk": {"fa": "زانکا نو تاچی: خاکستر مطلق", "en": "Zanka no Tachi: Absolute Ash", "mult": 8.2, "pierce": 0.50,
+                              "fx": "burn", "cost": 0.30}},
     "sode_no_shirayuki": {"fa": "تسوگی نو مای: هاکورن", "en": "Tsugi no Mai: Hakuren", "mult": 4.2, "pierce": 0.35, "fx": "skip", "skip_p": 0.5, "cd": 5},
     "zabimaru": {"fa": "هیهیو زابیمارو", "en": "Hihiō Zabimaru", "mult": 5.0, "pierce": 0.30, "fx": "bleed", "cd": 5},
     "wabisuke": {"fa": "وابیسوکه: وزن دوچندان", "en": "Wabisuke: Doubled Weight", "mult": 3.6, "pierce": 0.30, "fx": "weaken", "cd": 4},
@@ -239,7 +323,10 @@ BLADE_ULT = {
                  # Bankai: the same button becomes Kannonbiraki Benihime Aratame (bigger blow, barrier and mend, and it cleanses your wounds)
                  "bk": {"fa": "کانون‌بیراکی بنی‌هیمه آراتامه", "en": "Kannonbiraki Benihime Aratame", "mult": 3.6, "pierce": 0.40,
                         "shield": 0.65, "heal": 0.28, "cleanse": True}},
-    "katen_kyokotsu": {"fa": "کاتن کیوکوتسو: دو شمشیر، یک بازی", "en": "Katen Kyōkotsu: Two Blades, One Game", "mult": 2.4, "hits": 3, "pierce": 0.25, "fx": "weaken", "cd": 5},
+    "katen_kyokotsu": {"fa": "کاتن کیوکوتسو: دو شمشیر، یک بازی", "en": "Katen Kyōkotsu: Two Blades, One Game", "mult": 2.9, "hits": 3, "pierce": 0.30, "fx": "weaken", "cd": 5,
+                       # Nov 27: Mythic. In Bankai the finisher becomes Karamatsu Shinjū (a harder-hitting three-cut game)
+                       "bk": {"fa": "کاتن کیوکوتسو: کاراماتسو شینجو", "en": "Katen Kyōkotsu: Karamatsu Shinjū", "mult": 3.7, "hits": 3,
+                              "pierce": 0.40, "fx": "weaken", "cost": 0.28}},
 }
 BLADE_ULT_KIND = {  # a blade without its own entry gets a finisher from its technique kind
     "pierce": {"mult": 4.4, "pierce": 0.50, "cd": 5}, "bleed": {"mult": 4.6, "pierce": 0.30, "fx": "bleed", "cd": 5},

@@ -388,7 +388,7 @@ async def sword_word(ctx, arg):
         return Out(_t(ctx.lang, "cd"), [nav(ctx)])
     await stance_set(ctx.uid, kind)
     mult = STANCE[kind][0]
-    return Out(f"🗡 <i>{_chant(ch, z, ctx.lang)}</i>\n" + _t(ctx.lang, "stance", m=STANCE_SECONDS // 60, x=mult), [nav(ctx)])
+    return Out(f"🗡 <i>{_chant(ch, z, ctx.lang, kind)}</i>\n" + _t(ctx.lang, "stance", m=STANCE_SECONDS // 60, x=mult), [nav(ctx)])
 
 
 @action("mkw")

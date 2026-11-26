@@ -573,7 +573,13 @@ def _maybe_battle_word(n: str) -> bool:
     global _BLADE_WORDS
     if _BLADE_WORDS is None:
         from data_zanpakuto import BLADE_UNLOCK
+        from data_zanpakuto import BLADE_STAGES
         _BLADE_WORDS = {normalize_text(iname(b, lg)) for b in BLADE_UNLOCK for lg in ("fa", "en")}
+        for b, st in BLADE_STAGES.items():  # Nov 27: «بانکای زانکا نو تاچی» / "Bankai Zanka no Tachi" works too
+            for i, lg in enumerate(("fa", "en")):
+                if st.get("bankai"):
+                    _BLADE_WORDS.add(normalize_text(st["bankai"][i]))
+                    _BLADE_WORDS.add(normalize_text(("بانکای " if lg == "fa" else "bankai ") + st["bankai"][i]))
     return n in WORD_ACTIONS or n in WORD_RELEASE or n in _BLADE_WORDS
 
 
@@ -602,6 +608,11 @@ async def battle_word(ctx, text):
     names = set(WORD_RELEASE)
     if z.get("blade_id"):
         names |= {normalize_text(iname(z["blade_id"], "fa")), normalize_text(iname(z["blade_id"], "en"))}
+        from data_zanpakuto import BLADE_STAGES
+        bk = (BLADE_STAGES.get(z["blade_id"]) or {}).get("bankai")
+        if bk:  # the Bankai name, alone or after the word "Bankai"
+            for i, w in enumerate(("بانکای ", "bankai ")):
+                names |= {normalize_text(bk[i]), normalize_text(w + bk[i])}
     if n not in names:
         return None
     from data_race_rules import SHINIGAMI_LIKE

@@ -51,7 +51,9 @@ PRESSURE = [(50, "خفته", "Dormant"), (150, "بیدار", "Awakened"), (400, 
 
 
 def _chant(ch, z, lang, stage="shikai"):
-    from data_zanpakuto import release_call
+    from data_zanpakuto import bankai_scene, release_call
+    if stage == "bankai" and z.get("blade_id") in BLADE_STAGES:  # Nov 27: every Bankai has its shout and epic line
+        return bankai_scene(z["blade_id"], lang)
     canon = release_call(z.get("blade_id"), lang, stage)
     if canon:
         return canon

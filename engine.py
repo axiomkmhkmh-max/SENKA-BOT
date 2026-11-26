@@ -1627,7 +1627,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         x["gauge"] = 0
         # +1: the countdown ticks at the start of each of your turns, so this covers `turns` actions (evolution adds more)
         x["awake"] = GAUGE["turns"] + int(evb(f, "release_turns", 0)) + 1
-        ev.append({"k": "unleash", "a": f["name"], "mv": f.get("mv"), "r": f.get("race")})
+        ev.append({"k": "unleash", "a": f["name"], "d": state["b" if side == "a" else "a"]["name"], "mv": f.get("mv"), "r": f.get("race"),
+                   "bl": f.get("blade")})  # Nov 27: blade + opponent, so the Bankai scene can speak to them
         n = release_form(f)
         rlv = int((f.get("abx") or {}).get("rel", 1))
         if n == 1 and fab and f.get("race") in ("shinigami", "visored"):

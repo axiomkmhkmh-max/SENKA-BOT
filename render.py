@@ -155,7 +155,10 @@ def events_text(lang: str, events: list) -> str:
         elif k == "dot":
             out.append(t(lang, "lg_dot", d=d, n=n, fx=t(lang, "fx_" + e["fx"])))
         elif k == "unleash":  # Bankai / Resurrección: the blade's name when it is released, a generic line otherwise
-            if e.get("mv") and move_name(e["mv"], lang):
+            if e.get("bl") and e.get("r") in ("shinigami", "visored"):  # Nov 27: «Bankai!!! <name>» + the blade's epic line
+                from data_zanpakuto import bankai_scene
+                out.append("👑 <b>" + a + "</b>\n<i>" + bankai_scene(e["bl"], lang, a=a, d=d) + "</i>")  # a / d are already escaped; the scene text is static
+            elif e.get("mv") and move_name(e["mv"], lang):
                 out.append(pick(lang, "lg_unleash_move", a=a, move=esc(move_name(e["mv"], lang))))
             else:
                 r = e.get("r")
