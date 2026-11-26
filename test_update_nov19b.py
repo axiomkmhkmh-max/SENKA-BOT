@@ -3,10 +3,13 @@ import random
 import unittest
 from collections import Counter
 
-import data_accessories as A
-import data_extras2 as X
-import data_items as D
-import service_adventure as S
+import _isolate
+
+with _isolate.fresh():  # real modules, even if an earlier test file left fakes behind
+    import data_accessories as A
+    import data_extras2 as X
+    import data_items as D
+    import service_adventure as S
 
 
 class AccessoryCatalog(unittest.TestCase):

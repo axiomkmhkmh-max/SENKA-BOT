@@ -1,5 +1,17 @@
 """Light tests for the Nov 22 pack: skins, katana wheel prize, new dungeons / keys, new events, new Soul Core sources.
 Uses an in-memory fake DB (no Mongo, no Telegram). Run on its own: python -m unittest test_skins_pack"""
+import _isolate  # noqa: E402  (a clean module cache for this file; restored afterwards)
+
+_STATE = _isolate.begin()  # everything this file imports or fakes from here on is private to it
+_KEEP = {}
+
+
+def setUpModule():
+    _isolate.set_up(_KEEP)
+
+
+tearDownModule = _isolate.tear_down
+
 import asyncio
 import random
 import sys
@@ -407,6 +419,9 @@ class Cores(unittest.IsolatedAsyncioTestCase):
         reset({"user_id": 8, "level": 50})
         self.assertEqual(await sc.core_boost(8), 1.0)
 
+
+
+_KEEP.update(_isolate.end(_STATE))  # restore the shared cache; setUpModule puts this file's own modules back
 
 if __name__ == "__main__":
     unittest.main()

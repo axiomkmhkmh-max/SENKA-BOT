@@ -2,6 +2,18 @@
 
 Run:  python -m unittest discover -s tests -v   (from the project root)
 """
+import _isolate  # noqa: E402  (a clean module cache for this file; restored afterwards)
+
+_STATE = _isolate.begin()  # a private, clean copy of the project modules for this file
+_KEEP = {}
+
+
+def setUpModule():
+    _isolate.set_up(_KEEP)
+
+
+tearDownModule = _isolate.tear_down
+
 import asyncio
 import os
 import random
@@ -18,6 +30,8 @@ for k, v in {"BOT_TOKEN": "1:test", "MONGODB_URI": "mongodb://localhost:1/test",
 import engine as E  # noqa: E402
 from data_bleachfx import GAUGE, RESOLVE, RESURRECCION  # noqa: E402
 from data_items import ALL  # noqa: E402
+
+_KEEP.update(_isolate.end(_STATE))
 
 
 def fighter(name="A", race="shinigami", ai=False, lvl=20):

@@ -895,7 +895,11 @@ async def duel_challenge(chat_id: int, a_uid: int, b_uid: int, ranked: bool):
         return "minlevel", int(gs["pvp_min_level"])
     if await duel_busy(a_uid) or await duel_busy(b_uid):
         return "busy", None
-    doc = {"sid": uuid.uuid4().hex[:8], "mode": "pvp", "a_uid": a_uid, "b_uid": b_uid, "ranked": ranked, "chat_id": chat_id,
+    tourn = False
+    if ranked:  # a ranked duel inside the Gotei Trial training window is a tournament training duel (service_tournament)
+        from service_tournament import training_open
+        tourn = bool(await training_open())
+    doc = {"sid": uuid.uuid4().hex[:8], "mode": "pvp", "a_uid": a_uid, "b_uid": b_uid, "ranked": ranked, "chat_id": chat_id, "tournament": tourn,
            "status": "pending", "rev": 0, "created_at": int(time.time()), "expire_at": datetime.now(timezone.utc) + timedelta(minutes=5),
            "a_name": ca["name"], "b_name": cb["name"], "timeouts": {"a": 0, "b": 0}}
     await col("battles").insert_one(doc)
@@ -908,7 +912,12 @@ async def duel_accept(sid: str, uid: int):
     if not doc:
         return None
     ca, cb = await get_char(doc["a_uid"]), await get_char(uid)
-    fa, fb = await build_player(ca), await build_player(cb)
+    if doc.get("tournament") and int(gs.get("tour_equal_training", 1)):  # training duels use the standard kit: nothing but skill decides
+        from engine_tournament import standard_fighter
+        lvl = int(gs.get("tour_level", 30))
+        fa, fb = standard_fighter(ca["name"], lvl), standard_fighter(cb["name"], lvl)
+    else:
+        fa, fb = await build_player(ca), await build_player(cb)
     rng = random.Random()
     state = E.new_state(fa, fb, rng, pvp=True)
     now = time.time()  # SENKA+ Konpaku charm: an active charm adds one life for this duel
@@ -1013,6 +1022,11 @@ async def pvp_settle(doc: dict):
     w_uid, l_uid = (a_uid, b_uid) if st["winner"] == "a" else (b_uid, a_uid)
     cw, cl = await get_char(w_uid), await get_char(l_uid)
     res["winner"] = w_uid
+    if doc.get("tournament"):  # training duel: tournament points only, never rating, Battle Rank, XP or coins
+        from service_tournament import record_training
+        await record_training(w_uid, l_uid, cw["name"], cl["name"], doc.get("started_at"))
+        res["note"] = "tournament"
+        return res
     pair = _pair(a_uid, b_uid)
     note = None
     if not doc["ranked"]:  # Pack 1: duel XP is real now, so friendly duels share the same pair-per-day and fresh-account guards

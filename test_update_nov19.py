@@ -3,11 +3,14 @@ easier Legendary dungeons."""
 import random
 import unittest
 
-import data_items as D
-import engine as E
-from data_raceweapons import ascend_cost, weapon_focus
-from data_races import DIFFICULTY
-from service_extras import BY_CAT, chain_after_gap, chain_floor, chain_milestone
+import _isolate
+
+with _isolate.fresh():  # real modules, even if an earlier test file left fakes behind
+    import data_items as D
+    import engine as E
+    from data_raceweapons import ascend_cost, weapon_focus
+    from data_races import DIFFICULTY
+    from service_extras import BY_CAT, chain_after_gap, chain_floor, chain_milestone
 
 
 class ChainTests(unittest.TestCase):

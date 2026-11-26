@@ -1,4 +1,8 @@
 """Nov 21 update: stats, HP x6, ratio dodge, side stance, ability families, open worlds, narration, challenges."""
+import _isolate  # noqa: E402  (a clean module cache for this file; restored afterwards)
+
+setUpModule, tearDownModule = _isolate.set_up, _isolate.tear_down
+
 import os
 import random
 import sys

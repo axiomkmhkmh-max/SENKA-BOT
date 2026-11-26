@@ -1,5 +1,17 @@
 """Service-level tests for the wheels with an in-memory fake DB (no Mongo, no Telegram needed).
 Stubs only the modules that need motor/pymongo/Telegram; the wheel logic itself is the real code."""
+import _isolate  # noqa: E402  (a clean module cache for this file; restored afterwards)
+
+_STATE = _isolate.begin()  # everything this file imports or fakes from here on is private to it
+_KEEP = {}
+
+
+def setUpModule():
+    _isolate.set_up(_KEEP)
+
+
+tearDownModule = _isolate.tear_down
+
 import sys
 import types
 import unittest
@@ -264,6 +276,9 @@ class SoulCoreEconomy(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self._logs()[-1]["n"], -60)
         self.assertEqual(self._logs()[-1]["reason"], "spin:w_ichigo")
 
+
+
+_KEEP.update(_isolate.end(_STATE))  # restore the shared cache; setUpModule puts this file's own modules back
 
 if __name__ == "__main__":
     unittest.main()

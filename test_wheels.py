@@ -1,3 +1,7 @@
+import _isolate  # noqa: E402  (a clean module cache for this file; restored afterwards)
+
+setUpModule, tearDownModule = _isolate.set_up, _isolate.tear_down
+
 import random
 import unittest
 
