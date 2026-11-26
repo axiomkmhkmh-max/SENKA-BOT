@@ -111,12 +111,12 @@ def release_call(blade_id, lang, stage="shikai"):
 # New blades with real kits are open to EVERY player at any level while they are tested: players use them and report
 # problems. When a blade is stable, remove its id from BETA_BLADES (it falls back to its level gate above) or lock it to
 # the owner live with /znplock (znp_lock.py). Weak, plain blades are never locked.
-BETA_BLADES = {"katen_kyokotsu"}  # Benihime left the beta: it is a paid blade now (PAID_BLADES)
+BETA_BLADES = set()  # empty: Benihime and Katen Kyōkotsu both left the beta, they are paid blades now (PAID_BLADES)
 
-# ---- Paid blades: a blade that is bought once with coins (admin decision: Benihime is not free, 20M). ----
+# ---- Paid blades: a blade that is bought once with coins (admin decision: Benihime and Katen Kyōkotsu are not free, 20M each). ----
 # The level gate in BLADE_UNLOCK still applies; on top of it the player must own the blade, i.e. its id is in
 # characters.zanpakuto.owned (written by handlers_zanpakuto.blade_buy). Change the price here.
-PAID_BLADES = {"benihime": 20_000_000}
+PAID_BLADES = {"benihime": 20_000_000, "katen_kyokotsu": 20_000_000}
 
 
 def blade_price(blade_id) -> int:

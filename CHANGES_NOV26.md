@@ -40,3 +40,9 @@ All numbers for the balance live in `data_balance.py` (one file to tune).
 - Bought blades are stored in `characters.zanpakuto.owned`. Blade picker shows a 💰 price button, then a confirm screen (`znpbuy`); coins are taken atomically (`add_coins`) and refunded if the grant fails.
 - Players who had picked Benihime during the beta lose it until they buy it (`_state` and `service_combat.build_player` check ownership); their bond is kept.
 - Test: `test_paid_blades.py`.
+
+## Katen Kyōkotsu is a paid blade too (admin request)
+- Katen Kyōkotsu left the free beta: 20,000,000 coins, bought once (`PAID_BLADES`), level 55 gate stays. `BETA_BLADES` is now empty. Players who picked it during the beta lose it until they buy it (bond kept).
+- Bug fix: a blade technique's hit line printed the raw key `lg_hit_bt` with no damage number, so the skill looked like it did nothing. Added `lg_hit_bt` (fa/en) in `locale_bleachfx.py`.
+- Why skills seemed missing: bond belongs to each blade and Shikai needs level 20 + bond 50, so a level 1 beta player on Katen never got the technique / finisher buttons. The level 55 gate and the price remove that case.
+- Tests: `test_paid_blades.py` (Katen price / gate, hit line text in both languages).

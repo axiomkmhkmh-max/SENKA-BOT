@@ -1,4 +1,4 @@
-"""Benihime is a paid blade: 20,000,000 coins, bought once, never free."""
+"""Benihime and Katen Kyōkotsu are paid blades: 20,000,000 coins each, bought once, never free."""
 import asyncio
 import unittest
 
@@ -23,6 +23,28 @@ class PaidBlades(unittest.TestCase):
         self.assertIn("benihime", Z.unlocked_blades(50, ["benihime"]))
         self.assertFalse(Z.blade_valid("benihime", 49, ["benihime"]))  # owning it does not skip the level gate
         self.assertTrue(Z.blade_valid("benihime", 50, ["benihime"]))
+
+
+class KatenPaid(unittest.TestCase):
+    def test_katen_price_and_not_beta(self):
+        self.assertEqual(Z.blade_price("katen_kyokotsu"), 20_000_000)
+        self.assertNotIn("katen_kyokotsu", Z.BETA_BLADES)
+
+    def test_katen_not_free_at_any_level(self):
+        for lvl in (1, 55, 200):
+            self.assertNotIn("katen_kyokotsu", Z.unlocked_blades(lvl))
+        self.assertIn("katen_kyokotsu", Z.unlocked_blades(55, ["katen_kyokotsu"]))
+        self.assertFalse(Z.blade_valid("katen_kyokotsu", 54, ["katen_kyokotsu"]))  # owning it does not skip the level gate
+
+
+class HitLines(unittest.TestCase):
+    def test_blade_technique_hit_has_text_in_both_languages(self):
+        """A blade technique's hit event (kind 'bt') used to print the raw key lg_hit_bt with no damage number."""
+        import render
+        for lang in ("fa", "en"):
+            line = render.events_text(lang, [{"k": "hit", "a": "A", "d": "B", "n": 123, "kind": "bt"}])
+            self.assertNotIn("lg_hit_bt", line)
+            self.assertIn("123" if lang == "en" else "۱۲۳", line)
 
 
 class BuyFlow(unittest.TestCase):
