@@ -585,7 +585,7 @@ ANIME_EXTRA = {
     # Ichigo
     "art_zangetsu_frag": {"echo": 0.20, "low_hp": [0.50, 0.25], "pierce": 0.08},
     "art_badge": {"lifesteal": 0.12, "low_hp": [0.35, 0.35]},
-    "art_visored_mask": {"lifesteal": 0.14, "low_hp": [0.50, 0.20], "burn_p": 0.10},
+    "art_visored_mask": {"lifesteal": 0.14, "low_hp": [0.50, 0.20], "turn_heal": 0.01},
     # Aizen
     "art_glasses": {"foresight": 4, "dodge": 0.10, "stun_p": 0.15},
     "art_restraint_chair": {"revive": [1, 0.55], "thorns": 0.20},
@@ -598,15 +598,15 @@ ANIME_EXTRA = {
     "art_transcendent_armor": {"revive": [1, 0.60], "thorns": 0.15, "hit_cap": 0.30},
     "art_shadow_monarch": {"echo": 0.22, "lifesteal": 0.08},
     # captains and arrancar relics
-    "art_ryujin_cane": {"burn_p": 0.30, "echo": 0.06},
-    "art_sokyoku": {"burn_p": 0.25, "echo": 0.10},
+    "art_ryujin_cane": {"opener": 0.25, "echo": 0.06},
+    "art_sokyoku": {"opener": 0.30, "echo": 0.10},
     "art_unohana_braid": {"lifesteal": 0.10},
     "art_shihoin_shield": {"thorns": 0.12, "dodge": 0.08},
-    "art_pantera": {"bleed_p": 0.25},
-    "art_murcielago": {"dodge": 0.06, "bleed_p": 0.15},
+    "art_pantera": {"open_shield": 0.06, "mitigate": 0.03},
+    "art_murcielago": {"dodge": 0.06, "turn_heal": 0.01},
     "art_los_lobos": {"pierce": 0.12},
-    "art_tiburon": {"lifesteal": 0.05, "bleed_p": 0.20},
-    "art_santa_teresa": {"echo": 0.08, "bleed_p": 0.15},
+    "art_tiburon": {"lifesteal": 0.05, "mitigate": 0.04},
+    "art_santa_teresa": {"echo": 0.08, "open_shield": 0.05},
     "art_senbon": {"echo": 0.06},
     "art_benihime": {"pierce": 0.08},
     "art_seele": {"pierce": 0.10},
@@ -637,6 +637,10 @@ def _extra_text(ex: dict):
     if ex.get("foresight"): add(f"آینده را می‌بیند: از هر {ex['foresight']} ضربه‌ی دشمن، یکی حتماً جاخالی می‌شود", f"sees the future: one of every {ex['foresight']} blows against you is always dodged")
     if ex.get("no_crit"): add("ضربه‌ی کریتیکال دشمن بی‌اثر می‌شود", "enemy critical hits are erased")
     if ex.get("hit_cap"): add(f"هیچ ضربه‌ای بیشتر از {p(ex['hit_cap'])}٪ جان را نمی‌گیرد", f"no blow takes more than {p(ex['hit_cap'])}% of your HP")
+    if ex.get("opener"): add(f"ضربه‌ی اول مبارزه +{p(ex['opener'])}٪ قوی‌تر", f"your first blow of a fight hits +{p(ex['opener'])}% harder")
+    if ex.get("open_shield"): add(f"مبارزه را با سپر {p(ex['open_shield'])}٪ جان شروع می‌کنی", f"start every fight behind a barrier of {p(ex['open_shield'])}% HP")
+    if ex.get("mitigate"): add(f"{p(ex['mitigate'])}٪ کاهش هر دمیج دریافتی", f"{p(ex['mitigate'])}% less damage from every blow")
+    if ex.get("turn_heal"): add(f"هر نوبت {p(ex['turn_heal'])}٪ ترمیم", f"heals {p(ex['turn_heal'])}% each turn")
     if ex.get("low_hp"): add(f"زیر {p(ex['low_hp'][0])}٪ جان: +{p(ex['low_hp'][1])}٪ دمیج", f"below {p(ex['low_hp'][0])}% HP: +{p(ex['low_hp'][1])}% damage")
     if ex.get("revive"): add(f"یک احیا با {p(ex['revive'][1])}٪ جان", f"one revive at {p(ex['revive'][1])}% HP")
     return "، ".join(fa), "; ".join(en)

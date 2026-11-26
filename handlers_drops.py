@@ -48,6 +48,7 @@ async def art_panel(ctx, arg):
         a, d = ART_BY_ID[aid], await art_doc(aid)
         body = ctx.t("art_body", name=art_name(aid, L), lore=_lore(a, L), bonus=art_bonus_text(aid, float(st["art_k"]), L), n=fnum(len(d.get("history") or []), L))
         rows.append([(ctx.t("b_art_sell"), "axl", ""), (ctx.t("b_art_release"), "axr", "")])
+        rows.append([("🔄 تبادل آرتیفکت" if L == "fa" else "🔄 Swap artifact", "axs", "")])
     else:
         lst = await col("art_listings").find_one({"seller": ctx.uid, "status": "active"})
         if lst:

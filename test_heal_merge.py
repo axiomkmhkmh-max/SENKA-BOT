@@ -28,7 +28,9 @@ class HealMerge(unittest.TestCase):
         heals = [e for e in ev if e["k"] == "heal"]
         self.assertEqual(len(heals), 1)
         hb = 1000 / E.HP_MULT  # repeating heals are measured on the old-scale HP (long fights)
-        self.assertEqual(heals[0]["n"], int(hb * E.TURN_HP_REGEN) + int(hb * 0.02))
+        import data_balance as BAL
+        want = min(int(hb * E.TURN_HP_REGEN) + int(hb * 0.02), int(1000 * BAL.PASSIVE_REGEN_CAP))  # Nov 26: one per-turn regen budget
+        self.assertEqual(heals[0]["n"], want)
 
     def test_guard_does_not_stack_on_natural_regen(self):
         a, b = _f("A"), _f("B")

@@ -203,4 +203,6 @@ def standard_fighter(name: str, level: int, mastery: int = 0) -> dict:
                       max_reiatsu(int(level), soft_stat(st["reiatsu"])), None, armor=standard_armor(level), mods={},
                       kido={"had": [], "bak": []}, race=NEUTRAL_RACE, zmult=1.0, element="light")
     f["weapon"] = standard_weapon(level)
+    from data_balance import PLAYER_HP_K
+    f["hpk"] = PLAYER_HP_K  # same HP rule as every player
     return f

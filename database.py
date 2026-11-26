@@ -102,6 +102,8 @@ async def ensure_indexes():
         "drops": [([("chat_id", ASCENDING), ("msg_id", ASCENDING)], {}), ([("status", ASCENDING), ("end_at", ASCENDING)], {}),
                   ([("created_at", ASCENDING)], {"expireAfterSeconds": 60 * 60 * 24 * 30})],
         "artifacts": [([("owner", ASCENDING)], {}), ([("state", ASCENDING)], {})],
+        "wishes": [([("user_id", ASCENDING), ("status", ASCENDING)], {})],
+        "art_swaps": [([("status", ASCENDING), ("b", ASCENDING)], {}), ([("end_at", ASCENDING)], {})],
         "art_listings": [([("status", ASCENDING), ("price", ASCENDING)], {}), ([("seller", ASCENDING), ("status", ASCENDING)], {}),
                          ([("end_at", ASCENDING)], {})],
         "action_logs": [([("uid", ASCENDING), ("at", DESCENDING)], {}), ([("expire_at", ASCENDING)], {"expireAfterSeconds": 0})],

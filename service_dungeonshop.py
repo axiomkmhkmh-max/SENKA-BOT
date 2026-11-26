@@ -36,13 +36,14 @@ GOLD_STONE_CHANCE = 0.08
 GOLD_MAT_QTY = (2, 3)
 
 
-def gold_bonus_pools() -> dict:
+def gold_bonus_pools(level: int = 9999) -> dict:
     """category -> item ids. The category is rolled first (a third each), so materials really do show up: there are far
     fewer Epic+ materials than potions, and a flat pick over every item would almost never give one."""
     from data_items import ALL
     out = {}
     for cat, rars in GOLD_BONUS_RARITIES.items():
-        ids = sorted(i for i, x in ALL.items() if x.get("category") == cat and x.get("rarity") in rars and not x.get("retired"))
+        ids = sorted(i for i, x in ALL.items() if x.get("category") == cat and x.get("rarity") in rars and not x.get("retired")
+                     and int(x.get("level_req", 1)) <= int(level))  # Nov 26: nothing the opener cannot use
         if ids:
             out[cat] = ids
     return out
@@ -88,6 +89,26 @@ async def roll_special(uid: int, dungeon: dict, rng=random):
     return iid
 
 
+async def roll_final_drop(uid: int, dungeon: dict, rng=random):
+    """Final stage of a full clear: one of THIS dungeon's own fixed drops, guaranteed (data_dungeon_drops.final_drops), up to
+    dg_final_day_cap times per dungeon per day. Returns (item id, quantity) or None."""
+    from data_dungeon_drops import FINAL_DAY_CAP, final_drops, final_qty
+    from data_items import ALL
+    st = await game_settings()
+    if not int(st.get("dg_special_on", 1)):
+        return None
+    pool = final_drops(dungeon.get("id", ""))
+    if not pool:
+        return None
+    if not await bump_counter(f"dgfin:{uid}:{dungeon.get('id')}:{day_id()}", 1, int(st.get("dg_final_day_cap", FINAL_DAY_CAP))):
+        return None
+    iid = rng.choice(pool)
+    qty = final_qty(dungeon.get("diff", "normal"), ALL[iid].get("category", ""))
+    await inv_add(uid, iid, qty, force=True)  # never lost to a full bag
+    log_event("dungeon_final", uid, f"دراپ پایان دانجن: {iid} x{qty}", item=iid, dungeon=dungeon.get("id"))
+    return iid, qty
+
+
 async def dp_balance(uid: int) -> int:
     ch = await get_char(uid)
     return int((ch or {}).get("dp", 0) or 0)
@@ -112,8 +133,9 @@ async def buy_box(uid: int, key: str, rng=random):
         return "limit", cap
     pity_n = int(st[f"dp_pity_{key}"])  # 0 = no pity
     streak = int((hit.get("box_pity") or {}).get(key, 0))
-    lo, hi = b["rar"]
-    idx = rng.choices((lo, hi), b["odds"])[0]
+    from data_dungeon_drops import clip_chest
+    lo, hi = clip_chest(*b["rar"], int(hit.get("level", 1)))  # Nov 26: a chest holds only colours the opener can use at his level
+    idx = rng.choices((lo, hi), b["odds"])[0] if hi > lo else lo
     pity = pity_n > 0 and streak + 1 >= pity_n and idx < hi
     if pity:
         idx = hi
@@ -133,7 +155,7 @@ async def buy_box(uid: int, key: str, rng=random):
             await inv_add(uid, relic, 1, force=True)
     bonus = []  # [(item id, quantity)]: only the gold chest
     if key == "gold":
-        pools = gold_bonus_pools()
+        pools = gold_bonus_pools(int(hit.get("level", 1)))
         if pools:
             cat = rng.choice(sorted(pools))
             pick = rng.choice(pools[cat])

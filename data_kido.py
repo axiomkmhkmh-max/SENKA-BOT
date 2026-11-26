@@ -147,7 +147,9 @@ def spell_cd(n: int, branch: str = "had") -> int:
     if branch != "had":
         return 0
     n = int(n)
-    return next(cd for lo, cd in HADO_CD_TIERS if n >= lo)
+    from data_balance import hado_small_cd  # Nov 26: filler spells come back quickly so a caster never just waits
+    small = hado_small_cd(n)
+    return small if small is not None else next(cd for lo, cd in HADO_CD_TIERS if n >= lo)
 
 
 def key(branch: str, n: int) -> str:

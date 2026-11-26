@@ -44,8 +44,9 @@ def newbie_xp_mult(level: int, st: dict = None) -> float:
 def max_hp(level: int, hakuda: float, mult: float = 1.0) -> int:
     """Nov 21: Hakuda gives HAKUDA_HP (60) HP a point (was 8): its effect on HP is x6. All of it is x HP_MULT so a
     fight lasts about 15-25 turns with the x2 damage (data_misc)."""
+    from data_balance import PLAYER_HP_K  # Nov 26: players have more HP; heals stay measured on the old pool (engine._hb / hpk)
     from data_misc import HAKUDA_HP, HP_MULT
-    return int((100 + level * 20 + hakuda * HAKUDA_HP) * mult * HP_MULT)
+    return int((100 + level * 20 + hakuda * HAKUDA_HP) * mult * HP_MULT * PLAYER_HP_K)
 
 
 def max_reiatsu(level: int, reiatsu: float) -> int:

@@ -72,7 +72,7 @@ GAME_DEFAULTS = {
     "market_hours": 72, "auction_snipe_seconds": 60, "auction_extend_seconds": 120,
     "gacha_cost": 1500, "gacha_pity_legendary": 50, "gacha_pity_rare": 10,
     "dp_daily_cap": 4000,  # dungeon points one player can earn per day (was a fixed 1500)
-    "dg_special_on": 1, "dg_special_day_cap": 6,  # dungeon-only special items: on/off, most drops per player per day
+    "dg_special_on": 1, "dg_special_day_cap": 6, "dg_final_day_cap": 2,  # dungeon-only special items: on/off, most drops per player per day
     "dp_pity_bronze": 6, "dp_pity_silver": 5, "dp_pity_gold": 10, "dp_chest_daily": 6,  # dungeon chests: this many in a row without a better item guarantees one (0 = off)
     "gacha_mythic_cap": 10,  # most Mythic results one player can get from summons, ever (0 = no limit)
     "guild_create_cost": 5000, "guild_min_level": 20, "squad_change_days": 7,

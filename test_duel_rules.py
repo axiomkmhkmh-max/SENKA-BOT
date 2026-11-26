@@ -24,7 +24,9 @@ class Rules(unittest.TestCase):
             st = E.new_state(strong, weak, random.Random(seed), pvp=True)
             ev = []
             E._deal(st, "a", 5.0, random.Random(seed), ev)
-            self.assertGreaterEqual(weak["hp"], weak["max_hp"] * (1 - DUEL["hit_cap"]) - 1)
+            import data_balance as BAL
+            # Nov 26: the cap follows power: the strongest possible attacker still takes at most CAP_MAX x hit_cap
+            self.assertGreaterEqual(weak["hp"], weak["max_hp"] * (1 - DUEL["hit_cap"] * BAL.CAP_MAX) - 1)
 
     def test_floor_follows_attacker_power_not_target_hp(self):
         weak, strong, tank = fighter("W", 40, 60, 5, 3000), fighter("S", 100, 4000, 500, 20000), fighter("T", 100, 100, 3000, 60000)

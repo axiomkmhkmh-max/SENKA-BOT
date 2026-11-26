@@ -85,7 +85,7 @@ class PickAndChant(unittest.TestCase):
 
 class Cooldowns(unittest.TestCase):
     def test_hado_cooldown_grows_with_the_number_and_bakudo_has_none(self):
-        self.assertEqual([KD.spell_cd(n) for n in (1, 39, 40, 69, 70, 89, 90, 99)], [3, 3, 5, 5, 7, 7, 10, 10])
+        self.assertEqual([KD.spell_cd(n) for n in (1, 39, 40, 69, 70, 89, 90, 99)], [2, 2, 5, 5, 7, 7, 10, 10])
         self.assertEqual({KD.spell_cd(n, "bak") for n in range(1, 100)}, {0})
         st = battle()
         cast(st, "kd:63")

@@ -52,7 +52,9 @@ class KyokaSuigetsuTests(unittest.TestCase):
         before = self.a["hp"]
         E.start_turn(self.state, random.Random(1))
         self.assertGreater(self.a["hp"], before)
-        self.assertEqual(self.a["hp"] - before, 1200)  # 10% Kyoka regeneration plus 2% natural turn regeneration
+        import data_balance as BAL
+        # Nov 26: Kyoka's Shikai heal is KYOKA_HEAL_SHARE of max HP (was 10%), plus 2% natural turn regeneration
+        self.assertEqual(self.a["hp"] - before, int(self.a["max_hp"] * BAL.KYOKA_HEAL_SHARE) + 200)
 
     def test_shikai_last_four_player_actions_then_cools_down(self):
         self.a["race"] = "shinigami"

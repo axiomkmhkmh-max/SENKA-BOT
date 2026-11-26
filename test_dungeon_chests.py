@@ -100,8 +100,20 @@ class ChestTests(unittest.TestCase):
         self.assertEqual(S.BOXES["silver"]["rar"], (2, 3))   # blue, purple
         self.assertEqual(S.BOXES["gold"]["rar"], (4, 5))     # gold, red
 
+    def test_low_level_chest_never_holds_gear_the_player_cannot_use(self):
+        from data_dungeon_drops import RARITY_LEVEL
+        for lvl in (1, 20, 49, 79):
+            for _ in range(50):
+                CHAR.clear()
+                CHAR["dp"], CHAR["level"] = S.BOXES["gold"]["cost"], lvl
+                DROPS.clear()
+                status, res = asyncio.run(S.buy_box(1, "gold", random.Random(lvl)))
+                self.assertEqual(status, "ok")
+                self.assertLessEqual(RARITY_LEVEL[DROPS[0]["idx"]], lvl, f"level {lvl} got colour {DROPS[0]['idx']}")
+
     def test_not_enough_dp_gives_nothing(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"] - 1
+        CHAR["level"] = 200  # Nov 26: chest colours follow the opener\'s level (data_dungeon_drops.clip_chest)
         status, res = self._buy("gold")
         self.assertEqual(status, "poor")
         self.assertEqual(CHAR["dp"], S.BOXES["gold"]["cost"] - 1)
@@ -113,6 +125,7 @@ class ChestTests(unittest.TestCase):
             for _ in range(200):
                 CHAR.clear()
                 CHAR["dp"] = b["cost"]
+                CHAR["level"] = 200  # Nov 26: chest colours follow the opener\'s level (data_dungeon_drops.clip_chest)
                 DROPS.clear()
                 status, res = asyncio.run(S.buy_box(1, key, rng))
                 self.assertEqual(status, "ok")
@@ -121,6 +134,7 @@ class ChestTests(unittest.TestCase):
 
     def test_pity_gives_the_higher_colour(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"]
+        CHAR["level"] = 200  # Nov 26: chest colours follow the opener\'s level (data_dungeon_drops.clip_chest)
         CHAR["box_pity"] = {"gold": 3}  # pity 4: this is the 4th in a row
         status, res = self._buy("gold", _Forced(0))
         self.assertTrue(res["pity"])
@@ -128,6 +142,7 @@ class ChestTests(unittest.TestCase):
 
     def test_pity_counts_up_after_a_lower_colour(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"]
+        CHAR["level"] = 200  # Nov 26: chest colours follow the opener\'s level (data_dungeon_drops.clip_chest)
         status, res = self._buy("gold", _Forced(0))
         self.assertFalse(res["pity"])
         self.assertEqual(DROPS[0]["idx"], 4)
@@ -135,6 +150,7 @@ class ChestTests(unittest.TestCase):
 
     def test_a_higher_colour_resets_pity(self):
         CHAR["dp"] = S.BOXES["gold"]["cost"]
+        CHAR["level"] = 200  # Nov 26: chest colours follow the opener\'s level (data_dungeon_drops.clip_chest)
         CHAR["box_pity"] = {"gold": 2}
         self._buy("gold", _Forced(1))
         self.assertEqual(SETS[-1], {"box_pity.gold": 0})
@@ -147,6 +163,7 @@ class ChestTests(unittest.TestCase):
             for _ in range(400):
                 CHAR.clear()
                 CHAR["dp"] = S.BOXES[key]["cost"]
+                CHAR["level"] = 200  # Nov 26: chest colours follow the opener\'s level (data_dungeon_drops.clip_chest)
                 ITEMS.clear()
                 status, res = asyncio.run(S.buy_box(1, key, rng))
                 if res["relic"]:
@@ -164,6 +181,7 @@ class ChestTests(unittest.TestCase):
 
     def test_daily_chest_limit_blocks_and_keeps_dp(self):  # Nov 23: dp_chest_daily (6) chests a day
         CHAR["dp"] = 10000
+        CHAR["level"] = 200  # Nov 26: chest colours follow the opener\'s level (data_dungeon_drops.clip_chest)
 
         async def _lim():
             return {**await _settings(), "dp_chest_daily": 6}

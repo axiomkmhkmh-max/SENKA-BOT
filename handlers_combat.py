@@ -480,6 +480,9 @@ async def _pve_result(ctx, doc, ev, o):
         lines.append(ctx.t("dg_done"))
         if o.get("dp"):
             lines.append(f"💠 دانجن پوینت: +{fnum(o['dp'], L)}" if L == "fa" else f"💠 Dungeon Points: +{fnum(o['dp'], L)}")
+        if o.get("final"):
+            fid, fq = o["final"]
+            lines.append(f"🏆 دراپ پایان دانجن: {nm(fid, L)} ×{fq}" if L == "fa" else f"🏆 Final-stage drop: {nm(fid, L)} x{fq}")
         if o.get("special"):
             lines.append(f"🎁 آیتم مخصوص دانجن: {nm(o['special'], L)}" if L == "fa" else f"🎁 Dungeon special item: {nm(o['special'], L)}")
     else:

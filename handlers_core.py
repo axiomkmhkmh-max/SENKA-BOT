@@ -30,6 +30,9 @@ import handlers_wheel  # noqa: F401  (Urahara's wheel: panel + animated spin)
 import handlers_skins  # noqa: F401  (skins: collection + equip)
 import handlers_inner  # noqa: F401  (Inner World: weekly scene panel + choices)
 import handlers_trade  # noqa: F401  (player trading: hub, shared view, group offers)
+import handlers_artswap  # noqa: F401  (artifact swap between two players)
+import handlers_wish  # noqa: F401  (forge mission: pick gear for your level, collect its materials)
+import handlers_catalog  # noqa: F401  (catalog / patch notes: item kinds, skins, dungeon drops, chests)
 import handlers_mentor  # noqa: F401  (master and apprentice panels)
 import handlers_respec  # noqa: F401  (stat reset and race change)
 import handlers_soul  # noqa: F401  (Nov 24 Soul Hub: inner duel, Urahara, patrol, Gikongan, Dangai, clash)
@@ -200,7 +203,7 @@ COMMANDS = {"home": "home", "profile": "profile", "explore": "explore", "battle"
             "pvptop": "pvptop", "leveltop": "leveltop", "consumables": "consumables", "mygear": "mygear",
             "aworld": "admin_world", "ausers": "admin_users", "asettings": "admin_settings", "announce": "admin_announce",
             "alog": "admin_log", "aadmins": "admin_admins",
-            "relic": "gear", "evolution": "evolution", "news": "chronicle", "land": "territory", "wanted": "bounty"}
+            "catalog": "catalog", "wishforge": "wish", "relic": "gear", "evolution": "evolution", "news": "chronicle", "land": "territory", "wanted": "bounty"}
 
 from data_races import LOCATIONS as _LOCS  # noqa: E402
 COMMANDS.update({"go_" + k: "go_" + k for k in _LOCS})  # /go_rukongai, /go_hueco_mundo ... (hidden from the menu)

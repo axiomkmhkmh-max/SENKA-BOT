@@ -37,6 +37,8 @@ RAW = {
     "help": ("hlp", "", ["راهنما", "کمک", "help", "guide", "how to play", "؟", "?"]),
     "boss": ("bossinfo", "", ["باس", "باس جهانی", "boss", "world boss"]),
     "admin": ("adm", "", ["مدیریت", "ادمین", "admin", "panel admin", "dashboard"]),
+    "wish": ("wsh", "", ["ماموریت ساخت", "ماموریت ساخت آیتم", "ساخت آیتم", "forge mission", "wish forge"]),
+    "catalog": ("cat", "", ["کاتالوگ", "پچ نوت", "پچ‌نوت", "catalog", "patch notes", "patchnotes"]),
     "skins": ("skn", "", ["اسکین", "اسکین ها", "اسکین‌ها", "لباس", "skin", "skins", "outfit", "outfits"]),
     "forge": ("frg", "", ["آهنگری", "فورج", "تقویت سلاح", "forge", "smith", "blacksmith", "upgrade weapon"]),
     "party": ("pty", "0", ["تیم", "پارتی", "همراهان", "party", "team", "companions"]),

@@ -41,6 +41,7 @@ async def skins_home(ctx, arg):
             rows.append([(("✅ " if sid == cur else "") + f"{SKINS[sid]['icon']} {_nm(ctx, SKINS[sid])}", "sks", sid) for sid in pair])
     if cur:
         rows.append([(T(ctx, "🧥 درآوردن اسکین", "🧥 Take off"), "sku", "")])
+    rows.append([(T(ctx, "📖 کاتالوگ اسکین‌ها", "📖 Skin catalog"), "catk", "")])
     rows.append(nav(ctx, ("whl", "")))
     return Out(_title() + "\n".join(lines), rows)
 

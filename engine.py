@@ -13,6 +13,7 @@ from data_weapons import BEATS
 from engine_range import (START_DIST, ZONE_MAX, MOVES, reach_for, can_move, apply_move, apply_retreat,
                           apply_knockback, zone_mult, SIDESTEP)
 import data_kido as KD
+import data_balance as BAL
 from data_bleachfx import (CERO_BREAK_AI, CERO_BREAK_PLAYER, CHANT_BAK, CHANT_HADO, CHANT_OPEN, GAUGE, RESOLVE,
                            RESURRECCION, RESURRECCION_RACES, SHUNPO_COUNTER, SIG)
 
@@ -47,7 +48,7 @@ BAKUDO_SHIELD = 3.0    # Bakudō barriers are three times as thick (Nov 21)
 
 def _hb(f) -> float:
     """The HP that repeating heals, shields, regen and DoT are measured on (max_hp / HP_MULT; HP_MULT is 1 now)."""
-    return f["max_hp"] / HP_MULT
+    return f["max_hp"] / HP_MULT / max(1.0, float(f.get("hpk", 1.0)))  # hpk: players' extra HP (data_balance.PLAYER_HP_K) must not inflate heals
 
 
 def in_side(state, side) -> bool:
@@ -64,6 +65,11 @@ def dodge_chance(state, side) -> float:
     other = "b" if side == "a" else "a"
     ha, hd = max(1.0, hoho_of(state, side)), max(1.0, hoho_of(state, other))
     return min(DODGE_CAP, max(DODGE_BASE, DODGE_BASE + DODGE_RATIO * (hd / ha - 1)))
+
+def power_rating(f) -> float:
+    """Level + average effective stat of a fighter (data_balance.rating). Used to scale the duel hit cap."""
+    return BAL.rating(f.get("level", 1), {k: soft_stat(f["stats"].get(k, 0)) for k in BAL.RATING_STATS})  # base stats: a form does not move the cap
+
 
 def new_fighter(name, level, stats, max_hp, max_re, weapon, armor=0, mods=None, kido=None,
                 race="human", ai=False, zmult=1.0, element=None, luck=0, sig=None, mv=None, gen=None, bt=None):
@@ -204,6 +210,9 @@ def _dmg_mult(att):
 
 def _take_mult(dfn):
     m = bred(dfn)  # Hierro, Total Rejection...
+    mit = float((dfn.get("mods") or {}).get("art_mitigate", 0.0))  # Nov 26: defensive artifacts (data_artifacts.ANIME_EXTRA "mitigate")
+    if mit > 0:
+        m *= 1.0 - min(0.12, mit)
     if has_fx(dfn, "shock"):
         m *= 1.15
     if dfn["guard"]:
@@ -397,6 +406,10 @@ def _deal(state, side, power, rng, ev, kind="atk", allow_procs=True, extra_pierc
     if tmp.get("ng") and dfn["guard"]:  # Cero Oculto: the Guard does not soften it
         tm /= 0.5
     dmg *= tm
+    opener = float((att.get("mods") or {}).get("art_opener", 0.0))  # Nov 26: the first real blow of a fight hits harder (short fights: no waiting on a burn tick)
+    if opener > 0 and kind not in ("counter", "echo", "dot", "reflect") and not _x(att).get("opener_used"):
+        _x(att)["opener_used"] = 1
+        dmg *= 1.0 + min(0.40, opener)
     # Shadow Monarch is part of the original hit, not a second unmitigated damage packet.
     # Keeping it here ensures boss caps, duel hit caps, shields, and mitigation all apply.
     shadow_echo = float(att.get("mods", {}).get("artifact_shadow_echo", 0.0))
@@ -490,7 +503,8 @@ def _apply(state, side, dmg, crit, rng, ev, kind, procs):
                 dmg = max(1, int(dmg * float(DUEL.get("opening_dmg", 1.0))))
         # the cap is measured on the SMALLER of the two HP pools: capping on the target's own HP meant the
         # tankier fighter lost more per blow (25% of 37K vs 25% of 10K), so high HP became a weakness
-        cap = max(1, int(duel_cap_hp(state) * DUEL["hit_cap"]))
+        scale = BAL.cap_scale(power_rating(att), power_rating(dfn))  # Nov 26: a stronger attacker hits harder, a weaker one softer
+        cap = max(1, int(duel_cap_hp(state) * DUEL["hit_cap"] * scale))
         left = state.get("cap_left")
         if left is not None and kind not in ("reflect", "dot"):
             # one ability press (Hollow Claw x3, Metralleta x6...) shares ONE hit_cap: multi-hit used to take 3x the cap
@@ -610,12 +624,20 @@ def _kcd(f) -> dict:
     return x["kcd"]
 
 
+def _kd_left(f, branch, n) -> int:
+    """Own turns left before this spell can be cast: its own cooldown, or the shared big-Hadō lock, whichever is longer."""
+    left = int(_kcd(f).get(KD.key(branch, n), 0))
+    if branch == "had" and int(n) >= BAL.BIG_FROM:
+        left = max(left, int(_kcd(f).get("hgrp", 0)))
+    return left
+
+
 def kido_castable(f, branch, n) -> bool:
     """Can this fighter cast spell n of the branch right now? Known, enough reiatsu (cost = share of max reiatsu), the spell
     is not cooling down, and from number 91 up the incantation must have been spoken. No level gate in the fight."""
     if n not in f["kido"][branch]:
         return False
-    if f["re"] < KD.cost(branch, n, f["max_re"]) or _kcd(f).get(KD.key(branch, n), 0) > 0:
+    if f["re"] < KD.cost(branch, n, f["max_re"]) or _kd_left(f, branch, n) > 0:  # Nov 26: one big Hadō starts a shared lock for the other big ones
         return False
     return not KD.needs_chant(n, branch) or bool(_x(f)["chant"])
 
@@ -625,7 +647,7 @@ def kido_cooling(f) -> list:
     out = []
     for branch in ("had", "bak"):
         for n in f["kido"][branch]:
-            left = int(_kcd(f).get(KD.key(branch, n), 0))
+            left = _kd_left(f, branch, n)
             if left > 0:
                 out.append((branch, n, left))
     return sorted(out, key=lambda r: -r[1])
@@ -646,7 +668,7 @@ def kido_chant_locked(f, branch) -> bool:
     """True when the fighter knows a spell of the branch that only waits for the incantation (91+, no chant spoken yet)."""
     if _x(f)["chant"]:
         return False
-    return any(KD.needs_chant(n, branch) and f["re"] >= KD.cost(branch, n, f["max_re"]) and _kcd(f).get(KD.key(branch, n), 0) <= 0
+    return any(KD.needs_chant(n, branch) and f["re"] >= KD.cost(branch, n, f["max_re"]) and _kd_left(f, branch, n) <= 0
                for n in f["kido"][branch])
 
 
@@ -658,7 +680,7 @@ def chant_wanted(f) -> bool:
         for n in f["kido"][branch]:
             if not KD.needs_chant(n, branch):
                 continue
-            if f["re"] >= KD.cost(branch, n, f["max_re"]) and _kcd(f).get(KD.key(branch, n), 0) <= 0:
+            if f["re"] >= KD.cost(branch, n, f["max_re"]) and _kd_left(f, branch, n) <= 0:
                 return True
     return False
 
@@ -1049,8 +1071,11 @@ def start_turn(state, rng):
         if fs["awake"] == 0:
             ev.append({"k": "unleash_end", "a": f["name"]})
     f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * TURN_RE_REGEN)))
+    regen_budget = int(f["max_hp"] * BAL.passive_regen_cap(bool(state.get("duel"))))  # Nov 26: natural + companion regen share one per-turn budget
     if 0 < f["hp"] < f["max_hp"] and not bhas(f, "noregen"):  # natural recovery every turn (tunable: TURN_HP_REGEN)
         h = max(1, int(_hb(f) * TURN_HP_REGEN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else 1.0) * (FJ_REGEN_K if f.get("fj") else 1.0)))
+        h = max(1, min(h, regen_budget))
+        regen_budget -= h
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})
         fs["nat_h"] = h
@@ -1065,12 +1090,12 @@ def start_turn(state, rng):
             ev.append({"k": "shadow_echo", "a": f["name"], "d": foe["name"], "n": echo})
             _check_end(state, ev)
     if f.get("blade") == "kyoka_suigetsu" and fs.get("kyoka_shikai_t", 0) > 0 and 0 < f["hp"] < f["max_hp"]:
-        heal = min(f["max_hp"] - f["hp"], max(1, int(f["max_hp"] * 0.10)))
+        heal = min(f["max_hp"] - f["hp"], max(1, int(f["max_hp"] * BAL.KYOKA_HEAL_SHARE)))
         f["hp"] += heal
         ev.append({"k": "heal", "a": f["name"], "n": heal})
     rg = f["mods"].get("regen", 0)
-    if rg and 0 < f["hp"] < f["max_hp"]:  # companion healing (pet role)
-        h = max(1, int(_hb(f) * rg))
+    if rg and 0 < f["hp"] < f["max_hp"] and regen_budget > 0:  # companion healing (pet role), inside the same per-turn budget
+        h = max(1, min(int(_hb(f) * rg), regen_budget))
         f["hp"] = min(f["max_hp"], f["hp"] + h)
         ev.append({"k": "heal", "a": f["name"], "n": h})
     for x in list(f["fx"]):
@@ -1418,6 +1443,14 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             else:
                 add_fx(foe, u["fx"], DOT_TURNS.get(u["fx"], 3))
                 ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": u["fx"]})
+        if u.get("shield") and f["hp"] > 0:  # Benihime's defence mode: a barrier and a mend
+            n = _shield_add(f, max(1, int(_hb(f) * float(u["shield"]))))
+            h = min(f["max_hp"] - f["hp"], int(_hb(f) * float(u.get("heal", 0.0))))
+            if h > 0:
+                f["hp"] += h
+                ev.append({"k": "heal", "a": f["name"], "n": h})
+            if n:
+                ev.append({"k": "gen", "a": f["name"], "skill": "guard", "n": n})
         if u.get("buff"):
             _x(f)["buff_t"], _x(f)["buff_m"] = int(u["buff"][0]) + 1, float(u["buff"][1])
     elif action == "gs":  # general skill: guard (shield), strike (a blow) or focus (a damage buff)
@@ -1466,6 +1499,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         f["re"] -= KD.cost("had", n, f["max_re"])
         if KD.spell_cd(n, "had"):
             _kcd(f)[KD.key("had", n)] = KD.spell_cd(n, "had")
+        if BAL.hado_group_cd(n):
+            _kcd(f)["hgrp"] = BAL.hado_group_cd(n)
         o = state["b" if side == "a" else "a"]
         amiss_h = bsum(f, "miss")  # Nov 25: Mind Distortion / Illusion make a Hadō go astray too (it used to ignore the debuff)
         if amiss_h > 0 and rng.random() < min(0.75, amiss_h):
@@ -1825,6 +1860,10 @@ def new_state(a, b, rng, pvp=False, duel_rules=None):
         x["dl_rel"] = 0
     if pvp:  # no free revive for everyone any more (bug: every duel kill came back at half HP); Konpaku lives only come from the charm / Yhwach's Eye
         a["lives"], b["lives"] = int(a.get("lives", 0) or 0), int(b.get("lives", 0) or 0)
+    for x in (a, b):  # Nov 26: artifacts that open the fight behind a barrier (data_artifacts "open_shield")
+        osh = float((x.get("mods") or {}).get("art_open_shield", 0.0))
+        if osh > 0:
+            _shield_add(x, x["max_hp"] * min(0.12, osh))
     for x, y in ((a, b), (b, a)):  # spiritual pressure
         if x["max_re"] >= 2 * y["max_re"]:
             add_fx(y, "fear", int(DUEL.get("pressure_fear", 1)) if duel else 3)

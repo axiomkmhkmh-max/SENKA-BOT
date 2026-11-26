@@ -22,6 +22,7 @@ async def _shop(ctx, note=""):
     body = (f"💠 <b>{'شاپ دانجن' if fa else 'Dungeon Shop'}</b>\n{'موجودی' if fa else 'Balance'}: {fnum(bal, L)} 💠\n\n"
             + "\n".join(lines) + "\n\n" + info + (("\n\n" + note) if note else ""))
     rows = [[(f"{b['icon']} {b['fa' if fa else 'en']} · {fnum(b['cost'], L)}", "dpb", k)] for k, b in BOXES.items()]
+    rows.append([("📖 کاتالوگ دانجن‌ها" if ctx.lang == "fa" else "📖 Dungeon catalog", "catd", "0")])
     rows.append(nav(ctx, ("dgn", "")))
     return Out(head(ctx, "ttl_dgn") + body, rows)
 

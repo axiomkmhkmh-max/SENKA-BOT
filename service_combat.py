@@ -173,9 +173,11 @@ async def build_player(ch: dict, name: str = None):
         mods["artifact_lifesteal"] = max(float(mods.get("artifact_lifesteal", 0.0)), float(ex.get("lifesteal", 0.0)))
         mods["artifact_shadow_echo"] = max(float(mods.get("artifact_shadow_echo", 0.0)), float(ex.get("echo", 0.0)))
         mods["pierce"] = mods.get("pierce", 0) + float(ex.get("pierce", 0.0))
-        for k in ("stun_p", "burn_p", "bleed_p", "thorns"):
+        for k in ("stun_p", "burn_p", "bleed_p", "thorns", "opener", "mitigate", "open_shield"):
             if ex.get(k):
                 mods["art_" + k] = float(ex[k])
+        if ex.get("turn_heal"):  # a steady heal per own turn; engine caps it with the natural regen (data_balance.PASSIVE_REGEN_CAP)
+            mods["regen"] = mods.get("regen", 0.0) + float(ex["turn_heal"])
         if ex.get("foresight"):
             mods["art_foresight"] = int(ex["foresight"])
         if ex.get("no_crit"):
@@ -240,6 +242,8 @@ async def build_player(ch: dict, name: str = None):
                             race=ch["race"], zmult=zmult, sig=sig_for(ch["race"]), mv=mv, gen=ch.get("gen_skill"),
                             bt=(__import__("data_zanpakuto").blade_technique(zstate.get("blade_id"))
                                 if released and zstate.get("blade_id") and zstate.get("shikai") else None))
+    from data_balance import PLAYER_HP_K
+    fighter["hpk"] = PLAYER_HP_K  # engine._hb: heals / shields / DoT keep the old pool size
     fighter["evo"] = {k: v for k, v in evb.items() if k not in ("dmg", "def", "hp", "kido", "crit", "pierce", "regen")}
     fighter["bu"] = (__import__("data_zanpakuto").blade_ultimate(zstate.get("blade_id"))
                      if released and zstate.get("blade_id") and zstate.get("shikai") else None)  # the blade's finisher
@@ -779,6 +783,8 @@ async def pve_settle(doc: dict):
             out["dp"] = await award_dp(uid, d)
             from service_dungeonshop import roll_special
             out["special"] = await roll_special(uid, d)  # dungeon-only item, small chance
+            from service_dungeonshop import roll_final_drop
+            out["final"] = await roll_final_drop(uid, d)  # this dungeon's own guaranteed final drop (Nov 26)
             from service_cores import on_dungeon_clear  # rare Soul Core, abyss/legendary clears only
             await on_dungeon_clear(uid, d.get("diff", "normal"), d.get("id", ""))
             from data_races import unlocks_visored
