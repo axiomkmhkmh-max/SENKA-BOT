@@ -107,6 +107,20 @@ def release_call(blade_id, lang, stage="shikai"):
     return c[0 if lang == "fa" else 1] if c else None
 
 
+# ---- Blade abilities in a fight (Nov 27) ----
+# The technique / finisher buttons used to need the PROFILE Shikai (level 20 + bond 50 unlocked in the Zanpakutō panel), while the
+# in-fight 🗡 Shikai button opens at level 10 with no such unlock: a player who pressed Shikai in a fight and chose a blade still saw
+# no ability buttons. Now a chosen blade is enough (the in-fight Shikai gate in engine.gate_ok is unchanged). Set True to restore the old rule.
+ABILITIES_NEED_PROFILE_SHIKAI = False
+
+
+def abilities_open(zstate: dict) -> bool:
+    """Does this Zanpakutō state put the blade's technique and finisher on the fighter?"""
+    if not (zstate or {}).get("blade_id"):
+        return False
+    return bool(zstate.get("shikai")) if ABILITIES_NEED_PROFILE_SHIKAI else True
+
+
 # ---- Bankai activation scenes (Nov 27) ----
 # What the screen says when a Bankai is unleashed: the shout «Bankai!!! <name>» and a short epic line. {a} = the wielder,
 # {d} = the opponent. Every blade has its own line; a blade without one gets a generic scene (BANKAI_GENERIC).

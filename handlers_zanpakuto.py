@@ -120,6 +120,7 @@ async def zanpakuto_panel(ctx, arg):
               left=left, daily=int(gs["znp_train_daily"]), gain=int(gs["znp_train_gain"]), cost=int(gs["znp_train_energy"]))
     body += "\n" + _pressure(z["mastery"], ctx.lang)
     rows = [[(_t(ctx.lang, "b_train"), "ztrn", "")]]
+    rows.append([("📖 توانایی‌های تیغه" if ctx.lang == "fa" else "📖 Blade abilities", "znpa", "")])  # Nov 27: the blade's technique, finisher and Bankai
     if reachable_blades(ch["level"]):  # the blade is chosen here, not by the weapon in hand
         rows.append([("🗡 تغییر تیغه" if ctx.lang == "fa" else "🗡 Choose blade", "znpb", "")])
     if not z.get("shikai") and lv >= n1[0] and bond >= n1[1]:
@@ -270,3 +271,97 @@ async def zanpakuto_release(ctx, arg):
     out = await zanpakuto_panel(ctx, "")
     out.text = "🗡 <i>" + _chant(ch, z, ctx.lang, stage) + "</i>\n" + _t(ctx.lang, key, f=name[0 if ctx.lang == "fa" else 1]) + "\n" + out.text
     return out
+
+
+def _pct(v):
+    return f"{round(float(v) * 100)}%"
+
+
+def _tier_str(b, lang):
+    return tier_label(b, lang)
+
+
+@action("znpa")
+async def blade_abilities(ctx, arg):
+    """Nov 27: the abilities panel of a blade: technique, finisher, Bankai finisher, bonuses and how to use them in a fight.
+    arg = blade id (default: the chosen blade). Buttons let the player look at any blade they can reach."""
+    from data_zanpakuto import BLADE_STYLE, BLADE_TECH_COST, blade_technique, blade_ultimate, bankai_shout
+    ch, z = await _state(ctx.uid)
+    if not ch:
+        return Out(ctx.t("not_registered"), [nav(ctx)])
+    fa = ctx.lang == "fa"
+    reach = reachable_blades(ch["level"])
+    bid = arg if arg in BLADE_STAGES else z.get("blade_id")
+    if bid not in BLADE_STAGES:
+        text = ("📖 هنوز تیغه‌ای انتخاب نکرده‌ای. یکی را از لیست انتخاب کن تا توانایی‌هایش را ببینی." if fa
+                else "📖 You have not chosen a blade yet. Pick one below to see its abilities.")
+        rows = [[(f"{_tier_str(b, ctx.lang)} · {BLADE_STAGES[b]['shikai'][0 if fa else 1]}", "znpa", b)] for b in reach]
+        rows.append(nav(ctx, ("znp", "")))
+        return Out(text, rows)
+    i = 0 if fa else 1
+    st = BLADE_STAGES[bid]
+    name = st["shikai"][i]
+    bk_name = (st.get("bankai") or st["shikai"])[i]
+    lines = [f"📖 <b>{name}</b> · {_tier_str(bid, ctx.lang)}", SEP]
+    sty = BLADE_STYLE.get(bid, {})
+    bonus = []
+    if sty.get("dmg"): bonus.append((f"آسیب ×{sty['dmg']}" if fa else f"damage x{sty['dmg']}"))
+    if sty.get("def"): bonus.append((f"دفاع ×{sty['def']}" if fa else f"defence x{sty['def']}"))
+    if sty.get("kido"): bonus.append((f"کیدو ×{sty['kido']}" if fa else f"kidō x{sty['kido']}"))
+    if sty.get("crit"): bonus.append((f"+{_pct(sty['crit'])} کریت" if fa else f"+{_pct(sty['crit'])} crit"))
+    lines.append(("🔧 سبک: " if fa else "🔧 Style: ") + (" · ".join(bonus) if bonus else "—"))
+    lines.append((f"🔥 شیکای: +{_pct(0.10 + st.get('shikai_bonus', 0))} · 💥 بانکای: +{_pct(0.12 + st.get('bankai_bonus', 0))} (+ مهارت)" if fa
+                  else f"🔥 Shikai: +{_pct(0.10 + st.get('shikai_bonus', 0))} · 💥 Bankai: +{_pct(0.12 + st.get('bankai_bonus', 0))} (+ Mastery)"))
+    lines.append("")
+    if bid == "kyoka_suigetsu":
+        lines.append("🌫️ کیوکا سویگتسو کیت مخصوص خودش را دارد: ۴ توانایی توهمی، و بعد از شیکای ۵ توانایی (از جمله «کانزن سایمین»)." if fa
+                     else "🌫️ Kyōka Suigetsu has its own kit: 4 illusion abilities, and 5 after Shikai (including Kanzen Saimin).")
+    else:
+        t = blade_technique(bid)
+        if t:
+            cost = t.get("cost", BLADE_TECH_COST["cost"])
+            extra = []
+            if t.get("pierce"): extra.append((f"{_pct(t['pierce'])} نفوذ" if fa else f"{_pct(t['pierce'])} pierce"))
+            if t.get("bleed"): extra.append("خون‌ریزی" if fa else "bleed")
+            if t.get("twice"): extra.append("دو ضربه" if fa else "two cuts")
+            if t.get("bk_mult"): extra.append((f"در بانکای ×{t['bk_mult']}" if fa else f"x{t['bk_mult']} in Bankai"))
+            lines.append(f"🗡 <b>{t['fa' if fa else 'en']}</b> — " + ((f"ضرب ×{t['mult']}" if fa else f"power x{t['mult']}")
+                         + ((" · " + " · ".join(extra)) if extra else "")
+                         + (f" · هزینه {_pct(cost)} ریاتسو · کول‌داون {t['cd']}" if fa else f" · cost {_pct(cost)} reiatsu · cooldown {t['cd']}")))
+        u = blade_ultimate(bid)
+        if u:
+            def _ult(x):
+                ex = []
+                if x.get("pierce"): ex.append((f"{_pct(x['pierce'])} نفوذ" if fa else f"{_pct(x['pierce'])} pierce"))
+                fx = {"burn": ("سوختگی", "burn"), "bleed": ("خون‌ریزی", "bleed"), "weaken": ("تضعیف", "weaken"), "skip": ("یخ‌زدگی/از دست دادن نوبت", "freeze / lost turn")}.get(x.get("fx"))
+                if fx: ex.append(fx[i])
+                if x.get("shield"): ex.append((f"سپر {_pct(x['shield'])}" if fa else f"{_pct(x['shield'])} barrier"))
+                if x.get("heal"): ex.append((f"ترمیم {_pct(x['heal'])}" if fa else f"{_pct(x['heal'])} heal"))
+                if x.get("cleanse"): ex.append("پاک‌سازی زخم‌ها" if fa else "cleanses wounds")
+                hits = f" × {x['hits']}" if int(x.get("hits", 1)) > 1 else ""
+                return ((f"ضرب ×{x['mult']}{hits}" if fa else f"power x{x['mult']}{hits}") + ((" · " + " · ".join(ex)) if ex else "")
+                        + (f" · هزینه {_pct(x['cost'])} ریاتسو · کول‌داون {x['cd']}" if fa else f" · cost {_pct(x['cost'])} reiatsu · cooldown {x['cd']}"))
+            lines.append(f"👑 <b>{u['fa' if fa else 'en']}</b> — " + _ult(u))
+            if u.get("bk"):
+                bk = {**u, **u["bk"]}
+                lines.append(f"💥 {'در بانکای' if fa else 'In Bankai'}: <b>{bk['fa' if fa else 'en']}</b> — " + _ult(bk) + (" (+۳۵٪ آسیب بانکای)" if fa else " (+35% Bankai damage)"))
+            else:
+                lines.append("💥 " + ("در بانکای ضربه‌ی نهایی ۳۵٪ قوی‌تر می‌خورد." if fa else "In Bankai the finisher hits 35% harder."))
+    lines.append("")
+    lines.append(f"🗣 {'ورد بانکای' if fa else 'Bankai call'}: «{bankai_shout(bid, ctx.lang)}»")
+    lines.append("")
+    lines.append(("ℹ️ در نبرد اول دکمه‌ی 🗡 شیکای را بزن؛ بعد دکمه‌ی تکنیک و ضربه‌ی نهایی ظاهر می‌شوند. بانکای با پر شدن روحیه‌ی جنگ فعال می‌شود (دکمه‌ی 👑 یا تایپ «بانکای»)." if fa
+                  else "ℹ️ In a fight press 🗡 Shikai first; the technique and finisher buttons then appear. Bankai opens when the spirit gauge is full (the 👑 button or type «Bankai»)."))
+    rows = []
+    if bid != z.get("blade_id") and blade_valid(bid, ch["level"], z.get("owned")):
+        rows.append([("✅ انتخاب این تیغه" if fa else "✅ Choose this blade", "znpc", bid)])
+    others = [b for b in reach if b != bid]
+    pair = []
+    for b in others:
+        pair.append((BLADE_STAGES[b]["shikai"][i][:20], "znpa", b))
+        if len(pair) == 2:
+            rows.append(pair); pair = []
+    if pair:
+        rows.append(pair)
+    rows.append(nav(ctx, ("znp", "")))
+    return Out("\n".join(lines), rows)

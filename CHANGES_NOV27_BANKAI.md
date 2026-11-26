@@ -13,3 +13,10 @@ finisher 6.2 -> in Bankai "Zanka no Tachi: Absolute Ash" (8.2, 50% pierce, burn,
 
 Files: data_zanpakuto.py, engine.py (unleash event carries `bl` + `d`), render.py, handlers_zanpakuto.py, handlers_viral.py,
 handlers_combat.py, test_bankai_scene.py (new).
+
+**Blade abilities panel** (`znpa`, button «📖 توانایی‌های تیغه» on the Zanpakutō panel): shows the chosen blade's technique, finisher,
+its Bankai finisher, bonuses, the Bankai call and how to unlock the buttons in a fight; buttons open any reachable blade and choose it.
+
+**Bug fix: blade ability buttons never appeared** for anyone who had not unlocked Shikai in the Zanpakutō panel (level 20 + bond 50), even though the
+in-fight 🗡 Shikai button opens at level 10. `service_combat.build_player` now gives the technique / finisher to any chosen blade
+(`data_zanpakuto.abilities_open`; flip `ABILITIES_NEED_PROFILE_SHIKAI` to True for the old rule). The in-fight Shikai gate is unchanged.

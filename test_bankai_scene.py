@@ -42,3 +42,10 @@ class MythicBlades(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AbilitiesOpen(unittest.TestCase):
+    def test_chosen_blade_opens_abilities_without_profile_shikai(self):
+        self.assertTrue(Z.abilities_open({"blade_id": "zanka_no_tachi"}))
+        self.assertFalse(Z.abilities_open({}))
+        self.assertFalse(Z.abilities_open({"shikai": True}))  # no blade chosen: nothing to fire
