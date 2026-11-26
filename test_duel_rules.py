@@ -261,3 +261,36 @@ class ControlFollowsPower(unittest.TestCase):
         finally:
             E._ACTOR["f"] = E._ACTOR["rng"] = None
         self.assertTrue(E.has_fx(b, "skip"))
+
+
+class HadoBand(unittest.TestCase):
+    """Duel bug (Nov 26): Hadō 2K vs sword 12K for a low-Kidō caster, 5x the sword for a high-Kidō one. A Hadō now sits
+    in a band of the caster's own reference blow, so Kidō and sword builds fight on equal terms."""
+
+    def _hado(self, kido, zan, chant=False, seed=3):
+        import copy
+        a = fighter("A", 300, zan, 400, 40000); a["stats"]["kido"] = kido; a["kido"]["had"] = [31]
+        b = fighter("B", 300, 800, 400, 40000)
+        st = E.new_state(a, b, random.Random(seed), pvp=True)
+        st["dist"], st["cur"], st["turn"] = 0, "a", 5
+        a["shield"] = b["shield"] = 0
+        E._x(a)["chant"] = 1 if chant else 0
+        ref = E._atk_reference(st, "a") * (E.CHANT_HADO if chant else 1.0)
+        E.do_action(st, "kd", random.Random(seed))
+        return b["max_hp"] - b["hp"], ref
+
+    def test_low_kido_hado_not_a_floor_blow(self):
+        dmg, ref = self._hado(kido=5, zan=1500)
+        self.assertGreaterEqual(dmg, int(ref * DUEL["hado_lo"]) - 1)
+
+    def test_high_kido_hado_not_five_times_a_sword(self):
+        dmg, ref = self._hado(kido=20000, zan=300)
+        self.assertLessEqual(dmg, int(ref * DUEL["hado_hi"]) + 1)
+
+    def test_band_off_outside_duels(self):
+        a, b = fighter("A", 300, 300, 400, 40000), fighter("B", 300, 800, 400, 40000)
+        a["stats"]["kido"] = 20000; a["kido"]["had"] = [31]
+        st = E.new_state(a, b, random.Random(3), pvp=False)
+        st["dist"], st["cur"] = 0, "a"
+        E.do_action(st, "kd", random.Random(3))
+        self.assertGreater(b["max_hp"] - b["hp"], 0)

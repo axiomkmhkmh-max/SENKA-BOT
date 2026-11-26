@@ -53,6 +53,9 @@ DUEL = {
     "turn_seconds": 300,   # every duel turn lasts 5 minutes (used instead of the live pvp_turn_seconds setting, which stored 30 s)
     "afk_limit": 2,        # first missed turn = automatic Guard (shield), the second missed turn in a row = the duel is lost
     # ---- Bakudo in duels (Nov 25): no immortal shield-spammers ----
+    # ---- Hadō band (Nov 26): stats decide, the spell type does not (duel bug: Hadō 2K vs sword 12K, or the reverse) ----
+    "hado_lo": 1.2,        # a Hadō hits for at least this many of the caster's OWN reference blows (a plain blow without crit, so ~0.9 of a real average blow) ...
+    "hado_hi": 2.4,        # ... and at most this many (~1.8 real blows; no more 5x sword Hadō): a high Kidō / high spell sits at the top of the band, a low one at the bottom
     "bak_hit_share": 0.9,  # a Bakudo barrier is at most this share of one ordinary blow of the foe on the caster
                            # (10% thinner than the hit it answers: 2000 incoming -> at most 1800 barrier)
 }

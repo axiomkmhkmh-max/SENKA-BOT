@@ -1539,6 +1539,9 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
                 dmg = max(dmg, int(_atk_reference(state, side) * HADO_FLOOR * (CHANT_HADO if chanted else 1.0)))
             if not o.get("wild"):  # one Hadō may never delete more than this share of a player-like foe (the 57K one-shot)
                 dmg = min(dmg, max(1, int(o["max_hp"] * HADO_HIT_CAP)))
+            if f.get("duel") and o.get("duel"):  # duel band: a Hadō is worth lo..hi plain attacks of its caster (chant x CHANT_HADO on top),
+                ref = _atk_reference(state, side) * (CHANT_HADO if chanted else 1.0)  # so Kidō and sword builds fight on equal terms
+                dmg = int(max(ref * DUEL["hado_lo"], min(dmg, ref * DUEL["hado_hi"])))
             _apply(state, side, dmg, False, rng, ev, "hado", False)
             ev[-1]["chant"] = chanted
             ev[-1]["num"] = n
