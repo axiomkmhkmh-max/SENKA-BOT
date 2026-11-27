@@ -93,6 +93,7 @@ async def wheel_info(uid: int, wid: str) -> dict:
         "done": done,
         "next_cost": spin_cost(wid, done + 1),
         "free_left": max(0, int(st["wheel_free_daily"]) - used_free),
+        "free_daily": int(st["wheel_free_daily"]),
         "leg": int(p.get("leg", 0)), "myth": int(p.get("myth", 0)),
         "leg_at": int(st["pity_leg"]), "myth_at": int(st["pity_myth"]),
     }

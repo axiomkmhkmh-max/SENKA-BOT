@@ -125,10 +125,11 @@ class Pity(unittest.TestCase):
 
 class ItemWheels(unittest.TestCase):
     def test_item_wheels_exist_and_have_items_in_every_paying_tier(self):
-        import sys, types
+        from _stubs import import_with_stubs  # service_extras pulls in pymongo / motor: stub them only when they are not installed
         from data_wheels import WHEEL_ITEM_CAT, WHEELS
         from data_items import ALL
-        from service_extras import BY_CAT, RARITIES
+        _se = import_with_stubs("service_extras")
+        BY_CAT, RARITIES = _se.BY_CAT, _se.RARITIES
         for wid, cat in WHEEL_ITEM_CAT.items():
             self.assertIn(wid, WHEELS)
             pool = [i for r in RARITIES for i in BY_CAT.get(cat, {}).get(r, [])]

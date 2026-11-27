@@ -12,6 +12,7 @@ async def _noop(*a, **k):
 
 _STUBS = {
     "pymongo": {"ReturnDocument": types.SimpleNamespace(AFTER=1, BEFORE=0)},
+    "pymongo.errors": {"DuplicateKeyError": type("DuplicateKeyError", (Exception,), {})},  # service_extras imports it
     "database": {"col": lambda n: None, "game_settings": _noop, "try_cooldown": _noop, "bump_counter": _noop, "counter_get": _noop},
     "service_log": {"log_event": _noop},
     "service_player": {"add_coins": _noop, "add_xp": _noop, "bump_quest": _noop, "get_char": _noop,
@@ -32,6 +33,8 @@ def import_with_stubs(name: str):
         except ImportError:
             m = types.ModuleType(mod_name)
             m.__dict__.update(attrs)
+            if mod_name in ("service_player", "database", "service_log"):  # any other name a service imports from them is a no-op coroutine
+                m.__getattr__ = lambda name: _noop if not name.startswith("__") else (_ for _ in ()).throw(AttributeError(name))
             sys.modules[mod_name] = m
             added.append(mod_name)
     try:

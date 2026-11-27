@@ -134,7 +134,8 @@ GAME_DEFAULTS = {
     "dispatch_slots": 3, "dispatch_k": 0.6, "dispatch_time_k": 1.0, "dispatch_energy": 15,
     "wheel_cost": 800, "wheel_extra_daily": 3, "inner_weekly": 3,
     # ---- 100 wheels (Soul Core) ----------------------------------------------------------------
-    "wheel2_enabled": True, "wheel_free_daily": 3, "pity_leg": 60, "pity_myth": 250,
+    "wheel2_enabled": True, "wheel_free_daily": 2,  # Nov 27: 2 free spins a day (shared by all wheels)
+    "pity_leg": 60, "pity_myth": 250,
     "core_quest_chance": 0.03, "core_dungeon_chance": 0.03, "core_day_cap": 1,
     "core_new_day_cap": 1, "core_new_dungeon_k": 1.5, "core_event_chance": 0.05,  # Nov 22: cores from the six new dungeons and event rewards (own daily cap)
     "skin_chance_epic": 0.05, "skin_chance_leg": 0.20, "skin_chance_myth": 0.40, "skin_chance_legacy": 0.70,  # a big wheel result may also carry a skin

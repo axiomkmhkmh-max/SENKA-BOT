@@ -102,7 +102,7 @@ async def wheel_page(ctx, arg):
         f"🔮 {T(ctx, 'هسته‌ی روح تو', 'Your Soul Cores')}: <b>{fnum(info['cores'], L)}</b>",
         f"🎡 {T(ctx, 'چرخش‌های تو روی این گردونه', 'Your spins on this wheel')}: <b>{fnum(info['done'], L)}</b>",
         f"💸 {T(ctx, 'قیمت چرخش بعدی', 'Next spin costs')}: <b>{fnum(info['next_cost'], L)}</b> 🔮",
-        f"🎁 {T(ctx, 'چرخش رایگان امروز', 'Free spin today')}: {'✅' if info['free_left'] else '❌'}",
+        f"🎁 {T(ctx, 'چرخش رایگان امروز', 'Free spins today')}: {'✅' if info['free_left'] else '❌'} ({fnum(info['free_left'], L)}/{fnum(info['free_daily'], L)})",
         "",
         f"🟧 {T(ctx, 'ضمانت Legendary', 'Legendary pity')}: {info['leg']}/{info['leg_at']}",
         f"🟥 {T(ctx, 'ضمانت Mythic', 'Mythic pity')}: {info['myth']}/{info['myth_at']}",

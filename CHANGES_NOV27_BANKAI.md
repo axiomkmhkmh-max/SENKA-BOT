@@ -36,3 +36,9 @@ Files: data_zanpakuto.py, engine.py (`b2` action, `_blade_fx`), service_combat.p
 It vacates the orb (`hogyoku.main.holder = None`; the document is kept so `hogyoku_state` does not give it to the top Espada again),
 clears the `hogyoku` flag on every character, frees every Hōgyoku Shard relic (`artifact_free("art_hogyoku")`) and closes open Hōgyoku duels.
 Nobody is chased on the wanted list until you `/give_hogyoku` it to someone. Run it once from the admin account.
+
+**Wheels: 2 free spins a day** (`config.GAME_DEFAULTS["wheel_free_daily"]` 3 -> 2, shared by all the themed wheels). The wheel page shows «n/2».
+If you ever changed it from the admin panel (`wheel_free_daily`), the saved value in MongoDB (`settings.game`) overrides this default.
+Urahara's wheel (`wheel`: 1 free + `wheel_extra_daily` paid spins) is unchanged.
+
+**Test fix**: `test_wheels` imported service_extras (needs pymongo) and failed wherever the Mongo libs are missing. It now imports through `_stubs.import_with_stubs`; `_stubs.py` got a `pymongo.errors` stub and no-op fallbacks for names imported from the stubbed service_player / database / service_log.
