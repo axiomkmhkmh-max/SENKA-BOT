@@ -393,6 +393,39 @@ def blade_b2(blade_id: str):
 
 
 
+# ---- Third and fourth simple abilities (Nov 27, round 4): Yamamoto (Ryūjin Jakka) and Urahara (Benihime) ----
+# Same shape as the second ability (guard-style shield / heal, a blow with mult / pierce / fx, a damage buff, cleanse): button 🔥/🛠 in
+# Shikai, 💥 with the Bankai name once the Bankai is open. The Bankai itself is the ordinary one: only names and numbers change.
+BLADE_EXTRA = {
+    "zanka_no_tachi": {
+        "b3": {"fa": "جوکاکو انجو: دیوار آتش", "en": "Jōkaku Enjō: Wall of Flame", "cost": 0.12, "cd": 5,
+               "shield": 0.28, "mult": 0.9, "fx": "burn",
+               "bk": {"fa": "زانجیتسو گوکوی: حرارت مطلق", "en": "Zanjitsu Gokui: Absolute Heat", "shield": 0.45, "heal": 0.08, "mult": 1.6, "fx": ["burn", "weaken"]}},
+        "b4": {"fa": "گوکا: انفجار آتشین", "en": "Gōka: Great Blast", "cost": 0.15, "cd": 5,
+               "mult": 2.8, "pierce": 0.20, "fx": "weaken",
+               "bk": {"fa": "کاکا جومانوکوشی: ارتش خاکستر", "en": "Kaka Jūmanokushi: Army of Ash", "mult": 4.4, "pierce": 0.40, "fx": ["weaken", "burn"]}},
+    },
+    "benihime": {
+        "b3": {"fa": "شیباری: زندان خون", "en": "Shibari: Blood Prison", "cost": 0.12, "cd": 5,
+               "mult": 1.3, "fx": "skip", "skip_p": 0.30,
+               "bk": {"fa": "تجزیه‌ی سرخ", "en": "Crimson Deconstruction", "mult": 3.0, "pierce": 0.25, "fx": ["weaken", "skip"], "skip_p": 0.45}},
+        "b4": {"fa": "تسوپانه: برش انرژی", "en": "Tsuppane: Energy Dissection", "cost": 0.12, "cd": 5,
+               "heal": 0.10, "buff": (2, 1.20),
+               "bk": {"fa": "بازسازی کامل بدن", "en": "Perfect Body Modification", "heal": 0.18, "buff": (3, 1.45), "cleanse": True}},
+    },
+}
+EXTRA_SLOTS = ("b3", "b4")
+
+
+def blade_extra(blade_id: str, slot: str):
+    """Third / fourth simple ability of a blade (slot 'b3' | 'b4') or None. Same shape as blade_b2."""
+    ent = (BLADE_EXTRA.get(blade_id) or {}).get(slot)
+    if not ent:
+        return None
+    bk = dict(ent["bk"])
+    return {**{k: v for k, v in ent.items() if k != "bk"}, "bk": bk}
+
+
 
 # ---- Blade ultimates: every blade's finishing technique (after Shikai), one per blade, own cost / cooldown. ----
 # mult: power of the blow (x the ability formula), hits: number of cuts, pierce: share of armour ignored,

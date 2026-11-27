@@ -24,7 +24,7 @@ TECH_SLOTS = ("t1", "t2", "t3")
 ABILITY_STAT = {"shinigami": "kido", "quincy": "reiatsu", "visored": "reiatsu", "human": "reiatsu",
                 "arrancar": "hoho", "hollow": "hakuda", "fullbringer": "weapon"}
 ABILITY_SHARE = 0.70
-HEAVY_REIATSU = 0.50
+HEAVY_REIATSU = 0.0  # Nov 27 round 4: plain AND heavy strikes are pure Zanjutsu (heavy is just x1.6)
 FULLBRING_WEAPON = 1.8  # Nov 21: was 2.0 (the weapon carries Fullbringer abilities)
 FULLBRING_LOW = (0.15, 40)  # +15% ability power at level 1, fading to 0 by level 40 (a low-level Fullbring is weak)
 STAT_FA = {"kido": "کیدو", "reiatsu": "ریاتسو", "hoho": "هوهو", "hakuda": "هاکودا", "zanjutsu": "زنجوتسو", "weapon": "قدرت سلاح"}

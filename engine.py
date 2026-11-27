@@ -117,7 +117,7 @@ def _new_x():
             "stun_im": 0,
             # Kyōka Suigetsu: separate cooldowns and short-lived control effects.
             "ks_cd": {}, "ks_mirror": 0, "ks_dom": 0, "ks_dodge": 0, "ks_def_down": 0, "ks_decoy": 0, "hog_stage": 0,
-            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0, "bu_cd": 0, "b2_cd": 0}
+            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0, "bu_cd": 0, "b2_cd": 0, "b3_cd": 0, "b4_cd": 0}
 
 
 def _x(f):
@@ -874,10 +874,9 @@ def can(f, action, state=None):
             if t["spec"].get("gather"):
                 return _x(f)["slash"] > 0 and ab_can(state, f, "gt")
             return ab_can(state, f, "gt")
-        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "b2", "bu", "gs", "ch") and bhas(f, "seal"):
+        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "b2", "b3", "b4", "bu", "gs", "ch") and bhas(f, "seal"):
             return False
-        if action in ("bt", "b2") and not gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"):
-            return False  # the blade's own technique comes with Shikai
+        # Nov 27 round 4: the blade's simple abilities (bt / b2 / b3 / b4) no longer wait for the in-fight Shikai button: like Kyōka's, a chosen blade has them from the first turn
     if action in ("sk", "if"):
         return False
     if action == "hvy":
@@ -915,8 +914,8 @@ def can(f, action, state=None):
                 and gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"))
     if action == "bt":  # the blade's own technique (after Shikai): its own cost and cooldown
         return bool(f.get("bt")) and _x(f)["tcd"] <= 0 and f["re"] >= f["max_re"] * f["bt"]["cost"]
-    if action == "b2":  # the blade's second simple ability (after Shikai); in Bankai it turns into its deadlier form
-        return bool(f.get("b2")) and _x(f).get("b2_cd", 0) <= 0 and f["re"] >= f["max_re"] * f["b2"]["cost"]
+    if action in ("b2", "b3", "b4"):  # the blade's 2nd / 3rd / 4th simple ability (after Shikai); in Bankai its deadlier form
+        return bool(f.get(action)) and _x(f).get(action + "_cd", 0) <= 0 and f["re"] >= f["max_re"] * f[action]["cost"]
     if action == "gs":  # general skill chosen in the profile: any race, own cost and cooldown
         spec = GENERAL_SKILLS.get(f.get("gen"))
         return bool(spec) and _x(f)["gcd"] <= 0 and f["re"] >= f["max_re"] * spec["cost"]
@@ -1043,8 +1042,9 @@ def start_turn(state, rng):
         fs["kyoka_shikai_cd"] -= 1
     if fs.get("bu_cd", 0) > 0:
         fs["bu_cd"] -= 1
-    if fs.get("b2_cd", 0) > 0:
-        fs["b2_cd"] -= 1
+    for _k in ("b2_cd", "b3_cd", "b4_cd"):
+        if fs.get(_k, 0) > 0:
+            fs[_k] -= 1
     for key in list((fs.get("ks_cd") or {})):
         fs["ks_cd"][key] = max(0, int(fs["ks_cd"][key]) - 1)
         if fs["ks_cd"][key] <= 0:
@@ -1096,7 +1096,8 @@ def start_turn(state, rng):
         if fs["awake"] == 0:
             ev.append({"k": "unleash_end", "a": f["name"]})
     f["re"] = min(f["max_re"], f["re"] + max(3, int(f["max_re"] * TURN_RE_REGEN)))
-    regen_budget = int(f["max_hp"] * BAL.passive_regen_cap(bool(state.get("duel"))))  # Nov 26: natural + companion regen share one per-turn budget
+    _rg_mod = float(f["mods"].get("regen", 0) or 0)  # Nov 27 round 4: a stated regen % is honoured (own ceiling) instead of being squeezed into the flat 5-6% cap
+    regen_budget = int(f["max_hp"] * max(BAL.passive_regen_cap(bool(state.get("duel"))), min(_rg_mod, BAL.REGEN_MOD_CAP_DUEL if state.get("duel") else BAL.REGEN_MOD_CAP)))  # Nov 26: natural + companion regen share one per-turn budget
     if 0 < f["hp"] < f["max_hp"] and not bhas(f, "noregen"):  # natural recovery every turn (tunable: TURN_HP_REGEN)
         h = max(1, int(_hb(f) * TURN_HP_REGEN * (BOSS_REGEN_SHARE if f.get("foe") in BOSS_FOES else PVE_REGEN_SHARE if f.get("foe") in ("pve", "hollow") else 1.0) * (FJ_REGEN_K if f.get("fj") else 1.0)))
         h = max(1, min(h, regen_budget))
@@ -1456,13 +1457,13 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
         if bank and foe["hp"] > 0:
             _blade_fx(f, foe, t, rng, ev)
-    elif action == "b2":  # the blade's second simple ability (data_zanpakuto.blade_b2): guard / focus / snare / drain / hex
-        u, foe = f["b2"], state["b" if side == "a" else "a"]
+    elif action in ("b2", "b3", "b4"):  # the blade's simple abilities (data_zanpakuto.blade_b2 / blade_extra): guard / focus / snare / drain / hex ...
+        u, foe = f[action], state["b" if side == "a" else "a"]
         bank = f["form"]["on"] == 2
         if bank and u.get("bk"):
             u = {**u, **u["bk"]}
         f["re"] -= int(f["max_re"] * u["cost"])
-        _x(f)["b2_cd"] = u["cd"]
+        _x(f)[action + "_cd"] = u["cd"]
         ev.append({"k": "b2", "a": f["name"], "fa": u["fa"], "en": u["en"], "bk": int(bank)})
         if u.get("mult"):
             _deal(state, side, u["mult"], rng, ev, "bt", allow_procs=True, extra_pierce=u.get("pierce", 0.0))
@@ -1477,6 +1478,8 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             if h > 0:
                 f["hp"] += h
                 ev.append({"k": "heal", "a": f["name"], "n": h})
+        if u.get("cleanse"):
+            f["fx"] = [x for x in f["fx"] if x["k"] not in ("burn", "poison", "bleed", "skip", "weaken")]
         if u.get("buff"):
             _x(f)["buff_t"], _x(f)["buff_m"] = int(u["buff"][0]) + 1, float(u["buff"][1])
             ev.append({"k": "gen", "a": f["name"], "skill": "focus"})
@@ -1872,7 +1875,7 @@ def _ai_ab(state, side, rng):
     if can(f, "if", state) and r < 0.4:
         return "if"
     ready = []
-    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bu", "bt", "b2", "gs"):
+    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bu", "bt", "b2", "b3", "b4", "gs"):
         if not can(f, act, state):
             continue
         a, t = _ab(f, act)

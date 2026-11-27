@@ -19,6 +19,8 @@ PLAYER_HP_K = 1.35   # x on a player's max HP. Heals / shields / DoT are measure
 # own turn. Before: 3% of the old pool + the pet's share + Kyōka's 10% = often 10%+ a turn, more than a fair blow.
 PASSIVE_REGEN_CAP = 0.060        # outside duels (hunts, dungeons, bosses)
 PASSIVE_REGEN_CAP_DUEL = 0.050   # players against players
+REGEN_MOD_CAP = 0.45              # Nov 27: ceiling of per-turn regen from the regen stat (gear / pet / artifact) outside duels
+REGEN_MOD_CAP_DUEL = 0.050        # duels keep the old 5% budget (Nov 26 anti-stall balance)
 KYOKA_HEAL_SHARE = 0.05          # Kyōka Suigetsu's Shikai heal per turn (was 10% of max HP)
 
 # ---- duel hit cap follows power ----------------------------------------------------------------------------------

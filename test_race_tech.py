@@ -104,9 +104,9 @@ class StatScalingTests(unittest.TestCase):
             self.assertGreater(E.strike_base(hi, "abl"), E.strike_base(lo, "abl") + 60, race)
             self.assertEqual(E.strike_base(hi, "atk"), E.strike_base(lo, "atk"), race)  # plain attack: Zanjutsu only
 
-    def test_heavy_uses_zanjutsu_and_reiatsu(self):
+    def test_heavy_uses_zanjutsu_only(self):
         a, b, c = self._f("quincy"), self._f("quincy", reiatsu=140), self._f("quincy", hoho=140)
-        self.assertGreater(E.strike_base(b, "hvy"), E.strike_base(a, "hvy"))
+        self.assertEqual(E.strike_base(b, "hvy"), E.strike_base(a, "hvy"))  # Nov 27 round 4: heavy is pure Zanjutsu
         self.assertEqual(E.strike_base(c, "hvy"), E.strike_base(a, "hvy"))
 
     def test_fullbringer_leans_on_the_weapon(self):
