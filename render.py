@@ -238,7 +238,13 @@ def events_text(lang: str, events: list) -> str:
         elif k == "bu":  # blade ultimate
             out.append(f"👑 {a}: <b>{e.get('fa' if lang == 'fa' else 'en')}</b>!")
         elif k == "bt":  # blade technique
-            out.append(pick(lang, "lg_bt_" + str(e.get("kind")), a=a))
+            if e.get("bk") and e.get("fa"):  # Nov 27: the Bankai form of the technique has its own name
+                out.append(f"💥 {a}: <b>{e.get('fa' if lang == 'fa' else 'en')}</b>!")
+            else:
+                out.append(pick(lang, "lg_bt_" + str(e.get("kind")), a=a))
+        elif k == "b2":  # the blade's second simple ability
+            out.append(f"💥 {a}: <b>{e.get('fa' if lang == 'fa' else 'en')}</b>!" if e.get("bk")
+                       else f"🔰 {a}: <b>{e.get('fa' if lang == 'fa' else 'en')}</b>!")
         elif k == "gen":  # general skill (any race)
             out.append(pick(lang, "lg_gen_" + str(e.get("skill")), a=a, n=n))
         elif k == "bount_seal":

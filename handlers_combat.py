@@ -118,9 +118,20 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
     if E.can(f, "sg"):  # race signature move: Shunpo / Hirenkyaku / Cero / Fullbring / Fighting spirit
         key = "a_sg_cero_fire" if f.get("sig") == "cero" and (f.get("x") or {}).get("charge") else "a_sg_" + f["sig"]
         special.append(mk(ab_label("sg") or ctx.t(key), "sg"))
-    if E.can(f, "bt"):  # the blade's own technique (after Shikai)
+    if E.can(f, "bt"):  # the blade's own technique (after Shikai); in Bankai its deadlier form
         bt = f["bt"]
-        special.append(mk(f"🗡 {bt['blade_fa' if fa else 'blade_en']}: {bt['fa' if fa else 'en']}", "bt"))
+        if f["form"]["on"] == 2 and bt.get("bk"):
+            bt = {**bt, **bt["bk"]}
+            special.append(mk(f"💥 {bt['fa' if fa else 'en']}", "bt"))
+        else:
+            special.append(mk(f"🗡 {bt['blade_fa' if fa else 'blade_en']}: {bt['fa' if fa else 'en']}", "bt"))
+    if E.can(f, "b2"):  # the blade's second simple ability (after Shikai); in Bankai its deadlier form
+        b2 = f["b2"]
+        if f["form"]["on"] == 2 and b2.get("bk"):
+            b2 = {**b2, **b2["bk"]}
+            special.append(mk(f"💥 {b2['fa' if fa else 'en']}", "b2"))
+        else:
+            special.append(mk(f"🔰 {b2['fa' if fa else 'en']}", "b2"))
     if f.get("blade") == "kyoka_suigetsu":
         shikai = bool((f.get("x") or {}).get("kyoka_shikai_t", 0) > 0)
         names = (["🌫️ توهم مطلق" if fa else "🌫️ Absolute Illusion", "🪞 دنیای آینه‌ای" if fa else "🪞 Mirror World",

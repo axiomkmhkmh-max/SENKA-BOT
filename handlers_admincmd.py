@@ -22,7 +22,7 @@ from i18n import esc, fnum, t
 from security import allow
 from service_admin_tools import (MAX_COINS, MAX_QTY, _DIG, add_tokens, artifact_free, artifact_give, artifact_take, auto_code,
                                  code_state, create_code, delete_code, find_artifacts, find_items, get_code, gift_all,
-                                 hogyoku_give, hogyoku_info, list_codes, parse_amount, redeem, rewards_text, set_code_active,
+                                 hogyoku_clear_all, hogyoku_give, hogyoku_info, list_codes, parse_amount, redeem, rewards_text, set_code_active,
                                  set_tokens, validate_rewards)
 from service_player import add_coins, add_xp, get_char, touch_user, user_lang
 from ui import Out, action, chunk, head, nav
@@ -546,6 +546,30 @@ async def c_hogyoku(e: Env):
     if not h:
         return await e.say(e.t("🔮 هوگیوکو هنوز صاحبی ندارد.", "🔮 The Hōgyoku has no holder yet."))
     await e.say(f"🔮 {esc(h[1])} (<code>{h[0]}</code>) · {e.t('سطح', 'Lv')} {h[2]} · {e.t('از', 'since')} {_fmt_ts(h[3])}")
+
+
+@acmd("clear_hogyoku", 80, "/clear_hogyoku", "گرفتن هوگیوکو (گوی و پاره‌ها) از همه (با تایید)", "Take the Hōgyoku (orb and shards) from everyone (needs confirmation)")
+async def c_clear_hogyoku(e: Env):
+    code = str(random.randint(100000, 999999))
+    await col("admin_hog_confirms").update_one({"admin": e.uid}, {"$set": {"code": code, "at": int(time.time())}}, upsert=True)
+    h = await hogyoku_info()
+    who = f"{esc(h[1])} (<code>{h[0]}</code>)" if h else "—"
+    n = await col("characters").count_documents({"artifact": "art_hogyoku"})
+    await e.say(e.t(f"⚠️ <b>گرفتن هوگیوکو از همه</b>\n🔮 گوی: {who}\n🧩 پاره‌ی هوگیوکو: {n} نفر\nگوی بی‌صاحب می‌ماند تا با <code>/give_hogyoku</code> به کسی بدهی.\nبرای تایید تا ۲ دقیقه: <code>/clear_hogyoku_yes {code}</code>",
+                    f"⚠️ <b>Take the Hōgyoku from everyone</b>\n🔮 Orb: {who}\n🧩 Shard holders: {n}\nThe orb stays vacant until you <code>/give_hogyoku</code> it.\nConfirm within 2 minutes: <code>/clear_hogyoku_yes {code}</code>"))
+
+
+@acmd("clear_hogyoku_yes", 80, "/clear_hogyoku_yes <code>", "تایید گرفتن هوگیوکو", "Confirm taking the Hōgyoku")
+async def c_clear_hogyoku_yes(e: Env):
+    d = await col("admin_hog_confirms").find_one_and_delete({"admin": e.uid})
+    if not d or not e.args or e.args[0] != d["code"] or time.time() - d["at"] > 120:
+        return await e.say(e.t("❌ کد تایید اشتباه است یا منقضی شده.", "❌ Wrong or expired confirmation code."))
+    res = await hogyoku_clear_all()
+    await alog(e.uid, "clear_hogyoku", None, {"orb": res["orb"], "shards": res["shards"]}, None, "cmd")
+    for uid in {res["orb"], *res["shards"]} - {None}:
+        await _dm(e.bot, uid, "⚠️ هوگیوکو توسط ادمین از همه گرفته شد.", "⚠️ An admin took the Hōgyoku from everyone.")
+    await e.say(e.t(f"✅ هوگیوکو از همه گرفته شد.\n🔮 گوی: {res['flags']} پرچم پاک شد\n🧩 پاره: {len(res['shards'])} نفر\n⚔️ دوئل باز بسته‌شده: {res['duels']}",
+                    f"✅ The Hōgyoku was taken from everyone.\n🔮 Orb: {res['flags']} flag(s) cleared\n🧩 Shards: {len(res['shards'])} holder(s)\n⚔️ Open duels closed: {res['duels']}"))
 
 
 @acmd("give_hogyoku", 80, "/give_hogyoku <id|@user|reply>", "دادن هوگیوکو", "Give the Hōgyoku")

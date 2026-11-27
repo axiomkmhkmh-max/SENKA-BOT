@@ -117,7 +117,7 @@ def _new_x():
             "stun_im": 0,
             # Kyōka Suigetsu: separate cooldowns and short-lived control effects.
             "ks_cd": {}, "ks_mirror": 0, "ks_dom": 0, "ks_dodge": 0, "ks_def_down": 0, "ks_decoy": 0, "hog_stage": 0,
-            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0, "bu_cd": 0}
+            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0, "bu_cd": 0, "b2_cd": 0}
 
 
 def _x(f):
@@ -874,9 +874,9 @@ def can(f, action, state=None):
             if t["spec"].get("gather"):
                 return _x(f)["slash"] > 0 and ab_can(state, f, "gt")
             return ab_can(state, f, "gt")
-        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "bu", "gs", "ch") and bhas(f, "seal"):
+        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "b2", "bu", "gs", "ch") and bhas(f, "seal"):
             return False
-        if action == "bt" and not gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"):
+        if action in ("bt", "b2") and not gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"):
             return False  # the blade's own technique comes with Shikai
     if action in ("sk", "if"):
         return False
@@ -915,6 +915,8 @@ def can(f, action, state=None):
                 and gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"))
     if action == "bt":  # the blade's own technique (after Shikai): its own cost and cooldown
         return bool(f.get("bt")) and _x(f)["tcd"] <= 0 and f["re"] >= f["max_re"] * f["bt"]["cost"]
+    if action == "b2":  # the blade's second simple ability (after Shikai); in Bankai it turns into its deadlier form
+        return bool(f.get("b2")) and _x(f).get("b2_cd", 0) <= 0 and f["re"] >= f["max_re"] * f["b2"]["cost"]
     if action == "gs":  # general skill chosen in the profile: any race, own cost and cooldown
         spec = GENERAL_SKILLS.get(f.get("gen"))
         return bool(spec) and _x(f)["gcd"] <= 0 and f["re"] >= f["max_re"] * spec["cost"]
@@ -1041,6 +1043,8 @@ def start_turn(state, rng):
         fs["kyoka_shikai_cd"] -= 1
     if fs.get("bu_cd", 0) > 0:
         fs["bu_cd"] -= 1
+    if fs.get("b2_cd", 0) > 0:
+        fs["b2_cd"] -= 1
     for key in list((fs.get("ks_cd") or {})):
         fs["ks_cd"][key] = max(0, int(fs["ks_cd"][key]) - 1)
         if fs["ks_cd"][key] <= 0:
@@ -1433,20 +1437,49 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
         ev.append({"k": "garganta", "a": f["name"]})
     elif action == "bt":  # blade technique: pierce / bleed / twin / heavy, by the blade chosen
         t = f["bt"]
+        bank = f["form"]["on"] == 2
+        if bank and t.get("bk"):  # Nov 27: in Bankai the technique becomes its deadlier form (data_zanpakuto.blade_technique["bk"])
+            t = {**t, **t["bk"]}
         f["re"] -= int(f["max_re"] * t["cost"])
         _x(f)["tcd"] = t["cd"]
-        ev.append({"k": "bt", "a": f["name"], "kind": t["kind"]})
-        bk = fixed_k(f, "blade") * (float(t.get("bk_mult", 1.0)) if f["form"]["on"] == 2 else 1.0)  # Bankai can sharpen a blade technique
+        ev.append({"k": "bt", "a": f["name"], "kind": t["kind"], "bk": int(bank and bool(f["bt"].get("bk"))), "fa": t.get("fa"), "en": t.get("en")})
+        bk = fixed_k(f, "blade") * (float(t.get("bk_mult", 1.0)) if bank else 1.0)  # Bankai can sharpen a blade technique
         if t["kind"] == "twin":
             _deal(state, side, t["mult"] * bk, rng, ev, "bt", allow_procs=True)
             if state["b" if side == "a" else "a"]["hp"] > 0:
                 _deal(state, side, t["mult"] * bk, rng, ev, "bt", allow_procs=True)
         else:
             _deal(state, side, t["mult"] * bk, rng, ev, "bt", allow_procs=True, extra_pierce=t.get("pierce", 0.0))
-            foe = state["b" if side == "a" else "a"]
-            if t.get("bleed") and foe["hp"] > 0:
-                add_fx(foe, "bleed", DOT_TURNS["bleed"])
-                ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
+        foe = state["b" if side == "a" else "a"]
+        if t.get("bleed") and foe["hp"] > 0:
+            add_fx(foe, "bleed", DOT_TURNS["bleed"])
+            ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
+        if bank and foe["hp"] > 0:
+            _blade_fx(f, foe, t, rng, ev)
+    elif action == "b2":  # the blade's second simple ability (data_zanpakuto.blade_b2): guard / focus / snare / drain / hex
+        u, foe = f["b2"], state["b" if side == "a" else "a"]
+        bank = f["form"]["on"] == 2
+        if bank and u.get("bk"):
+            u = {**u, **u["bk"]}
+        f["re"] -= int(f["max_re"] * u["cost"])
+        _x(f)["b2_cd"] = u["cd"]
+        ev.append({"k": "b2", "a": f["name"], "fa": u["fa"], "en": u["en"], "bk": int(bank)})
+        if u.get("mult"):
+            _deal(state, side, u["mult"], rng, ev, "bt", allow_procs=True, extra_pierce=u.get("pierce", 0.0))
+        if foe["hp"] > 0:
+            _blade_fx(f, foe, u, rng, ev)
+        if u.get("shield") and f["hp"] > 0:
+            n = _shield_add(f, max(1, int(_hb(f) * float(u["shield"]))))
+            if n:
+                ev.append({"k": "gen", "a": f["name"], "skill": "guard", "n": n})
+        if u.get("heal") and f["hp"] > 0:
+            h = min(f["max_hp"] - f["hp"], int(_hb(f) * float(u["heal"])))
+            if h > 0:
+                f["hp"] += h
+                ev.append({"k": "heal", "a": f["name"], "n": h})
+        if u.get("buff"):
+            _x(f)["buff_t"], _x(f)["buff_m"] = int(u["buff"][0]) + 1, float(u["buff"][1])
+            ev.append({"k": "gen", "a": f["name"], "skill": "focus"})
     elif action == "bu":  # blade ultimate (data_zanpakuto.BLADE_ULT)
         u, foe = f["bu"], state["b" if side == "a" else "a"]
         if f["form"]["on"] == 2 and u.get("bk"):  # Bankai: the finisher turns into the blade's Bankai technique
@@ -1682,6 +1715,21 @@ def _parse_kido(f, action):
     return action
 
 
+def _blade_fx(f, foe, spec, rng, ev):
+    """Status effects of a blade ability (Nov 27): spec["fx"] is one effect or a list; "skip" freezes the foe for a turn with chance skip_p."""
+    fx = spec.get("fx")
+    for k in ([fx] if isinstance(fx, str) else list(fx or [])):
+        if foe["hp"] <= 0:
+            return
+        if k == "skip":
+            if rng.random() < spec.get("skip_p", 0.5):
+                add_fx(foe, "skip", 1)
+                ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "freeze"})
+        else:
+            add_fx(foe, k, DOT_TURNS.get(k, 3))
+            ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": k})
+
+
 def do_action(state, action, rng, max_turns=MAX_TURNS):
     """Resolve one action; control effects it causes are measured against the acting fighter (see _control_potency)."""
     prev = dict(_ACTOR)
@@ -1824,7 +1872,7 @@ def _ai_ab(state, side, rng):
     if can(f, "if", state) and r < 0.4:
         return "if"
     ready = []
-    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bu", "bt", "gs"):
+    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bu", "bt", "b2", "gs"):
         if not can(f, act, state):
             continue
         a, t = _ab(f, act)

@@ -285,7 +285,7 @@ def _tier_str(b, lang):
 async def blade_abilities(ctx, arg):
     """Nov 27: the abilities panel of a blade: technique, finisher, Bankai finisher, bonuses and how to use them in a fight.
     arg = blade id (default: the chosen blade). Buttons let the player look at any blade they can reach."""
-    from data_zanpakuto import BLADE_STYLE, BLADE_TECH_COST, blade_technique, blade_ultimate, bankai_shout
+    from data_zanpakuto import BLADE_STYLE, BLADE_TECH_COST, bankai_shout, blade_b2, blade_technique, blade_ultimate
     ch, z = await _state(ctx.uid)
     if not ch:
         return Out(ctx.t("not_registered"), [nav(ctx)])
@@ -328,6 +328,30 @@ async def blade_abilities(ctx, arg):
             lines.append(f"🗡 <b>{t['fa' if fa else 'en']}</b> — " + ((f"ضرب ×{t['mult']}" if fa else f"power x{t['mult']}")
                          + ((" · " + " · ".join(extra)) if extra else "")
                          + (f" · هزینه {_pct(cost)} ریاتسو · کول‌داون {t['cd']}" if fa else f" · cost {_pct(cost)} reiatsu · cooldown {t['cd']}")))
+            if t.get("bk"):  # Nov 27: what the technique becomes in Bankai
+                tb = {**t, **t["bk"]}
+                ex = []
+                if tb.get("pierce"): ex.append((f"{_pct(tb['pierce'])} نفوذ" if fa else f"{_pct(tb['pierce'])} pierce"))
+                fxn = {"burn": ("سوختگی", "burn"), "bleed": ("خون‌ریزی", "bleed"), "weaken": ("تضعیف", "weaken"), "skip": ("یخ‌زدگی", "freeze")}
+                for k_ in ([tb["fx"]] if isinstance(tb.get("fx"), str) else list(tb.get("fx") or [])):
+                    ex.append(fxn.get(k_, (k_, k_))[i])
+                lines.append(f"   💥 {'در بانکای' if fa else 'In Bankai'}: <b>{tb['fa' if fa else 'en']}</b> — "
+                             + (f"ضرب ×{tb['mult']}" if fa else f"power x{tb['mult']}") + ((" · " + " · ".join(ex)) if ex else ""))
+        b2 = blade_b2(bid)
+        if b2:  # the second simple ability and its Bankai form
+            def _b2(x):
+                ex = []
+                if x.get("mult"): ex.append((f"ضرب ×{x['mult']}" if fa else f"power x{x['mult']}"))
+                if x.get("shield"): ex.append((f"سپر {_pct(x['shield'])}" if fa else f"{_pct(x['shield'])} barrier"))
+                if x.get("heal"): ex.append((f"ترمیم {_pct(x['heal'])}" if fa else f"{_pct(x['heal'])} heal"))
+                if x.get("buff"): ex.append((f"آسیب ×{x['buff'][1]} برای {x['buff'][0]} نوبت" if fa else f"damage x{x['buff'][1]} for {x['buff'][0]} turns"))
+                fxn = {"burn": ("سوختگی", "burn"), "bleed": ("خون‌ریزی", "bleed"), "weaken": ("تضعیف", "weaken"), "skip": ("یخ‌زدگی", "freeze")}
+                for k_ in ([x["fx"]] if isinstance(x.get("fx"), str) else list(x.get("fx") or [])):
+                    ex.append(fxn.get(k_, (k_, k_))[i] + (f" {_pct(x['skip_p'])}" if k_ == "skip" and x.get("skip_p") else ""))
+                return " · ".join(ex)
+            lines.append(f"🔰 <b>{b2['fa' if fa else 'en']}</b> — {_b2(b2)} · " + (f"هزینه {_pct(b2['cost'])} ریاتسو · کول‌داون {b2['cd']}" if fa else f"cost {_pct(b2['cost'])} reiatsu · cooldown {b2['cd']}"))
+            bb = {**b2, **b2["bk"]}
+            lines.append(f"   💥 {'در بانکای' if fa else 'In Bankai'}: <b>{bb['fa' if fa else 'en']}</b> — {_b2(bb)}")
         u = blade_ultimate(bid)
         if u:
             def _ult(x):

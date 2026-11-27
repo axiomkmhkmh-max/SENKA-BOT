@@ -20,3 +20,19 @@ its Bankai finisher, bonuses, the Bankai call and how to unlock the buttons in a
 **Bug fix: blade ability buttons never appeared** for anyone who had not unlocked Shikai in the Zanpakutō panel (level 20 + bond 50), even though the
 in-fight 🗡 Shikai button opens at level 10. `service_combat.build_player` now gives the technique / finisher to any chosen blade
 (`data_zanpakuto.abilities_open`; flip `ABILITIES_NEED_PROFILE_SHIKAI` to True for the old rule). The in-fight Shikai gate is unchanged.
+
+## Round 3 — simple abilities that change in Bankai, and the Hōgyoku clear
+
+**Every blade now has two simple abilities (besides the finisher), and both turn deadlier when the Bankai is open.**
+- 🗡 technique (`data_zanpakuto.blade_technique`): gets `bk` = Bankai name + more damage + an extra effect (burn / bleed / weaken / freeze chance).
+  Per-kind table `BANKAI_TECH_KIND`, names `BANKAI_TECH_NAME`, hand-tuned `BANKAI_TECH_OVERRIDE` (Zanka, Katen).
+- 🔰 second ability `b2` (`blade_b2`, new engine action `b2`, own cooldown `b2_cd`): guard / focus / snare / drain / hex, per blade
+  (`BLADE_B2`; blades without an entry get one by technique kind). Bankai form: bigger barrier + mend, 1.55x buff, 60% freeze, drain + bleed, double effects.
+- Buttons show the Bankai name with 💥 once the Bankai is open; combat log names the ability. Kyōka keeps its own kit.
+- The «📖 توانایی‌های تیغه» panel lists technique, b2 and finisher with their Bankai forms.
+Files: data_zanpakuto.py, engine.py (`b2` action, `_blade_fx`), service_combat.py, service_fightfx.py, handlers_combat.py, render.py, handlers_zanpakuto.py.
+
+**Hōgyoku taken from everyone**: admin command `/clear_hogyoku` (level 80, two-step: `/clear_hogyoku_yes <code>`).
+It vacates the orb (`hogyoku.main.holder = None`; the document is kept so `hogyoku_state` does not give it to the top Espada again),
+clears the `hogyoku` flag on every character, frees every Hōgyoku Shard relic (`artifact_free("art_hogyoku")`) and closes open Hōgyoku duels.
+Nobody is chased on the wanted list until you `/give_hogyoku` it to someone. Run it once from the admin account.

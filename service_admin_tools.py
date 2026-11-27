@@ -167,10 +167,26 @@ async def hogyoku_give(uid: int):
     return "ok", old
 
 
+async def hogyoku_clear_all():
+    """Take the Hōgyoku orb AND every Hōgyoku Shard relic away from everyone (Nov 27).
+    The orb document stays with `holder: None` (a vacant orb): deleting it would make service_extras.hogyoku_state hand it to the
+    strongest Espada on the next look. A new holder only appears through /give_hogyoku. Open Hōgyoku duels are closed.
+    -> {"orb": previous holder uid or None, "flags": characters that lost the flag, "shards": [uids who held a Shard], "duels": closed duels}"""
+    d = await col("hogyoku").find_one({"_id": "main"}) or {}
+    old = d.get("holder")
+    now = int(time.time())
+    await col("hogyoku").update_one({"_id": "main"}, {"$set": {"holder": None, "since": now},
+                                                      "$push": {"history": {"$each": [{"uid": None, "from": old, "at": now, "how": "admin_clear"}], "$slice": -10}}}, upsert=True)
+    r = await col("characters").update_many({"hogyoku": True}, {"$unset": {"hogyoku": ""}})
+    duels = await col("battles").update_many({"mode": "pve", "status": "active", "dungeon.hog": True}, {"$set": {"status": "fled"}})
+    _st, holders = await artifact_free("art_hogyoku")
+    return {"orb": old, "flags": int(r.modified_count), "shards": [h["user_id"] for h in (holders or [])], "duels": int(duels.modified_count)}
+
+
 async def hogyoku_info():
-    """-> (uid, name, level, since) or None."""
+    """-> (uid, name, level, since) or None (None too when the orb is vacant)."""
     d = await col("hogyoku").find_one({"_id": "main"})
-    if not d:
+    if not d or d.get("holder") is None:
         return None
     ch = await get_char(d["holder"])
     return (d["holder"], ch["name"] if ch else "?", ch["level"] if ch else 0, d.get("since", 0))

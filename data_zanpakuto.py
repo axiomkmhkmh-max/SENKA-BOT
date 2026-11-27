@@ -298,6 +298,8 @@ BLADE_TECH_COST = {"cost": 0.09, "cd": 3}
 
 # Owner blades can be stronger than the common ones. Hyōrinmaru: a stronger technique (see znp_lock for the lock).
 BLADE_TECH_OVERRIDE = {
+    "zanka_no_tachi": {"mult": 2.00, "cd": 2},  # Nov 27: Yamamoto's blade is the strongest (see BANKAI_TECH_OVERRIDE)
+    "katen_kyokotsu": {"mult": 1.15, "cd": 2},
     "hyorinmaru": {"mult": 2.10, "pierce": 0.50, "cd": 2},
     # Benihime, mode 1 (attack): a red blast that bites through armour; in Bankai it hits 35% harder.
     "benihime": {"mult": 2.30, "pierce": 0.45, "cd": 2, "cost": 0.10, "bk_mult": 1.35,
@@ -305,14 +307,91 @@ BLADE_TECH_OVERRIDE = {
 }
 
 
+# ---- Bankai versions of the simple abilities (Nov 27) ----
+# A Shikai blade has two simple abilities: the TECHNIQUE (button 🗡) and the second ability b2 (button 🔰, below). When the Bankai opens,
+# BOTH change into a deadlier form with their own name, more damage and an extra effect (the finisher already did: BLADE_ULT["bk"]).
+BANKAI_TECH_OVERRIDE = {"zanka_no_tachi": {"mult": 3.6, "pierce": 0.35, "fx": "burn"}, "katen_kyokotsu": {"mult": 1.75, "fx": ["bleed", "weaken"]}}
+BANKAI_TECH_NAME = {  # blade -> (fa, en) name of the technique while in Bankai
+    "zangetsu": ("گتسوگا: برش سیاه", "Black Getsuga Cut"), "senbonzakura": ("کاگیوشی: بارش تیغه‌ها", "Kageyoshi: Blade Rain"),
+    "hyorinmaru": ("دایگورن: شکافت یخ", "Daiguren: Ice Rend"), "zanka_no_tachi": ("زانکا: برش خاکستر", "Zanka: Ash Cut"),
+    "sode_no_shirayuki": ("هاکا: برش سفید", "Hakka: White Cut"), "zabimaru": ("هیهیو: نیش مار", "Hihiō: Serpent Fang"),
+    "wabisuke": ("وزن پشیمانی", "Weight of Regret"), "minazuki": ("مینازوکی: تیغ خونین", "Minazuki: Bloody Edge"),
+    "kokujo_tengen_myoo": ("کوکوجو: مشت پولادین", "Kokujō: Steel Fist"), "kinshara": ("بوتودان: رقص ضربه", "Butōdan: Strike Dance"),
+    "sakanade": ("ساکانادِه: ضربه‌ی وارونه", "Sakanade: Inverted Cut"), "benihime": ("کانون‌بیراکی: انفجار سرخ", "Kannonbiraki: Crimson Burst"),
+    "katen_kyokotsu": ("کاراماتسو: برش دوگانه", "Karamatsu: Twin Cut"),
+}
+# kind -> what the technique gains in Bankai (applied over the Shikai values)
+BANKAI_TECH_KIND = {
+    "pierce": {"mult": 2.6, "pierce": 0.55, "fx": "weaken"},
+    "bleed": {"mult": 2.3, "fx": "burn"},
+    "twin": {"mult": 1.45, "fx": "bleed"},  # two cuts, each 1.45x
+    "heavy": {"mult": 3.0, "pierce": 0.30, "fx": "skip", "skip_p": 0.35},
+}
+
+# Second ability: kind -> values (base / Bankai). guard: barrier + mend. focus: damage buff. snare: a cut that may freeze the foe.
+# drain: a cut that heals the wielder. hex: a cut that cripples (one effect or a list).
+BLADE_B2_KINDS = {
+    "guard": {"base": {"shield": 0.18, "heal": 0.05}, "bk": {"shield": 0.32, "heal": 0.12, "mult": 1.3}},
+    "focus": {"base": {"buff": (2, 1.25)}, "bk": {"buff": (3, 1.55), "mult": 1.2}},
+    "snare": {"base": {"mult": 1.2, "fx": "skip", "skip_p": 0.30}, "bk": {"mult": 2.1, "fx": "skip", "skip_p": 0.60, "pierce": 0.30}},
+    "drain": {"base": {"mult": 1.4, "heal": 0.06}, "bk": {"mult": 2.3, "heal": 0.14, "fx": "bleed"}},
+    "hex": {"base": {"mult": 1.1, "fx": "weaken"}, "bk": {"mult": 2.0, "fx": ["weaken", "burn"], "pierce": 0.30}},
+}
+BLADE_B2_COST = {"cost": 0.10, "cd": 4}
+BLADE_B2 = {  # blade -> (kind, fa, en, bankai fa, bankai en)
+    "zangetsu": ("focus", "تمرکز تنسا", "Tensa Focus", "گتسوگای سیاه‌پوش", "Black Getsuga Aura"),
+    "senbonzakura": ("guard", "دیوار تیغه‌ها", "Blade Wall", "کاگیوشی: دیوار هزارتیغ", "Kageyoshi: Thousand-Blade Wall"),
+    "hyorinmaru": ("snare", "لمس یخ", "Ice Touch", "دایگورن: انجماد مطلق", "Daiguren: Absolute Freeze"),
+    "zanka_no_tachi": ("hex", "شعله‌ی ملتهب", "Scorching Flame", "زانکا: شعله‌ی نابودگر", "Zanka: Annihilating Flame"),
+    "sode_no_shirayuki": ("snare", "رقص برف", "Snow Dance", "هاکا: یخ‌بندان سفید", "Hakka: White Frost"),
+    "zabimaru": ("drain", "نیش ماری", "Serpent Bite", "هیهیو: بلعیدن", "Hihiō: Devour"),
+    "wabisuke": ("hex", "وزن دوبرابر", "Doubled Weight", "وزن پشیمانیِ بی‌پایان", "Endless Regret"),
+    "minazuki": ("drain", "تیغ شفابخش", "Healing Edge", "ماه خونین", "Blood Moon"),
+    "kokujo_tengen_myoo": ("guard", "زره پولادین", "Steel Armour", "غول زره‌پوش", "Armoured Giant"),
+    "kinshara": ("focus", "نُت تند", "Quickened Note", "بوتودان: رقص زرین", "Butōdan: Golden Dance"),
+    "sakanade": ("hex", "وارونگی", "Inversion", "دنیای وارونه", "Inverted World"),
+    "benihime": ("guard", "حالت دفاعی بنی‌هیمه", "Benihime Guard", "کانون‌بیراکی: بازسازی", "Kannonbiraki: Rebuild"),
+    "katen_kyokotsu": ("snare", "بازی کودکانه", "Children's Game", "بازی بزرگ‌ها", "The Grown-ups' Game"),
+}
+_B2_BY_TECH = {"pierce": "snare", "bleed": "drain", "twin": "focus", "heavy": "guard"}  # blades without an entry above
+
+
 def blade_technique(blade_id: str):
-    """{'kind', 'fa', 'en', ...} for a blade's technique, or None for a blade without one."""
+    """{'kind', 'fa', 'en', ..., 'bk': {...}} for a blade's technique, or None for a blade without one.
+    `bk` holds what changes in Bankai (name, more damage, an extra effect); the engine merges it over the Shikai values."""
     kind = BLADE_TECH.get(blade_id)
     if not kind:
         return None
     stage = BLADE_STAGES.get(blade_id, {}).get("shikai") or (blade_id, blade_id)
-    return {"kind": kind, **BLADE_TECH_KINDS[kind], **BLADE_TECH_COST, **BLADE_TECH_OVERRIDE.get(blade_id, {}),
-            "blade_fa": stage[0], "blade_en": stage[1]}
+    t = {"kind": kind, **BLADE_TECH_KINDS[kind], **BLADE_TECH_COST, **BLADE_TECH_OVERRIDE.get(blade_id, {}),
+         "blade_fa": stage[0], "blade_en": stage[1]}
+    bk = dict(BANKAI_TECH_KIND[kind])
+    if t.get("bk_mult"):  # Benihime keeps her own Bankai multiplier: only the name and the effect change
+        bk.pop("mult", None); bk.pop("pierce", None)
+    bk.update(BANKAI_TECH_OVERRIDE.get(blade_id, {}))
+    nm = BANKAI_TECH_NAME.get(blade_id)
+    bk["fa"], bk["en"] = nm if nm else (f"{t['fa']} (بانکای)", f"{t['en']} (Bankai)")
+    t["bk"] = bk
+    return t
+
+
+def blade_b2(blade_id: str):
+    """The blade's second simple ability {'kind', 'fa', 'en', 'cost', 'cd', ..., 'bk': {...}} or None (Kyōka has its own kit).
+    Every blade with a technique gets one; the kind is a design choice, not canon."""
+    if blade_id == "kyoka_suigetsu" or blade_id not in BLADE_TECH:
+        return None
+    ent = BLADE_B2.get(blade_id)
+    if ent:
+        kind, fa, en, bfa, ben = ent
+    else:
+        kind = _B2_BY_TECH[BLADE_TECH[blade_id]]
+        stage = (BLADE_STAGES.get(blade_id) or {}).get("shikai") or (blade_id, blade_id)
+        fa, en = f"{stage[0]}: حالت ویژه", f"{stage[1]}: Special Stance"
+        bfa, ben = f"{stage[0]}: حالت ویژه (بانکای)", f"{stage[1]}: Special Stance (Bankai)"
+    k = BLADE_B2_KINDS[kind]
+    return {"kind": kind, "fa": fa, "en": en, **BLADE_B2_COST, **k["base"], "bk": {**k["bk"], "fa": bfa, "en": ben}}
+
+
 
 
 # ---- Blade ultimates: every blade's finishing technique (after Shikai), one per blade, own cost / cooldown. ----

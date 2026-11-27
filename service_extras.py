@@ -485,7 +485,7 @@ async def hogyoku_state():
 async def hogyoku_holder():
     """-> (uid, name, level) or None. Shown on the group's "wanted" list."""
     d = await hogyoku_state()
-    if not d:
+    if not d or d.get("holder") is None:  # vacant orb (admin clear): nobody to chase
         return None
     ch = await get_char(d["holder"])
     return (d["holder"], ch["name"], ch["level"]) if ch else None
