@@ -255,7 +255,7 @@ async def build_player(ch: dict, name: str = None):
                      if __import__("data_zanpakuto").abilities_open(zstate) else None)  # the blade's finisher
     fighter["b2"] = (__import__("data_zanpakuto").blade_b2(zstate.get("blade_id"))
                      if __import__("data_zanpakuto").abilities_open(zstate) else None)  # Nov 27: the blade's second simple ability
-    for _slot in ("b3", "b4"):  # Nov 27 round 4: Yamamoto's and Urahara's third and fourth simple abilities
+    for _slot in ("b3", "b4", "b5"):  # Nov 27 round 4: Yamamoto's and Urahara's third and fourth simple abilities
         fighter[_slot] = (__import__("data_zanpakuto").blade_extra(zstate.get("blade_id"), _slot)
                           if __import__("data_zanpakuto").abilities_open(zstate) else None)
     fighter["blade"] = zstate.get("blade_id")  # Pack 1: the in-battle Shikai line speaks this blade's release command

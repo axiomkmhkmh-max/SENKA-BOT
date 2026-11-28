@@ -352,7 +352,7 @@ async def blade_abilities(ctx, arg):
             lines.append(f"🔰 <b>{b2['fa' if fa else 'en']}</b> — {_b2(b2)} · " + (f"هزینه {_pct(b2['cost'])} ریاتسو · کول‌داون {b2['cd']}" if fa else f"cost {_pct(b2['cost'])} reiatsu · cooldown {b2['cd']}"))
             bb = {**b2, **b2["bk"]}
             lines.append(f"   💥 {'در بانکای' if fa else 'In Bankai'}: <b>{bb['fa' if fa else 'en']}</b> — {_b2(bb)}")
-        for _slot, _ic in (("b3", "🔥"), ("b4", "🛠")):  # Nov 27 round 4: Yamamoto's / Urahara's 3rd and 4th simple abilities
+        for _slot, _ic in (("b3", "🔥"), ("b4", "🛠"), ("b5", "☀️")):  # Nov 27 round 4: Yamamoto's / Urahara's 3rd and 4th simple abilities
             ex_ = blade_extra(bid, _slot)
             if ex_:
                 lines.append(f"{_ic} <b>{ex_['fa' if fa else 'en']}</b> — {_b2(ex_)} · " + (f"هزینه {_pct(ex_['cost'])} ریاتسو · کول‌داون {ex_['cd']}" if fa else f"cost {_pct(ex_['cost'])} reiatsu · cooldown {ex_['cd']}"))

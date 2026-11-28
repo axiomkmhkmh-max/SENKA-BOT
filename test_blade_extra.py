@@ -11,7 +11,7 @@ def fighter(blade, bankai=False, race="shinigami"):
     f = E.new_fighter(race, 40, dict(r["stats"]), 100000, 5000,
                       {"attack": 90, "crit": 0.0, "element": "light", "skills": [], "weapon_type": "melee"},
                       armor=10, mods=dict(r["mods"]), race=race, bt=Z.blade_technique(blade))
-    for k in ("b2", "b3", "b4"):
+    for k in ("b2", "b3", "b4", "b5"):
         f[k] = Z.blade_b2(blade) if k == "b2" else Z.blade_extra(blade, k)
     f["bu"], f["blade"] = Z.blade_ultimate(blade), blade
     if bankai:
@@ -29,10 +29,13 @@ class ExtraTests(unittest.TestCase):
             f = fighter(blade)
             for k in ("bt", "b2", "b3", "b4"):
                 self.assertTrue(E.can(f, k), (blade, k))
+        self.assertTrue(E.can(fighter("zanka_no_tachi"), "b5"))
 
     def test_each_extra_resolves_and_starts_its_own_cooldown(self):
         for blade in Z.BLADE_EXTRA:
-            for slot in ("b3", "b4"):
+            for slot in Z.EXTRA_SLOTS:
+                if not Z.blade_extra(blade, slot):
+                    continue
                 for bankai in (False, True):
                     rng = random.Random(3)
                     f = fighter(blade, bankai)

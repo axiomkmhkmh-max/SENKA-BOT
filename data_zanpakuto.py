@@ -298,7 +298,7 @@ BLADE_TECH_COST = {"cost": 0.09, "cd": 3}
 
 # Owner blades can be stronger than the common ones. Hyōrinmaru: a stronger technique (see znp_lock for the lock).
 BLADE_TECH_OVERRIDE = {
-    "zanka_no_tachi": {"mult": 2.00, "cd": 2},  # Nov 27: Yamamoto's blade is the strongest (see BANKAI_TECH_OVERRIDE)
+    "zanka_no_tachi": {"mult": 3.00, "pierce": 0.20, "cd": 2, "cost": 0.10},  # Nov 27: Yamamoto's blade is the strongest (see BANKAI_TECH_OVERRIDE)
     "katen_kyokotsu": {"mult": 1.15, "cd": 2},
     "hyorinmaru": {"mult": 2.10, "pierce": 0.50, "cd": 2},
     # Benihime, mode 1 (attack): a red blast that bites through armour; in Bankai it hits 35% harder.
@@ -310,7 +310,7 @@ BLADE_TECH_OVERRIDE = {
 # ---- Bankai versions of the simple abilities (Nov 27) ----
 # A Shikai blade has two simple abilities: the TECHNIQUE (button 🗡) and the second ability b2 (button 🔰, below). When the Bankai opens,
 # BOTH change into a deadlier form with their own name, more damage and an extra effect (the finisher already did: BLADE_ULT["bk"]).
-BANKAI_TECH_OVERRIDE = {"zanka_no_tachi": {"mult": 3.6, "pierce": 0.35, "fx": "burn"}, "katen_kyokotsu": {"mult": 1.75, "fx": ["bleed", "weaken"]}}
+BANKAI_TECH_OVERRIDE = {"zanka_no_tachi": {"mult": 5.2, "pierce": 0.40, "fx": "burn"}, "katen_kyokotsu": {"mult": 1.75, "fx": ["bleed", "weaken"]}}
 BANKAI_TECH_NAME = {  # blade -> (fa, en) name of the technique while in Bankai
     "zangetsu": ("گتسوگا: برش سیاه", "Black Getsuga Cut"), "senbonzakura": ("کاگیوشی: بارش تیغه‌ها", "Kageyoshi: Blade Rain"),
     "hyorinmaru": ("دایگورن: شکافت یخ", "Daiguren: Ice Rend"), "zanka_no_tachi": ("زانکا: برش خاکستر", "Zanka: Ash Cut"),
@@ -336,6 +336,10 @@ BLADE_B2_KINDS = {
     "snare": {"base": {"mult": 1.2, "fx": "skip", "skip_p": 0.30}, "bk": {"mult": 2.1, "fx": "skip", "skip_p": 0.60, "pierce": 0.30}},
     "drain": {"base": {"mult": 1.4, "heal": 0.06}, "bk": {"mult": 2.3, "heal": 0.14, "fx": "bleed"}},
     "hex": {"base": {"mult": 1.1, "fx": "weaken"}, "bk": {"mult": 2.0, "fx": ["weaken", "burn"], "pierce": 0.30}},
+}
+BLADE_B2_OVERRIDE = {  # Nov 27 round 4: Ryūjin Jakka's second ability (Burning Blade) hits like a real fire technique
+    "zanka_no_tachi": {"mult": 3.2, "pierce": 0.20, "fx": ["weaken", "burn"], "cd": 3, "cost": 0.11,
+                      "bk": {"mult": 5.0, "pierce": 0.40, "fx": ["weaken", "burn"]}},
 }
 BLADE_B2_COST = {"cost": 0.10, "cd": 4}
 BLADE_B2 = {  # blade -> (kind, fa, en, bankai fa, bankai en)
@@ -389,7 +393,12 @@ def blade_b2(blade_id: str):
         fa, en = f"{stage[0]}: حالت ویژه", f"{stage[1]}: Special Stance"
         bfa, ben = f"{stage[0]}: حالت ویژه (بانکای)", f"{stage[1]}: Special Stance (Bankai)"
     k = BLADE_B2_KINDS[kind]
-    return {"kind": kind, "fa": fa, "en": en, **BLADE_B2_COST, **k["base"], "bk": {**k["bk"], "fa": bfa, "en": ben}}
+    out = {"kind": kind, "fa": fa, "en": en, **BLADE_B2_COST, **k["base"], "bk": {**k["bk"], "fa": bfa, "en": ben}}
+    ov = BLADE_B2_OVERRIDE.get(blade_id)
+    if ov:  # Nov 27 round 4: an owner blade can keep its own numbers
+        out.update({k2: v for k2, v in ov.items() if k2 != "bk"})
+        out["bk"].update(ov.get("bk", {}))
+    return out
 
 
 
@@ -398,12 +407,15 @@ def blade_b2(blade_id: str):
 # Shikai, 💥 with the Bankai name once the Bankai is open. The Bankai itself is the ordinary one: only names and numbers change.
 BLADE_EXTRA = {
     "zanka_no_tachi": {
-        "b3": {"fa": "جوکاکو انجو: دیوار آتش", "en": "Jōkaku Enjō: Wall of Flame", "cost": 0.12, "cd": 5,
-               "shield": 0.28, "mult": 0.9, "fx": "burn",
-               "bk": {"fa": "زانجیتسو گوکوی: حرارت مطلق", "en": "Zanjitsu Gokui: Absolute Heat", "shield": 0.45, "heal": 0.08, "mult": 1.6, "fx": ["burn", "weaken"]}},
-        "b4": {"fa": "گوکا: انفجار آتشین", "en": "Gōka: Great Blast", "cost": 0.15, "cd": 5,
-               "mult": 2.8, "pierce": 0.20, "fx": "weaken",
-               "bk": {"fa": "کاکا جومانوکوشی: ارتش خاکستر", "en": "Kaka Jūmanokushi: Army of Ash", "mult": 4.4, "pierce": 0.40, "fx": ["weaken", "burn"]}},
+        "b3": {"fa": "جوکاکو انجو: دیوار آتش", "en": "Jōkaku Enjō: Wall of Flame", "cost": 0.12, "cd": 4,
+               "shield": 0.40, "mult": 2.2, "pierce": 0.10, "fx": "burn",
+               "bk": {"fa": "زانجیتسو گوکوی: حرارت مطلق", "en": "Zanjitsu Gokui: Absolute Heat", "shield": 0.60, "heal": 0.12, "mult": 3.6, "pierce": 0.25, "fx": ["burn", "weaken"]}},
+        "b4": {"fa": "اِنِتسو جیگوکو: جهنم شعله‌ور", "en": "Ennetsu Jigoku: Scorching Hell", "cost": 0.15, "cd": 4,
+               "mult": 4.4, "pierce": 0.25, "fx": ["burn", "weaken"],
+               "bk": {"fa": "کاکا جومانوکوشی: ارتش خاکستر", "en": "Kaka Jūmanokushi: Army of Ash", "mult": 6.4, "pierce": 0.45, "fx": ["weaken", "burn"]}},
+        "b5": {"fa": "گوکا: انفجار آتشین", "en": "Gōka: Great Blast", "cost": 0.18, "cd": 5,
+               "mult": 5.0, "pierce": 0.30, "fx": "weaken", "buff": (2, 1.20),
+               "bk": {"fa": "کیوکوجیتسوجین: خورشید سوزان", "en": "Kyokujitsujin: Burning Sun", "mult": 7.4, "pierce": 0.50, "fx": ["weaken", "burn"], "buff": (3, 1.40)}},
     },
     "benihime": {
         "b3": {"fa": "شیباری: زندان خون", "en": "Shibari: Blood Prison", "cost": 0.12, "cd": 5,
@@ -414,11 +426,11 @@ BLADE_EXTRA = {
                "bk": {"fa": "بازسازی کامل بدن", "en": "Perfect Body Modification", "heal": 0.18, "buff": (3, 1.45), "cleanse": True}},
     },
 }
-EXTRA_SLOTS = ("b3", "b4")
+EXTRA_SLOTS = ("b3", "b4", "b5")
 
 
 def blade_extra(blade_id: str, slot: str):
-    """Third / fourth simple ability of a blade (slot 'b3' | 'b4') or None. Same shape as blade_b2."""
+    """Third / fourth simple ability of a blade (slot 'b3' | 'b4' | 'b5') or None. Same shape as blade_b2."""
     ent = (BLADE_EXTRA.get(blade_id) or {}).get(slot)
     if not ent:
         return None
@@ -435,9 +447,9 @@ BLADE_ULT = {
     "zangetsu": {"fa": "گتسوگا تنشو", "en": "Getsuga Tenshō", "mult": 5.2, "pierce": 0.30, "buff": (2, 1.25), "cd": 5},
     "senbonzakura": {"fa": "کاگیوشی سنبونزاکورا", "en": "Senkei Senbonzakura", "mult": 4.6, "pierce": 0.45, "fx": "bleed", "cd": 5},
     "hyorinmaru": {"fa": "ریوسنکا", "en": "Ryūsenka", "mult": 5.0, "pierce": 0.45, "fx": "skip", "skip_p": 0.55, "cd": 5},
-    "zanka_no_tachi": {"fa": "ریوجین جاکا: ملتهب", "en": "Ryūjin Jakka: Scorch", "mult": 6.2, "pierce": 0.30, "fx": "burn", "cd": 5,
+    "zanka_no_tachi": {"fa": "ریوجین جاکا: ملتهب", "en": "Ryūjin Jakka: Scorch", "mult": 8.0, "pierce": 0.35, "fx": "burn", "cd": 5,
                        # Nov 27: in Bankai the finisher becomes the forbidden Zanka no Tachi: all creation turned to ash
-                       "bk": {"fa": "زانکا نو تاچی: خاکستر مطلق", "en": "Zanka no Tachi: Absolute Ash", "mult": 8.2, "pierce": 0.50,
+                       "bk": {"fa": "زانکا نو تاچی: خاکستر مطلق", "en": "Zanka no Tachi: Absolute Ash", "mult": 11.0, "pierce": 0.55,
                               "fx": "burn", "cost": 0.30}},
     "sode_no_shirayuki": {"fa": "تسوگی نو مای: هاکورن", "en": "Tsugi no Mai: Hakuren", "mult": 4.2, "pierce": 0.35, "fx": "skip", "skip_p": 0.5, "cd": 5},
     "zabimaru": {"fa": "هیهیو زابیمارو", "en": "Hihiō Zabimaru", "mult": 5.0, "pierce": 0.30, "fx": "bleed", "cd": 5},
@@ -473,3 +485,49 @@ def blade_ultimate(blade_id: str):
         stage = BLADE_STAGES.get(blade_id, {}).get("shikai") or (blade_id, blade_id)
         spec = dict(BLADE_ULT_KIND[kind], fa=f"رهایی نهایی {stage[0]}", en=f"Final Release: {stage[1]}")
     return {"hits": 1, "cost": BLADE_ULT_COST, **spec}
+
+
+
+# ---- Nov 27 round 4: every blade hits harder (Ryūjin Jakka was buffed by hand above and is left out) ----
+# Scales the damage, shield, heal and buff numbers of every shared table once, at import. Kyōka Suigetsu has its own kit (engine ks1..ks5).
+_HAND_TUNED = {"zanka_no_tachi"}
+
+
+def _buff_spec(d, mult=1.45, soft=1.30, pierce=0.05):
+    if not isinstance(d, dict):
+        return
+    if "mult" in d:
+        d["mult"] = round(d["mult"] * mult, 2)
+    for k in ("shield", "heal"):
+        if k in d:
+            d[k] = round(min(0.9, d[k] * soft), 3)
+    if d.get("pierce"):
+        d["pierce"] = round(min(0.60, d["pierce"] + pierce), 2)
+    if d.get("buff"):
+        d["buff"] = (d["buff"][0], round(d["buff"][1] + 0.10, 2))
+    if isinstance(d.get("bk"), dict):
+        _buff_spec(d["bk"], mult, soft, pierce)
+
+
+def _buff_all():
+    for tbl in (BLADE_TECH_KINDS, BANKAI_TECH_KIND):
+        for spec in tbl.values():
+            _buff_spec(spec)
+    for spec in BLADE_B2_KINDS.values():
+        _buff_spec(spec["base"]); _buff_spec(spec["bk"])
+    for tbl in (BLADE_TECH_OVERRIDE, BANKAI_TECH_OVERRIDE, BLADE_B2_OVERRIDE):
+        for bid, spec in tbl.items():
+            if bid not in _HAND_TUNED:
+                _buff_spec(spec)
+    for bid, slots in BLADE_EXTRA.items():
+        if bid not in _HAND_TUNED:
+            for spec in slots.values():
+                _buff_spec(spec)
+    for bid, spec in BLADE_ULT.items():
+        if bid not in _HAND_TUNED:
+            _buff_spec(spec, mult=1.30, soft=1.20, pierce=0.05)
+    for spec in BLADE_ULT_KIND.values():
+        _buff_spec(spec, mult=1.30, soft=1.20, pierce=0.05)
+
+
+_buff_all()

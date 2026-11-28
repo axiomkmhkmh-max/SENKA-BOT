@@ -132,7 +132,7 @@ def _act_rows(ctx, f, sid, pub=False, pot=False, dist=None, side_on=False):
             special.append(mk(f"💥 {b2['fa' if fa else 'en']}", "b2"))
         else:
             special.append(mk(f"🔰 {b2['fa' if fa else 'en']}", "b2"))
-    for _slot, _ic in (("b3", "🔥"), ("b4", "🛠")):  # Nov 27 round 4: Yamamoto's / Urahara's 3rd and 4th simple abilities
+    for _slot, _ic in (("b3", "🔥"), ("b4", "🛠"), ("b5", "☀️")):  # Nov 27 round 4: Yamamoto's / Urahara's 3rd and 4th simple abilities
         if E.can(f, _slot):
             u = f[_slot]
             if f["form"]["on"] == 2 and u.get("bk"):

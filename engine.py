@@ -117,7 +117,7 @@ def _new_x():
             "stun_im": 0,
             # Kyōka Suigetsu: separate cooldowns and short-lived control effects.
             "ks_cd": {}, "ks_mirror": 0, "ks_dom": 0, "ks_dodge": 0, "ks_def_down": 0, "ks_decoy": 0, "hog_stage": 0,
-            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0, "bu_cd": 0, "b2_cd": 0, "b3_cd": 0, "b4_cd": 0}
+            "kyoka_shikai_t": 0, "kyoka_shikai_cd": 0, "kyoka_hogyoku": 0, "bu_cd": 0, "b2_cd": 0, "b3_cd": 0, "b4_cd": 0, "b5_cd": 0}
 
 
 def _x(f):
@@ -874,7 +874,7 @@ def can(f, action, state=None):
             if t["spec"].get("gather"):
                 return _x(f)["slash"] > 0 and ab_can(state, f, "gt")
             return ab_can(state, f, "gt")
-        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "b2", "b3", "b4", "bu", "gs", "ch") and bhas(f, "seal"):
+        if action in ("kd", "bk", "bal", "blv", "bla", "neg", "gar", "bt", "b2", "b3", "b4", "b5", "bu", "gs", "ch") and bhas(f, "seal"):
             return False
         # Nov 27 round 4: the blade's simple abilities (bt / b2 / b3 / b4) no longer wait for the in-fight Shikai button: like Kyōka's, a chosen blade has them from the first turn
     if action in ("sk", "if"):
@@ -914,7 +914,7 @@ def can(f, action, state=None):
                 and gate_ok(state or {"a": f, "b": f}, "a" if (state or {"a": f})["a"] is f else "b", "shikai"))
     if action == "bt":  # the blade's own technique (after Shikai): its own cost and cooldown
         return bool(f.get("bt")) and _x(f)["tcd"] <= 0 and f["re"] >= f["max_re"] * f["bt"]["cost"]
-    if action in ("b2", "b3", "b4"):  # the blade's 2nd / 3rd / 4th simple ability (after Shikai); in Bankai its deadlier form
+    if action in ("b2", "b3", "b4", "b5"):  # the blade's 2nd / 3rd / 4th simple ability (after Shikai); in Bankai its deadlier form
         return bool(f.get(action)) and _x(f).get(action + "_cd", 0) <= 0 and f["re"] >= f["max_re"] * f[action]["cost"]
     if action == "gs":  # general skill chosen in the profile: any race, own cost and cooldown
         spec = GENERAL_SKILLS.get(f.get("gen"))
@@ -1042,7 +1042,7 @@ def start_turn(state, rng):
         fs["kyoka_shikai_cd"] -= 1
     if fs.get("bu_cd", 0) > 0:
         fs["bu_cd"] -= 1
-    for _k in ("b2_cd", "b3_cd", "b4_cd"):
+    for _k in ("b2_cd", "b3_cd", "b4_cd", "b5_cd"):
         if fs.get(_k, 0) > 0:
             fs[_k] -= 1
     for key in list((fs.get("ks_cd") or {})):
@@ -1457,7 +1457,7 @@ def _do_action(state, action, rng, max_turns=MAX_TURNS):
             ev.append({"k": "fx", "a": f["name"], "d": foe["name"], "fx": "bleed"})
         if bank and foe["hp"] > 0:
             _blade_fx(f, foe, t, rng, ev)
-    elif action in ("b2", "b3", "b4"):  # the blade's simple abilities (data_zanpakuto.blade_b2 / blade_extra): guard / focus / snare / drain / hex ...
+    elif action in ("b2", "b3", "b4", "b5"):  # the blade's simple abilities (data_zanpakuto.blade_b2 / blade_extra): guard / focus / snare / drain / hex ...
         u, foe = f[action], state["b" if side == "a" else "a"]
         bank = f["form"]["on"] == 2
         if bank and u.get("bk"):
@@ -1875,7 +1875,7 @@ def _ai_ab(state, side, rng):
     if can(f, "if", state) and r < 0.4:
         return "if"
     ready = []
-    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bu", "bt", "b2", "b3", "b4", "gs"):
+    for act in ("sg", "t1", "t2", "t3", "bal", "blv", "bla", "neg", "bu", "bt", "b2", "b3", "b4", "b5", "gs"):
         if not can(f, act, state):
             continue
         a, t = _ab(f, act)
